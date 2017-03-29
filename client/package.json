@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "autobahn": "^0.11.2",
     "performance-now": "^2.1.0"
   }
 }
