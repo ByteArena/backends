@@ -25,8 +25,7 @@ $ go get ./...
 
 $ # Build and run
 $ go build && HOST=$LOCALIP PORT=8888 TPS=10 AGENTS=2 ./server
-
-// ctrl-c to tear down
+# ctrl-c to tear down
 ```
 
 Options:
