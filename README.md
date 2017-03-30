@@ -1,5 +1,4 @@
-# bytearena
-Byte Arena
+# Byte Arena
 
 ## Install
 
