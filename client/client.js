@@ -1,6 +1,7 @@
 const comm = require('./utils/comm');
 const now = require('performance-now');
 const Vector2 = require('./utils/vector2');
+const { map } = require('./utils/calc');
 
 process.on('SIGTERM', () => process.exit());
 
@@ -35,9 +36,16 @@ function move(tickturn, perception) {
     const attractorpos = Vector2.fromArray(perception.Objective.Attractor);
     const curvelocity = Vector2.fromArray(perception.Internal.Velocity);
 
+    const disttotarget = attractorpos.mag();
+    let speed = perception.Specs.MaxSpeed;
+    if(disttotarget < perception.Internal.Proprioception) {
+        // arrival, slow down
+        speed = map(disttotarget, 0, perception.Internal.Proprioception, 0, perception.Specs.MaxSpeed);
+    }
+
     const desired = attractorpos
         .clone()
-        .mag(perception.Specs.MaxSpeed);
+        .mag(speed);
 
     const steering = desired
         .clone()
@@ -46,7 +54,7 @@ function move(tickturn, perception) {
 
     // Pushing batch of mutations for this turn
     this.sendMutations(tickturn, [
-        ['mutationSteer', steering.toArray(3)], // 3: précision
+        ['mutationSteer', steering.toArray(5)], // 3: précision
     ])
     .then(response => {
         measurespeed(start);

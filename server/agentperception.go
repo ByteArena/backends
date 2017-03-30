@@ -19,7 +19,7 @@ type PerceptionExternal struct {
 
 type PerceptionInternal struct {
 	Energy           float64  // niveau en millièmes; reconstitution automatique ?
-	Proprioception   float64  // surface occupée par le corps en rayon par rapport au centre géométrique
+	Proprioception   float64  // rayon de la surface occupée par le corps en rayon par rapport au centre géométrique
 	Temperature      float64  // en degrés
 	Balance          *Vector2 // vecteur de longeur 1 pointant depuis le centre de gravité vers la négative du vecteur gravité
 	Velocity         *Vector2 // vecteur de force (direction, magnitude)
