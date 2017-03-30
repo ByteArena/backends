@@ -12,7 +12,11 @@ type Vector2 struct {
 	y float64
 }
 
-func (v *Vector2) MarshalJSON() ([]byte, error) {
+func NewVector2(x float64, y float64) *Vector2 {
+	return &Vector2{x, y}
+}
+
+func (v Vector2) MarshalJSON() ([]byte, error) {
 	propfmt := "%.4f"
 	buffer := bytes.NewBufferString("[")
 	buffer.WriteString(fmt.Sprintf(propfmt, v.x))
@@ -24,18 +28,18 @@ func (v *Vector2) MarshalJSON() ([]byte, error) {
 
 func (a *Vector2) clone() *Vector2 {
 	return &Vector2{
-		x: a.y,
+		x: a.x,
 		y: a.y,
 	}
 }
 
-func (a *Vector2) add(b Vector2) *Vector2 {
+func (a *Vector2) add(b *Vector2) *Vector2 {
 	a.x += b.x
 	a.y += b.y
 	return a
 }
 
-func (a *Vector2) sub(b Vector2) *Vector2 {
+func (a *Vector2) sub(b *Vector2) *Vector2 {
 	a.x -= b.x
 	a.y -= b.y
 	return a
@@ -47,23 +51,23 @@ func (a *Vector2) scale(scale float64) *Vector2 {
 	return a
 }
 
-func (a *Vector2) mult(b Vector2) *Vector2 {
+func (a *Vector2) mult(b *Vector2) *Vector2 {
 	a.x *= b.x
 	a.y *= b.y
 	return a
 }
 
-func (a *Vector2) div(b Vector2) *Vector2 {
+func (a *Vector2) div(b *Vector2) *Vector2 {
 	a.x /= b.x
 	a.y /= b.y
 	return a
 }
 
 // Returns a random unit vector
-func RandomVector2() Vector2 {
+func RandomVector2() *Vector2 {
 	radians := rand.Float64() * math.Pi * 2
-	return Vector2{
+	return NewVector2(
 		math.Cos(radians),
 		math.Sin(radians),
-	}
+	)
 }

@@ -1,9 +1,8 @@
-const comm = require('./comm');
+const comm = require('./utils/comm');
 const now = require('performance-now');
+const Vector2 = require('./utils/vector2');
 
-process.on('SIGTERM', () => {
-    process.exit();
-});
+process.on('SIGTERM', () => process.exit());
 
 const port = process.env.SWARMPORT;
 const host = process.env.SWARMHOST;
@@ -23,20 +22,36 @@ function measurespeed(start) {
     console.log('Took', (duration).toFixed(2), '; mean', mean.toFixed(2));
 }
 
-function move(tickturn, senses) {
-    console.log(senses);
+function move(tickturn, perception) {
+
     const start = now();
-    this.sendRequest('getGreetings', 'jérôme')
-        .then(results => {
-            return this.sendMutations(tickturn, [
-                ['mutationIncrement'],
-                ['mutationAccelerate', [0.8, 0.5]],
-            ]);
-        })
-        .then(response => {
-            measurespeed(start);
-        })
-        .catch(err => { throw err; });
+
+    //
+    // Implementing Reynolds' steering behavior
+    // http://www.red3d.com/cwr/steer/
+    //
+
+    // determine the steering force to apply to reach the attractor
+    const attractorpos = Vector2.fromArray(perception.Objective.Attractor);
+    const curvelocity = Vector2.fromArray(perception.Internal.Velocity);
+
+    const desired = attractorpos
+        .clone()
+        .mag(perception.Specs.MaxSpeed);
+
+    const steering = desired
+        .clone()
+        .sub(curvelocity)
+        .limit(perception.Specs.MaxSteeringForce);
+
+    // Pushing batch of mutations for this turn
+    this.sendMutations(tickturn, [
+        ['mutationSteer', steering.toArray(3)], // 3: précision
+    ])
+    .then(response => {
+        measurespeed(start);
+    })
+    .catch(err => { throw err; });
 }
 
 comm.connect(port, host, agentid)

@@ -1,6 +1,6 @@
 package main
 
-type MutationBatch struct {
+type StateMutationBatch struct {
 	Turn      uint32
 	Agent     *Agent
 	Mutations []StateMutation

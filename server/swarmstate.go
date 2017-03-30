@@ -10,6 +10,7 @@ import (
 )
 
 type SwarmState struct {
+	pin              *Vector2
 	agents           map[uuid.UUID](*AgentState)
 	pendingmutations *lfreequeue.Queue
 }
@@ -21,17 +22,18 @@ type SwarmState struct {
 func NewSwarmState() *SwarmState {
 	return &SwarmState{
 		agents:           make(map[uuid.UUID](*AgentState)),
+		pin:              NewVector2(200, -300).clone(),
 		pendingmutations: lfreequeue.NewQueue(),
 	}
 }
 
-func (swarmstate *SwarmState) PushMutationBatch(batch *MutationBatch) {
+func (swarmstate *SwarmState) PushMutationBatch(batch *StateMutationBatch) {
 	swarmstate.pendingmutations.Enqueue(batch)
 }
 
 func (swarmstate *SwarmState) ProcessMutation() {
 	for _batch := range swarmstate.pendingmutations.Iter() {
-		batch, ok := _batch.(*MutationBatch)
+		batch, ok := _batch.(*StateMutationBatch)
 		if !ok {
 			continue
 		}
@@ -45,32 +47,34 @@ func (swarmstate *SwarmState) ProcessMutation() {
 
 		for _, mutation := range batch.Mutations {
 			switch mutation.action {
-			case "mutationIncrement":
+			/*case "mutationIncrement":
+			{
+				nbmutations++
+				newstate.mutationIncrement()
+				break
+			}
+			*/
+			case "mutationSteer":
 				{
-					nbmutations++
-					newstate.mutationIncrement()
-					break
-				}
-			case "mutationAccelerate":
-				{
-					/*vec, ok := mutation.arguments[0].([]interface{})
+					log.Println(mutation.arguments[0])
+					vec, ok := mutation.arguments[0].([]interface{})
 					if !ok {
-						log.Panicln("Invalid mutationAccelerate argument")
+						log.Panicln("Invalid mutationSteer argument")
 					}
 
 					x, ok := vec[0].(float64)
 					if !ok {
-						log.Panicln("Invalid mutationAccelerate argument")
+						log.Panicln("Invalid mutationSteer argument")
 					}
 
 					y, ok := vec[1].(float64)
 					if !ok {
-						log.Panicln("Invalid mutationAccelerate argument")
-					}*/
+						log.Panicln("Invalid mutationSteer argument")
+					}
 
 					nbmutations++
-					//newstate.mutationAccelerate(Vector2{x, y})
-					newstate.mutationAccelerate(RandomVector2())
+					newstate.mutationSteer(NewVector2(x, y))
+					//newstate.mutationAccelerate(RandomVector2())
 					break
 				}
 			}

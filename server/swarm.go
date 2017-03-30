@@ -57,7 +57,10 @@ func NewSwarm(ctx context.Context, host string, port int, agentdir string, nbexp
 func (swarm *Swarm) spawnagent() {
 	agent := NewAgent(swarm)
 	swarm.agents[agent.id] = agent
-	swarm.state.agents[agent.id] = &AgentState{}
+
+	agentstate := NewAgentState()
+	agentstate.Radius = 8.0
+	swarm.state.agents[agent.id] = agentstate
 
 	err := agent.Start()
 	if err != nil {
@@ -159,21 +162,21 @@ func (swarm *Swarm) OnAgentsReady() {
 
 func (swarm *Swarm) OnProcedureCall(c *TCPClient, method string, arguments []interface{}) ([]interface{}, error) {
 
-	//log.Println("METHOD", method)
-
-	switch method {
-	case "getGreetings":
-		{
-			var res []interface{}
-			res = append(res, swarm.getGreetings(arguments[0].(string)))
-			return res, nil
+	/*
+		switch method {
+		case "getGreetings":
+			{
+				var res []interface{}
+				res = append(res, swarm.getGreetings(arguments[0].(string)))
+				return res, nil
+			}
 		}
-	}
+	*/
 
 	return nil, errors.New("Unrecognized Procedure")
 }
 
-func (swarm *Swarm) PushMutationBatch(batch *MutationBatch) {
+func (swarm *Swarm) PushMutationBatch(batch *StateMutationBatch) {
 	swarm.state.PushMutationBatch(batch)
 }
 
@@ -181,6 +184,8 @@ func (swarm *Swarm) ProcessMutations() {
 	swarm.state.ProcessMutation()
 }
 
-func (s *Swarm) getGreetings(name string) string {
-	return "hello " + name + ";"
+func (swarm *Swarm) update() {
+	for _, agent := range swarm.agents {
+		agent.GetState().update()
+	}
 }

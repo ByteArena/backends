@@ -126,7 +126,7 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 			// this client has ticked, it won't timeout
 			cli.hasticked()
 
-			mutationbatch := &MutationBatch{
+			mutationbatch := &StateMutationBatch{
 				Turn:  turnedtickint,
 				Agent: cli.agent,
 			}
@@ -309,15 +309,17 @@ func (s *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bo
 						nbticked++
 					}
 
-					for _, client := range server.Clients[:] {
-						client.agent.GetState().applyPhysics()
-					}
+					// Update swarm state
+					// TODO: handle this after the tick, not before ?
+					server.swarm.update()
 
 					for _, client := range server.Clients[:] {
 						wg.Add(1)
 						client.hasticked = hasticked
 						perception := client.agent.GetPerception()
+						log.Println(perception)
 						perceptionjson, _ := json.Marshal(perception)
+						log.Println(string(perceptionjson))
 						message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(server.tickturn)) + "," + string(perceptionjson) + "]}\n")
 						client.Send(message)
 					}
