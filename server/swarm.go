@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
@@ -34,10 +33,10 @@ func NewSwarm(ctx context.Context, host string, port int, agentdir string, nbexp
 		log.Panicln(err)
 	}
 
-	_, err = cli.ImagePull(ctx, "docker.io/library/node", types.ImagePullOptions{})
+	/*_, err = cli.ImagePull(ctx, "docker.io/library/node", types.ImagePullOptions{})
 	if err != nil {
 		log.Panicln(err)
-	}
+	}*/
 
 	return &Swarm{
 		ctx:              ctx,
@@ -54,7 +53,7 @@ func NewSwarm(ctx context.Context, host string, port int, agentdir string, nbexp
 	}
 }
 
-func (swarm *Swarm) spawnagent() {
+func (swarm *Swarm) Spawnagent() {
 	agent := NewAgent(swarm)
 	swarm.agents[agent.id] = agent
 
@@ -185,6 +184,11 @@ func (swarm *Swarm) ProcessMutations() {
 }
 
 func (swarm *Swarm) update() {
+
+	// update attractor
+	// swarm.state.pin = ...
+
+	// update agents
 	for _, agent := range swarm.agents {
 		agent.GetState().update()
 	}

@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"bufio"
@@ -317,7 +317,7 @@ func (s *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bo
 						wg.Add(1)
 						client.hasticked = hasticked
 						perception := client.agent.GetPerception()
-						log.Println(perception)
+						//log.Println(perception)
 						perceptionjson, _ := json.Marshal(perception)
 						log.Println(string(perceptionjson))
 						message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(server.tickturn)) + "," + string(perceptionjson) + "]}\n")

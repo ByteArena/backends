@@ -1,4 +1,4 @@
-package main
+package server
 
 type StateMutationBatch struct {
 	Turn      uint32

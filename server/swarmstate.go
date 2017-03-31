@@ -1,16 +1,17 @@
-package main
+package server
 
 import (
 	"encoding/json"
 	"log"
 	"strconv"
 
+	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 	"github.com/scryner/lfreequeue"
 )
 
 type SwarmState struct {
-	pin              *Vector2
+	pin              *utils.Vector2
 	agents           map[uuid.UUID](*AgentState)
 	pendingmutations *lfreequeue.Queue
 }
@@ -22,7 +23,7 @@ type SwarmState struct {
 func NewSwarmState() *SwarmState {
 	return &SwarmState{
 		agents:           make(map[uuid.UUID](*AgentState)),
-		pin:              NewVector2(200, -300).clone(),
+		pin:              utils.NewVector2(200, -300).Clone(),
 		pendingmutations: lfreequeue.NewQueue(),
 	}
 }
@@ -73,7 +74,7 @@ func (swarmstate *SwarmState) ProcessMutation() {
 					}
 
 					nbmutations++
-					newstate.mutationSteer(NewVector2(x, y))
+					newstate.mutationSteer(utils.NewVector2(x, y))
 					//newstate.mutationAccelerate(RandomVector2())
 					break
 				}

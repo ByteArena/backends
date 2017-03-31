@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"bytes"
@@ -142,11 +142,11 @@ func (agent *Agent) GetPerception() Perception {
 	p := Perception{}
 	agentstate := agent.GetState()
 	//	p.Internal.Acceleration = agentstate.Acceleration.clone()
-	p.Internal.Velocity = agentstate.Velocity.clone()
+	p.Internal.Velocity = agentstate.Velocity.Clone()
 	p.Internal.Proprioception = agentstate.Radius
 
 	// On rend la position de l'attractor relative à l'agent
-	p.Objective.Attractor = agent.swarm.state.pin.clone().sub(agentstate.Position)
+	p.Objective.Attractor = agent.swarm.state.pin.Clone().Sub(agentstate.Position)
 
 	p.Specs.MaxSpeed = 3
 	p.Specs.MaxSteeringForce = 2
