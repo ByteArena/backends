@@ -30,7 +30,7 @@ Replace `$LOCALIP` with your local LAN IP.
 ```bash
 $ cd ~/go/src/github.com/netgusto/bytearena/cmd/arena
 $ # Build and run
-$ go build && HOST=$LOCALIP PORT=8888 TPS=10 AGENTS=2 AGENTIMP=seeker ./arena
+$ go build && HOST=$LOCALIP PORT=8888 TPS=8 AGENTS=8 AGENTIMP=seeker ./arena
 # ctrl-c to tear down
 ```
 
