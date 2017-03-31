@@ -9,13 +9,14 @@ $ mkdir -p github.com/netgusto
 $ cd github.com/netgusto
 $ git clone https://github.com/netgusto/bytearena
 
-# install agents
-$ cd bytearena/agents/seeker
-$ npm install
-
 # install go pkgs
 $ cd ~/go/src/github.com/netgusto/bytearena
 $ go get ./...
+
+# install agents
+$ cd agents/seeker
+$ npm install
+
 ```
 
 ## Run
