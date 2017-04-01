@@ -18,38 +18,37 @@
 <script>
 
 PIXI.loader
-  .add("images/circle.png")
-  .load(function() {
-      //Create the renderer
-      var renderer = PIXI.autoDetectRenderer(800, 600, { antialias: true });
+    .add("images/circle.png")
+    .load(function() {
 
-      //Add the canvas to the HTML document
-      $('#visualization').append(renderer.view);
+    //Create the renderer
+    var renderer = PIXI.autoDetectRenderer(800, 600, { antialias: true });
+    $('#visualization').append(renderer.view);
 
-      //Create a container object called the `stage`
-      var stage = new PIXI.Container();
+    var sprite = new PIXI.Sprite(
+        PIXI.loader.resources["images/circle.png"].texture
+    );
 
-      var sprite = new PIXI.Sprite(
-          PIXI.loader.resources["images/circle.png"].texture
-      );
+    window.onStateUpdate = function(data) {
+        sprite.x = data[0];
+        sprite.y = data[1];
+    };
 
-      window.onStateUpdate = function(data) {
-          sprite.x = data[0];
-          sprite.y = data[1];
-      };
+    sprite.width = 32;
+    sprite.height = 32;
+    sprite.tint = 0xFF0000;
 
-      const loop = function() {
-          renderer.render(stage);
-          window.requestAnimationFrame(loop);
-      };
+    //Create a container object called the `stage`
+    var stage = new PIXI.Container();
+    stage.addChild(sprite);
 
-      sprite.width = 8;
-      sprite.height = 8;
-      sprite.tint = 0xFF0000;
+    // Loop till the end of times
+    const loop = function() {
+        renderer.render(stage);
+        window.requestAnimationFrame(loop);
+    };
+    loop();
 
-      stage.addChild(sprite);
-
-      loop();
   });
 
 </script>

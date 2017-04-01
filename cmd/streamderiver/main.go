@@ -28,9 +28,10 @@ var upgrader = websocket.Upgrader{} // use default options
 
 var tickspersec = 60
 var tickduration = time.Duration((1000 / time.Duration(tickspersec)) * time.Millisecond)
-var ticker = time.Tick(tickduration)
 
 func wsendpoint(w http.ResponseWriter, r *http.Request) {
+
+	var ticker = time.Tick(tickduration)
 
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -86,7 +87,7 @@ func wsendpoint(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-				frame += 0.05
+				frame += 0.1
 			}
 		}
 	}
