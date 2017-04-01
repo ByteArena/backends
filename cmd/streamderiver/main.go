@@ -16,6 +16,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type wsincomingmessage struct {
+	messageType int
+	p           []byte
+	err         error
+}
+
 var addr = flag.String("addr", "0.0.0.0:8080", "http service address")
 
 var upgrader = websocket.Upgrader{} // use default options
@@ -48,8 +54,22 @@ func wsendpoint(w http.ResponseWriter, r *http.Request) {
 	radius := 120.0
 	frame := 0.0
 
+	incomingmsg := make(chan wsincomingmessage)
+	go func(client *websocket.Conn, ch chan wsincomingmessage) {
+		messageType, p, err := client.ReadMessage()
+		ch <- wsincomingmessage{
+			messageType,
+			p,
+			err,
+		}
+	}(c, incomingmsg)
+
 	for {
 		select {
+		case <-incomingmsg:
+			{
+				// just consume msg and allow gorilla to trigger the closehandler when client sends xFFx00 (close signal)
+			}
 		case <-clientclosedsocket:
 			{
 				log.Println("<-clientclosedsocket")
@@ -71,50 +91,40 @@ func wsendpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	/*
-		for {
-			mt, message, err := c.ReadMessage()
-			if err != nil {
-				log.Panicln(err)
-				break
-			}
-
-			err = c.WriteMessage(mt, message)
-			if err != nil {
-				log.Println("write:", err)
-				break
-			}
-		}*/
-	//	_ = c.WriteMessage(0, nil)
 }
 
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
-	pixijssource, err := ioutil.ReadFile("client/pixi.js")
-	if err != nil {
-		panic(err)
-	}
-
-	imagesource, err := ioutil.ReadFile("client/images/circle.png")
-	if err != nil {
-		panic(err)
-	}
-
 	http.HandleFunc("/ws", wsendpoint)
 	http.HandleFunc("/js/app.js", func(w http.ResponseWriter, r *http.Request) {
-		appjssource, err := ioutil.ReadFile("client/app.js")
+		appjssource, err := ioutil.ReadFile("client/js/app.js")
 		if err != nil {
 			panic(err)
 		}
 		var appjsTemplate = template.Must(template.New("").Parse(string(appjssource)))
 		appjsTemplate.Execute(w, "ws://"+r.Host+"/ws")
 	})
-	http.HandleFunc("/js/pixi.min.js", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/js/libs/pixi.min.js", func(w http.ResponseWriter, r *http.Request) {
+		pixijssource, err := ioutil.ReadFile("client/js/libs/pixi.min.js")
+		if err != nil {
+			panic(err)
+		}
 		w.Write(pixijssource)
 	})
+	http.HandleFunc("/js/libs/jquery.slim.min.js", func(w http.ResponseWriter, r *http.Request) {
+		jqueryjssource, err := ioutil.ReadFile("client/js/libs/jquery.slim.min.js")
+		if err != nil {
+			panic(err)
+		}
+		w.Write(jqueryjssource)
+	})
 	http.HandleFunc("/images/circle.png", func(w http.ResponseWriter, r *http.Request) {
+		imagesource, err := ioutil.ReadFile("client/images/circle.png")
+		if err != nil {
+			panic(err)
+		}
 		w.Write(imagesource)
 	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
