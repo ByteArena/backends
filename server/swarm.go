@@ -24,6 +24,7 @@ type Swarm struct {
 	tickspersec      int
 	stopticking      chan bool
 	tcpserver        *TCPServer
+	subscribers      []chan SwarmState
 }
 
 func NewSwarm(ctx context.Context, host string, port int, agentdir string, nbexpectedagents int, tickspersec int, stopticking chan bool) *Swarm {
@@ -59,7 +60,7 @@ func (swarm *Swarm) Spawnagent() {
 
 	agentstate := NewAgentState()
 	agentstate.Radius = 8.0
-	swarm.state.agents[agent.id] = agentstate
+	swarm.state.Agents[agent.id] = agentstate
 
 	err := agent.Start()
 	if err != nil {
@@ -185,6 +186,8 @@ func (swarm *Swarm) ProcessMutations() {
 
 func (swarm *Swarm) update() {
 
+	// Updates physiques, liées au temps qui passe
+	// Avant de récuperer les mutations de chaque tour, et même avant deconstituer la perception de chaque agent
 	// update attractor
 	// swarm.state.pin = ...
 
@@ -192,4 +195,19 @@ func (swarm *Swarm) update() {
 	for _, agent := range swarm.agents {
 		agent.GetState().update()
 	}
+
+	// update visualisations
+	swarmCloned := *swarm.state
+
+	for _, subscriber := range swarm.subscribers {
+		go func(s chan SwarmState) {
+			s <- swarmCloned
+		}(subscriber)
+	}
+}
+
+func (swarm *Swarm) Subscribe() chan SwarmState {
+	ch := make(chan SwarmState)
+	swarm.subscribers = append(swarm.subscribers, ch)
+	return ch
 }

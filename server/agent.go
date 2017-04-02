@@ -155,5 +155,5 @@ func (agent *Agent) GetPerception() Perception {
 }
 
 func (agent *Agent) GetState() *AgentState {
-	return agent.swarm.state.agents[agent.id]
+	return agent.swarm.state.Agents[agent.id]
 }

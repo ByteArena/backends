@@ -22,25 +22,29 @@ PIXI.loader
     .load(function() {
 
     //Create the renderer
-    var renderer = PIXI.autoDetectRenderer(800, 600, { antialias: true });
+    var renderer = PIXI.autoDetectRenderer(1000, 600, { antialias: true });
     $('#visualization').append(renderer.view);
 
-    var sprite = new PIXI.Sprite(
-        PIXI.loader.resources["images/circle.png"].texture
-    );
-
-    window.onStateUpdate = function(data) {
-        sprite.x = data[0];
-        sprite.y = data[1];
-    };
-
-    sprite.width = 32;
-    sprite.height = 32;
-    sprite.tint = 0xFF0000;
-
-    //Create a container object called the `stage`
     var stage = new PIXI.Container();
-    stage.addChild(sprite);
+
+    window.onStateUpdate = function(points) {
+        stage.removeChildren();
+
+        points.Agents.forEach((agent) => {
+            var sprite = new PIXI.Sprite(
+                PIXI.loader.resources["images/circle.png"].texture
+            );
+
+            sprite.x = agent.X;
+            sprite.y = agent.Y;
+            sprite.width = 32;
+            sprite.height = 32;
+            sprite.tint = 0xFF0000;
+
+            //Create a container object called the `stage`
+            stage.addChild(sprite);
+        })
+    };
 
     // Loop till the end of times
     const loop = function() {

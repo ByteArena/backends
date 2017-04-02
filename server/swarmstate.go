@@ -12,7 +12,7 @@ import (
 
 type SwarmState struct {
 	pin              *utils.Vector2
-	agents           map[uuid.UUID](*AgentState)
+	Agents           map[uuid.UUID](*AgentState)
 	pendingmutations *lfreequeue.Queue
 }
 
@@ -22,8 +22,8 @@ type SwarmState struct {
 
 func NewSwarmState() *SwarmState {
 	return &SwarmState{
-		agents:           make(map[uuid.UUID](*AgentState)),
-		pin:              utils.NewVector2(200, -300).Clone(),
+		Agents:           make(map[uuid.UUID](*AgentState)),
+		pin:              utils.NewVector2(200, 300).Clone(),
 		pendingmutations: lfreequeue.NewQueue(),
 	}
 }
@@ -41,7 +41,7 @@ func (swarmstate *SwarmState) ProcessMutation() {
 
 		nbmutations := 0
 
-		agentstate := swarmstate.agents[batch.Agent.id]
+		agentstate := swarmstate.Agents[batch.Agent.id]
 		newstate := agentstate.clone()
 
 		log.Println("Processing mutations on turn " + strconv.Itoa(int(batch.Turn)) + " for agent " + batch.Agent.id.String())
@@ -84,7 +84,7 @@ func (swarmstate *SwarmState) ProcessMutation() {
 		statejson, _ := json.Marshal(newstate)
 
 		if newstate.validate() && newstate.validateTransition(agentstate) {
-			swarmstate.agents[batch.Agent.id] = newstate
+			swarmstate.Agents[batch.Agent.id] = newstate
 			log.Println("Mutations LEGALES " + strconv.Itoa(nbmutations) + "; state: " + string(statejson))
 		} else {
 			log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + "; state: " + string(statejson))

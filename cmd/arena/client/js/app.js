@@ -30,7 +30,9 @@ $(function() {
         }
 
         ws.onmessage = function(evt) {
-            window.onStateUpdate(JSON.parse(evt.data));
+            var data = JSON.parse(evt.data);
+            console.log(data);
+            window.onStateUpdate(data);
         }
 
         ws.onerror = function(evt) {
