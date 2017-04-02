@@ -177,12 +177,12 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 func (s *TCPServer) Listen() error {
 	listener, err := net.Listen(s.proto, s.address)
 	if err != nil {
-		return err
+		log.Panicln(err)
 	}
 	defer listener.Close()
 
 	for {
-		conn, _ := listener.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			log.Panicln(err)
 		}
@@ -274,17 +274,16 @@ func toFixed(val float64, places int) (newVal float64) {
 
 func (s *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bool, ontick func(allticked bool, took time.Duration)) {
 
-	ticktimeout := tickduration * 70 / 100
+	ticktimeout := tickduration * 90 / 100
 	s.tickturn = 0
 	ticker := time.Tick(tickduration)
 
 	//lasttick := time.Now().UnixNano()
 
-	blueOnWhite := chalk.Black.NewStyle().WithBackground(chalk.White)
+	//blueOnWhite := chalk.Black.NewStyle().WithBackground(chalk.White)
 
 	go func(server *TCPServer) {
 		for {
-			nbticked := 0
 			select {
 			case <-stopticking:
 				{
@@ -292,19 +291,28 @@ func (s *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bo
 				}
 			case <-ticker:
 				{
+					// TODO: gestion concurrente améliorée (pas de tickturnopen muable partagé notamment)
+					// et amélioration du waitgroup, et de la cloture des coroutines restant en vol après le timeout
+
+					nbticked := 0
 					server.tickturn++
 					server.tickturnopen = true
 					// à chaque tick
 
-					log.Print(blueOnWhite)
-					log.Println("Beginning tick turn "+strconv.Itoa(int(server.tickturn)), chalk.Reset)
-					log.Println("")
+					/*
+						log.Print(blueOnWhite)
+						log.Println("Beginning tick turn "+strconv.Itoa(int(server.tickturn)), chalk.Reset)
+						log.Println("")
+					*/
 
 					// On crée un timeout
 					timeout := time.NewTimer(ticktimeout)
 
-					var wg sync.WaitGroup
+					wg := sync.WaitGroup{}
 					hasticked := func() {
+						if !server.tickturnopen {
+							return
+						}
 						wg.Done()
 						nbticked++
 					}
@@ -319,7 +327,7 @@ func (s *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bo
 						perception := client.agent.GetPerception()
 						//log.Println(perception)
 						perceptionjson, _ := json.Marshal(perception)
-						log.Println(string(perceptionjson))
+						//log.Println(string(perceptionjson))
 						message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(server.tickturn)) + "," + string(perceptionjson) + "]}\n")
 						client.Send(message)
 					}
@@ -327,10 +335,10 @@ func (s *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bo
 					start := time.Now()
 					//server.Broadcast([]byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(server.tickturn)) + "]}\n"))
 
-					allticked := make(chan struct{})
+					allticked := make(chan bool)
 					go func(wg *sync.WaitGroup) {
 						wg.Wait()
-						close(allticked)
+						allticked <- true
 					}(&wg)
 
 					haveallticked := false
@@ -340,9 +348,14 @@ func (s *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bo
 						server.tickturnopen = false
 						log.Print(chalk.Red)
 						log.Print("Timed out (", len(s.Clients)-nbticked, " clients timed out)")
+						log.Print(chalk.Reset)
+
+						log.Println(nbticked)
 						for i := 0; i < len(s.Clients)-nbticked; i++ {
+							//log.Println("So far so good")
 							wg.Done()
 						}
+
 						break
 					case <-allticked:
 						timeout.Stop()

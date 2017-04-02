@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"log"
 	"strconv"
 
@@ -81,13 +80,13 @@ func (swarmstate *SwarmState) ProcessMutation() {
 			}
 		}
 
-		statejson, _ := json.Marshal(newstate)
+		//statejson, _ := json.Marshal(newstate)
 
 		if newstate.validate() && newstate.validateTransition(agentstate) {
 			swarmstate.Agents[batch.Agent.id] = newstate
-			log.Println("Mutations LEGALES " + strconv.Itoa(nbmutations) + "; state: " + string(statejson))
+			//log.Println("Mutations LEGALES " + strconv.Itoa(nbmutations) + "; state: " + string(statejson))
 		} else {
-			log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + "; state: " + string(statejson))
+			//log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + "; state: " + string(statejson))
 		}
 	}
 
