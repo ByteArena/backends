@@ -28,7 +28,7 @@ type vizmessage struct {
 type vizagentmessage struct {
 	X     float64
 	Y     float64
-	Color int
+	Kind string
 }
 
 type wsincomingmessage struct {
@@ -89,9 +89,17 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.Sw
 					msg.Agents = append(msg.Agents, vizagentmessage{
 						X:     x,
 						Y:     y,
-						Color: 0xFF0000,
+						Kind: "agent",
 					})
 				}
+
+				x, y := swarmstate.Pin.Get()
+
+				msg.Agents = append(msg.Agents, vizagentmessage{
+					X:	 x,
+					Y:	 y,
+					Kind: "attractor",
+				})
 
 				json, err := json.Marshal(msg)
 				if err != nil {

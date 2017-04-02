@@ -10,7 +10,7 @@ import (
 )
 
 type SwarmState struct {
-	pin              *utils.Vector2
+	Pin              *utils.Vector2
 	Agents           map[uuid.UUID](*AgentState)
 	pendingmutations *lfreequeue.Queue
 }

@@ -39,7 +39,7 @@ PIXI.loader
             sprite.y = agent.Y;
             sprite.width = 32;
             sprite.height = 32;
-            sprite.tint = 0xFF0000;
+            sprite.tint = agent.Kind === 'attractor' ? 0x0000FF : 0xFF0000;
 
             //Create a container object called the `stage`
             stage.addChild(sprite);
