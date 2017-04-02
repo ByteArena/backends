@@ -26,8 +26,8 @@ type vizmessage struct {
 }
 
 type vizagentmessage struct {
-	X     float64
-	Y     float64
+	X    float64
+	Y    float64
 	Kind string
 }
 
@@ -87,8 +87,8 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.Sw
 					x, y := state.Position.Get()
 
 					msg.Agents = append(msg.Agents, vizagentmessage{
-						X:     x,
-						Y:     y,
+						X:    x,
+						Y:    y,
 						Kind: "agent",
 					})
 				}
@@ -96,8 +96,8 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.Sw
 				x, y := swarmstate.Pin.Get()
 
 				msg.Agents = append(msg.Agents, vizagentmessage{
-					X:	 x,
-					Y:	 y,
+					X:    x,
+					Y:    y,
 					Kind: "attractor",
 				})
 
@@ -119,11 +119,11 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.Sw
 
 }
 
-func visualization(swarm *server.Swarm) {
+func visualization(swarm *server.Swarm, host string, port int) {
 
 	basepath := "./client/"
 
-	addr := flag.String("addr", "0.0.0.0:8080", "http service address")
+	addr := flag.String("addr", host+":"+strconv.Itoa(port), "http service address")
 
 	flag.Parse()
 	log.SetFlags(0)
@@ -174,7 +174,7 @@ func visualization(swarm *server.Swarm) {
 
 	go http.ListenAndServe(*addr, nil)
 
-	log.Println("Viz Listening !")
+	log.Println("Viz Listening on http://" + host + ":" + strconv.Itoa(port))
 }
 
 func main() {
@@ -236,7 +236,7 @@ func main() {
 		os.Exit(1)
 	}()
 
-	go visualization(swarm)
+	go visualization(swarm, host, port+1)
 
 	swarm.Listen()
 

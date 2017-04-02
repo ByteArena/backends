@@ -148,8 +148,8 @@ func (agent *Agent) GetPerception() Perception {
 	// On rend la position de l'attractor relative à l'agent
 	p.Objective.Attractor = agent.swarm.state.Pin.Clone().Sub(agentstate.Position)
 
-	p.Specs.MaxSpeed = 3
-	p.Specs.MaxSteeringForce = 2
+	p.Specs.MaxSpeed = 8
+	p.Specs.MaxSteeringForce = 4
 
 	return p
 }

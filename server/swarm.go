@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"log"
+	"math"
 	"strconv"
 	"time"
 
 	"github.com/docker/docker/client"
+	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
@@ -184,12 +186,19 @@ func (swarm *Swarm) ProcessMutations() {
 	swarm.state.ProcessMutation()
 }
 
-func (swarm *Swarm) update() {
+func (swarm *Swarm) update(tickturn uint32) {
 
 	// Updates physiques, liées au temps qui passe
 	// Avant de récuperer les mutations de chaque tour, et même avant deconstituer la perception de chaque agent
+
 	// update attractor
-	// swarm.state.pin = ...
+	centerx, centery := swarm.state.PinCenter.Get()
+	radius := 120.0
+
+	x := centerx + radius*math.Cos(float64(tickturn)/10.0)
+	y := centery + radius*math.Sin(float64(tickturn)/10.0)
+
+	swarm.state.Pin = utils.NewVector2(x, y)
 
 	// update agents
 	for _, agent := range swarm.agents {
