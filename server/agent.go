@@ -65,6 +65,10 @@ func NewAgent(swarm *Swarm) *Agent {
 
 }
 
+func (agent *Agent) String() string {
+	return "<Agent(" + agent.id.String() + ">"
+}
+
 func (agent *Agent) Start() error {
 
 	log.Print(chalk.Yellow)
@@ -154,6 +158,10 @@ func (agent *Agent) GetPerception() Perception {
 	return p
 }
 
-func (agent *Agent) GetState() *AgentState {
+func (agent *Agent) GetState() AgentState {
 	return agent.swarm.state.Agents[agent.id]
+}
+
+func (agent *Agent) SetState(state AgentState) {
+	agent.swarm.state.Agents[agent.id] = state
 }

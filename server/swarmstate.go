@@ -4,17 +4,18 @@ import (
 	"log"
 	"math/rand"
 	"strconv"
+	"sync"
 
 	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
-	"github.com/scryner/lfreequeue"
 )
 
 type SwarmState struct {
-	Pin              *utils.Vector2
-	PinCenter        *utils.Vector2
-	Agents           map[uuid.UUID](*AgentState)
-	pendingmutations *lfreequeue.Queue
+	Pin              utils.Vector2
+	PinCenter        utils.Vector2
+	Agents           map[uuid.UUID](AgentState)
+	mutationsmutex   *sync.Mutex
+	pendingmutations []StateMutationBatch
 }
 
 /* ***************************************************************************/
@@ -23,43 +24,41 @@ type SwarmState struct {
 
 func NewSwarmState() *SwarmState {
 
-	pin := utils.NewVector2(rand.Float64()*300+100, rand.Float64()*300+100)
+	pin := utils.MakeVector2(rand.Float64()*300+100, rand.Float64()*300+100)
 
 	return &SwarmState{
-		Agents:           make(map[uuid.UUID](*AgentState)),
-		Pin:              pin.Clone(),
-		PinCenter:        pin.Clone(),
-		pendingmutations: lfreequeue.NewQueue(),
+		Agents:           make(map[uuid.UUID](AgentState)),
+		Pin:              pin,
+		PinCenter:        pin,
+		mutationsmutex:   &sync.Mutex{},
+		pendingmutations: make([]StateMutationBatch, 0),
 	}
 }
 
-func (swarmstate *SwarmState) PushMutationBatch(batch *StateMutationBatch) {
-	swarmstate.pendingmutations.Enqueue(batch)
+func (swarmstate *SwarmState) PushMutationBatch(batch StateMutationBatch) {
+	swarmstate.mutationsmutex.Lock()
+	swarmstate.pendingmutations = append(swarmstate.pendingmutations, batch)
+	swarmstate.mutationsmutex.Unlock()
 }
 
-func (swarmstate *SwarmState) ProcessMutation() {
-	for _batch := range swarmstate.pendingmutations.Iter() {
-		batch, ok := _batch.(*StateMutationBatch)
-		if !ok {
-			continue
-		}
+func (swarmstate *SwarmState) ProcessMutations() {
+
+	swarmstate.mutationsmutex.Lock()
+	mutations := swarmstate.pendingmutations
+	swarmstate.pendingmutations = make([]StateMutationBatch, 0)
+	swarmstate.mutationsmutex.Unlock()
+
+	for _, batch := range mutations {
 
 		nbmutations := 0
 
 		agentstate := swarmstate.Agents[batch.Agent.id]
 		newstate := agentstate.clone()
 
-		log.Println("Processing mutations on turn " + strconv.Itoa(int(batch.Turn)) + " for agent " + batch.Agent.id.String())
+		log.Println("Processing mutations on " + batch.Turn.String() + " for agent " + batch.Agent.String())
 
 		for _, mutation := range batch.Mutations {
 			switch mutation.action {
-			/*case "mutationIncrement":
-			{
-				nbmutations++
-				newstate.mutationIncrement()
-				break
-			}
-			*/
 			case "mutationSteer":
 				{
 					log.Println(mutation.arguments[0])
@@ -79,24 +78,16 @@ func (swarmstate *SwarmState) ProcessMutation() {
 					}
 
 					nbmutations++
-					newstate.mutationSteer(utils.NewVector2(x, y))
-					//newstate.mutationAccelerate(RandomVector2())
+					newstate = newstate.mutationSteer(utils.MakeVector2(x, y))
 					break
 				}
 			}
 		}
 
-		//statejson, _ := json.Marshal(newstate)
-
 		if newstate.validate() && newstate.validateTransition(agentstate) {
 			swarmstate.Agents[batch.Agent.id] = newstate
-			//log.Println("Mutations LEGALES " + strconv.Itoa(nbmutations) + "; state: " + string(statejson))
 		} else {
-			//log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + "; state: " + string(statejson))
+			log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + ";")
 		}
 	}
-
-	/*if nbmutations != 8 {
-		log.Println("ERREUR --------------------- " + strconv.Itoa(nbmutations) + ", expected 8")
-	}*/
 }

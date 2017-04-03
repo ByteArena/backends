@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -133,13 +134,30 @@ func visualization(swarm *server.Swarm, host string, port int) {
 
 	addr := flag.String("addr", host+":"+strconv.Itoa(port), "http service address")
 
-	flag.Parse()
-	log.SetFlags(0)
-
-	stateChan := swarm.Subscribe()
+	stateobserver := swarm.SubscribeStateObservation()
+	staterelays := make([]chan server.SwarmState, 0)
+	staterelaymutex := &sync.Mutex{}
+	go func() {
+		for {
+			select {
+			case curstate := <-stateobserver:
+				{
+					staterelaymutex.Lock()
+					for _, relay := range staterelays {
+						relay <- curstate
+					}
+					staterelaymutex.Unlock()
+				}
+			}
+		}
+	}()
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		wsendpoint(w, r, stateChan)
+		staterelaymutex.Lock()
+		relay := make(chan server.SwarmState)
+		staterelays = append(staterelays, relay)
+		staterelaymutex.Unlock()
+		wsendpoint(w, r, relay)
 	})
 
 	http.HandleFunc("/js/app.js", func(w http.ResponseWriter, r *http.Request) {
@@ -191,7 +209,7 @@ func getcmdenv() cmdenvironment {
 
 	host, exists := os.LookupEnv("HOST")
 	if !exists {
-		host = "0.0.0.0"
+		host = "127.0.0.1"
 	}
 
 	// Port
@@ -212,11 +230,11 @@ func getcmdenv() cmdenvironment {
 	var nbagents int
 	nbagentsstr, exists := os.LookupEnv("AGENTS")
 	if !exists {
-		nbagents = 8
+		nbagents = 2
 	} else {
 		nbagentsbis, err := strconv.Atoi(nbagentsstr)
 		if err != nil {
-			nbagentsbis = 8
+			nbagentsbis = 2
 		}
 		nbagents = nbagentsbis
 	}
