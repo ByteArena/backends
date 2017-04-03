@@ -165,9 +165,7 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 				return
 			}
 
-			cli.hastickedgoodturn <- expectedturn
-
-			mutationbatch := &StateMutationBatch{
+			mutationbatch := StateMutationBatch{
 				Turn:  expectedturn,
 				Agent: cli.agent,
 			}
@@ -189,6 +187,8 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 			}
 
 			srv.swarm.PushMutationBatch(mutationbatch)
+
+			cli.hastickedgoodturn <- expectedturn
 			return
 
 		}
@@ -325,124 +325,6 @@ func chanTimeout(ch chan tickturn, timeout time.Duration) bool {
 
 func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bool, ontick func(took time.Duration)) {
 
-	/*
-		ticktimeout := tickduration * 90 / 100
-		s.tickturn = 0
-		ticker := time.Tick(tickduration)
-
-		go func(server *TCPServer) {
-			for {
-				select {
-				case <-stopticking:
-					{
-						return
-					}
-				case <-ticker:
-					{
-						// TODO: gestion concurrente améliorée (pas de tickturnopen muable partagé notamment)
-						// et amélioration du waitgroup, et de la cloture des coroutines restant en vol après le timeout
-
-						nbticked := 0
-						server.tickturn++
-						//server.tickturnopen = true
-						// à chaque tick
-
-						// On crée un timeout
-						timeout := time.NewTimer(ticktimeout)
-
-						wg := sync.WaitGroup{}
-
-						// Update swarm state
-						// TODO: handle this after the tick, not before ?
-						server.swarm.update(server.tickturn)
-
-						for _, client := range server.Clients[:] {
-							wg.Add(1)
-
-							go func(_client *TCPClient, _wg *sync.WaitGroup, expectedturn tickturn) {
-								log.Println(">>>>>>>>>>> PUSH GOROUTINE WAIT TURN FOR CLIENT")
-								select {
-								case tickedturn := <-_client.hasticked: // TODO: check if turn ticked is the one expected ?
-									{
-										_client.lastturn = tickedturn
-
-										if tickedturn == expectedturn {
-											log.Print(chalk.Green)
-											log.Println("CLIENT TICKED IN TIME FOR TURN "+_client.agent.id.String(), chalk.Reset)
-										} else {
-											log.Print(chalk.Yellow)
-											log.Println("CLIENT TICKED FOR PREVIOUS TURN "+_client.agent.id.String()+"; "+tickedturn.String(), chalk.Reset)
-										}
-
-										wg.Done()
-										break
-									}
-								case <-_client.hastimedoutfortick:
-									{
-										log.Print(chalk.Red)
-										log.Println("CLIENT TIMED OUT FOR TURN "+_client.agent.id.String(), chalk.Reset)
-										wg.Done()
-										break
-									}
-								}
-								log.Println("<<<<<<<<<<<<<< POP GOROUTINE WAIT TURN FOR CLIENT")
-							}(client, &wg, server.tickturn)
-
-							perception := client.agent.GetPerception()
-							//log.Println(perception)
-							perceptionjson, _ := json.Marshal(perception)
-							//log.Println(string(perceptionjson))
-							message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(server.tickturn)) + "," + string(perceptionjson) + "]}\n")
-							client.Send(message)
-						}
-
-						start := time.Now()
-						//server.Broadcast([]byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(server.tickturn)) + "]}\n"))
-
-						allticked := make(chan bool)
-						go func(wg *sync.WaitGroup) {
-							log.Println("WG WAITING ON TURN " + server.tickturn.String())
-							wg.Wait()
-							log.Println("WG UNLOCKED ON TURN " + server.tickturn.String())
-							//allticked <- true
-						}(&wg)
-
-						haveallticked := false
-
-						select {
-						case <-timeout.C:
-							log.Println("ICI TIMEOUT")
-
-							nbtimedout := 0
-
-							for _, client := range server.Clients[:] {
-								if client.lastturn != server.tickturn {
-									client.hastimedoutfortick <- true
-									nbtimedout++
-
-								}
-							}
-
-							log.Print(chalk.Red)
-							log.Print("Timed out (", len(s.Clients)-nbticked, " clients timed out)")
-							log.Print(chalk.Reset)
-
-							break
-						case <-allticked:
-							timeout.Stop()
-							//server.tickturnopen = false
-							haveallticked = true
-							log.Println("All agents ticked for the turn")
-							break
-						}
-
-						ontick(haveallticked, time.Now().Sub(start))
-
-					}
-				}
-			}
-		}(s)
-	*/
 	go func() {
 
 		var turn tickturn
@@ -498,6 +380,9 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 
 					wg.Wait()
 
+					// For a reason yet to be determined, this is required, otherwised mutations might be processed too early
+					time.Sleep(time.Millisecond)
+
 					ontick(time.Now().Sub(start))
 				}
 			}
@@ -508,6 +393,7 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 func (s *TCPServer) removeClient(c *TCPClient) {
 	log.Println("Removing client !!!")
 
+	// TODO: thread-safe process this operation
 	found := -1
 	// on trouve l'index du client dans le tableau
 	for i, client := range s.Clients[:] {

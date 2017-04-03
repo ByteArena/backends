@@ -27,7 +27,7 @@ type Swarm struct {
 	tickspersec      int
 	stopticking      chan bool
 	tcpserver        *TCPServer
-	subscribers      []chan SwarmState
+	stateobservers   []chan SwarmState
 }
 
 func NewSwarm(ctx context.Context, host string, port int, agentdir string, nbexpectedagents int, tickspersec int, stopticking chan bool) *Swarm {
@@ -61,7 +61,7 @@ func (swarm *Swarm) Spawnagent() {
 	agent := NewAgent(swarm)
 	swarm.agents[agent.id] = agent
 
-	agentstate := NewAgentState()
+	agentstate := MakeAgentState()
 	agentstate.Radius = 8.0
 	swarm.state.Agents[agent.id] = agentstate
 
@@ -157,7 +157,7 @@ func (swarm *Swarm) OnAgentsReady() {
 
 		// Debug : Nombre de goroutines
 		log.Print(chalk.Yellow)
-		log.Println("# Nombre de goroutines en vol:" + strconv.Itoa(runtime.NumGoroutine()))
+		log.Println("# Nombre de goroutines en vol : " + strconv.Itoa(runtime.NumGoroutine()))
 		log.Print(chalk.Reset)
 
 	})
@@ -179,12 +179,12 @@ func (swarm *Swarm) OnProcedureCall(c *TCPClient, method string, arguments []int
 	return nil, errors.New("Unrecognized Procedure")
 }
 
-func (swarm *Swarm) PushMutationBatch(batch *StateMutationBatch) {
+func (swarm *Swarm) PushMutationBatch(batch StateMutationBatch) {
 	swarm.state.PushMutationBatch(batch)
 }
 
 func (swarm *Swarm) ProcessMutations() {
-	swarm.state.ProcessMutation()
+	swarm.state.ProcessMutations()
 }
 
 func (swarm *Swarm) update(turn tickturn) {
@@ -199,25 +199,25 @@ func (swarm *Swarm) update(turn tickturn) {
 	x := centerx + radius*math.Cos(float64(turn.seq)/10.0)
 	y := centery + radius*math.Sin(float64(turn.seq)/10.0)
 
-	swarm.state.Pin = utils.NewVector2(x, y)
+	swarm.state.Pin = utils.MakeVector2(x, y)
 
 	// update agents
 	for _, agent := range swarm.agents {
-		agent.GetState().update()
+		agent.SetState(agent.GetState().update())
 	}
 
 	// update visualisations
 	swarmCloned := *swarm.state
 
-	for _, subscriber := range swarm.subscribers {
+	for _, subscriber := range swarm.stateobservers {
 		go func(s chan SwarmState) {
 			s <- swarmCloned
 		}(subscriber)
 	}
 }
 
-func (swarm *Swarm) Subscribe() chan SwarmState {
+func (swarm *Swarm) SubscribeStateObservation() chan SwarmState {
 	ch := make(chan SwarmState)
-	swarm.subscribers = append(swarm.subscribers, ch)
+	swarm.stateobservers = append(swarm.stateobservers, ch)
 	return ch
 }
