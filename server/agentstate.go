@@ -7,9 +7,11 @@ import (
 )
 
 type AgentState struct {
-	Position utils.Vector2
-	Velocity utils.Vector2
-	Radius   float64
+	Position         utils.Vector2
+	Velocity         utils.Vector2
+	Radius           float64
+	MaxSpeed         float64 // maximum magnitude of the agent velocity
+	MaxSteeringForce float64 // maximum magnitude the steering force applied to current velocity
 }
 
 func MakeAgentState() AgentState {
@@ -17,8 +19,10 @@ func MakeAgentState() AgentState {
 	initialy := rand.Float64() * 600
 
 	return AgentState{
-		Position: utils.MakeVector2(initialx, initialy),
-		Velocity: utils.MakeVector2(0, 0),
+		Position:         utils.MakeVector2(initialx, initialy),
+		Velocity:         utils.MakeVector2(0, 0),
+		MaxSpeed:         8.0,
+		MaxSteeringForce: 4.0,
 	}
 }
 
@@ -28,7 +32,8 @@ func (state AgentState) update() AgentState {
 }
 
 func (state AgentState) mutationSteer(v utils.Vector2) AgentState {
-	state.Velocity = state.Velocity.Add(v)
+	steeringvec := v.Limit(state.MaxSteeringForce)
+	state.Velocity = state.Velocity.Add(steeringvec).Limit(state.MaxSpeed)
 	return state
 }
 

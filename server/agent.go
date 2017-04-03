@@ -41,8 +41,8 @@ func NewAgent(swarm *Swarm) *Agent {
 		Privileged: false,
 		Binds:      []string{swarm.agentdir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
 		Resources: container.Resources{
-			Memory:   1024 * 1024 * 32,   // 32M
-			CPUQuota: 5 * (100000 / 100), // 5%
+			Memory:   1024 * 1024 * 32,    // 32M
+			CPUQuota: 25 * (100000 / 100), // 5%
 		},
 	}
 
@@ -152,8 +152,8 @@ func (agent *Agent) GetPerception() Perception {
 	// On rend la position de l'attractor relative à l'agent
 	p.Objective.Attractor = agent.swarm.state.Pin.Clone().Sub(agentstate.Position)
 
-	p.Specs.MaxSpeed = 8
-	p.Specs.MaxSteeringForce = 4
+	p.Specs.MaxSpeed = agentstate.MaxSpeed
+	p.Specs.MaxSteeringForce = agentstate.MaxSteeringForce
 
 	return p
 }
