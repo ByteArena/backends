@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"math"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -76,7 +77,7 @@ func (swarm *Swarm) Spawnagent() {
 }
 
 func (swarm *Swarm) Listen() {
-	swarm.tcpserver = TCPServerNew("tcp4", swarm.host+":"+strconv.Itoa(swarm.port), swarm)
+	swarm.tcpserver = NewTCPServer("tcp4", swarm.host+":"+strconv.Itoa(swarm.port), swarm)
 	log.Println("listening on " + swarm.host + ":" + strconv.Itoa(swarm.port))
 
 	done := make(chan bool)
@@ -137,7 +138,7 @@ func (swarm *Swarm) OnAgentsReady() {
 		return float64(d.Nanoseconds()) / 1000000.0
 	}
 
-	swarm.tcpserver.StartTicking(tickduration, swarm.stopticking, func(allticked bool, took time.Duration) {
+	swarm.tcpserver.StartTicking(tickduration, swarm.stopticking, func(took time.Duration) {
 
 		now := time.Now()
 		nexttick := now.Add(tickduration).Add(took * -1)
@@ -154,11 +155,11 @@ func (swarm *Swarm) OnAgentsReady() {
 		log.Println("ProcessMutations() took " + ftostr(processtook) + " ms; next tick in " + ftostr(nexttickin) + " ms")
 		log.Print(chalk.Reset)
 
-		/*
-			log.Print(chalk.Yellow)
-			log.Println(runtime.NumGoroutine(), runtime.NumCgoCall())
-			log.Print(chalk.Reset)
-		*/
+		// Debug : Nombre de goroutines
+		log.Print(chalk.Yellow)
+		log.Println("# Nombre de goroutines en vol:" + strconv.Itoa(runtime.NumGoroutine()))
+		log.Print(chalk.Reset)
+
 	})
 }
 
@@ -186,7 +187,7 @@ func (swarm *Swarm) ProcessMutations() {
 	swarm.state.ProcessMutation()
 }
 
-func (swarm *Swarm) update(tickturn uint32) {
+func (swarm *Swarm) update(turn tickturn) {
 
 	// Updates physiques, liées au temps qui passe
 	// Avant de récuperer les mutations de chaque tour, et même avant deconstituer la perception de chaque agent
@@ -195,8 +196,8 @@ func (swarm *Swarm) update(tickturn uint32) {
 	centerx, centery := swarm.state.PinCenter.Get()
 	radius := 120.0
 
-	x := centerx + radius*math.Cos(float64(tickturn)/10.0)
-	y := centery + radius*math.Sin(float64(tickturn)/10.0)
+	x := centerx + radius*math.Cos(float64(turn.seq)/10.0)
+	y := centery + radius*math.Sin(float64(turn.seq)/10.0)
 
 	swarm.state.Pin = utils.NewVector2(x, y)
 

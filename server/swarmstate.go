@@ -49,17 +49,10 @@ func (swarmstate *SwarmState) ProcessMutation() {
 		agentstate := swarmstate.Agents[batch.Agent.id]
 		newstate := agentstate.clone()
 
-		log.Println("Processing mutations on turn " + strconv.Itoa(int(batch.Turn)) + " for agent " + batch.Agent.id.String())
+		log.Println("Processing mutations on " + batch.Turn.String() + " for agent " + batch.Agent.String())
 
 		for _, mutation := range batch.Mutations {
 			switch mutation.action {
-			/*case "mutationIncrement":
-			{
-				nbmutations++
-				newstate.mutationIncrement()
-				break
-			}
-			*/
 			case "mutationSteer":
 				{
 					log.Println(mutation.arguments[0])
@@ -80,23 +73,15 @@ func (swarmstate *SwarmState) ProcessMutation() {
 
 					nbmutations++
 					newstate.mutationSteer(utils.NewVector2(x, y))
-					//newstate.mutationAccelerate(RandomVector2())
 					break
 				}
 			}
 		}
 
-		//statejson, _ := json.Marshal(newstate)
-
 		if newstate.validate() && newstate.validateTransition(agentstate) {
 			swarmstate.Agents[batch.Agent.id] = newstate
-			//log.Println("Mutations LEGALES " + strconv.Itoa(nbmutations) + "; state: " + string(statejson))
 		} else {
-			//log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + "; state: " + string(statejson))
+			log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + ";")
 		}
 	}
-
-	/*if nbmutations != 8 {
-		log.Println("ERREUR --------------------- " + strconv.Itoa(nbmutations) + ", expected 8")
-	}*/
 }

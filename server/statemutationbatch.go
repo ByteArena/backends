@@ -1,7 +1,7 @@
 package server
 
 type StateMutationBatch struct {
-	Turn      uint32
+	Turn      tickturn
 	Agent     *Agent
 	Mutations []StateMutation
 }

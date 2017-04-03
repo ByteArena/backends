@@ -191,7 +191,7 @@ func getcmdenv() cmdenvironment {
 
 	host, exists := os.LookupEnv("HOST")
 	if !exists {
-		host = "0.0.0.0"
+		host = "192.168.0.2"
 	}
 
 	// Port
@@ -212,11 +212,11 @@ func getcmdenv() cmdenvironment {
 	var nbagents int
 	nbagentsstr, exists := os.LookupEnv("AGENTS")
 	if !exists {
-		nbagents = 8
+		nbagents = 2
 	} else {
 		nbagentsbis, err := strconv.Atoi(nbagentsstr)
 		if err != nil {
-			nbagentsbis = 8
+			nbagentsbis = 2
 		}
 		nbagents = nbagentsbis
 	}

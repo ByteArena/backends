@@ -41,8 +41,8 @@ func NewAgent(swarm *Swarm) *Agent {
 		Privileged: false,
 		Binds:      []string{swarm.agentdir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
 		Resources: container.Resources{
-			Memory:   1024 * 1024 * 32,   // 32M
-			CPUQuota: 5 * (100000 / 100), // 5%
+			Memory:   1024 * 1024 * 32,    // 32M
+			CPUQuota: 25 * (100000 / 100), // 25%
 		},
 	}
 
@@ -63,6 +63,10 @@ func NewAgent(swarm *Swarm) *Agent {
 		containerid: resp.ID,
 	}
 
+}
+
+func (agent *Agent) String() string {
+	return "<Agent(" + agent.id.String() + ">"
 }
 
 func (agent *Agent) Start() error {
