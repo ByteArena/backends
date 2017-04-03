@@ -146,7 +146,7 @@ func (agent *Agent) GetPerception() Perception {
 	p.Internal.Proprioception = agentstate.Radius
 
 	// On rend la position de l'attractor relative à l'agent
-	p.Objective.Attractor = agent.swarm.state.pin.Clone().Sub(agentstate.Position)
+	p.Objective.Attractor = agent.swarm.state.Pin.Clone().Sub(agentstate.Position)
 
 	p.Specs.MaxSpeed = 3
 	p.Specs.MaxSteeringForce = 2
