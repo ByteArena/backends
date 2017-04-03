@@ -2,8 +2,8 @@ package server
 
 import (
 	"log"
-	"strconv"
 	"math/rand"
+	"strconv"
 
 	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
@@ -12,6 +12,7 @@ import (
 
 type SwarmState struct {
 	Pin              *utils.Vector2
+	PinCenter        *utils.Vector2
 	Agents           map[uuid.UUID](*AgentState)
 	pendingmutations *lfreequeue.Queue
 }
@@ -22,9 +23,12 @@ type SwarmState struct {
 
 func NewSwarmState() *SwarmState {
 
+	pin := utils.NewVector2(rand.Float64()*300+100, rand.Float64()*300+100)
+
 	return &SwarmState{
 		Agents:           make(map[uuid.UUID](*AgentState)),
-		Pin:              utils.NewVector2(rand.Float64() * 200, rand.Float64() * 300).Clone(),
+		Pin:              pin.Clone(),
+		PinCenter:        pin.Clone(),
 		pendingmutations: lfreequeue.NewQueue(),
 	}
 }

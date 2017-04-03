@@ -26,8 +26,8 @@ type vizmessage struct {
 }
 
 type vizagentmessage struct {
-	X     float64
-	Y     float64
+	X    float64
+	Y    float64
 	Kind string
 }
 
@@ -35,6 +35,14 @@ type wsincomingmessage struct {
 	messageType int
 	p           []byte
 	err         error
+}
+
+type cmdenvironment struct {
+	host     string
+	port     int
+	tps      int
+	agents   int
+	agentimp string
 }
 
 func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.SwarmState) {
@@ -87,8 +95,8 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.Sw
 					x, y := state.Position.Get()
 
 					msg.Agents = append(msg.Agents, vizagentmessage{
-						X:     x,
-						Y:     y,
+						X:    x,
+						Y:    y,
 						Kind: "agent",
 					})
 				}
@@ -96,8 +104,8 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.Sw
 				x, y := swarmstate.Pin.Get()
 
 				msg.Agents = append(msg.Agents, vizagentmessage{
-					X:	 x,
-					Y:	 y,
+					X:    x,
+					Y:    y,
 					Kind: "attractor",
 				})
 
@@ -119,11 +127,11 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.Sw
 
 }
 
-func visualization(swarm *server.Swarm) {
+func visualization(swarm *server.Swarm, host string, port int) {
 
 	basepath := "./client/"
 
-	addr := flag.String("addr", "0.0.0.0:8080", "http service address")
+	addr := flag.String("addr", host+":"+strconv.Itoa(port), "http service address")
 
 	flag.Parse()
 	log.SetFlags(0)
@@ -174,34 +182,78 @@ func visualization(swarm *server.Swarm) {
 
 	go http.ListenAndServe(*addr, nil)
 
-	log.Println("Viz Listening !")
+	log.Println("Viz Listening on http://" + host + ":" + strconv.Itoa(port))
+}
+
+func getcmdenv() cmdenvironment {
+
+	// Host
+
+	host, exists := os.LookupEnv("HOST")
+	if !exists {
+		host = "0.0.0.0"
+	}
+
+	// Port
+	var port int
+	portstr, exists := os.LookupEnv("PORT")
+	if !exists {
+		port = 8080
+	} else {
+		portbis, err := strconv.Atoi(portstr)
+		if err != nil {
+			portbis = 8080
+		}
+
+		port = portbis
+	}
+
+	// Number of agents
+	var nbagents int
+	nbagentsstr, exists := os.LookupEnv("AGENTS")
+	if !exists {
+		nbagents = 8
+	} else {
+		nbagentsbis, err := strconv.Atoi(nbagentsstr)
+		if err != nil {
+			nbagentsbis = 8
+		}
+		nbagents = nbagentsbis
+	}
+
+	// Ticks per second
+	var tps int
+	tpsstr, exists := os.LookupEnv("TPS")
+	if !exists {
+		tps = 10
+	} else {
+		tpsbis, err := strconv.Atoi(tpsstr)
+		if err != nil {
+			tpsbis = 10
+		}
+		tps = tpsbis
+	}
+
+	// Agent implementation
+	agentimp, exists := os.LookupEnv("AGENTIMP")
+	if !exists {
+		agentimp = "seeker"
+	}
+
+	return cmdenvironment{
+		host:     host,
+		port:     port,
+		agents:   nbagents,
+		agentimp: agentimp,
+		tps:      tps,
+	}
 }
 
 func main() {
 
 	rand.Seed(time.Now().UnixNano())
 
-	host := os.Getenv("HOST")
-
-	port, err := strconv.Atoi(os.Getenv("PORT"))
-	if err != nil {
-		port = 8080
-	}
-
-	nbagents, err := strconv.Atoi(os.Getenv("AGENTS"))
-	if err != nil {
-		nbagents = 8
-	}
-
-	tickspersec, err := strconv.Atoi(os.Getenv("TPS"))
-	if err != nil {
-		tickspersec = 10
-	}
-
-	agentimp := os.Getenv("AGENTIMP")
-	if err != nil {
-		agentimp = "seeker"
-	}
+	cmdenv := getcmdenv()
 
 	ctx := context.Background()
 
@@ -214,15 +266,15 @@ func main() {
 
 	swarm := server.NewSwarm(
 		ctx,
-		host,
-		port,
-		exfolder+"/../../agents/"+agentimp,
-		nbagents,
-		tickspersec,
+		cmdenv.host,
+		cmdenv.port,
+		exfolder+"/../../agents/"+cmdenv.agentimp,
+		cmdenv.agents,
+		cmdenv.tps,
 		stopticking,
 	)
 
-	for i := 0; i < nbagents; i++ {
+	for i := 0; i < cmdenv.agents; i++ {
 		go swarm.Spawnagent()
 	}
 
@@ -236,7 +288,7 @@ func main() {
 		os.Exit(1)
 	}()
 
-	go visualization(swarm)
+	go visualization(swarm, cmdenv.host, cmdenv.port+1)
 
 	swarm.Listen()
 

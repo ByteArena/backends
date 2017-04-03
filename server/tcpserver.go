@@ -319,7 +319,7 @@ func (s *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bo
 
 					// Update swarm state
 					// TODO: handle this after the tick, not before ?
-					server.swarm.update()
+					server.swarm.update(server.tickturn)
 
 					for _, client := range server.Clients[:] {
 						wg.Add(1)
