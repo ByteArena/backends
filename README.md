@@ -4,13 +4,13 @@
 ## Install
 
 ```bash
-$ cd ~/go/src
+$ cd "$GOPATH"/src
 $ mkdir -p github.com/netgusto
 $ cd github.com/netgusto
-$ git clone https://github.com/netgusto/bytearena
+$ git clone git@github.com:netgusto/bytearena.git
 
 # install go pkgs
-$ cd ~/go/src/github.com/netgusto/bytearena
+$ cd "$GOPATH"/src/github.com/netgusto/bytearena
 $ go get ./...
 
 # install agents
@@ -28,7 +28,9 @@ Requires docker and golang.
 Replace `$LOCALIP` with your local LAN IP.
 
 ```bash
-$ cd ~/go/src/github.com/netgusto/bytearena/cmd/arena
+$ cd "$GOPATH"/src/github.com/netgusto/bytearena/cmd/arena
+$ # Pull node image
+$ docker create node
 $ # Build and run
 $ go build && HOST=$LOCALIP PORT=8888 TPS=8 AGENTS=8 AGENTIMP=seeker ./arena
 # ctrl-c to tear down
@@ -42,7 +44,7 @@ Options:
 **Visualisation**
 
 ```bash
-$ cd ~/go/src/github.com/netgusto/bytearena/cmd/streamderiver
+$ cd "$GOPATH"/src/github.com/netgusto/bytearena/cmd/streamderiver
 $ # Build and run
 $ go build && ./streamderiver
 # ctrl-c to tear down
