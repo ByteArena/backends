@@ -23,13 +23,23 @@ import (
 )
 
 type vizmessage struct {
-	Agents []vizagentmessage
+	Agents      []vizagentmessage
+	Projectiles []vizprojectilemessage
 }
 
 type vizagentmessage struct {
-	X    float64
-	Y    float64
-	Kind string
+	X      float64
+	Y      float64
+	Radius float64
+	Kind   string
+}
+
+type vizprojectilemessage struct {
+	X      float64
+	Y      float64
+	Radius float64
+	From   vizagentmessage
+	Kind   string
 }
 
 type wsincomingmessage struct {
@@ -92,22 +102,40 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.Sw
 			{
 				msg := vizmessage{}
 
+				for _, state := range swarmstate.Projectiles {
+					x, y := state.Velocity.Get()
+					posx, posy := state.Position.Get()
+
+					msg.Projectiles = append(msg.Projectiles, vizprojectilemessage{
+						X:      x,
+						Y:      y,
+						Radius: state.Radius,
+						Kind:   "projectiles",
+						From: vizagentmessage{
+							X: posx,
+							Y: posy,
+						},
+					})
+				}
+
 				for _, state := range swarmstate.Agents {
 					x, y := state.Position.Get()
 
 					msg.Agents = append(msg.Agents, vizagentmessage{
-						X:    x,
-						Y:    y,
-						Kind: "agent",
+						X:      x,
+						Y:      y,
+						Radius: state.Radius,
+						Kind:   "agent",
 					})
 				}
 
 				x, y := swarmstate.Pin.Get()
 
 				msg.Agents = append(msg.Agents, vizagentmessage{
-					X:    x,
-					Y:    y,
-					Kind: "attractor",
+					X:      x,
+					Y:      y,
+					Radius: 10,
+					Kind:   "attractor",
 				})
 
 				json, err := json.Marshal(msg)

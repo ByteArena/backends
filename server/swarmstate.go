@@ -14,6 +14,7 @@ type SwarmState struct {
 	Pin              utils.Vector2
 	PinCenter        utils.Vector2
 	Agents           map[uuid.UUID](AgentState)
+	Projectiles      map[uuid.UUID](ProjectileState)
 	mutationsmutex   *sync.Mutex
 	pendingmutations []StateMutationBatch
 }
@@ -28,6 +29,7 @@ func NewSwarmState() *SwarmState {
 
 	return &SwarmState{
 		Agents:           make(map[uuid.UUID](AgentState)),
+		Projectiles:      make(map[uuid.UUID](ProjectileState)),
 		Pin:              pin,
 		PinCenter:        pin,
 		mutationsmutex:   &sync.Mutex{},
@@ -47,6 +49,16 @@ func (swarmstate *SwarmState) ProcessMutations() {
 	mutations := swarmstate.pendingmutations
 	swarmstate.pendingmutations = make([]StateMutationBatch, 0)
 	swarmstate.mutationsmutex.Unlock()
+
+	for k, state := range swarmstate.Projectiles {
+
+		if state.Ttl <= 0 {
+			delete(swarmstate.Projectiles, k)
+		} else {
+			// state.Ttl --
+		}
+		delete(swarmstate.Projectiles, k)
+	}
 
 	for _, batch := range mutations {
 
@@ -79,6 +91,42 @@ func (swarmstate *SwarmState) ProcessMutations() {
 
 					nbmutations++
 					newstate = newstate.mutationSteer(utils.MakeVector2(x, y))
+
+					break
+				}
+
+			case "mutationShoot":
+				{
+					log.Println(mutation.arguments[0])
+					vec, ok := mutation.arguments[0].([]interface{})
+					if !ok {
+						log.Panicln("Invalid mutationSteer argument")
+					}
+
+					x, ok := vec[0].(float64)
+					if !ok {
+						log.Panicln("Invalid mutationSteer argument")
+					}
+
+					y, ok := vec[1].(float64)
+					if !ok {
+						log.Panicln("Invalid mutationSteer argument")
+					}
+
+					nbmutations++
+
+					agentX, agentY := newstate.Position.Get()
+
+					projectile := ProjectileState{
+						Position: utils.MakeVector2(agentX-newstate.Radius, agentY-newstate.Radius),
+						Velocity: utils.MakeVector2(x, y),
+						From:     newstate,
+						Ttl:      10,
+					}
+
+					projectileid := uuid.NewV4()
+
+					swarmstate.Projectiles[projectileid] = projectile
 					break
 				}
 			}
