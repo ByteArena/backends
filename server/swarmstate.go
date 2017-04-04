@@ -119,7 +119,7 @@ func (swarmstate *SwarmState) ProcessMutations() {
 
 					projectile := ProjectileState{
 						Position: utils.MakeVector2(agentX+newstate.Radius, agentY+newstate.Radius),
-						Velocity: newstate.Position.Add(utils.MakeVector2(x, y)), // adding the agent position to "relativize" the target vector
+						Velocity: newstate.Position.Add(utils.MakeVector2(x, y)), // adding the agent position to "absolutize" the target vector
 						From:     newstate,
 						Ttl:      10,
 					}
