@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
+	"github.com/netgusto/bytearena/server/agent"
 	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
@@ -18,7 +19,7 @@ import (
 type Swarm struct {
 	ctx              context.Context
 	cli              *client.Client
-	agents           map[uuid.UUID]*Agent
+	agents           map[uuid.UUID]*agent.Agent
 	agentdir         string
 	host             string
 	port             int
@@ -45,7 +46,7 @@ func NewSwarm(ctx context.Context, host string, port int, agentdir string, nbexp
 	return &Swarm{
 		ctx:              ctx,
 		cli:              cli,
-		agents:           make(map[uuid.UUID]*Agent),
+		agents:           make(map[uuid.UUID]*agent.Agent),
 		agentdir:         agentdir,
 		host:             host,
 		port:             port,
@@ -65,12 +66,12 @@ func (swarm *Swarm) Spawnagent() {
 	agentstate.Radius = 8.0
 	swarm.state.Agents[agent.id] = agentstate
 
-	err := agent.Start()
+	err := agent.Start(swarm.cli)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	err = agent.Wait()
+	err = agent.Wait(swarm.cli)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -98,7 +99,7 @@ func (swarm *Swarm) Teardown() {
 	}
 }
 
-func (swarm *Swarm) FindAgent(agentid string) (*Agent, error) {
+func (swarm *Swarm) FindAgent(agentid string) (*agent.Agent, error) {
 	foundkey, err := uuid.FromString(agentid)
 	if err != nil {
 		return nil, err

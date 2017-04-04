@@ -8,27 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/netgusto/bytearena/server/state"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 
 	"encoding/json"
 )
-
-type tickturn struct {
-	seq uint32
-	id  uuid.UUID
-}
-
-func (turn tickturn) String() string {
-	return "<TickTurn(" + strconv.Itoa(int(turn.seq)) + ")>"
-}
-
-func (turn tickturn) Next() tickturn {
-	return tickturn{
-		seq: turn.seq + 1,
-		id:  uuid.NewV4(),
-	}
-}
 
 type RPCHandshakeRequest struct {
 	Agent     string
@@ -51,10 +36,10 @@ type TCPClient struct {
 	conn              net.Conn
 	Server            *TCPServer
 	agent             *Agent
-	hastickedgoodturn chan tickturn
+	hastickedgoodturn chan state.Tickturn
 	//hastickedbadturn  chan bool
 	//hastimedoutfortick chan bool
-	//lastturn           tickturn // dernier turn soumis (ou en timeout)
+	//lastturn           state.Tickturn // dernier turn soumis (ou en timeout)
 }
 
 // TCP server
@@ -63,10 +48,10 @@ type TCPServer struct {
 	address string // Address to open connection: localhost:9999
 	proto   string
 	swarm   *Swarm
-	//tickturnopen bool
+	//state.Tickturnopen bool
 	//late int
 	mutex        *sync.Mutex
-	expectedturn tickturn
+	expectedturn state.Tickturn
 }
 
 // Read client data from channel
@@ -105,13 +90,13 @@ func (c *TCPClient) Close() error {
 	return c.conn.Close()
 }
 
-func (s *TCPServer) SetExpectedTurn(turn tickturn) {
+func (s *TCPServer) SetExpectedTurn(turn state.Tickturn) {
 	s.mutex.Lock()
 	s.expectedturn = turn
 	s.mutex.Unlock()
 }
 
-func (s *TCPServer) GetExpectedTurn() tickturn {
+func (s *TCPServer) GetExpectedTurn() state.Tickturn {
 	s.mutex.Lock()
 	res := s.expectedturn
 	s.mutex.Unlock()
@@ -133,7 +118,7 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 		//var args []interface{}
 
 		if request.Method == "mutations" {
-			/*if !s.tickturnopen {
+			/*if !s.state.Tickturnopen {
 				return
 			}*/
 
@@ -263,7 +248,7 @@ func (s *TCPServer) Listen() error {
 			agent:             agent,
 			conn:              conn,
 			Server:            s,
-			hastickedgoodturn: make(chan tickturn, 10), // can buffer up to 10 turns, to avoid blocking
+			hastickedgoodturn: make(chan state.Tickturn, 10), // can buffer up to 10 turns, to avoid blocking
 			//hastickedbadturn:  make(chan bool),         // can buffer up to 10 turns, to avoid blocking
 		}
 		agent.tcp = client
@@ -294,7 +279,7 @@ func NewTCPServer(proto, address string, swarm *Swarm) *TCPServer {
 		proto:   proto,
 		swarm:   swarm,
 		mutex:   &sync.Mutex{},
-		//tickturnopen: false,
+		//state.Tickturnopen: false,
 	}
 
 	return server
@@ -314,7 +299,7 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	}
 }
 
-func chanTimeout(ch chan tickturn, timeout time.Duration) bool {
+func chanTimeout(ch chan state.Tickturn, timeout time.Duration) bool {
 	select {
 	case <-ch:
 		return true // completed normally
@@ -327,7 +312,7 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 
 	go func() {
 
-		var turn tickturn
+		var turn state.Tickturn
 		log.Println("Start ticking")
 
 		timeoutduration := tickduration * 60 / 100
@@ -354,7 +339,7 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 
 					// On ticke chaque client
 					for _, client := range server.Clients[:] {
-						go func(client *TCPClient, turn tickturn, perception Perception) {
+						go func(client *TCPClient, turn state.Tickturn, perception Perception) {
 							perceptionjson, _ := json.Marshal(perception)
 							message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.seq)) + "," + string(perceptionjson) + "]}\n")
 							client.Send(message)

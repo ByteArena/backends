@@ -1,4 +1,4 @@
-package server
+package statemutation
 
 type StateMutation struct {
 	action    string

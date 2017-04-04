@@ -1,4 +1,4 @@
-package server
+package state
 
 import "github.com/netgusto/bytearena/utils"
 

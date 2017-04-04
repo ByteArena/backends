@@ -1,4 +1,4 @@
-package server
+package state
 
 import (
 	"log"
@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/netgusto/bytearena/server/statemutation"
 	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 )
@@ -16,7 +17,7 @@ type SwarmState struct {
 	Agents           map[uuid.UUID](AgentState)
 	Projectiles      map[uuid.UUID](ProjectileState)
 	mutationsmutex   *sync.Mutex
-	pendingmutations []StateMutationBatch
+	pendingmutations []statemutation.StateMutationBatch
 }
 
 /* ***************************************************************************/
@@ -33,11 +34,11 @@ func NewSwarmState() *SwarmState {
 		Pin:              pin,
 		PinCenter:        pin,
 		mutationsmutex:   &sync.Mutex{},
-		pendingmutations: make([]StateMutationBatch, 0),
+		pendingmutations: make([]statemutation.StateMutationBatch, 0),
 	}
 }
 
-func (swarmstate *SwarmState) PushMutationBatch(batch StateMutationBatch) {
+func (swarmstate *SwarmState) PushMutationBatch(batch statemutation.StateMutationBatch) {
 	swarmstate.mutationsmutex.Lock()
 	swarmstate.pendingmutations = append(swarmstate.pendingmutations, batch)
 	swarmstate.mutationsmutex.Unlock()
@@ -47,7 +48,7 @@ func (swarmstate *SwarmState) ProcessMutations() {
 
 	swarmstate.mutationsmutex.Lock()
 	mutations := swarmstate.pendingmutations
-	swarmstate.pendingmutations = make([]StateMutationBatch, 0)
+	swarmstate.pendingmutations = make([]statemutation.StateMutationBatch, 0)
 	swarmstate.mutationsmutex.Unlock()
 
 	for _, batch := range mutations {
