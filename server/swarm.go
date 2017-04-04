@@ -201,6 +201,16 @@ func (swarm *Swarm) update(turn tickturn) {
 
 	swarm.state.Pin = utils.MakeVector2(x, y)
 
+	for k, state := range swarm.state.Projectiles {
+
+		if state.Ttl <= 0 {
+			delete(swarm.state.Projectiles, k)
+		} else {
+			state.Ttl -= 1
+			swarm.state.Projectiles[k] = state
+		}
+	}
+
 	// update agents
 	for _, agent := range swarm.agents {
 		agent.SetState(agent.GetState().update())

@@ -50,16 +50,6 @@ func (swarmstate *SwarmState) ProcessMutations() {
 	swarmstate.pendingmutations = make([]StateMutationBatch, 0)
 	swarmstate.mutationsmutex.Unlock()
 
-	for k, state := range swarmstate.Projectiles {
-
-		if state.Ttl <= 0 {
-			delete(swarmstate.Projectiles, k)
-		} else {
-			// state.Ttl --
-		}
-		delete(swarmstate.Projectiles, k)
-	}
-
 	for _, batch := range mutations {
 
 		nbmutations := 0
@@ -121,7 +111,7 @@ func (swarmstate *SwarmState) ProcessMutations() {
 						Position: utils.MakeVector2(agentX+newstate.Radius, agentY+newstate.Radius),
 						Velocity: newstate.Position.Add(utils.MakeVector2(x, y)), // adding the agent position to "absolutize" the target vector
 						From:     newstate,
-						Ttl:      10,
+						Ttl:      1,
 					}
 
 					projectileid := uuid.NewV4()
