@@ -15,7 +15,7 @@ import (
 )
 
 type Agent struct {
-	id          uuid.UUID
+	Id          uuid.UUID
 	containerid string
 }
 
@@ -57,20 +57,20 @@ func NewAgent(ctx context.Context, cli *client.Client, port int, host string, ag
 	}
 
 	return &Agent{
-		id:          agentid,
+		Id:          agentid,
 		containerid: resp.ID,
 	}
 
 }
 
 func (agent *Agent) String() string {
-	return "<Agent(" + agent.id.String() + ">"
+	return "<Agent(" + agent.Id.String() + ">"
 }
 
 func (agent *Agent) Start(ctx context.Context, cli *client.Client) error {
 
 	log.Print(chalk.Yellow)
-	log.Print("Spawning agent "+agent.id.String()+" in its own container", chalk.Reset)
+	log.Print("Spawning agent "+agent.Id.String()+" in its own container", chalk.Reset)
 	log.Println("")
 
 	return cli.ContainerStart(

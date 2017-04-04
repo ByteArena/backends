@@ -7,6 +7,6 @@ import (
 
 type StateMutationBatch struct {
 	Turn      utils.Tickturn
-	Agent     uuid.UUID
+	AgentId   uuid.UUID
 	Mutations []StateMutation
 }

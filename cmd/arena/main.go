@@ -20,6 +20,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/kardianos/osext"
 	"github.com/netgusto/bytearena/server"
+	"github.com/netgusto/bytearena/server/state"
 )
 
 type vizmessage struct {
@@ -56,7 +57,7 @@ type cmdenvironment struct {
 	agentimp string
 }
 
-func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.SwarmState) {
+func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan state.SwarmState) {
 
 	upgrader := websocket.Upgrader{} // use default options
 
@@ -163,7 +164,7 @@ func visualization(swarm *server.Swarm, host string, port int) {
 	addr := flag.String("addr", host+":"+strconv.Itoa(port), "http service address")
 
 	stateobserver := swarm.SubscribeStateObservation()
-	staterelays := make([]chan server.SwarmState, 0)
+	staterelays := make([]chan state.SwarmState, 0)
 	staterelaymutex := &sync.Mutex{}
 	go func() {
 		for {
@@ -182,7 +183,7 @@ func visualization(swarm *server.Swarm, host string, port int) {
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		staterelaymutex.Lock()
-		relay := make(chan server.SwarmState)
+		relay := make(chan state.SwarmState)
 		staterelays = append(staterelays, relay)
 		staterelaymutex.Unlock()
 		wsendpoint(w, r, relay)

@@ -8,11 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/netgusto/bytearena/server/state"
-	uuid "github.com/satori/go.uuid"
+	"github.com/netgusto/bytearena/server/agent"
+	"github.com/netgusto/bytearena/server/statemutation"
+	"github.com/netgusto/bytearena/utils"
 	"github.com/ttacon/chalk"
 
 	"encoding/json"
+
+	"github.com/netgusto/bytearena/server/state"
 )
 
 type RPCHandshakeRequest struct {
@@ -35,11 +38,11 @@ type RPCResponse struct {
 type TCPClient struct {
 	conn              net.Conn
 	Server            *TCPServer
-	agent             *Agent
-	hastickedgoodturn chan state.Tickturn
+	Agent             *agent.Agent
+	hastickedgoodturn chan utils.Tickturn
 	//hastickedbadturn  chan bool
 	//hastimedoutfortick chan bool
-	//lastturn           state.Tickturn // dernier turn soumis (ou en timeout)
+	//lastturn           utils.Tickturn // dernier turn soumis (ou en timeout)
 }
 
 // TCP server
@@ -48,10 +51,10 @@ type TCPServer struct {
 	address string // Address to open connection: localhost:9999
 	proto   string
 	swarm   *Swarm
-	//state.Tickturnopen bool
+	//utils.Tickturnopen bool
 	//late int
 	mutex        *sync.Mutex
-	expectedturn state.Tickturn
+	expectedturn utils.Tickturn
 }
 
 // Read client data from channel
@@ -90,13 +93,13 @@ func (c *TCPClient) Close() error {
 	return c.conn.Close()
 }
 
-func (s *TCPServer) SetExpectedTurn(turn state.Tickturn) {
+func (s *TCPServer) SetExpectedTurn(turn utils.Tickturn) {
 	s.mutex.Lock()
 	s.expectedturn = turn
 	s.mutex.Unlock()
 }
 
-func (s *TCPServer) GetExpectedTurn() state.Tickturn {
+func (s *TCPServer) GetExpectedTurn() utils.Tickturn {
 	s.mutex.Lock()
 	res := s.expectedturn
 	s.mutex.Unlock()
@@ -118,7 +121,7 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 		//var args []interface{}
 
 		if request.Method == "mutations" {
-			/*if !s.state.Tickturnopen {
+			/*if !s.utils.Tickturnopen {
 				return
 			}*/
 
@@ -138,7 +141,7 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 			// this client has ticked, it won't timeout
 			// Make sure there's a consumer side, otherwise this gofunc will be blocked here
 
-			if turnedtickint != expectedturn.seq {
+			if turnedtickint != expectedturn.GetSeq() {
 
 				//cli.hastickedbadturn <- true
 
@@ -150,9 +153,9 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 				return
 			}
 
-			mutationbatch := StateMutationBatch{
-				Turn:  expectedturn,
-				Agent: cli.agent,
+			mutationbatch := statemutation.StateMutationBatch{
+				Turn:    expectedturn,
+				AgentId: cli.Agent.Id,
 			}
 
 			genericmutations := request.Arguments[1].([]interface{})
@@ -165,9 +168,9 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 
 				method := args[0].(string)
 
-				mutationbatch.Mutations = append(mutationbatch.Mutations, StateMutation{
-					action:    method,
-					arguments: args[1:],
+				mutationbatch.Mutations = append(mutationbatch.Mutations, statemutation.StateMutation{
+					Action:    method,
+					Arguments: args[1:],
 				})
 			}
 
@@ -245,13 +248,12 @@ func (s *TCPServer) Listen() error {
 
 		//conn.SetDeadline(t)
 		client := &TCPClient{
-			agent:             agent,
+			Agent:             agent,
 			conn:              conn,
 			Server:            s,
-			hastickedgoodturn: make(chan state.Tickturn, 10), // can buffer up to 10 turns, to avoid blocking
+			hastickedgoodturn: make(chan utils.Tickturn, 10), // can buffer up to 10 turns, to avoid blocking
 			//hastickedbadturn:  make(chan bool),         // can buffer up to 10 turns, to avoid blocking
 		}
-		agent.tcp = client
 
 		go client.listen()
 
@@ -279,7 +281,7 @@ func NewTCPServer(proto, address string, swarm *Swarm) *TCPServer {
 		proto:   proto,
 		swarm:   swarm,
 		mutex:   &sync.Mutex{},
-		//state.Tickturnopen: false,
+		//utils.Tickturnopen: false,
 	}
 
 	return server
@@ -299,7 +301,7 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	}
 }
 
-func chanTimeout(ch chan state.Tickturn, timeout time.Duration) bool {
+func chanTimeout(ch chan utils.Tickturn, timeout time.Duration) bool {
 	select {
 	case <-ch:
 		return true // completed normally
@@ -312,7 +314,7 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 
 	go func() {
 
-		var turn state.Tickturn
+		var turn utils.Tickturn
 		log.Println("Start ticking")
 
 		timeoutduration := tickduration * 60 / 100
@@ -339,11 +341,11 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 
 					// On ticke chaque client
 					for _, client := range server.Clients[:] {
-						go func(client *TCPClient, turn state.Tickturn, perception Perception) {
+						go func(client *TCPClient, turn utils.Tickturn, perception state.Perception) {
 							perceptionjson, _ := json.Marshal(perception)
-							message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.seq)) + "," + string(perceptionjson) + "]}\n")
+							message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.GetSeq())) + "," + string(perceptionjson) + "]}\n")
 							client.Send(message)
-						}(client, turn, client.agent.GetPerception())
+						}(client, turn, client.Agent.GetPerception())
 					}
 
 					// On attend la réponse de chaque client, jusqu'au timeout

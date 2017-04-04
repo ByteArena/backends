@@ -11,6 +11,8 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/netgusto/bytearena/server/agent"
+	"github.com/netgusto/bytearena/server/state"
+	"github.com/netgusto/bytearena/server/statemutation"
 	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
@@ -23,12 +25,12 @@ type Swarm struct {
 	agentdir         string
 	host             string
 	port             int
-	state            *SwarmState
+	state            *state.SwarmState
 	nbexpectedagents int
 	tickspersec      int
 	stopticking      chan bool
 	tcpserver        *TCPServer
-	stateobservers   []chan SwarmState
+	stateobservers   []chan state.SwarmState
 }
 
 func NewSwarm(ctx context.Context, host string, port int, agentdir string, nbexpectedagents int, tickspersec int, stopticking chan bool) *Swarm {
@@ -50,7 +52,7 @@ func NewSwarm(ctx context.Context, host string, port int, agentdir string, nbexp
 		agentdir:         agentdir,
 		host:             host,
 		port:             port,
-		state:            NewSwarmState(),
+		state:            state.NewSwarmState(),
 		nbexpectedagents: nbexpectedagents,
 		tickspersec:      tickspersec,
 		stopticking:      stopticking,
@@ -59,19 +61,19 @@ func NewSwarm(ctx context.Context, host string, port int, agentdir string, nbexp
 }
 
 func (swarm *Swarm) Spawnagent() {
-	agent := NewAgent(swarm)
-	swarm.agents[agent.id] = agent
+	agent := agent.NewAgent(swarm.ctx, swarm.cli, swarm.port, swarm.host, swarm.agentdir)
+	swarm.agents[agent.Id] = agent
 
-	agentstate := MakeAgentState()
+	agentstate := state.MakeAgentState()
 	agentstate.Radius = 8.0
-	swarm.state.Agents[agent.id] = agentstate
+	swarm.state.Agents[agent.Id] = agentstate
 
-	err := agent.Start(swarm.cli)
+	err := agent.Start(swarm.ctx, swarm.cli)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	err = agent.Wait(swarm.cli)
+	err = agent.Wait(swarm.ctx, swarm.cli)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -95,7 +97,7 @@ func (swarm *Swarm) Listen() {
 func (swarm *Swarm) Teardown() {
 	log.Println("Swarm::Teardown()")
 	for _, agent := range swarm.agents {
-		agent.Teardown()
+		agent.Teardown(swarm.ctx, swarm.cli)
 	}
 }
 
@@ -180,7 +182,7 @@ func (swarm *Swarm) OnProcedureCall(c *TCPClient, method string, arguments []int
 	return nil, errors.New("Unrecognized Procedure")
 }
 
-func (swarm *Swarm) PushMutationBatch(batch StateMutationBatch) {
+func (swarm *Swarm) PushMutationBatch(batch statemutation.StateMutationBatch) {
 	swarm.state.PushMutationBatch(batch)
 }
 
@@ -188,7 +190,7 @@ func (swarm *Swarm) ProcessMutations() {
 	swarm.state.ProcessMutations()
 }
 
-func (swarm *Swarm) update(turn tickturn) {
+func (swarm *Swarm) update(turn utils.Tickturn) {
 
 	// Updates physiques, liées au temps qui passe
 	// Avant de récuperer les mutations de chaque tour, et même avant deconstituer la perception de chaque agent
@@ -197,8 +199,8 @@ func (swarm *Swarm) update(turn tickturn) {
 	centerx, centery := swarm.state.PinCenter.Get()
 	radius := 120.0
 
-	x := centerx + radius*math.Cos(float64(turn.seq)/10.0)
-	y := centery + radius*math.Sin(float64(turn.seq)/10.0)
+	x := centerx + radius*math.Cos(float64(turn.GetSeq())/10.0)
+	y := centery + radius*math.Sin(float64(turn.GetSeq())/10.0)
 
 	swarm.state.Pin = utils.MakeVector2(x, y)
 
@@ -214,21 +216,21 @@ func (swarm *Swarm) update(turn tickturn) {
 
 	// update agents
 	for _, agent := range swarm.agents {
-		agent.SetState(agent.GetState().update())
+		agent.SetState(agent.GetState().Update())
 	}
 
 	// update visualisations
 	swarmCloned := *swarm.state
 
 	for _, subscriber := range swarm.stateobservers {
-		go func(s chan SwarmState) {
+		go func(s chan state.SwarmState) {
 			s <- swarmCloned
 		}(subscriber)
 	}
 }
 
-func (swarm *Swarm) SubscribeStateObservation() chan SwarmState {
-	ch := make(chan SwarmState)
+func (swarm *Swarm) SubscribeStateObservation() chan state.SwarmState {
+	ch := make(chan state.SwarmState)
 	swarm.stateobservers = append(swarm.stateobservers, ch)
 	return ch
 }

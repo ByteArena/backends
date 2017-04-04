@@ -21,3 +21,7 @@ func (turn Tickturn) Next() Tickturn {
 		id:  uuid.NewV4(),
 	}
 }
+
+func (turn Tickturn) GetSeq() uint32 {
+	return turn.seq
+}
