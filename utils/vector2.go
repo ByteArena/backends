@@ -61,9 +61,48 @@ func (a Vector2) Mult(b Vector2) Vector2 {
 	return a
 }
 
+func (a Vector2) MultScalar(f float64) Vector2 {
+	a.x *= f
+	a.y *= f
+	return a
+}
+
 func (a Vector2) Div(b Vector2) Vector2 {
 	a.x /= b.x
 	a.y /= b.y
+	return a
+}
+
+func (a Vector2) DivScalar(f float64) Vector2 {
+	a.x /= f
+	a.y /= f
+	return a
+}
+
+func (a Vector2) Mag() float64 {
+	return math.Sqrt(a.MagSq())
+}
+
+func (a Vector2) MagSq() float64 {
+	return (a.x*a.x + a.y*a.y)
+}
+
+func (a Vector2) Normalize() Vector2 {
+	mag := a.Mag()
+	if mag > 0 {
+		return a.DivScalar(mag)
+	}
+	return a
+}
+
+func (a Vector2) Limit(max float64) Vector2 {
+
+	mSq := a.MagSq()
+
+	if mSq > max*max {
+		return a.Normalize().MultScalar(max)
+	}
+
 	return a
 }
 
