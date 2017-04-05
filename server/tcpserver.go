@@ -345,7 +345,7 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 							perceptionjson, _ := json.Marshal(perception)
 							message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.GetSeq())) + "," + string(perceptionjson) + "]}\n")
 							client.Send(message)
-						}(client, turn, client.Agent.GetPerception())
+						}(client, turn, client.Agent.GetPerception(server.swarm.state))
 					}
 
 					// On attend la réponse de chaque client, jusqu'au timeout

@@ -71,7 +71,6 @@ func (agent *Agent) Start(ctx context.Context, cli *client.Client) error {
 
 	log.Print(chalk.Yellow)
 	log.Print("Spawning agent "+agent.Id.String()+" in its own container", chalk.Reset)
-	log.Println("")
 
 	return cli.ContainerStart(
 		ctx,
@@ -144,28 +143,27 @@ func (agent *Agent) Teardown(ctx context.Context, cli *client.Client) {
 	}
 }
 
-func (agent *Agent) GetPerception() state.Perception {
+func (agent *Agent) GetPerception(swarmstate *state.SwarmState) state.Perception {
 	p := state.Perception{}
+	agentstate := agent.GetState(swarmstate)
+	//	p.Internal.Acceleration = agentstate.Acceleration.clone()
+	p.Internal.Velocity = agentstate.Velocity.Clone()
+	p.Internal.Proprioception = agentstate.Radius
+
+	// On rend la position de l'attractor relative à l'agent
+	p.Objective.Attractor = swarmstate.Pin.Clone().Sub(agentstate.Position)
+
+	p.Specs.MaxSpeed = 8
+	p.Specs.MaxSteeringForce = 4
+
 	return p
-	// agentstate := agent.GetState()
-	// //	p.Internal.Acceleration = agentstate.Acceleration.clone()
-	// p.Internal.Velocity = agentstate.Velocity.Clone()
-	// p.Internal.Proprioception = agentstate.Radius
-
-	// // On rend la position de l'attractor relative à l'agent
-	// p.Objective.Attractor = agent.swarm.state.Pin.Clone().Sub(agentstate.Position)
-
-	// p.Specs.MaxSpeed = 8
-	// p.Specs.MaxSteeringForce = 4
-
-	// return p
 }
 
-func (agent *Agent) GetState() state.AgentState {
-	// return agent.swarm.state.Agents[agent.id]
-	return state.AgentState{}
+func (agent *Agent) GetState(swarmstate *state.SwarmState) state.AgentState {
+	return swarmstate.Agents[agent.Id]
+	//return state.AgentState{}
 }
 
-func (agent *Agent) SetState(state state.AgentState) {
-	// agent.swarm.state.Agents[agent.id] = state
+func (agent *Agent) SetState(swarmstate *state.SwarmState, state state.AgentState) {
+	swarmstate.Agents[agent.Id] = state
 }

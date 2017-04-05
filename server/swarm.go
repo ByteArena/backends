@@ -216,7 +216,10 @@ func (swarm *Swarm) update(turn utils.Tickturn) {
 
 	// update agents
 	for _, agent := range swarm.agents {
-		agent.SetState(agent.GetState().Update())
+		agent.SetState(
+			swarm.state,
+			agent.GetState(swarm.state).Update(),
+		)
 	}
 
 	// update visualisations

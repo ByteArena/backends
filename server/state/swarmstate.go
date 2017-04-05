@@ -64,7 +64,6 @@ func (swarmstate *SwarmState) ProcessMutations() {
 			switch mutation.Action {
 			case "mutationSteer":
 				{
-					log.Println(mutation.Arguments[0])
 					vec, ok := mutation.Arguments[0].([]interface{})
 					if !ok {
 						log.Panicln("Invalid mutationSteer argument")
@@ -88,20 +87,19 @@ func (swarmstate *SwarmState) ProcessMutations() {
 
 			case "mutationShoot":
 				{
-					log.Println(mutation.Arguments[0])
 					vec, ok := mutation.Arguments[0].([]interface{})
 					if !ok {
-						log.Panicln("Invalid mutationSteer argument")
+						log.Panicln("Invalid mutationShoot argument")
 					}
 
 					x, ok := vec[0].(float64)
 					if !ok {
-						log.Panicln("Invalid mutationSteer argument")
+						log.Panicln("Invalid mutationShoot argument")
 					}
 
 					y, ok := vec[1].(float64)
 					if !ok {
-						log.Panicln("Invalid mutationSteer argument")
+						log.Panicln("Invalid mutationShoot argument")
 					}
 
 					nbmutations++
