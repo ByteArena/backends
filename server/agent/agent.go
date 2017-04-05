@@ -16,28 +16,27 @@ func MakeAgent() Agent {
 }
 
 func (agent *Agent) String() string {
-	return "<Agent(" + agent.Id.String() + ">"
+	return "<Agent(" + agent.Id.String() + ")>"
 }
 
 func (agent *Agent) GetPerception(swarmstate *state.ServerState) state.Perception {
 	p := state.Perception{}
 	agentstate := agent.GetState(swarmstate)
-	//	p.Internal.Acceleration = agentstate.Acceleration.clone()
+
 	p.Internal.Velocity = agentstate.Velocity.Clone()
 	p.Internal.Proprioception = agentstate.Radius
 
 	// On rend la position de l'attractor relative à l'agent
 	p.Objective.Attractor = swarmstate.Pin.Clone().Sub(agentstate.Position)
 
-	p.Specs.MaxSpeed = 8
-	p.Specs.MaxSteeringForce = 4
+	p.Specs.MaxSpeed = agentstate.MaxSpeed
+	p.Specs.MaxSteeringForce = agentstate.MaxSteeringForce
 
 	return p
 }
 
 func (agent *Agent) GetState(swarmstate *state.ServerState) state.AgentState {
 	return swarmstate.Agents[agent.Id]
-	//return state.AgentState{}
 }
 
 func (agent *Agent) SetState(swarmstate *state.ServerState, state state.AgentState) {

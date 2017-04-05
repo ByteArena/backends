@@ -102,15 +102,19 @@ func (server *Server) TearDown() {
 	server.containerorchestrator.TearDownAll()
 }
 
-func (server *Server) DoFindAgent(agentid string) agent.Agent {
+func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
+	var emptyagent agent.Agent
+
 	foundkey, err := uuid.FromString(agentid)
 	if err != nil {
-		log.Panicln(err)
+		return emptyagent, err
 	}
 
-	agent := server.agents[foundkey]
+	if foundagent, ok := server.agents[foundkey]; ok {
+		return foundagent, nil
+	}
 
-	return agent
+	return emptyagent, errors.New("Agent" + agentid + " not found")
 }
 
 func (server *Server) OnNewClient(c *comm.TCPClient) {

@@ -51,7 +51,7 @@ type TCPCallbacks interface {
 	GetState() *state.ServerState
 
 	DoPushMutationBatch(mutationbatch statemutation.StateMutationBatch)
-	DoFindAgent(agentid string) agent.Agent
+	DoFindAgent(agentid string) (agent.Agent, error)
 	DoUpdate(turn utils.Tickturn)
 }
 
@@ -126,12 +126,7 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 			log.Panicln(err)
 		}
 
-		//var args []interface{}
-
 		if request.Method == "mutations" {
-			/*if !s.utils.Tickturnopen {
-				return
-			}*/
 
 			if len(request.Arguments) == 0 {
 				log.Println("MISSING TICK TURN NUMBER !!")
@@ -150,8 +145,6 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 			// Make sure there's a consumer side, otherwise this gofunc will be blocked here
 
 			if turnedtickint != expectedturn.GetSeq() {
-
-				//cli.hastickedbadturn <- true
 
 				log.Print(chalk.Red)
 				log.Println("LATE FRAME !! from tick " + strconv.Itoa(int(turnedtickint)) + "; expected " + srv.expectedturn.String())
@@ -188,8 +181,6 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 			return
 
 		}
-
-		//log.Println("LATE FRAMES", s.late)
 
 		procresult, err := srv.callbacks.OnProcedureCall(cli, request.Method, request.Arguments)
 		if err != nil {
@@ -242,23 +233,19 @@ func (s *TCPServer) Listen() error {
 			log.Panicln("Handshake with empty agentid !")
 		}
 
-		agent := s.callbacks.DoFindAgent(handshake.Agent)
-		/*
-			if agent == nil {
-				log.Panicln("Handshake : agentid does not match any known agent !")
-			}
-		*/
+		agent, err := s.callbacks.DoFindAgent(handshake.Agent)
+		if err != nil {
+			log.Panicln("Handshake : agentid does not match any known agent !")
+		}
 
 		// Handshake successful ! Matching agent is found and bound to TCPClient
 		log.Println("Received handshake from agent " + handshake.Agent)
 
-		//conn.SetDeadline(t)
 		client := &TCPClient{
 			Agent:             agent,
 			conn:              conn,
 			Server:            s,
 			hastickedgoodturn: make(chan utils.Tickturn, 10), // can buffer up to 10 turns, to avoid blocking
-			//hastickedbadturn:  make(chan bool),         // can buffer up to 10 turns, to avoid blocking
 		}
 
 		go client.listen()
@@ -266,7 +253,7 @@ func (s *TCPServer) Listen() error {
 		s.Clients = append(s.Clients, client)
 		s.callbacks.OnNewClient(client)
 
-		if len(s.Clients) == s.callbacks.GetNbExpectedagents() { // Clients et pas swarm.agents, car Client représente les agents effectivement connectés
+		if len(s.Clients) == s.callbacks.GetNbExpectedagents() {
 			s.callbacks.OnAgentsReady()
 		}
 	}
@@ -291,29 +278,6 @@ func NewTCPServer(proto, address string, callbacks TCPCallbacks) *TCPServer {
 	}
 
 	return server
-}
-
-func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	c := make(chan struct{})
-	go func() {
-		defer close(c)
-		wg.Wait()
-	}()
-	select {
-	case <-c:
-		return true // completed normally
-	case <-time.After(timeout):
-		return false // timed out
-	}
-}
-
-func chanTimeout(ch chan utils.Tickturn, timeout time.Duration) bool {
-	select {
-	case <-ch:
-		return true // completed normally
-	case <-time.After(timeout):
-		return false // timed out
-	}
 }
 
 func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bool, ontick func(took time.Duration)) {
@@ -359,7 +323,7 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 					wg.Add(len(server.Clients))
 					for _, client := range server.Clients[:] {
 						go func(client *TCPClient) {
-							if chanTimeout(client.hastickedgoodturn, timeoutduration) {
+							if utils.ChanTimeout(client.hastickedgoodturn, timeoutduration) {
 								//log.Print(chalk.Green)
 								//log.Println("ALL CLIENTS ON TIME", chalk.Reset)
 							} else {
@@ -384,7 +348,8 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 }
 
 func (s *TCPServer) removeClient(c *TCPClient) {
-	log.Println("Removing client !!!")
+
+	log.Println("Removing agent " + c.Agent.String())
 
 	// TODO: thread-safe process this operation
 	found := -1

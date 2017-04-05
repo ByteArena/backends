@@ -42,11 +42,9 @@ func (state AgentState) clone() AgentState {
 }
 
 func (state AgentState) validate() bool {
-	//return state.Counter >= 0
 	return true
 }
 
 func (state AgentState) validateTransition(fromstate AgentState) bool {
-	//return math.Abs(float64(state.Counter-fromstate.Counter)) <= 2
 	return true
 }
