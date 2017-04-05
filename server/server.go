@@ -50,37 +50,37 @@ func NewServer(host string, port int, agentdir string, nbexpectedagents int, tic
 	}
 }
 
-func (swarm *Server) Spawnagent() {
-	agent := agent.MakeAgent( /*swarm.ctx, swarm.cli, swarm.port, swarm.host, swarm.agentdir*/ )
-	swarm.agents[agent.Id] = agent
+func (server *Server) Spawnagent() {
+	agent := agent.MakeAgent()
+	server.agents[agent.Id] = agent
 
 	agentstate := state.MakeAgentState()
 	agentstate.Radius = 8.0
-	swarm.state.Agents[agent.Id] = agentstate
+	server.state.Agents[agent.Id] = agentstate
 
-	container, err := swarm.containerorchestrator.CreateAgentContainer(agent.Id, swarm.host, swarm.port, swarm.agentdir)
+	container, err := server.containerorchestrator.CreateAgentContainer(agent.Id, server.host, server.port, server.agentdir)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	err = swarm.containerorchestrator.StartAgentContainer(container)
+	err = server.containerorchestrator.StartAgentContainer(container)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	err = swarm.containerorchestrator.Wait(container)
+	err = server.containerorchestrator.Wait(container)
 	if err != nil {
 		log.Panicln(err)
 	}
 }
 
-func (swarm *Server) Listen() {
-	swarm.tcpserver = comm.NewTCPServer("tcp4", swarm.host+":"+strconv.Itoa(swarm.port), swarm)
-	log.Println("listening on " + swarm.host + ":" + strconv.Itoa(swarm.port))
+func (server *Server) Listen() {
+	server.tcpserver = comm.NewTCPServer("tcp4", server.host+":"+strconv.Itoa(server.port), server)
+	log.Println("listening on " + server.host + ":" + strconv.Itoa(server.port))
 
 	done := make(chan bool)
 	go func() {
-		err := swarm.tcpserver.Listen()
+		err := server.tcpserver.Listen()
 		if err != nil {
 			log.Panicln(err)
 		}
@@ -89,46 +89,46 @@ func (swarm *Server) Listen() {
 	<-done
 }
 
-func (swarm *Server) GetNbExpectedagents() int {
-	return swarm.nbexpectedagents
+func (server *Server) GetNbExpectedagents() int {
+	return server.nbexpectedagents
 }
 
-func (swarm *Server) GetState() *state.ServerState {
-	return swarm.state
+func (server *Server) GetState() *state.ServerState {
+	return server.state
 }
 
-func (swarm *Server) TearDown() {
-	log.Println("Swarm::Teardown()")
-	swarm.containerorchestrator.TearDownAll()
+func (server *Server) TearDown() {
+	log.Println("server::Teardown()")
+	server.containerorchestrator.TearDownAll()
 }
 
-func (swarm *Server) DoFindAgent(agentid string) agent.Agent {
+func (server *Server) DoFindAgent(agentid string) agent.Agent {
 	foundkey, err := uuid.FromString(agentid)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	agent := swarm.agents[foundkey]
+	agent := server.agents[foundkey]
 
 	return agent
 }
 
-func (swarm *Server) OnNewClient(c *comm.TCPClient) {
+func (server *Server) OnNewClient(c *comm.TCPClient) {
 
 }
 
-func (swarm *Server) OnClientConnectionClosed(c *comm.TCPClient, err error) {
+func (server *Server) OnClientConnectionClosed(c *comm.TCPClient, err error) {
 
 }
 
-func (swarm *Server) OnAgentsReady() {
+func (server *Server) OnAgentsReady() {
 	log.Print(chalk.Green)
 	log.Println("All agents ready; starting in 3 seconds")
 	log.Print(chalk.Reset)
 	time.Sleep(time.Duration(3 * time.Second))
 
 	lasttick := time.Now()
-	tickduration := time.Duration((1000 / time.Duration(swarm.tickspersec)) * time.Millisecond)
+	tickduration := time.Duration((1000 / time.Duration(server.tickspersec)) * time.Millisecond)
 
 	ftostr := func(f float64) string {
 		return strconv.FormatFloat(f, 'f', 2, 64)
@@ -142,14 +142,14 @@ func (swarm *Server) OnAgentsReady() {
 		return float64(d.Nanoseconds()) / 1000000.0
 	}
 
-	swarm.tcpserver.StartTicking(tickduration, swarm.stopticking, func(took time.Duration) {
+	server.tcpserver.StartTicking(tickduration, server.stopticking, func(took time.Duration) {
 
 		now := time.Now()
 		nexttick := now.Add(tickduration).Add(took * -1)
 		sincelasttickms := diffms(now, lasttick)
 		lasttick = now
 
-		swarm.ProcessMutations()
+		server.ProcessMutations()
 
 		nowaftermutations := time.Now()
 		processtook := diffms(nowaftermutations, lasttick)
@@ -167,14 +167,14 @@ func (swarm *Server) OnAgentsReady() {
 	})
 }
 
-func (swarm *Server) OnProcedureCall(c *comm.TCPClient, method string, arguments []interface{}) ([]interface{}, error) {
+func (server *Server) OnProcedureCall(c *comm.TCPClient, method string, arguments []interface{}) ([]interface{}, error) {
 
 	/*
 		switch method {
 		case "getGreetings":
 			{
 				var res []interface{}
-				res = append(res, swarm.getGreetings(arguments[0].(string)))
+				res = append(res, server.getGreetings(arguments[0].(string)))
 				return res, nil
 			}
 		}
@@ -183,58 +183,58 @@ func (swarm *Server) OnProcedureCall(c *comm.TCPClient, method string, arguments
 	return nil, errors.New("Unrecognized Procedure")
 }
 
-func (swarm *Server) DoPushMutationBatch(batch statemutation.StateMutationBatch) {
-	swarm.state.PushMutationBatch(batch)
+func (server *Server) DoPushMutationBatch(batch statemutation.StateMutationBatch) {
+	server.state.PushMutationBatch(batch)
 }
 
-func (swarm *Server) ProcessMutations() {
-	swarm.state.ProcessMutations()
+func (server *Server) ProcessMutations() {
+	server.state.ProcessMutations()
 }
 
-func (swarm *Server) DoUpdate(turn utils.Tickturn) {
+func (server *Server) DoUpdate(turn utils.Tickturn) {
 
 	// Updates physiques, liées au temps qui passe
 	// Avant de récuperer les mutations de chaque tour, et même avant deconstituer la perception de chaque agent
 
 	// update attractor
-	centerx, centery := swarm.state.PinCenter.Get()
+	centerx, centery := server.state.PinCenter.Get()
 	radius := 120.0
 
 	x := centerx + radius*math.Cos(float64(turn.GetSeq())/10.0)
 	y := centery + radius*math.Sin(float64(turn.GetSeq())/10.0)
 
-	swarm.state.Pin = utils.MakeVector2(x, y)
+	server.state.Pin = utils.MakeVector2(x, y)
 
-	for k, state := range swarm.state.Projectiles {
+	for k, state := range server.state.Projectiles {
 
 		if state.Ttl <= 0 {
-			delete(swarm.state.Projectiles, k)
+			delete(server.state.Projectiles, k)
 		} else {
 			state.Ttl -= 1
-			swarm.state.Projectiles[k] = state
+			server.state.Projectiles[k] = state
 		}
 	}
 
 	// update agents
-	for _, agent := range swarm.agents {
+	for _, agent := range server.agents {
 		agent.SetState(
-			swarm.state,
-			agent.GetState(swarm.state).Update(),
+			server.state,
+			agent.GetState(server.state).Update(),
 		)
 	}
 
 	// update visualisations
-	swarmCloned := *swarm.state
+	serverCloned := *server.state
 
-	for _, subscriber := range swarm.stateobservers {
+	for _, subscriber := range server.stateobservers {
 		go func(s chan state.ServerState) {
-			s <- swarmCloned
+			s <- serverCloned
 		}(subscriber)
 	}
 }
 
-func (swarm *Server) SubscribeStateObservation() chan state.ServerState {
+func (server *Server) SubscribeStateObservation() chan state.ServerState {
 	ch := make(chan state.ServerState)
-	swarm.stateobservers = append(swarm.stateobservers, ch)
+	server.stateobservers = append(server.stateobservers, ch)
 	return ch
 }
