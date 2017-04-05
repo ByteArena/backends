@@ -1,4 +1,4 @@
-package server
+package state
 
 import (
 	"math/rand"
@@ -30,7 +30,7 @@ func MakeAgentState() AgentState {
 	}
 }
 
-func (state AgentState) update() AgentState {
+func (state AgentState) Update() AgentState {
 	state.Position = state.Position.Add(state.Velocity)
 	return state
 }

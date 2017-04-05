@@ -1,4 +1,4 @@
-package server
+package state
 
 import (
 	"log"
@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/netgusto/bytearena/server/statemutation"
 	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 )
@@ -16,7 +17,7 @@ type SwarmState struct {
 	Agents           map[uuid.UUID](AgentState)
 	Projectiles      map[uuid.UUID](ProjectileState)
 	mutationsmutex   *sync.Mutex
-	pendingmutations []StateMutationBatch
+	pendingmutations []statemutation.StateMutationBatch
 }
 
 /* ***************************************************************************/
@@ -33,11 +34,11 @@ func NewSwarmState() *SwarmState {
 		Pin:              pin,
 		PinCenter:        pin,
 		mutationsmutex:   &sync.Mutex{},
-		pendingmutations: make([]StateMutationBatch, 0),
+		pendingmutations: make([]statemutation.StateMutationBatch, 0),
 	}
 }
 
-func (swarmstate *SwarmState) PushMutationBatch(batch StateMutationBatch) {
+func (swarmstate *SwarmState) PushMutationBatch(batch statemutation.StateMutationBatch) {
 	swarmstate.mutationsmutex.Lock()
 	swarmstate.pendingmutations = append(swarmstate.pendingmutations, batch)
 	swarmstate.mutationsmutex.Unlock()
@@ -47,24 +48,23 @@ func (swarmstate *SwarmState) ProcessMutations() {
 
 	swarmstate.mutationsmutex.Lock()
 	mutations := swarmstate.pendingmutations
-	swarmstate.pendingmutations = make([]StateMutationBatch, 0)
+	swarmstate.pendingmutations = make([]statemutation.StateMutationBatch, 0)
 	swarmstate.mutationsmutex.Unlock()
 
 	for _, batch := range mutations {
 
 		nbmutations := 0
 
-		agentstate := swarmstate.Agents[batch.Agent.id]
+		agentstate := swarmstate.Agents[batch.AgentId]
 		newstate := agentstate.clone()
 
-		log.Println("Processing mutations on " + batch.Turn.String() + " for agent " + batch.Agent.String())
+		log.Println("Processing mutations on " + batch.Turn.String() + " for agent " + batch.AgentId.String())
 
 		for _, mutation := range batch.Mutations {
-			switch mutation.action {
+			switch mutation.Action {
 			case "mutationSteer":
 				{
-					log.Println(mutation.arguments[0])
-					vec, ok := mutation.arguments[0].([]interface{})
+					vec, ok := mutation.Arguments[0].([]interface{})
 					if !ok {
 						log.Panicln("Invalid mutationSteer argument")
 					}
@@ -87,20 +87,19 @@ func (swarmstate *SwarmState) ProcessMutations() {
 
 			case "mutationShoot":
 				{
-					log.Println(mutation.arguments[0])
-					vec, ok := mutation.arguments[0].([]interface{})
+					vec, ok := mutation.Arguments[0].([]interface{})
 					if !ok {
-						log.Panicln("Invalid mutationSteer argument")
+						log.Panicln("Invalid mutationShoot argument")
 					}
 
 					x, ok := vec[0].(float64)
 					if !ok {
-						log.Panicln("Invalid mutationSteer argument")
+						log.Panicln("Invalid mutationShoot argument")
 					}
 
 					y, ok := vec[1].(float64)
 					if !ok {
-						log.Panicln("Invalid mutationSteer argument")
+						log.Panicln("Invalid mutationShoot argument")
 					}
 
 					nbmutations++
@@ -123,7 +122,7 @@ func (swarmstate *SwarmState) ProcessMutations() {
 		}
 
 		if newstate.validate() && newstate.validateTransition(agentstate) {
-			swarmstate.Agents[batch.Agent.id] = newstate
+			swarmstate.Agents[batch.AgentId] = newstate
 		} else {
 			log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + ";")
 		}
