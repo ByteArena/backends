@@ -15,8 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/gorilla/websocket"
 	"github.com/kardianos/osext"
 	"github.com/netgusto/bytearena/server"
@@ -57,7 +55,7 @@ type cmdenvironment struct {
 	agentimp string
 }
 
-func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan state.SwarmState) {
+func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan state.ServerState) {
 
 	upgrader := websocket.Upgrader{} // use default options
 
@@ -157,14 +155,14 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan state.Swa
 
 }
 
-func visualization(swarm *server.Swarm, host string, port int) {
+func visualization(swarm *server.Server, host string, port int) {
 
 	basepath := "./client/"
 
 	addr := flag.String("addr", host+":"+strconv.Itoa(port), "http service address")
 
 	stateobserver := swarm.SubscribeStateObservation()
-	staterelays := make([]chan state.SwarmState, 0)
+	staterelays := make([]chan state.ServerState, 0)
 	staterelaymutex := &sync.Mutex{}
 	go func() {
 		for {
@@ -183,7 +181,7 @@ func visualization(swarm *server.Swarm, host string, port int) {
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		staterelaymutex.Lock()
-		relay := make(chan state.SwarmState)
+		relay := make(chan state.ServerState)
 		staterelays = append(staterelays, relay)
 		staterelaymutex.Unlock()
 		wsendpoint(w, r, relay)
@@ -302,8 +300,6 @@ func main() {
 
 	cmdenv := getcmdenv()
 
-	ctx := context.Background()
-
 	exfolder, err := osext.ExecutableFolder()
 	if err != nil {
 		log.Fatal(err)
@@ -311,8 +307,7 @@ func main() {
 
 	stopticking := make(chan bool)
 
-	swarm := server.NewSwarm(
-		ctx,
+	swarm := server.NewServer(
 		cmdenv.host,
 		cmdenv.port,
 		exfolder+"/../../agents/"+cmdenv.agentimp,
@@ -331,7 +326,7 @@ func main() {
 	go func() {
 		<-hassigtermed
 		stopticking <- true
-		swarm.Teardown()
+		swarm.TearDown()
 		os.Exit(1)
 	}()
 

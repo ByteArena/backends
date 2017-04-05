@@ -12,7 +12,7 @@ function move(tickturn, perception) {
   const attractorpos = Vector2.fromArray(perception.Objective.Attractor);
 
   this.sendMutations(tickturn, [
-      ['mutationShoot', attractorpos.toArray(5)],
+      ['shoot', attractorpos.toArray(5)],
   ])
   .catch((err) => { throw err; });
 }
