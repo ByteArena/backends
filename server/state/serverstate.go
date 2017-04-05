@@ -11,7 +11,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-type SwarmState struct {
+type ServerState struct {
 	Pin              utils.Vector2
 	PinCenter        utils.Vector2
 	Agents           map[uuid.UUID](AgentState)
@@ -24,11 +24,11 @@ type SwarmState struct {
 /* SwarmState implementation */
 /* ***************************************************************************/
 
-func NewSwarmState() *SwarmState {
+func NewServerState() *ServerState {
 
 	pin := utils.MakeVector2(rand.Float64()*300+100, rand.Float64()*300+100)
 
-	return &SwarmState{
+	return &ServerState{
 		Agents:           make(map[uuid.UUID](AgentState)),
 		Projectiles:      make(map[uuid.UUID](ProjectileState)),
 		Pin:              pin,
@@ -38,13 +38,13 @@ func NewSwarmState() *SwarmState {
 	}
 }
 
-func (swarmstate *SwarmState) PushMutationBatch(batch statemutation.StateMutationBatch) {
+func (swarmstate *ServerState) PushMutationBatch(batch statemutation.StateMutationBatch) {
 	swarmstate.mutationsmutex.Lock()
 	swarmstate.pendingmutations = append(swarmstate.pendingmutations, batch)
 	swarmstate.mutationsmutex.Unlock()
 }
 
-func (swarmstate *SwarmState) ProcessMutations() {
+func (swarmstate *ServerState) ProcessMutations() {
 
 	swarmstate.mutationsmutex.Lock()
 	mutations := swarmstate.pendingmutations
@@ -62,7 +62,7 @@ func (swarmstate *SwarmState) ProcessMutations() {
 
 		for _, mutation := range batch.Mutations {
 			switch mutation.Action {
-			case "mutationSteer":
+			case "steer":
 				{
 					vec, ok := mutation.Arguments[0].([]interface{})
 					if !ok {
@@ -85,7 +85,7 @@ func (swarmstate *SwarmState) ProcessMutations() {
 					break
 				}
 
-			case "mutationShoot":
+			case "shoot":
 				{
 					vec, ok := mutation.Arguments[0].([]interface{})
 					if !ok {

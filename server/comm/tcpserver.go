@@ -1,4 +1,4 @@
-package server
+package comm
 
 import (
 	"bufio"
@@ -9,13 +9,12 @@ import (
 	"time"
 
 	"github.com/netgusto/bytearena/server/agent"
+	"github.com/netgusto/bytearena/server/state"
 	"github.com/netgusto/bytearena/server/statemutation"
 	"github.com/netgusto/bytearena/utils"
 	"github.com/ttacon/chalk"
 
 	"encoding/json"
-
-	"github.com/netgusto/bytearena/server/state"
 )
 
 type RPCHandshakeRequest struct {
@@ -38,23 +37,32 @@ type RPCResponse struct {
 type TCPClient struct {
 	conn              net.Conn
 	Server            *TCPServer
-	Agent             *agent.Agent
+	Agent             agent.Agent
 	hastickedgoodturn chan utils.Tickturn
-	//hastickedbadturn  chan bool
-	//hastimedoutfortick chan bool
-	//lastturn           utils.Tickturn // dernier turn soumis (ou en timeout)
+}
+
+type TCPCallbacks interface {
+	OnProcedureCall(c *TCPClient, method string, arguments []interface{}) ([]interface{}, error)
+	OnNewClient(c *TCPClient)
+	OnClientConnectionClosed(c *TCPClient, err error)
+	OnAgentsReady()
+
+	GetNbExpectedagents() int
+	GetState() *state.ServerState
+
+	DoPushMutationBatch(mutationbatch statemutation.StateMutationBatch)
+	DoFindAgent(agentid string) agent.Agent
+	DoUpdate(turn utils.Tickturn)
 }
 
 // TCP server
 type TCPServer struct {
-	Clients []*TCPClient
-	address string // Address to open connection: localhost:9999
-	proto   string
-	swarm   *Swarm
-	//utils.Tickturnopen bool
-	//late int
+	Clients      []*TCPClient
+	address      string
+	proto        string
 	mutex        *sync.Mutex
 	expectedturn utils.Tickturn
+	callbacks    TCPCallbacks
 }
 
 // Read client data from channel
@@ -64,7 +72,7 @@ func (c *TCPClient) listen() {
 		buf, err := reader.ReadBytes('\n')
 		if err != nil {
 			c.conn.Close()
-			c.Server.swarm.OnClientConnectionClosed(c, err)
+			c.Server.callbacks.OnClientConnectionClosed(c, err)
 			defer func() {
 				c.Server.removeClient(c)
 			}()
@@ -174,7 +182,7 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 				})
 			}
 
-			srv.swarm.PushMutationBatch(mutationbatch)
+			srv.callbacks.DoPushMutationBatch(mutationbatch)
 
 			cli.hastickedgoodturn <- expectedturn
 			return
@@ -183,7 +191,7 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 
 		//log.Println("LATE FRAMES", s.late)
 
-		procresult, err := srv.swarm.OnProcedureCall(cli, request.Method, request.Arguments)
+		procresult, err := srv.callbacks.OnProcedureCall(cli, request.Method, request.Arguments)
 		if err != nil {
 			log.Panicln(err)
 		}
@@ -234,14 +242,12 @@ func (s *TCPServer) Listen() error {
 			log.Panicln("Handshake with empty agentid !")
 		}
 
-		agent, err := s.swarm.FindAgent(handshake.Agent)
-		if err != nil {
-			log.Panicln(err)
-		}
-
-		if agent == nil {
-			log.Panicln("Handshake : agentid does not match any known agent !")
-		}
+		agent := s.callbacks.DoFindAgent(handshake.Agent)
+		/*
+			if agent == nil {
+				log.Panicln("Handshake : agentid does not match any known agent !")
+			}
+		*/
 
 		// Handshake successful ! Matching agent is found and bound to TCPClient
 		log.Println("Received handshake from agent " + handshake.Agent)
@@ -258,10 +264,10 @@ func (s *TCPServer) Listen() error {
 		go client.listen()
 
 		s.Clients = append(s.Clients, client)
-		s.swarm.OnNewClient(client)
+		s.callbacks.OnNewClient(client)
 
-		if len(s.Clients) == s.swarm.nbexpectedagents { // Clients et pas swarm.agents, car Client représente les agents effectivement connectés
-			s.swarm.OnAgentsReady()
+		if len(s.Clients) == s.callbacks.GetNbExpectedagents() { // Clients et pas swarm.agents, car Client représente les agents effectivement connectés
+			s.callbacks.OnAgentsReady()
 		}
 	}
 }
@@ -275,12 +281,12 @@ func (s *TCPServer) Broadcast(message []byte) {
 }
 
 // Creates new tcp server instance
-func NewTCPServer(proto, address string, swarm *Swarm) *TCPServer {
+func NewTCPServer(proto, address string, callbacks TCPCallbacks) *TCPServer {
 	server := &TCPServer{
-		address: address,
-		proto:   proto,
-		swarm:   swarm,
-		mutex:   &sync.Mutex{},
+		address:   address,
+		proto:     proto,
+		callbacks: callbacks,
+		mutex:     &sync.Mutex{},
 		//utils.Tickturnopen: false,
 	}
 
@@ -337,7 +343,7 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 					log.Println("Tick !", turn)
 
 					// on met à jour le swarm
-					server.swarm.update(turn)
+					server.callbacks.DoUpdate(turn)
 
 					// On ticke chaque client
 					for _, client := range server.Clients[:] {
@@ -345,7 +351,7 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 							perceptionjson, _ := json.Marshal(perception)
 							message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.GetSeq())) + "," + string(perceptionjson) + "]}\n")
 							client.Send(message)
-						}(client, turn, client.Agent.GetPerception(server.swarm.state))
+						}(client, turn, client.Agent.GetPerception(server.callbacks.GetState()))
 					}
 
 					// On attend la réponse de chaque client, jusqu'au timeout

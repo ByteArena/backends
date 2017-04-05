@@ -1,149 +1,25 @@
 package agent
 
 import (
-	"context"
-	"log"
-	"strconv"
-	"time"
-
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
 	"github.com/netgusto/bytearena/server/state"
 	uuid "github.com/satori/go.uuid"
-	"github.com/ttacon/chalk"
 )
 
 type Agent struct {
-	Id          uuid.UUID
-	containerid string
+	Id uuid.UUID
 }
 
-func NewAgent(ctx context.Context, cli *client.Client, port int, host string, agentdir string) *Agent {
-
-	// random uuid
-	agentid := uuid.NewV4()
-
-	containerconfig := container.Config{
-		Image: "node",
-		Cmd:   []string{"/bin/bash", "-c", "node --harmony /scripts/client.js"},
-		User:  "node",
-		Env: []string{
-			"SWARMPORT=" + strconv.Itoa(port),
-			"SWARMHOST=" + host,
-			"AGENTID=" + agentid.String(),
-		},
+func MakeAgent() Agent {
+	return Agent{
+		Id: uuid.NewV4(), // random uuid
 	}
-
-	hostconfig := container.HostConfig{
-		CapDrop:    []string{"ALL"},
-		Privileged: false,
-		Binds:      []string{agentdir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
-		Resources: container.Resources{
-			Memory:   1024 * 1024 * 32,   // 32M
-			CPUQuota: 5 * (100000 / 100), // 5%
-		},
-	}
-
-	resp, err := cli.ContainerCreate(
-		ctx,              // go context
-		&containerconfig, // container config
-		&hostconfig,      // host config
-		nil,              // network config
-		"agent-"+agentid.String(), // container name
-	)
-	if err != nil {
-		log.Panicln(err)
-	}
-
-	return &Agent{
-		Id:          agentid,
-		containerid: resp.ID,
-	}
-
 }
 
 func (agent *Agent) String() string {
 	return "<Agent(" + agent.Id.String() + ">"
 }
 
-func (agent *Agent) Start(ctx context.Context, cli *client.Client) error {
-
-	log.Print(chalk.Yellow)
-	log.Print("Spawning agent "+agent.Id.String()+" in its own container", chalk.Reset)
-
-	return cli.ContainerStart(
-		ctx,
-		agent.containerid,
-		types.ContainerStartOptions{},
-	)
-}
-
-func (agent *Agent) Wait(ctx context.Context, cli *client.Client) error {
-	_, err := cli.ContainerWait(
-		ctx,
-		agent.containerid,
-	)
-	return err
-}
-
-func (agent *Agent) Stop(ctx context.Context, cli *client.Client) {
-	timeout := time.Second * 10
-	err := cli.ContainerStop(
-		ctx,
-		agent.containerid,
-		&timeout,
-	)
-	if err != nil {
-		agent.Kill(ctx, cli)
-	}
-}
-
-func (agent *Agent) Kill(ctx context.Context, cli *client.Client) {
-	cli.ContainerKill(ctx, agent.containerid, "KILL")
-}
-
-// func (agent *Agent) Logs() (io.ReadCloser, error) {
-// 	return cli.ContainerLogs(
-// 		ctx,
-// 		agent.containerid,
-// 		types.ContainerLogsOptions{ShowStdout: true},
-// 	)
-// }
-
-// func (agent *Agent) LogsToString() (string, error) {
-// 	out, err := agent.Logs()
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	buf := new(bytes.Buffer)
-// 	buf.ReadFrom(out)
-
-// 	return buf.String(), nil
-// }
-
-func (agent *Agent) Remove(
-	ctx context.Context,
-	cli *client.Client,
-) error {
-
-	return cli.ContainerRemove(
-		ctx,
-		agent.containerid,
-		types.ContainerRemoveOptions{},
-	)
-}
-
-func (agent *Agent) Teardown(ctx context.Context, cli *client.Client) {
-	agent.Stop(ctx, cli)
-	err := agent.Remove(ctx, cli)
-	if err != nil {
-		log.Panicln(err)
-	}
-}
-
-func (agent *Agent) GetPerception(swarmstate *state.SwarmState) state.Perception {
+func (agent *Agent) GetPerception(swarmstate *state.ServerState) state.Perception {
 	p := state.Perception{}
 	agentstate := agent.GetState(swarmstate)
 	//	p.Internal.Acceleration = agentstate.Acceleration.clone()
@@ -159,11 +35,11 @@ func (agent *Agent) GetPerception(swarmstate *state.SwarmState) state.Perception
 	return p
 }
 
-func (agent *Agent) GetState(swarmstate *state.SwarmState) state.AgentState {
+func (agent *Agent) GetState(swarmstate *state.ServerState) state.AgentState {
 	return swarmstate.Agents[agent.Id]
 	//return state.AgentState{}
 }
 
-func (agent *Agent) SetState(swarmstate *state.SwarmState, state state.AgentState) {
+func (agent *Agent) SetState(swarmstate *state.ServerState, state state.AgentState) {
 	swarmstate.Agents[agent.Id] = state
 }
