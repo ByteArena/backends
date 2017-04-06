@@ -167,7 +167,7 @@ func (server *Server) DoTick() {
 		log.Println("Tick !", turn)
 	}
 
-	// on met à jour le swarm
+	// on met à jour l'état du serveur
 	server.DoUpdate()
 
 	// On ticke chaque agent
@@ -355,6 +355,7 @@ func (server *Server) DoUpdate() {
 
 	server.state.Pin = utils.MakeVector2(x, y)
 
+	server.state.Projectilesmutex.Lock()
 	for k, state := range server.state.Projectiles {
 
 		if state.Ttl <= 0 {
@@ -364,12 +365,13 @@ func (server *Server) DoUpdate() {
 			server.state.Projectiles[k] = state
 		}
 	}
+	server.state.Projectilesmutex.Unlock()
 
 	// update agents
 	for _, agent := range server.agents {
-		agent.SetState(
-			server.state,
-			agent.GetState(server.state).Update(),
+		server.state.SetAgentState(
+			agent.GetId(),
+			server.state.GetAgentState(agent.GetId()).Update(),
 		)
 	}
 
