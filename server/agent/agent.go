@@ -9,9 +9,7 @@ import (
 type Agent interface {
 	GetId() uuid.UUID
 	String() string
-	GetPerception(swarmstate *state.ServerState) state.Perception
-	GetState(swarmstate *state.ServerState) state.AgentState
-	SetState(swarmstate *state.ServerState, state state.AgentState)
+	GetPerception(serverstate *state.ServerState) state.Perception
 	GetTickedChan() chan utils.Tickturn
 }
 
@@ -35,28 +33,20 @@ func (agent AgentImp) String() string {
 	return "<AgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent AgentImp) GetPerception(swarmstate *state.ServerState) state.Perception {
+func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Perception {
 	p := state.Perception{}
-	agentstate := agent.GetState(swarmstate)
+	agentstate := serverstate.GetAgentState(agent.GetId())
 
 	p.Internal.Velocity = agentstate.Velocity.Clone()
 	p.Internal.Proprioception = agentstate.Radius
 
 	// On rend la position de l'attractor relative à l'agent
-	p.Objective.Attractor = swarmstate.Pin.Clone().Sub(agentstate.Position)
+	p.Objective.Attractor = serverstate.Pin.Clone().Sub(agentstate.Position)
 
 	p.Specs.MaxSpeed = agentstate.MaxSpeed
 	p.Specs.MaxSteeringForce = agentstate.MaxSteeringForce
 
 	return p
-}
-
-func (agent AgentImp) GetState(swarmstate *state.ServerState) state.AgentState {
-	return swarmstate.Agents[agent.GetId()]
-}
-
-func (agent AgentImp) SetState(swarmstate *state.ServerState, state state.AgentState) {
-	swarmstate.Agents[agent.GetId()] = state
 }
 
 func (agent AgentImp) GetTickedChan() chan utils.Tickturn {
