@@ -7,7 +7,7 @@ import (
 )
 
 type Tickturn struct {
-	seq uint32
+	seq int
 	id  uuid.UUID
 }
 
@@ -22,6 +22,6 @@ func (turn Tickturn) Next() Tickturn {
 	}
 }
 
-func (turn Tickturn) GetSeq() uint32 {
+func (turn Tickturn) GetSeq() int {
 	return turn.seq
 }
