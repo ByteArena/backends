@@ -129,7 +129,9 @@ func (serverstate *ServerState) ProcessMutations() {
 		}
 
 		if newstate.validate() && newstate.validateTransition(agentstate) {
+			serverstate.Agentsmutex.Lock()
 			serverstate.Agents[batch.AgentId] = newstate
+			serverstate.Agentsmutex.Unlock()
 		} else {
 			log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + ";")
 		}
