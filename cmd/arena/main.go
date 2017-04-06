@@ -97,11 +97,12 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 				log.Println("<-clientclosedsocket")
 				return
 			}
-		case swarmstate := <-statechan:
+		case serverstate := <-statechan:
 			{
 				msg := vizmessage{}
 
-				for _, projectile := range swarmstate.Projectiles {
+				serverstate.Projectilesmutex.Lock()
+				for _, projectile := range serverstate.Projectiles {
 					x, y := projectile.Velocity.Get()
 					posx, posy := projectile.Position.Get()
 
@@ -116,8 +117,10 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 						},
 					})
 				}
+				serverstate.Projectilesmutex.Unlock()
 
-				for _, agent := range swarmstate.Agents {
+				serverstate.Agentsmutex.Lock()
+				for _, agent := range serverstate.Agents {
 					x, y := agent.Position.Get()
 
 					msg.Agents = append(msg.Agents, vizagentmessage{
@@ -127,8 +130,9 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 						Kind:   "agent",
 					})
 				}
+				serverstate.Agentsmutex.Unlock()
 
-				x, y := swarmstate.Pin.Get()
+				x, y := serverstate.Pin.Get()
 
 				msg.Agents = append(msg.Agents, vizagentmessage{
 					X:      x,

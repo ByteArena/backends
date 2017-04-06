@@ -17,10 +17,10 @@ type ServerState struct {
 	PinCenter utils.Vector2
 
 	Agents      map[uuid.UUID](AgentState)
-	agentsmutex *sync.Mutex
+	Agentsmutex *sync.Mutex
 
 	Projectiles      map[uuid.UUID](ProjectileState)
-	projectilesmutex *sync.Mutex
+	Projectilesmutex *sync.Mutex
 
 	pendingmutations []statemutation.StateMutationBatch
 	mutationsmutex   *sync.Mutex
@@ -39,10 +39,10 @@ func NewServerState() *ServerState {
 		PinCenter: pin,
 
 		Agents:      make(map[uuid.UUID](AgentState)),
-		agentsmutex: &sync.Mutex{},
+		Agentsmutex: &sync.Mutex{},
 
 		Projectiles:      make(map[uuid.UUID](ProjectileState)),
-		projectilesmutex: &sync.Mutex{},
+		Projectilesmutex: &sync.Mutex{},
 
 		pendingmutations: make([]statemutation.StateMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
@@ -50,9 +50,9 @@ func NewServerState() *ServerState {
 }
 
 func (swarmstate *ServerState) SetAgentState(agentid uuid.UUID, agentstate AgentState) {
-	swarmstate.agentsmutex.Lock()
+	swarmstate.Agentsmutex.Lock()
 	swarmstate.Agents[agentid] = agentstate
-	swarmstate.agentsmutex.Unlock()
+	swarmstate.Agentsmutex.Unlock()
 }
 
 func (swarmstate *ServerState) PushMutationBatch(batch statemutation.StateMutationBatch) {
