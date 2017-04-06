@@ -74,7 +74,7 @@ func (c *TCPClient) listen() {
 			c.conn.Close()
 			c.Server.callbacks.OnClientConnectionClosed(c, err)
 			defer func() {
-				c.Server.removeClient(c)
+				go c.Server.removeClient(c)
 			}()
 			return
 		}

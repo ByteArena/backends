@@ -53,15 +53,19 @@ func NewServer(host string, port int, agentdir string, nbexpectedagents int, tic
 	}
 }
 
-func (server *Server) Spawnagent() {
-	agent := agent.MakeAgent()
-
+func (server *Server) addAgent(agent agent.Agent) {
 	server.agentsmutex.Lock()
 	server.agents[agent.Id] = agent
 	server.agentsmutex.Unlock()
+}
 
+func (server *Server) Spawnagent() {
+
+	agent := agent.MakeAgent()
 	agentstate := state.MakeAgentState()
-	server.state.Agents[agent.Id] = agentstate
+
+	server.addAgent(agent)
+	server.state.SetAgentState(agent.Id, agentstate)
 
 	container, err := server.containerorchestrator.CreateAgentContainer(agent.Id, server.host, server.port, server.agentdir)
 	if err != nil {
