@@ -1,4 +1,4 @@
-package server
+package state
 
 import (
 	"math/rand"
@@ -23,10 +23,11 @@ func MakeAgentState() AgentState {
 		Velocity:         utils.MakeVector2(0, 0),
 		MaxSpeed:         8.0,
 		MaxSteeringForce: 4.0,
+		Radius:           8.0,
 	}
 }
 
-func (state AgentState) update() AgentState {
+func (state AgentState) Update() AgentState {
 	state.Position = state.Position.Add(state.Velocity)
 	return state
 }
@@ -42,11 +43,9 @@ func (state AgentState) clone() AgentState {
 }
 
 func (state AgentState) validate() bool {
-	//return state.Counter >= 0
 	return true
 }
 
 func (state AgentState) validateTransition(fromstate AgentState) bool {
-	//return math.Abs(float64(state.Counter-fromstate.Counter)) <= 2
 	return true
 }

@@ -1,4 +1,4 @@
-package server
+package comm
 
 import (
 	"bufio"
@@ -8,27 +8,14 @@ import (
 	"sync"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/netgusto/bytearena/server/agent"
+	"github.com/netgusto/bytearena/server/state"
+	"github.com/netgusto/bytearena/server/statemutation"
+	"github.com/netgusto/bytearena/utils"
 	"github.com/ttacon/chalk"
 
 	"encoding/json"
 )
-
-type tickturn struct {
-	seq uint32
-	id  uuid.UUID
-}
-
-func (turn tickturn) String() string {
-	return "<TickTurn(" + strconv.Itoa(int(turn.seq)) + ")>"
-}
-
-func (turn tickturn) Next() tickturn {
-	return tickturn{
-		seq: turn.seq + 1,
-		id:  uuid.NewV4(),
-	}
-}
 
 type RPCHandshakeRequest struct {
 	Agent     string
@@ -50,23 +37,32 @@ type RPCResponse struct {
 type TCPClient struct {
 	conn              net.Conn
 	Server            *TCPServer
-	agent             *Agent
-	hastickedgoodturn chan tickturn
-	//hastickedbadturn  chan bool
-	//hastimedoutfortick chan bool
-	//lastturn           tickturn // dernier turn soumis (ou en timeout)
+	Agent             agent.Agent
+	hastickedgoodturn chan utils.Tickturn
+}
+
+type TCPCallbacks interface {
+	OnProcedureCall(c *TCPClient, method string, arguments []interface{}) ([]interface{}, error)
+	OnNewClient(c *TCPClient)
+	OnClientConnectionClosed(c *TCPClient, err error)
+	OnAgentsReady()
+
+	GetNbExpectedagents() int
+	GetState() *state.ServerState
+
+	DoPushMutationBatch(mutationbatch statemutation.StateMutationBatch)
+	DoFindAgent(agentid string) (agent.Agent, error)
+	DoUpdate(turn utils.Tickturn)
 }
 
 // TCP server
 type TCPServer struct {
-	Clients []*TCPClient
-	address string // Address to open connection: localhost:9999
-	proto   string
-	swarm   *Swarm
-	//tickturnopen bool
-	//late int
+	Clients      []*TCPClient
+	address      string
+	proto        string
 	mutex        *sync.Mutex
-	expectedturn tickturn
+	expectedturn utils.Tickturn
+	callbacks    TCPCallbacks
 }
 
 // Read client data from channel
@@ -76,7 +72,7 @@ func (c *TCPClient) listen() {
 		buf, err := reader.ReadBytes('\n')
 		if err != nil {
 			c.conn.Close()
-			c.Server.swarm.OnClientConnectionClosed(c, err)
+			c.Server.callbacks.OnClientConnectionClosed(c, err)
 			defer func() {
 				c.Server.removeClient(c)
 			}()
@@ -105,13 +101,13 @@ func (c *TCPClient) Close() error {
 	return c.conn.Close()
 }
 
-func (s *TCPServer) SetExpectedTurn(turn tickturn) {
+func (s *TCPServer) SetExpectedTurn(turn utils.Tickturn) {
 	s.mutex.Lock()
 	s.expectedturn = turn
 	s.mutex.Unlock()
 }
 
-func (s *TCPServer) GetExpectedTurn() tickturn {
+func (s *TCPServer) GetExpectedTurn() utils.Tickturn {
 	s.mutex.Lock()
 	res := s.expectedturn
 	s.mutex.Unlock()
@@ -130,12 +126,7 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 			log.Panicln(err)
 		}
 
-		//var args []interface{}
-
 		if request.Method == "mutations" {
-			/*if !s.tickturnopen {
-				return
-			}*/
 
 			if len(request.Arguments) == 0 {
 				log.Println("MISSING TICK TURN NUMBER !!")
@@ -153,9 +144,7 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 			// this client has ticked, it won't timeout
 			// Make sure there's a consumer side, otherwise this gofunc will be blocked here
 
-			if turnedtickint != expectedturn.seq {
-
-				//cli.hastickedbadturn <- true
+			if turnedtickint != expectedturn.GetSeq() {
 
 				log.Print(chalk.Red)
 				log.Println("LATE FRAME !! from tick " + strconv.Itoa(int(turnedtickint)) + "; expected " + srv.expectedturn.String())
@@ -165,9 +154,9 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 				return
 			}
 
-			mutationbatch := StateMutationBatch{
-				Turn:  expectedturn,
-				Agent: cli.agent,
+			mutationbatch := statemutation.StateMutationBatch{
+				Turn:    expectedturn,
+				AgentId: cli.Agent.Id,
 			}
 
 			genericmutations := request.Arguments[1].([]interface{})
@@ -180,22 +169,20 @@ func (s *TCPServer) OnNewMessage(c *TCPClient, message []byte) {
 
 				method := args[0].(string)
 
-				mutationbatch.Mutations = append(mutationbatch.Mutations, StateMutation{
-					action:    method,
-					arguments: args[1:],
+				mutationbatch.Mutations = append(mutationbatch.Mutations, statemutation.StateMutation{
+					Action:    method,
+					Arguments: args[1:],
 				})
 			}
 
-			srv.swarm.PushMutationBatch(mutationbatch)
+			srv.callbacks.DoPushMutationBatch(mutationbatch)
 
 			cli.hastickedgoodturn <- expectedturn
 			return
 
 		}
 
-		//log.Println("LATE FRAMES", s.late)
-
-		procresult, err := srv.swarm.OnProcedureCall(cli, request.Method, request.Arguments)
+		procresult, err := srv.callbacks.OnProcedureCall(cli, request.Method, request.Arguments)
 		if err != nil {
 			log.Panicln(err)
 		}
@@ -246,35 +233,28 @@ func (s *TCPServer) Listen() error {
 			log.Panicln("Handshake with empty agentid !")
 		}
 
-		agent, err := s.swarm.FindAgent(handshake.Agent)
+		agent, err := s.callbacks.DoFindAgent(handshake.Agent)
 		if err != nil {
-			log.Panicln(err)
-		}
-
-		if agent == nil {
 			log.Panicln("Handshake : agentid does not match any known agent !")
 		}
 
 		// Handshake successful ! Matching agent is found and bound to TCPClient
 		log.Println("Received handshake from agent " + handshake.Agent)
 
-		//conn.SetDeadline(t)
 		client := &TCPClient{
-			agent:             agent,
+			Agent:             agent,
 			conn:              conn,
 			Server:            s,
-			hastickedgoodturn: make(chan tickturn, 10), // can buffer up to 10 turns, to avoid blocking
-			//hastickedbadturn:  make(chan bool),         // can buffer up to 10 turns, to avoid blocking
+			hastickedgoodturn: make(chan utils.Tickturn, 10), // can buffer up to 10 turns, to avoid blocking
 		}
-		agent.tcp = client
 
 		go client.listen()
 
 		s.Clients = append(s.Clients, client)
-		s.swarm.OnNewClient(client)
+		s.callbacks.OnNewClient(client)
 
-		if len(s.Clients) == s.swarm.nbexpectedagents { // Clients et pas swarm.agents, car Client représente les agents effectivement connectés
-			s.swarm.OnAgentsReady()
+		if len(s.Clients) == s.callbacks.GetNbExpectedagents() {
+			s.callbacks.OnAgentsReady()
 		}
 	}
 }
@@ -288,46 +268,23 @@ func (s *TCPServer) Broadcast(message []byte) {
 }
 
 // Creates new tcp server instance
-func NewTCPServer(proto, address string, swarm *Swarm) *TCPServer {
+func NewTCPServer(proto, address string, callbacks TCPCallbacks) *TCPServer {
 	server := &TCPServer{
-		address: address,
-		proto:   proto,
-		swarm:   swarm,
-		mutex:   &sync.Mutex{},
-		//tickturnopen: false,
+		address:   address,
+		proto:     proto,
+		callbacks: callbacks,
+		mutex:     &sync.Mutex{},
+		//utils.Tickturnopen: false,
 	}
 
 	return server
-}
-
-func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	c := make(chan struct{})
-	go func() {
-		defer close(c)
-		wg.Wait()
-	}()
-	select {
-	case <-c:
-		return true // completed normally
-	case <-time.After(timeout):
-		return false // timed out
-	}
-}
-
-func chanTimeout(ch chan tickturn, timeout time.Duration) bool {
-	select {
-	case <-ch:
-		return true // completed normally
-	case <-time.After(timeout):
-		return false // timed out
-	}
 }
 
 func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking chan bool, ontick func(took time.Duration)) {
 
 	go func() {
 
-		var turn tickturn
+		var turn utils.Tickturn
 		log.Println("Start ticking")
 
 		timeoutduration := tickduration * 60 / 100
@@ -350,15 +307,15 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 					log.Println("Tick !", turn)
 
 					// on met à jour le swarm
-					server.swarm.update(turn)
+					server.callbacks.DoUpdate(turn)
 
 					// On ticke chaque client
 					for _, client := range server.Clients[:] {
-						go func(client *TCPClient, turn tickturn, perception Perception) {
+						go func(client *TCPClient, turn utils.Tickturn, perception state.Perception) {
 							perceptionjson, _ := json.Marshal(perception)
-							message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.seq)) + "," + string(perceptionjson) + "]}\n")
+							message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.GetSeq())) + "," + string(perceptionjson) + "]}\n")
 							client.Send(message)
-						}(client, turn, client.agent.GetPerception())
+						}(client, turn, client.Agent.GetPerception(server.callbacks.GetState()))
 					}
 
 					// On attend la réponse de chaque client, jusqu'au timeout
@@ -366,7 +323,7 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 					wg.Add(len(server.Clients))
 					for _, client := range server.Clients[:] {
 						go func(client *TCPClient) {
-							if chanTimeout(client.hastickedgoodturn, timeoutduration) {
+							if utils.ChanTimeout(client.hastickedgoodturn, timeoutduration) {
 								//log.Print(chalk.Green)
 								//log.Println("ALL CLIENTS ON TIME", chalk.Reset)
 							} else {
@@ -391,7 +348,8 @@ func (server *TCPServer) StartTicking(tickduration time.Duration, stopticking ch
 }
 
 func (s *TCPServer) removeClient(c *TCPClient) {
-	log.Println("Removing client !!!")
+
+	log.Println("Removing agent " + c.Agent.String())
 
 	// TODO: thread-safe process this operation
 	found := -1

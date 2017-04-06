@@ -54,7 +54,7 @@ function move(tickturn, perception) {
 
     // Pushing batch of mutations for this turn
     this.sendMutations(tickturn, [
-        ['mutationSteer', steering.toArray(5)], // 5: précision
+        ['steer', steering.toArray(5)], // 3: précision
     ])
     .then(response => {
         measurespeed(start);

@@ -30,20 +30,35 @@ PIXI.loader
     window.onStateUpdate = function(points) {
         stage.removeChildren();
 
-        points.Agents.forEach((agent) => {
-            var sprite = new PIXI.Sprite(
-                PIXI.loader.resources["images/circle.png"].texture
-            );
+        if(points.Projectiles) {
+            points.Projectiles.forEach((projectile) => {
+                const line = new PIXI.Graphics();
 
-            sprite.x = agent.X;
-            sprite.y = agent.Y;
-            sprite.width = 32;
-            sprite.height = 32;
-            sprite.tint = agent.Kind === 'attractor' ? 0x0000FF : 0xFF0000;
+                line
+                    .lineStyle(1, 0x00FF00)
+                    .moveTo(projectile.From.X, projectile.From.Y)
+                    .lineTo(projectile.X, projectile.Y);
 
-            //Create a container object called the `stage`
-            stage.addChild(sprite);
-        })
+                stage.addChild(line);
+            });
+        }
+
+        if(points.Agents) {
+            points.Agents.forEach((agent) => {
+                var sprite = new PIXI.Sprite(
+                    PIXI.loader.resources["images/circle.png"].texture
+                );
+
+                sprite.x = agent.X;
+                sprite.y = agent.Y;
+                sprite.width = agent.Radius * 2;
+                sprite.height = agent.Radius * 2;
+                sprite.tint = agent.Kind === 'attractor' ? 0x0000FF : 0xFF0000;
+
+                //Create a container object called the `stage`
+                stage.addChild(sprite);
+            });
+        }
     };
 
     // Loop till the end of times

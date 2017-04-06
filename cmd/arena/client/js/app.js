@@ -30,9 +30,7 @@ $(function() {
         }
 
         ws.onmessage = function(evt) {
-            var data = JSON.parse(evt.data);
-            console.log(data);
-            window.onStateUpdate(data);
+            window.onStateUpdate(JSON.parse(evt.data));
         }
 
         ws.onerror = function(evt) {
@@ -44,14 +42,5 @@ $(function() {
         if (!ws) return;
         ws.close();
     });
-
-    /*$("#send").click(function(e) {
-        if (!ws) {
-            return false;
-        }
-        print("SEND: " + input.value);
-        ws.send(input.value);
-        return false;
-    });*/
 
 });

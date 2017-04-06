@@ -15,21 +15,30 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/gorilla/websocket"
 	"github.com/kardianos/osext"
 	"github.com/netgusto/bytearena/server"
+	"github.com/netgusto/bytearena/server/state"
 )
 
 type vizmessage struct {
-	Agents []vizagentmessage
+	Agents      []vizagentmessage
+	Projectiles []vizprojectilemessage
 }
 
 type vizagentmessage struct {
-	X    float64
-	Y    float64
-	Kind string
+	X      float64
+	Y      float64
+	Radius float64
+	Kind   string
+}
+
+type vizprojectilemessage struct {
+	X      float64
+	Y      float64
+	Radius float64
+	From   vizagentmessage
+	Kind   string
 }
 
 type wsincomingmessage struct {
@@ -46,7 +55,7 @@ type cmdenvironment struct {
 	agentimp string
 }
 
-func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.SwarmState) {
+func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.ServerState) {
 
 	upgrader := websocket.Upgrader{} // use default options
 
@@ -88,26 +97,44 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.Sw
 				log.Println("<-clientclosedsocket")
 				return
 			}
-		case swarmstate := <-stateChan:
+		case swarmstate := <-statechan:
 			{
 				msg := vizmessage{}
 
-				for _, state := range swarmstate.Agents {
-					x, y := state.Position.Get()
+				for _, projectile := range swarmstate.Projectiles {
+					x, y := projectile.Velocity.Get()
+					posx, posy := projectile.Position.Get()
+
+					msg.Projectiles = append(msg.Projectiles, vizprojectilemessage{
+						X:      x,
+						Y:      y,
+						Radius: projectile.Radius,
+						Kind:   "projectiles",
+						From: vizagentmessage{
+							X: posx,
+							Y: posy,
+						},
+					})
+				}
+
+				for _, agent := range swarmstate.Agents {
+					x, y := agent.Position.Get()
 
 					msg.Agents = append(msg.Agents, vizagentmessage{
-						X:    x,
-						Y:    y,
-						Kind: "agent",
+						X:      x,
+						Y:      y,
+						Radius: agent.Radius,
+						Kind:   "agent",
 					})
 				}
 
 				x, y := swarmstate.Pin.Get()
 
 				msg.Agents = append(msg.Agents, vizagentmessage{
-					X:    x,
-					Y:    y,
-					Kind: "attractor",
+					X:      x,
+					Y:      y,
+					Radius: 10,
+					Kind:   "attractor",
 				})
 
 				json, err := json.Marshal(msg)
@@ -128,14 +155,14 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan server.Sw
 
 }
 
-func visualization(swarm *server.Swarm, host string, port int) {
+func visualization(swarm *server.Server, host string, port int) {
 
 	basepath := "./client/"
 
 	addr := flag.String("addr", host+":"+strconv.Itoa(port), "http service address")
 
 	stateobserver := swarm.SubscribeStateObservation()
-	staterelays := make([]chan server.SwarmState, 0)
+	staterelays := make([]chan state.ServerState, 0)
 	staterelaymutex := &sync.Mutex{}
 	go func() {
 		for {
@@ -154,7 +181,7 @@ func visualization(swarm *server.Swarm, host string, port int) {
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		staterelaymutex.Lock()
-		relay := make(chan server.SwarmState)
+		relay := make(chan state.ServerState)
 		staterelays = append(staterelays, relay)
 		staterelaymutex.Unlock()
 		wsendpoint(w, r, relay)
@@ -273,8 +300,6 @@ func main() {
 
 	cmdenv := getcmdenv()
 
-	ctx := context.Background()
-
 	exfolder, err := osext.ExecutableFolder()
 	if err != nil {
 		log.Fatal(err)
@@ -282,8 +307,7 @@ func main() {
 
 	stopticking := make(chan bool)
 
-	swarm := server.NewSwarm(
-		ctx,
+	swarm := server.NewServer(
 		cmdenv.host,
 		cmdenv.port,
 		exfolder+"/../../agents/"+cmdenv.agentimp,
@@ -302,7 +326,7 @@ func main() {
 	go func() {
 		<-hassigtermed
 		stopticking <- true
-		swarm.Teardown()
+		swarm.TearDown()
 		os.Exit(1)
 	}()
 
