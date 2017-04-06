@@ -71,12 +71,12 @@ func (swarmstate *ServerState) ProcessMutations() {
 
 					x, ok := vec[0].(float64)
 					if !ok {
-						log.Panicln("Invalid mutationSteer argument")
+						log.Panicln("x not defined in mutation steer")
 					}
 
 					y, ok := vec[1].(float64)
 					if !ok {
-						log.Panicln("Invalid mutationSteer argument")
+						log.Panicln("y not defined in mutation steer")
 					}
 
 					nbmutations++
@@ -94,12 +94,12 @@ func (swarmstate *ServerState) ProcessMutations() {
 
 					x, ok := vec[0].(float64)
 					if !ok {
-						log.Panicln("Invalid mutationShoot argument")
+						log.Panicln("x not defined in mutation shoot")
 					}
 
 					y, ok := vec[1].(float64)
 					if !ok {
-						log.Panicln("Invalid mutationShoot argument")
+						log.Panicln("y not defined in mutation shoot")
 					}
 
 					nbmutations++

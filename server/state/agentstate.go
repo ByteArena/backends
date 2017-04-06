@@ -23,6 +23,7 @@ func MakeAgentState() AgentState {
 		Velocity:         utils.MakeVector2(0, 0),
 		MaxSpeed:         8.0,
 		MaxSteeringForce: 4.0,
+		Radius:           8.0,
 	}
 }
 

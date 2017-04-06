@@ -6,6 +6,7 @@ import (
 	"math"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/netgusto/bytearena/server/agent"
@@ -20,6 +21,7 @@ import (
 
 type Server struct {
 	agents                map[uuid.UUID]agent.Agent
+	agentsmutex           *sync.Mutex
 	agentdir              string
 	host                  string
 	port                  int
@@ -38,6 +40,7 @@ func NewServer(host string, port int, agentdir string, nbexpectedagents int, tic
 
 	return &Server{
 		agents:                make(map[uuid.UUID]agent.Agent),
+		agentsmutex:           &sync.Mutex{},
 		agentdir:              agentdir,
 		host:                  host,
 		port:                  port,
@@ -52,10 +55,12 @@ func NewServer(host string, port int, agentdir string, nbexpectedagents int, tic
 
 func (server *Server) Spawnagent() {
 	agent := agent.MakeAgent()
+
+	server.agentsmutex.Lock()
 	server.agents[agent.Id] = agent
+	server.agentsmutex.Unlock()
 
 	agentstate := state.MakeAgentState()
-	agentstate.Radius = 8.0
 	server.state.Agents[agent.Id] = agentstate
 
 	container, err := server.containerorchestrator.CreateAgentContainer(agent.Id, server.host, server.port, server.agentdir)

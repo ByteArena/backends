@@ -55,7 +55,7 @@ type cmdenvironment struct {
 	agentimp string
 }
 
-func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan state.ServerState) {
+func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.ServerState) {
 
 	upgrader := websocket.Upgrader{} // use default options
 
@@ -97,18 +97,18 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan state.Ser
 				log.Println("<-clientclosedsocket")
 				return
 			}
-		case swarmstate := <-stateChan:
+		case swarmstate := <-statechan:
 			{
 				msg := vizmessage{}
 
-				for _, state := range swarmstate.Projectiles {
-					x, y := state.Velocity.Get()
-					posx, posy := state.Position.Get()
+				for _, projectile := range swarmstate.Projectiles {
+					x, y := projectile.Velocity.Get()
+					posx, posy := projectile.Position.Get()
 
 					msg.Projectiles = append(msg.Projectiles, vizprojectilemessage{
 						X:      x,
 						Y:      y,
-						Radius: state.Radius,
+						Radius: projectile.Radius,
 						Kind:   "projectiles",
 						From: vizagentmessage{
 							X: posx,
@@ -117,13 +117,13 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, stateChan chan state.Ser
 					})
 				}
 
-				for _, state := range swarmstate.Agents {
-					x, y := state.Position.Get()
+				for _, agent := range swarmstate.Agents {
+					x, y := agent.Position.Get()
 
 					msg.Agents = append(msg.Agents, vizagentmessage{
 						X:      x,
 						Y:      y,
-						Radius: state.Radius,
+						Radius: agent.Radius,
 						Kind:   "agent",
 					})
 				}
