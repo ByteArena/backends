@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/json"
 	"log"
 	"math/rand"
 	"strconv"
@@ -74,48 +75,27 @@ func (swarmstate *ServerState) ProcessMutations() {
 		agentstate := swarmstate.Agents[batch.AgentId]
 		newstate := agentstate.clone()
 
-		log.Println("Processing mutations on " + batch.Turn.String() + " for agent " + batch.AgentId.String())
+		//log.Println("Processing mutations on " + batch.Turn.String() + " for agent " + batch.AgentId.String())
 
 		for _, mutation := range batch.Mutations {
-			switch mutation.Action {
+			switch mutation.GetMethod() {
 			case "steer":
 				{
-					vec, ok := mutation.Arguments[0].([]interface{})
-					if !ok {
-						log.Panicln("Invalid mutationSteer argument")
-					}
-
-					x, ok := vec[0].(float64)
-					if !ok {
-						log.Panicln("x not defined in mutation steer")
-					}
-
-					y, ok := vec[1].(float64)
-					if !ok {
-						log.Panicln("y not defined in mutation steer")
+					var vec []float64
+					if err := json.Unmarshal(mutation.GetArguments(), &vec); err != nil {
+						log.Panicln(err)
 					}
 
 					nbmutations++
-					newstate = newstate.mutationSteer(utils.MakeVector2(x, y))
+					newstate = newstate.mutationSteer(utils.MakeVector2(vec[0], vec[1]))
 
 					break
 				}
-
 			case "shoot":
 				{
-					vec, ok := mutation.Arguments[0].([]interface{})
-					if !ok {
-						log.Panicln("Invalid mutationShoot argument")
-					}
-
-					x, ok := vec[0].(float64)
-					if !ok {
-						log.Panicln("x not defined in mutation shoot")
-					}
-
-					y, ok := vec[1].(float64)
-					if !ok {
-						log.Panicln("y not defined in mutation shoot")
+					var vec []float64
+					if err := json.Unmarshal(mutation.GetArguments(), &vec); err != nil {
+						log.Panicln(err)
 					}
 
 					nbmutations++
@@ -124,7 +104,7 @@ func (swarmstate *ServerState) ProcessMutations() {
 
 					projectile := ProjectileState{
 						Position: utils.MakeVector2(agentX+newstate.Radius, agentY+newstate.Radius),
-						Velocity: newstate.Position.Add(utils.MakeVector2(x, y)), // adding the agent position to "absolutize" the target vector
+						Velocity: newstate.Position.Add(utils.MakeVector2(vec[0], vec[1])), // adding the agent position to "absolutize" the target vector
 						From:     newstate,
 						Ttl:      1,
 					}
@@ -132,6 +112,7 @@ func (swarmstate *ServerState) ProcessMutations() {
 					projectileid := uuid.NewV4()
 
 					swarmstate.Projectiles[projectileid] = projectile
+
 					break
 				}
 			}
