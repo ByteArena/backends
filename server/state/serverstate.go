@@ -12,12 +12,17 @@ import (
 )
 
 type ServerState struct {
-	Pin              utils.Vector2
-	PinCenter        utils.Vector2
-	Agents           map[uuid.UUID](AgentState)
+	Pin       utils.Vector2
+	PinCenter utils.Vector2
+
+	Agents      map[uuid.UUID](AgentState)
+	agentsmutex *sync.Mutex
+
 	Projectiles      map[uuid.UUID](ProjectileState)
-	mutationsmutex   *sync.Mutex
+	projectilesmutex *sync.Mutex
+
 	pendingmutations []statemutation.StateMutationBatch
+	mutationsmutex   *sync.Mutex
 }
 
 /* ***************************************************************************/
@@ -29,13 +34,24 @@ func NewServerState() *ServerState {
 	pin := utils.MakeVector2(rand.Float64()*300+100, rand.Float64()*300+100)
 
 	return &ServerState{
-		Agents:           make(map[uuid.UUID](AgentState)),
+		Pin:       pin,
+		PinCenter: pin,
+
+		Agents:      make(map[uuid.UUID](AgentState)),
+		agentsmutex: &sync.Mutex{},
+
 		Projectiles:      make(map[uuid.UUID](ProjectileState)),
-		Pin:              pin,
-		PinCenter:        pin,
-		mutationsmutex:   &sync.Mutex{},
+		projectilesmutex: &sync.Mutex{},
+
 		pendingmutations: make([]statemutation.StateMutationBatch, 0),
+		mutationsmutex:   &sync.Mutex{},
 	}
+}
+
+func (swarmstate *ServerState) SetAgentState(agentid uuid.UUID, agentstate AgentState) {
+	swarmstate.agentsmutex.Lock()
+	swarmstate.Agents[agentid] = agentstate
+	swarmstate.agentsmutex.Unlock()
 }
 
 func (swarmstate *ServerState) PushMutationBatch(batch statemutation.StateMutationBatch) {
