@@ -2,7 +2,6 @@ package agent
 
 import (
 	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -10,18 +9,18 @@ type Agent interface {
 	GetId() uuid.UUID
 	String() string
 	GetPerception(serverstate *state.ServerState) state.Perception
-	GetTickedChan() chan utils.Tickturn
+	//GetTickedChan() chan utils.Tickturn
 }
 
 type AgentImp struct {
-	id         uuid.UUID
-	tickedchan chan utils.Tickturn
+	id uuid.UUID
+	//tickedchan chan utils.Tickturn
 }
 
 func MakeAgentImp() AgentImp {
 	return AgentImp{
-		id:         uuid.NewV4(),                  // random uuid
-		tickedchan: make(chan utils.Tickturn, 10), // can buffer up to 10 turns, to avoid blocking
+		id: uuid.NewV4(), // random uuid
+		//tickedchan: make(chan utils.Tickturn, 10), // can buffer up to 10 turns, to avoid blocking
 	}
 }
 
@@ -49,6 +48,6 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 	return p
 }
 
-func (agent AgentImp) GetTickedChan() chan utils.Tickturn {
+/*func (agent AgentImp) GetTickedChan() chan utils.Tickturn {
 	return agent.tickedchan
-}
+}*/

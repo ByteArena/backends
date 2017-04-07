@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"math"
 	"runtime"
@@ -10,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bitly/go-notify"
 	"github.com/netgusto/bytearena/server/agent"
 	"github.com/netgusto/bytearena/server/comm"
 	"github.com/netgusto/bytearena/server/container"
@@ -20,6 +22,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
+
+const debug = false
 
 type Server struct {
 	agents                map[uuid.UUID]agent.Agent
@@ -155,52 +159,76 @@ func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
 func (server *Server) DoTick() {
 
 	turn := server.GetExpectedTurn()
-	turn = turn.Next()
-	server.SetExpectedTurn(turn)
 
-	dolog := (turn.GetSeq() % server.tickspersec) == 0
+	var dolog bool
+	if debug {
+		dolog = true
+	} else {
+		dolog = (turn.GetSeq() % server.tickspersec) == 0
+	}
 
 	start := time.Now()
 	timeoutduration := server.tickduration * 60 / 100
 
 	if dolog {
-		log.Println("Tick !", turn)
+		log.Println("-------------------------------------- Tick ! ----------------------------", turn)
 	}
 
 	// on met à jour l'état du serveur
 	server.DoUpdate()
 
+	offset := 0
 	// On ticke chaque agent
 	for _, ag := range server.agents {
-		go func(server *Server, ag agent.Agent, turn utils.Tickturn, perception state.Perception) {
+		go func(server *Server, ag agent.Agent, turn utils.Tickturn, perception state.Perception, offset int) {
 			perceptionjson, _ := json.Marshal(perception)
 			message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.GetSeq())) + "," + string(perceptionjson) + "]}\n")
 
 			if netag, ok := ag.(agent.NetAgent); ok {
+				offset := time.Microsecond * time.Duration(offset*100) // 0.1ms
+				time.Sleep(offset)
+				if debug {
+					fmt.Print(chalk.Cyan)
+					log.Println("TICKING " + turn.String() + " for " + netag.String() + " with " + offset.String() + " offset")
+				}
 				server.commserver.Send(message, netag.GetAddr())
 			}
-		}(server, ag, turn, ag.GetPerception(server.GetState()))
+		}(server, ag, turn, ag.GetPerception(server.GetState()), offset)
+		offset++
 	}
 
 	// On attend la réponse de chaque client, jusqu'au timeout
 	wg := &sync.WaitGroup{}
 	wg.Add(len(server.agents))
 
+	nbtimedout := 0
+	nbticked := 0
+
 	for _, ag := range server.agents {
-		go func(agent agent.Agent) {
-			if utils.ChanTimeout(agent.GetTickedChan(), timeoutduration) {
+		go func(agent agent.Agent, turn utils.Tickturn) {
+
+			myEventChan := make(chan interface{})
+			notify.Start("agent:"+agent.GetId().String()+":tickedturn:"+strconv.Itoa(turn.GetSeq()), myEventChan)
+
+			if utils.ChanTimeout(myEventChan, timeoutduration) {
+				nbticked++
 				//log.Print(chalk.Green)
-				//log.Println("ALL CLIENTS ON TIME", chalk.Reset)
+				//log.Println("AGENT "+agent.String()+" ON TIME", chalk.Reset)
 			} else {
-				//log.Print(chalk.Magenta)
-				//log.Println("SOME CLIENTS TIMED OUT", chalk.Reset)
+				nbtimedout++
+				log.Print(chalk.Magenta)
+				log.Println("AGENT "+agent.String()+" TIMED OUT "+turn.String(), chalk.Reset)
 			}
 
 			wg.Done()
-		}(ag)
+		}(ag, turn)
 	}
 
 	wg.Wait()
+
+	// Once turn is over, immediately switch to next turn (effectively blocs late messages)
+	server.SetExpectedTurn(turn.Next())
+
 	took := time.Now().Sub(start)
 
 	now := time.Now()
@@ -215,8 +243,8 @@ func (server *Server) DoTick() {
 		nexttickin := utils.DiffMs(nexttick, aftermutations)
 
 		log.Print(chalk.Blue)
-		log.Println("All agents ticked in " + utils.FloatToStr(utils.DurationMs(took)) + " ms")
-		log.Println("ProcessMutations() took " + utils.FloatToStr(processtook) + " ms; next tick in " + utils.FloatToStr(nexttickin) + " ms")
+		log.Println(turn.String() + " OVER in " + utils.FloatToStr(utils.DurationMs(took)) + " ms;" + strconv.Itoa(nbtimedout) + " TIMED OUT AND " + strconv.Itoa(nbticked) + " IN TIME")
+		log.Println("ProcessMutations() for " + turn.String() + " took " + utils.FloatToStr(processtook) + " ms; next tick in " + utils.FloatToStr(nexttickin) + " ms")
 		log.Print(chalk.Reset)
 
 		// Debug : Nombre de goroutines
@@ -269,11 +297,16 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 				log.Panicln(err)
 			}
 
+			//log.Println(string(msg.GetPayload()))
+
 			expectedturn := server.GetExpectedTurn()
 			if mutations.GetTickTurnSeq() != int(expectedturn.GetSeq()) {
-				log.Print(chalk.Red)
-				log.Println("LATE FRAME !! from tick " + strconv.Itoa(int(mutations.GetTickTurnSeq())) + "; expected " + expectedturn.String())
-				log.Print(chalk.Reset)
+				fmt.Print(chalk.Red)
+				log.Println("LATE FRAME !! FROM AGENT "+msg.GetAgentId().String()+" for tick "+strconv.Itoa(int(mutations.GetTickTurnSeq()))+"; expected "+expectedturn.String(), chalk.Reset)
+			} else {
+				if debug {
+					log.Println("GOT ANSWER FROM ", msg.GetAgentId(), "TURN", mutations.GetTickTurnSeq())
+				}
 			}
 
 			mutationbatch := statemutation.StateMutationBatch{
@@ -284,7 +317,8 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 
 			server.DoPushMutationBatch(mutationbatch)
 
-			ag.GetTickedChan() <- expectedturn
+			//ag.GetTickedChan() <- expectedtur
+			notify.PostTimeout("agent:"+ag.GetId().String()+":tickedturn:"+strconv.Itoa(expectedturn.GetSeq()), nil, time.Microsecond*100)
 
 			break
 		}

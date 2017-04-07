@@ -20,7 +20,7 @@ function measurespeed(start) {
     const mean = times.reduce(function(carry, val) {
         return carry + val;
     }, 0) / times.length;
-    console.log('Took', (duration).toFixed(2), '; mean', mean.toFixed(2));
+    //console.log('Took', (duration).toFixed(2), '; mean', mean.toFixed(2));
 }
 
 function move(tickturn, perception) {
@@ -51,6 +51,7 @@ function move(tickturn, perception) {
         .clone()
         .sub(curvelocity)
         .limit(perception.Specs.MaxSteeringForce);
+        
 
     // Pushing batch of mutations for this turn
     this.sendMutations(tickturn, [

@@ -19,7 +19,7 @@ type CommDispatcher interface {
 	DispatchAgentMessage(msg protocol.MessageWrapper)
 }
 
-// TCP server
+// UDP server
 type CommServer struct {
 	address  string
 	conn     net.PacketConn

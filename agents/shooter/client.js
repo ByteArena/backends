@@ -11,8 +11,14 @@ const agentid = process.env.AGENTID;
 function move(tickturn, perception) {
   const attractorpos = Vector2.fromArray(perception.Objective.Attractor);
 
+  let v = 0
+  let sum = [];
+  for(k = 0; k < 20000; k++) {
+      sum.push(v++);
+  }
+
   this.sendMutations(tickturn, [
-      { Method: 'shoot', Arguments: attractorpos.toArray(5) },
+      { Method: 'shoot', Arguments: attractorpos.toArray(5), Sum: sum.reduce(function(carry, v) { return v + carry; }, 0) },
   ])
   .catch((err) => { throw err; });
 }
