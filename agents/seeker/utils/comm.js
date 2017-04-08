@@ -14,13 +14,9 @@ module.exports = {
         const p = new Promise(function(resolve, reject) {
 
             const client = dgram.createSocket('udp4');
-            const json = JSON.stringify({
-                AgentId: agentid,
-                Type: "Handshake",
-                Payload: {
-                    Greetings: 'Hello from ' + agentid + ' !'
-                }
-            });
+            const json = JSON.stringify(wrapInTransport("Handshake", {
+                Greetings: 'Hello from ' + agentid + ' !'
+            }));
 
             const message = new Buffer(json);
 

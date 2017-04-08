@@ -59,7 +59,7 @@ func NewServer(host string, port int, agentdir string, nbexpectedagents int, tic
 		stopticking:           stopticking,
 		commserver:            nil,
 		containerorchestrator: orch,
-		tickduration:          time.Duration((1000 / time.Duration(tickspersec)) * time.Millisecond),
+		tickduration:          time.Duration((1000000 / time.Duration(tickspersec)) * time.Microsecond),
 		tickspersec:           tickspersec,
 		currentturnmutex:      &sync.Mutex{},
 	}
@@ -150,7 +150,6 @@ func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
 		server.agentsmutex.Unlock()
 		return foundagent, nil
 	}
-
 	server.agentsmutex.Unlock()
 
 	return emptyagent, errors.New("Agent" + agentid + " not found")
@@ -238,6 +237,7 @@ func (server *Server) DoTick() {
 	server.ProcessMutations()
 
 	if dolog {
+		// TODO: use goroutines to wrap blocking print operations
 		aftermutations := time.Now()
 		processtook := utils.DiffMs(aftermutations, beforemutations)
 		nexttickin := utils.DiffMs(nexttick, aftermutations)
@@ -303,6 +303,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 			if mutations.GetTickTurnSeq() != int(expectedturn.GetSeq()) {
 				fmt.Print(chalk.Red)
 				log.Println("LATE FRAME !! FROM AGENT "+msg.GetAgentId().String()+" for tick "+strconv.Itoa(int(mutations.GetTickTurnSeq()))+"; expected "+expectedturn.String(), chalk.Reset)
+				return
 			} else {
 				if debug {
 					log.Println("GOT ANSWER FROM ", msg.GetAgentId(), "TURN", mutations.GetTickTurnSeq())

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -86,9 +87,16 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 
 func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, agentdir string) (AgentContainer, error) {
 
+	var cmdline string
+	if strings.Contains(agentdir, "dummygo") {
+		cmdline = "/scripts/dummygo"
+	} else {
+		cmdline = "node --harmony /scripts/client.js"
+	}
+
 	containerconfig := container.Config{
 		Image: "node",
-		Cmd:   []string{"/bin/bash", "-c", "node --harmony /scripts/client.js"},
+		Cmd:   []string{"/bin/bash", "-c", cmdline},
 		User:  "node",
 		Env: []string{
 			"SWARMPORT=" + strconv.Itoa(port),
