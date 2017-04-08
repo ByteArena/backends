@@ -239,8 +239,8 @@ func getcmdenv() cmdenvironment {
 	// Host
 
 	host, exists := os.LookupEnv("HOST")
-	if !exists {
-		host = "127.0.0.1"
+	if !exists || host == "" {
+		panic("You must set a valid HOST environment variable")
 	}
 
 	// Port
