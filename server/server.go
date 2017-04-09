@@ -23,7 +23,7 @@ import (
 	"github.com/ttacon/chalk"
 )
 
-const debug = false
+const debug = true
 
 type Server struct {
 	agents                map[uuid.UUID]agent.Agent
@@ -109,7 +109,6 @@ func (s *Server) GetExpectedTurn() utils.Tickturn {
 }
 
 func (server *Server) Listen() {
-
 	server.commserver = comm.NewCommServer(server.host+":"+strconv.Itoa(server.port), 1024) // 1024: max size of message in bytes
 	log.Println("listening on " + server.host + ":" + strconv.Itoa(server.port))
 
@@ -184,7 +183,7 @@ func (server *Server) DoTick() {
 			message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.GetSeq())) + "," + string(perceptionjson) + "]}\n")
 
 			if netag, ok := ag.(agent.NetAgent); ok {
-				offset := time.Microsecond * time.Duration(offset*100) // 0.1ms
+				offset := time.Microsecond * time.Duration(offset*10) // 0.1ms
 				time.Sleep(offset)
 				if debug {
 					fmt.Print(chalk.Cyan)

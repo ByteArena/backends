@@ -113,6 +113,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		Binds:          []string{agentdir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
 		AutoRemove:     true,
 		ReadonlyRootfs: true,
+		NetworkMode:    "host",
 		Resources: container.Resources{
 			Memory: 1024 * 1024 * 32, // 32M
 			//CPUQuota: 5 * (1000),       // 5% en cent-millièmes

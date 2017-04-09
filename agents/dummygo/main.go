@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -51,6 +52,8 @@ func main() {
 		req := make([]byte, 1024)
 		_, _, err := Conn.ReadFrom(req)
 		CheckError(err)
+
+		fmt.Println(turn)
 
 		res := []byte("{ \"AgentId\": \"" + agentid + "\", \"Type\": \"Mutation\", \"Payload\": { \"Turn\": " + strconv.Itoa(turn) + ", \"Mutations\": [] } }")
 		_, err = Conn.Write(res)
