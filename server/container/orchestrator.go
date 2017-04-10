@@ -118,7 +118,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 			Memory: 1024 * 1024 * 32, // 32M
 			//CPUQuota: 5 * (1000),       // 5% en cent-millièmes
 			//CPUShares: 1,
-			CPUPercent: 25,
+			CPUPercent: 5,
 		},
 	}
 

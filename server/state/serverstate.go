@@ -80,8 +80,10 @@ func (serverstate *ServerState) ProcessMutations() {
 
 		nbmutations := 0
 
+		serverstate.Agentsmutex.Lock()
 		agentstate := serverstate.Agents[batch.AgentId]
 		newstate := agentstate.clone()
+		serverstate.Agentsmutex.Unlock()
 
 		//log.Println("Processing mutations on " + batch.Turn.String() + " for agent " + batch.AgentId.String())
 

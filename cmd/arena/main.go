@@ -334,9 +334,6 @@ func main() {
 		os.Exit(1)
 	}()
 
-	f := make(chan bool)
-	<-f
-
 	go visualization(srv, cmdenv.host, cmdenv.port+1)
 
 	srv.Listen()

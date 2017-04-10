@@ -35,7 +35,7 @@ PIXI.loader
                 const line = new PIXI.Graphics();
 
                 line
-                    .lineStyle(1, 0x00FF00)
+                    .lineStyle(2, 0x00FF00)
                     .moveTo(projectile.From.X, projectile.From.Y)
                     .lineTo(projectile.X, projectile.Y);
 
@@ -59,14 +59,10 @@ PIXI.loader
                 stage.addChild(sprite);
             });
         }
+        window.requestAnimationFrame(function() {
+            renderer.render(stage);
+        });
     };
-
-    // Loop till the end of times
-    const loop = function() {
-        renderer.render(stage);
-        window.requestAnimationFrame(loop);
-    };
-    loop();
 
   });
 
