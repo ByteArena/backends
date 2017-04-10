@@ -32,7 +32,8 @@ type PerceptionInternal struct {
 }
 
 type PerceptionObjective struct {
-	Attractor utils.Vector2
+	Attractor         utils.Vector2
+	AttractorVelocity utils.Vector2
 	// TBD
 	// mission ?
 	// sens de la course ?

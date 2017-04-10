@@ -72,8 +72,7 @@ func (server *Server) Spawnagent() {
 	agent := agent.MakeNetAgentImp()
 	agentstate := state.MakeAgentState()
 
-	server.setAgent(agent)
-	server.state.SetAgentState(agent.GetId(), agentstate)
+	server.RegisterAgent(agent, agentstate)
 
 	container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, server.agentdir)
 	if err != nil {
@@ -89,6 +88,11 @@ func (server *Server) Spawnagent() {
 	if err != nil {
 		log.Panicln(err)
 	}
+}
+
+func (server *Server) RegisterAgent(agent agent.Agent, state state.AgentState) {
+	server.setAgent(agent)
+	server.state.SetAgentState(agent.GetId(), state)
 }
 
 func (server *Server) setAgent(agent agent.Agent) {
@@ -181,17 +185,13 @@ func (server *Server) DoTick() {
 	for _, ag := range server.agents {
 		go func(server *Server, ag agent.Agent, turn utils.Tickturn, perception state.Perception) {
 
-			// Build perception
-			perceptionjson, _ := json.Marshal(perception)
-			message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.GetSeq())) + "," + string(perceptionjson) + "]}\n")
-
-			if netag, ok := ag.(agent.NetAgent); ok {
-				if debug {
-					fmt.Print(chalk.Cyan)
-					log.Println("REFRESHING perception for "+netag.String()+" on ", turn)
-				}
-				server.commserver.Send(message, netag.GetAddr())
+			if debug {
+				fmt.Print(chalk.Cyan)
+				log.Println("REFRESHING perception for "+ag.String()+" on ", turn)
 			}
+
+			ag.PutPerception(perception, server)
+
 		}(server, ag, turn, ag.GetPerception(server.GetState()))
 	}
 
@@ -200,6 +200,10 @@ func (server *Server) DoTick() {
 		fmt.Print(chalk.Blue)
 		log.Println("# Nombre de goroutines en vol : "+strconv.Itoa(runtime.NumGoroutine()), chalk.Reset)
 	}
+}
+
+func (server *Server) GetNetworkCommServer() protocol.NetSender {
+	return server.commserver
 }
 
 func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
