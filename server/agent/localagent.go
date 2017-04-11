@@ -24,7 +24,7 @@ func (agent LocalAgentImp) String() string {
 	return "<LocalAgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent LocalAgentImp) PutPerception(perception state.Perception, server protocol.AgentCommOperator) {
+func (agent LocalAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) {
 	//perceptionjson, _ := json.Marshal(perception)
 	//log.Println("LOCAL AGENT", string(perceptionjson))
 }

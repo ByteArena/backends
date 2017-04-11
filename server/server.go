@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
+	"net"
 	"runtime"
 	"strconv"
 	"sync"
@@ -17,7 +17,6 @@ import (
 	"github.com/netgusto/bytearena/server/container"
 	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/server/statemutation"
 	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
@@ -183,16 +182,18 @@ func (server *Server) DoTick() {
 
 	// Refreshing perception for every agent
 	for _, ag := range server.agents {
-		go func(server *Server, ag agent.Agent, turn utils.Tickturn, perception state.Perception) {
+		go func(server *Server, ag agent.Agent, serverstate *state.ServerState) {
 
 			if debug {
 				fmt.Print(chalk.Cyan)
-				log.Println("REFRESHING perception for "+ag.String()+" on ", turn)
+				log.Println("REFRESHING perception for " + ag.String())
 			}
 
-			ag.PutPerception(perception, server)
+			agentstate := serverstate.GetAgentState(ag.GetId()) // TODO: retirer ceci; utile uniquement pour le prototypage de l'attracteur agent
 
-		}(server, ag, turn, ag.GetPerception(server.GetState()))
+			ag.SetPerception(ag.GetPerception(serverstate), server, agentstate)
+
+		}(server, ag, server.GetState())
 	}
 
 	if dolog {
@@ -202,9 +203,18 @@ func (server *Server) DoTick() {
 	}
 }
 
-func (server *Server) GetNetworkCommServer() protocol.NetSender {
-	return server.commserver
+/* <implementing protocol.AgentCommunicator> */
+
+func (server *Server) NetSend(message []byte, addr net.Addr) {
+	server.commserver.Send(message, addr)
 }
+
+func (server *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
+	server.state.PushMutationBatch(batch)
+	server.ProcessMutations()
+}
+
+/* </implementing protocol.AgentCommunicator> */
 
 func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 
@@ -254,13 +264,12 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 				log.Println("GOT MUTATION FROM ", msg.GetAgentId(), "TURN", turn)
 			}
 
-			mutationbatch := statemutation.StateMutationBatch{
+			mutationbatch := protocol.StateMutationBatch{
 				AgentId:   ag.GetId(),
 				Mutations: mutations.GetMutations(),
 			}
 
-			server.DoPushMutationBatch(mutationbatch)
-			server.ProcessMutations()
+			server.PushMutationBatch(mutationbatch)
 
 			notify.PostTimeout("agent:"+ag.GetId().String()+":tickedturn:"+strconv.Itoa(turn.GetSeq()), nil, time.Microsecond*100)
 
@@ -337,10 +346,6 @@ func (server *Server) StartTicking() {
 	}(server)
 }
 
-func (server *Server) DoPushMutationBatch(batch statemutation.StateMutationBatch) {
-	server.state.PushMutationBatch(batch)
-}
-
 func (server *Server) ProcessMutations() {
 	server.DebugNbMutations++
 	server.state.ProcessMutations()
@@ -351,17 +356,6 @@ func (server *Server) DoUpdate() {
 
 	// Updates physiques, liées au temps qui passe
 	// Avant de récuperer les mutations de chaque tour, et même avant deconstituer la perception de chaque agent
-
-	turn := server.GetTurn()
-
-	// update attractor
-	centerx, centery := server.state.PinCenter.Get()
-	radius := 120.0
-
-	x := centerx + radius*math.Cos(float64(turn.GetSeq())/10.0)
-	y := centery + radius*math.Sin(float64(turn.GetSeq())/10.0)
-
-	server.state.Pin = utils.MakeVector2(x, y)
 
 	server.state.Projectilesmutex.Lock()
 	for k, state := range server.state.Projectiles {

@@ -92,15 +92,6 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 				}
 				serverstate.Agentsmutex.Unlock()
 
-				x, y := serverstate.Pin.Get()
-
-				msg.Agents = append(msg.Agents, vizagentmessage{
-					X:      x,
-					Y:      y,
-					Radius: 10,
-					Kind:   "attractor",
-				})
-
 				json, err := json.Marshal(msg)
 				if err != nil {
 					log.Println("json error, wtf")

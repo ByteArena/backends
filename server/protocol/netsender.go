@@ -2,6 +2,8 @@ package protocol
 
 import "net"
 
+// Interface to avoid circular dependencies between server and agent
+
 type NetSender interface {
-	Send(message []byte, addr net.Addr)
+	NetSend(message []byte, addr net.Addr)
 }

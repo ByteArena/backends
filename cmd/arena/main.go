@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/kardianos/osext"
+	"github.com/netgusto/bytearena/agents/attractor"
 	"github.com/netgusto/bytearena/server"
-	"github.com/netgusto/bytearena/server/agent"
 	"github.com/netgusto/bytearena/server/state"
 )
 
@@ -136,9 +136,9 @@ func main() {
 	)
 
 	// Creating attractor as an agent
-	agent := agent.MakeLocalAgentImp()
 	agentstate := state.MakeAgentState()
-	srv.RegisterAgent(agent, agentstate)
+	agentstate.Tag = "attractor"
+	srv.RegisterAgent(attractoragent.MakeAttractorAgent(), agentstate)
 
 	for i := 0; i < cmdenv.agents; i++ {
 		go srv.Spawnagent()

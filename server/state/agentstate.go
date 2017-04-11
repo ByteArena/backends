@@ -37,6 +37,7 @@ type AgentState struct {
 	MaxSteeringForce float64 // maximum magnitude the steering force applied to current velocity
 	MaxSpeed         float64 // maximum magnitude of the agent velocity
 	Orientation      float64 // heading angle in radian (degree ?)
+	Tag              string
 }
 
 func MakeAgentState() AgentState {

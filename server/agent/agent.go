@@ -3,6 +3,7 @@ package agent
 import (
 	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/server/state"
+	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -10,7 +11,7 @@ type Agent interface {
 	GetId() uuid.UUID
 	String() string
 	GetPerception(serverstate *state.ServerState) state.Perception
-	PutPerception(perception state.Perception, server protocol.AgentCommOperator) // abstract method
+	SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) // abstract method
 }
 
 type AgentImp struct {
@@ -39,8 +40,19 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 	p.Internal.Velocity = agentstate.Velocity.Clone()
 	p.Internal.Proprioception = agentstate.Radius
 
+	// On trouve l'agent déclaré comme attractor
+	// TODO: troiuver mieux qu'une itération du Map à chaque GetPerception
+	serverstate.Agentsmutex.Lock()
+	var attractorpos = utils.MakeVector2(0, 0)
+	for _, agentstate := range serverstate.Agents {
+		if agentstate.Tag == "attractor" {
+			attractorpos = agentstate.Position
+		}
+	}
+	serverstate.Agentsmutex.Unlock()
+
 	// On rend la position de l'attractor relative à l'agent
-	p.Objective.Attractor = serverstate.Pin.Clone().Sub(agentstate.Position)
+	p.Objective.Attractor = attractorpos.Sub(agentstate.Position)
 
 	p.Specs.MaxSpeed = agentstate.MaxSpeed
 	p.Specs.MaxSteeringForce = agentstate.MaxSteeringForce
@@ -48,6 +60,6 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 	return p
 }
 
-func (agent AgentImp) PutPerception(perception state.Perception, server protocol.AgentCommOperator) {
+func (agent AgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) {
 	// I'm abstract, override me !
 }
