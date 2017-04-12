@@ -104,7 +104,7 @@ func (serverstate *ServerState) ProcessMutations() {
 					agentX, agentY := newstate.Position.Get()
 
 					projectile := ProjectileState{
-						Position: utils.MakeVector2(agentX+newstate.Radius, agentY+newstate.Radius),
+						Position: utils.MakeVector2(agentX, agentY),
 						Velocity: newstate.Position.Add(utils.MakeVector2(vec[0], vec[1])), // adding the agent position to "absolutize" the target vector
 						From:     newstate,
 						Ttl:      1,

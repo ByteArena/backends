@@ -13,33 +13,8 @@ import (
 	"github.com/netgusto/bytearena/agents/attractor"
 	"github.com/netgusto/bytearena/server"
 	"github.com/netgusto/bytearena/server/state"
+	"github.com/netgusto/bytearena/utils"
 )
-
-type vizmessage struct {
-	Agents      []vizagentmessage
-	Projectiles []vizprojectilemessage
-}
-
-type vizagentmessage struct {
-	X      float64
-	Y      float64
-	Radius float64
-	Kind   string
-}
-
-type vizprojectilemessage struct {
-	X      float64
-	Y      float64
-	Radius float64
-	From   vizagentmessage
-	Kind   string
-}
-
-type wsincomingmessage struct {
-	messageType int
-	p           []byte
-	err         error
-}
 
 type cmdenvironment struct {
 	host     string
@@ -138,6 +113,7 @@ func main() {
 	// Creating attractor as an agent
 	agentstate := state.MakeAgentState()
 	agentstate.Tag = "attractor"
+	agentstate.Position = utils.MakeVector2(400, 300)
 	srv.RegisterAgent(attractoragent.MakeAttractorAgent(), agentstate)
 
 	for i := 0; i < cmdenv.agents; i++ {

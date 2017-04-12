@@ -122,6 +122,10 @@ func (a Vector2) Limit(max float64) Vector2 {
 	return a
 }
 
+func (a Vector2) Angle() float64 {
+	return math.Atan2(a.y, a.x)
+}
+
 func (a Vector2) ToArray() []float64 {
 	res := make([]float64, 2)
 	res[0] = a.x

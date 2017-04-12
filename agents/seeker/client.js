@@ -27,18 +27,31 @@ function move(tickturn, perception) {
 
     const start = now();
 
+      // Finding the attractor
+    let attractor = null;
+    for(const otheragentkey in perception.External.Vision) {
+        const otheragent = perception.External.Vision[otheragentkey];
+        if(otheragent.Tag === "attractor") {
+            attractor = otheragent;
+            break;
+        }
+    }
+
+    if(attractor === null) return;
+    const attractorpos = Vector2.fromArray(attractor.Center);
+    const attractorvelocity = Vector2.fromArray(attractor.Velocity);
+
     //
     // Implementing Reynolds' steering behavior
     // http://www.red3d.com/cwr/steer/
     //
 
     // determine the steering force to apply to reach the attractor
-    const attractorpos = Vector2.fromArray(perception.Objective.Attractor);
     const curvelocity = Vector2.fromArray(perception.Internal.Velocity);
 
     const disttotarget = attractorpos.mag();
     let speed = perception.Specs.MaxSpeed;
-    if(disttotarget < perception.Internal.Proprioception) {
+    if(disttotarget < perception.Internal.Proprioception * 10) {
         // arrival, slow down
         speed = map(disttotarget, 0, perception.Internal.Proprioception, 0, perception.Specs.MaxSpeed);
     }
@@ -46,16 +59,44 @@ function move(tickturn, perception) {
     const desired = attractorpos
         .clone()
         .mag(speed);
+    
+    // Flocking behaviour    
+    const sepdist = 30; // separation distance
+
+    let sepforce = new Vector2();   // Separation force
+    let alignforce = new Vector2(); // alignment force
+    let cohesionforce = new Vector2(); // cohesion force
+
+    const sepdistsq = sepdist * sepdist;
+
+    for(const otheragentkey in perception.External.Vision) {
+        const otheragent = perception.External.Vision[otheragentkey];
+        const otherposition = Vector2.fromArray(otheragent.Center);
+        if(otherposition.magSq() <= sepdistsq) {
+            sepforce.sub(otherposition)
+        }
+
+        cohesionforce.add(otherposition)
+    }
+
+    cohesionforce.div(perception.External.Vision.length)
+
+    desired
+        .add(sepforce)
+        .add(cohesionforce.div(100));
 
     const steering = desired
         .clone()
         .sub(curvelocity)
         .limit(perception.Specs.MaxSteeringForce);
+    
+    const aimed = attractorpos.add(attractorvelocity);
         
 
     // Pushing batch of mutations for this turn
     this.sendMutations(tickturn, [
         { Method: 'steer', Arguments: steering.toArray(5) }, // 3: précision
+        Math.random() < 0.9 ? null : { Method: 'shoot', Arguments: aimed.toArray(5) }, // 3: précision
     ])
     .then(response => {
         measurespeed(start);

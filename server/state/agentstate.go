@@ -1,6 +1,7 @@
 package state
 
 import (
+	"math"
 	"math/rand"
 
 	"github.com/netgusto/bytearena/utils"
@@ -36,25 +37,34 @@ type AgentState struct {
 	Velocity         utils.Vector2
 	MaxSteeringForce float64 // maximum magnitude the steering force applied to current velocity
 	MaxSpeed         float64 // maximum magnitude of the agent velocity
-	Orientation      float64 // heading angle in radian (degree ?)
-	Tag              string
+	Orientation      float64 // heading angle in radian (degree ?) relative to arena north
+
+	Tag string // attractor
+
+	VisionRadius float64
 }
 
 func MakeAgentState() AgentState {
 	initialx := rand.Float64() * 800
 	initialy := rand.Float64() * 600
 
+	r := 8 + rand.Float64()*3.0
+
 	return AgentState{
 		Position:         utils.MakeVector2(initialx, initialy),
 		Velocity:         utils.MakeVector2(0, 0),
 		MaxSpeed:         8.0,
-		MaxSteeringForce: 4.0,
-		Radius:           8.0,
+		MaxSteeringForce: 0.6,
+		Radius:           r,
+		Mass:             math.Pi * r * r,
+		Tag:              "agent",
+		VisionRadius:     300,
 	}
 }
 
 func (state AgentState) Update() AgentState {
 	state.Position = state.Position.Add(state.Velocity)
+	state.Orientation = state.Velocity.Angle()
 	return state
 }
 

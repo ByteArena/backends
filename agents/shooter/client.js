@@ -9,13 +9,28 @@ const host = process.env.SWARMHOST;
 const agentid = process.env.AGENTID;
 
 function move(tickturn, perception) {
-  const attractorpos = Vector2.fromArray(perception.Objective.Attractor);
+
+  // Finding the attractor
+  let attractor = null;
+  for(const otheragentkey in perception.External.Vision) {
+    const otheragent = perception.External.Vision[otheragentkey]
+    if(otheragent.Tag === "attractor") {
+      attractor = otheragent;
+      break;
+    }
+  }
+
+  if(attractor === null) return;
+
+  const attractorpos = Vector2.fromArray(attractor.Center);
+  const attractorvelocity = Vector2.fromArray(attractor.Velocity);
+  const aimed = attractorpos.add(attractorvelocity)
 
   if(Math.random() >= .9) {
       this.sendMutations(tickturn, [
         {
           Method: 'shoot',
-          Arguments: attractorpos.toArray(5)
+          Arguments: aimed.toArray(5)
         },
       ])
       .catch((err) => { throw err; });

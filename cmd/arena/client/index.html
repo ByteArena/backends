@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <head>
 <meta charset="utf-8">
+<style>
+    body {
+        background: black;
+        color: white;
+        text-align: center;
+    }
+
+</style>
 </head>
 <body>
 
@@ -19,10 +27,12 @@
 
 PIXI.loader
     .add("images/circle.png")
+    .add("images/triangle.png")
     .load(function() {
 
     //Create the renderer
     var renderer = PIXI.autoDetectRenderer(1000, 600, { antialias: true });
+    renderer.backgroundColor = 0xFFFFFF;
     $('#visualization').append(renderer.view);
 
     var stage = new PIXI.Container();
@@ -35,7 +45,7 @@ PIXI.loader
                 const line = new PIXI.Graphics();
 
                 line
-                    .lineStyle(2, 0x00FF00)
+                    .lineStyle(2, 0xFF0000)
                     .moveTo(projectile.From.X, projectile.From.Y)
                     .lineTo(projectile.X, projectile.Y);
 
@@ -46,14 +56,16 @@ PIXI.loader
         if(points.Agents) {
             points.Agents.forEach((agent) => {
                 var sprite = new PIXI.Sprite(
-                    PIXI.loader.resources["images/circle.png"].texture
+                    PIXI.loader.resources["images/triangle.png"].texture
                 );
 
                 sprite.x = agent.X;
                 sprite.y = agent.Y;
                 sprite.width = agent.Radius * 2;
                 sprite.height = agent.Radius * 2;
-                sprite.tint = agent.Kind === 'attractor' ? 0x0000FF : 0xFF0000;
+                sprite.tint = 0x8D8D64;
+                sprite.anchor.set(0.5)
+                sprite.rotation = Math.PI/2 + agent.Orientation // Math.PI/2: quart de tour vers la droite
 
                 //Create a container object called the `stage`
                 stage.addChild(sprite);

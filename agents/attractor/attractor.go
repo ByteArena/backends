@@ -16,7 +16,7 @@ type AttractorAgent struct {
 }
 
 func MakeAttractorAgent() AttractorAgent {
-	pin := utils.MakeVector2(rand.Float64()*500+100, rand.Float64()*500+100)
+	pin := utils.MakeVector2(rand.Float64()*600+100, rand.Float64()*300+100)
 	return AttractorAgent{
 		LocalAgentImp: agent.MakeLocalAgentImp(),
 		pincenter:     pin,
@@ -26,6 +26,8 @@ func MakeAttractorAgent() AttractorAgent {
 var count int
 
 func (agent AttractorAgent) SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) {
+
+	//log.Println(perception)
 
 	curvelocity := perception.Internal.Velocity
 	speed := perception.Specs.MaxSpeed

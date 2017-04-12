@@ -15,6 +15,33 @@ import (
 	"github.com/netgusto/bytearena/server/state"
 )
 
+type vizmessage struct {
+	Agents      []vizagentmessage
+	Projectiles []vizprojectilemessage
+}
+
+type vizagentmessage struct {
+	X           float64
+	Y           float64
+	Radius      float64
+	Kind        string
+	Orientation float64
+}
+
+type vizprojectilemessage struct {
+	X      float64
+	Y      float64
+	Radius float64
+	From   vizagentmessage
+	Kind   string
+}
+
+type wsincomingmessage struct {
+	messageType int
+	p           []byte
+	err         error
+}
+
 func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.ServerState) {
 
 	upgrader := websocket.Upgrader{} // use default options
@@ -84,10 +111,11 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 					x, y := agent.Position.Get()
 
 					msg.Agents = append(msg.Agents, vizagentmessage{
-						X:      x,
-						Y:      y,
-						Radius: agent.Radius,
-						Kind:   "agent",
+						X:           x,
+						Y:           y,
+						Radius:      agent.Radius,
+						Kind:        "agent",
+						Orientation: agent.Orientation,
 					})
 				}
 				serverstate.Agentsmutex.Unlock()
@@ -166,6 +194,13 @@ func visualization(srv *server.Server, host string, port int) {
 	})
 	http.HandleFunc("/images/circle.png", func(w http.ResponseWriter, r *http.Request) {
 		imagesource, err := ioutil.ReadFile(basepath + "images/circle.png")
+		if err != nil {
+			panic(err)
+		}
+		w.Write(imagesource)
+	})
+	http.HandleFunc("/images/triangle.png", func(w http.ResponseWriter, r *http.Request) {
+		imagesource, err := ioutil.ReadFile(basepath + "images/triangle.png")
 		if err != nil {
 			panic(err)
 		}
