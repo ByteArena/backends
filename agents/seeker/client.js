@@ -23,39 +23,7 @@ function measurespeed(start) {
     //console.log('Took', (duration).toFixed(2), '; mean', mean.toFixed(2));
 }
 
-function move(tickturn, perception) {
-
-    const start = now();
-
-      // Finding the attractor
-    let attractor = null;
-    for(const otheragentkey in perception.External.Vision) {
-        const otheragent = perception.External.Vision[otheragentkey];
-        if(otheragent.Tag === "attractor") {
-            attractor = otheragent;
-            break;
-        }
-    }
-
-    if(attractor === null) return;
-    const attractorpos = Vector2.fromArray(attractor.Center);
-    const attractorvelocity = Vector2.fromArray(attractor.Velocity);
-    
-    followpos = attractorpos
-        .clone()
-        .add(attractorvelocity)
-        .sub(attractorvelocity.clone().mag(30))
-        .sub(attractorpos.clone().mag(Math.random() * 50 + 100));
-
-    //
-    // Implementing Reynolds' steering behavior
-    // http://www.red3d.com/cwr/steer/
-    //
-
-    // determine the steering force to apply to reach the attractor
-    const curvelocity = Vector2.fromArray(perception.Internal.Velocity);
-    
-    // Flocking behaviour    
+function flockforces(perception) {
     const sepdist = 30; // separation distance
 
     let sepforce = new Vector2();   // Separation force
@@ -82,29 +50,80 @@ function move(tickturn, perception) {
     alignforce.div(perception.External.Vision.length);
     cohesionforce.div(perception.External.Vision.length);
 
-    desired = followpos.clone()
-        .add(sepforce.mult(16))
-        .add(alignforce.mult(24))
-        .add(cohesionforce);
+    return {
+        separation: sepforce,
+        alignment: alignforce,
+        cohesion: cohesionforce,
+    };
+}
+
+function findAttractor(perception) {
+      // Finding the attractor
+    let attractor = null;
+    for(const otheragentkey in perception.External.Vision) {
+        const otheragent = perception.External.Vision[otheragentkey];
+        if(otheragent.Tag === "attractor") {
+            attractor = otheragent;
+            break;
+        }
+    }
+
+    if(attractor === null) return null;
+
+    return {
+        position: Vector2.fromArray(attractor.Center),
+        velocity: Vector2.fromArray(attractor.Velocity),
+    }
+}
+
+function move(tickturn, perception) {
+
+    const start = now();
+
+    const attractor = findAttractor(perception);
+    if(attractor === null) return;
+
+    const curvelocity = Vector2.fromArray(perception.Internal.Velocity);
+
+    //
+    // Shooting straight at next attractor position
+    //
+    const aimed = attractor.position.clone().add(attractor.velocity);
+
+    //
+    // Following some pixels behind the attractor
+    //
+    const followpos = attractor.position
+        .clone()
+        .add(attractor.velocity)                    // attractor next position
+        .sub(attractor.velocity.clone().mag(30))    // 30px behind him
+        .sub(attractor.position.clone().mag(Math.random() * 50 + 100)); // at a random distance on the agent-attractor line
     
+    // Determine adapted speed with regards to distance with target
     const disttotarget = followpos.mag();
     let speed = perception.Specs.MaxSpeed;
     if(disttotarget < 30) {
-        speed = map(disttotarget, 0, perception.Specs.MaxSpeed, 0, attractorvelocity.mag());
+        speed = map(disttotarget, 0, perception.Specs.MaxSpeed, 0, attractor.velocity.mag());
     }
+    
+    // Adding flocking behaviour (keeps agents in a cohesive pack, but separated from one another to avoid collisions)
+    const flock = flockforces(perception);
+
+    // Determine steering based on following point, and flock forces
+    desired = followpos.clone()
+        .add(flock.separation.mult(16))
+        .add(flock.alignment.mult(24))
+        .add(flock.cohesion)
+        .limit(speed);
 
     const steering = desired
         .clone()
-        .limit(speed)
         .sub(curvelocity);
-    
-    const aimed = attractorpos.clone().add(attractorvelocity);
-        
 
     // Pushing batch of mutations for this turn
     this.sendMutations(tickturn, [
         { Method: 'steer', Arguments: steering.toArray(5) }, // 3: précision
-        Math.random() < 0.9 ? null : { Method: 'shoot', Arguments: aimed.toArray(5) }, // 3: précision
+        Math.random() < 0.95 ? null : { Method: 'shoot', Arguments: aimed.toArray(5) }, // 3: précision
     ])
     .then(response => {
         measurespeed(start);
