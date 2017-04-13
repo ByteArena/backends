@@ -166,8 +166,16 @@ func visualization(srv *server.Server, host string, port int) {
 		staterelaymutex.Lock()
 		relay := make(chan state.ServerState)
 		staterelays = append(staterelays, relay)
+		relayindex := len(staterelays) - 1
 		staterelaymutex.Unlock()
+
 		wsendpoint(w, r, relay)
+
+		staterelaymutex.Lock()
+		copy(staterelays[relayindex:], staterelays[relayindex+1:])
+		staterelays[len(staterelays)-1] = nil // or the zero value of T
+		staterelays = staterelays[:len(staterelays)-1]
+		staterelaymutex.Unlock()
 	})
 
 	http.HandleFunc("/js/app.js", func(w http.ResponseWriter, r *http.Request) {
