@@ -114,6 +114,7 @@ func main() {
 	agentstate := state.MakeAgentState()
 	agentstate.Tag = "attractor"
 	agentstate.Position = utils.MakeVector2(400, 300)
+	agentstate.Radius = 16
 	srv.RegisterAgent(attractoragent.MakeAttractorAgent(), agentstate)
 
 	for i := 0; i < cmdenv.agents; i++ {
