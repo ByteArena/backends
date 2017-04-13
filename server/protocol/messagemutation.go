@@ -3,7 +3,7 @@ package protocol
 import "encoding/json"
 
 type MessageMutations interface {
-	GetTickTurnSeq() int
+	//GetTickTurnSeq() int
 	GetMutations() []MessageMutation
 }
 
@@ -13,17 +13,13 @@ type MessageMutation interface {
 }
 
 type MessageMutationsImp struct {
-	Turn      int
+	//Turn      int
 	Mutations []MessageMutationImp
 }
 
 type MessageMutationImp struct {
 	Method    string
 	Arguments json.RawMessage
-}
-
-func (m MessageMutationsImp) GetTickTurnSeq() int {
-	return m.Turn
 }
 
 func (m MessageMutationsImp) GetMutations() []MessageMutationImp {

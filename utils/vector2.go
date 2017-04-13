@@ -43,9 +43,21 @@ func (a Vector2) Add(b Vector2) Vector2 {
 	return a
 }
 
+func (a Vector2) AddScalar(f float64) Vector2 {
+	a.x += f
+	a.y += f
+	return a
+}
+
 func (a Vector2) Sub(b Vector2) Vector2 {
 	a.x -= b.x
 	a.y -= b.y
+	return a
+}
+
+func (a Vector2) SubScalar(f float64) Vector2 {
+	a.x -= f
+	a.y -= f
 	return a
 }
 
@@ -87,6 +99,10 @@ func (a Vector2) MagSq() float64 {
 	return (a.x*a.x + a.y*a.y)
 }
 
+func (a Vector2) SetMag(mag float64) Vector2 {
+	return a.Normalize().MultScalar(mag)
+}
+
 func (a Vector2) Normalize() Vector2 {
 	mag := a.Mag()
 	if mag > 0 {
@@ -104,6 +120,21 @@ func (a Vector2) Limit(max float64) Vector2 {
 	}
 
 	return a
+}
+
+func (a Vector2) Angle() float64 {
+	return math.Atan2(a.y, a.x)
+}
+
+func (a Vector2) ToArray() []float64 {
+	res := make([]float64, 2)
+	res[0] = a.x
+	res[1] = a.y
+	return res
+}
+
+func (a Vector2) String() string {
+	return "<Vector2(" + FloatToStr(a.x, 5) + ", " + FloatToStr(a.y, 5) + ")>"
 }
 
 // Returns a random unit vector

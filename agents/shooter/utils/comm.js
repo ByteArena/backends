@@ -31,7 +31,7 @@ module.exports = {
                 let cbktickrequested = function() {}; // no-op
 
                 client.on('message', function(data, rinfo) {
-                    console.log(data);
+
                     const json = data.toString();
                     const decoded = JSON.parse(json);
 

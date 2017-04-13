@@ -3,26 +3,22 @@ package state
 import (
 	"encoding/json"
 	"log"
-	"math/rand"
 	"strconv"
 	"sync"
 
-	"github.com/netgusto/bytearena/server/statemutation"
+	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 )
 
 type ServerState struct {
-	Pin       utils.Vector2
-	PinCenter utils.Vector2
-
 	Agents      map[uuid.UUID](AgentState)
 	Agentsmutex *sync.Mutex
 
 	Projectiles      map[uuid.UUID](ProjectileState)
 	Projectilesmutex *sync.Mutex
 
-	pendingmutations []statemutation.StateMutationBatch
+	pendingmutations []protocol.StateMutationBatch
 	mutationsmutex   *sync.Mutex
 }
 
@@ -32,19 +28,14 @@ type ServerState struct {
 
 func NewServerState() *ServerState {
 
-	pin := utils.MakeVector2(rand.Float64()*300+100, rand.Float64()*300+100)
-
 	return &ServerState{
-		Pin:       pin,
-		PinCenter: pin,
-
 		Agents:      make(map[uuid.UUID](AgentState)),
 		Agentsmutex: &sync.Mutex{},
 
 		Projectiles:      make(map[uuid.UUID](ProjectileState)),
 		Projectilesmutex: &sync.Mutex{},
 
-		pendingmutations: make([]statemutation.StateMutationBatch, 0),
+		pendingmutations: make([]protocol.StateMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
 	}
 }
@@ -63,7 +54,7 @@ func (serverstate *ServerState) SetAgentState(agentid uuid.UUID, agentstate Agen
 	serverstate.Agentsmutex.Unlock()
 }
 
-func (serverstate *ServerState) PushMutationBatch(batch statemutation.StateMutationBatch) {
+func (serverstate *ServerState) PushMutationBatch(batch protocol.StateMutationBatch) {
 	serverstate.mutationsmutex.Lock()
 	serverstate.pendingmutations = append(serverstate.pendingmutations, batch)
 	serverstate.mutationsmutex.Unlock()
@@ -73,15 +64,17 @@ func (serverstate *ServerState) ProcessMutations() {
 
 	serverstate.mutationsmutex.Lock()
 	mutations := serverstate.pendingmutations
-	serverstate.pendingmutations = make([]statemutation.StateMutationBatch, 0)
+	serverstate.pendingmutations = make([]protocol.StateMutationBatch, 0)
 	serverstate.mutationsmutex.Unlock()
 
 	for _, batch := range mutations {
 
 		nbmutations := 0
 
+		serverstate.Agentsmutex.Lock()
 		agentstate := serverstate.Agents[batch.AgentId]
 		newstate := agentstate.clone()
+		serverstate.Agentsmutex.Unlock()
 
 		//log.Println("Processing mutations on " + batch.Turn.String() + " for agent " + batch.AgentId.String())
 
@@ -111,7 +104,7 @@ func (serverstate *ServerState) ProcessMutations() {
 					agentX, agentY := newstate.Position.Get()
 
 					projectile := ProjectileState{
-						Position: utils.MakeVector2(agentX+newstate.Radius, agentY+newstate.Radius),
+						Position: utils.MakeVector2(agentX, agentY),
 						Velocity: newstate.Position.Add(utils.MakeVector2(vec[0], vec[1])), // adding the agent position to "absolutize" the target vector
 						From:     newstate,
 						Ttl:      1,

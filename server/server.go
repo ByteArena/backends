@@ -3,23 +3,26 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
-	"math"
+	"net"
 	"runtime"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/bitly/go-notify"
 	"github.com/netgusto/bytearena/server/agent"
 	"github.com/netgusto/bytearena/server/comm"
 	"github.com/netgusto/bytearena/server/container"
 	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/server/statemutation"
 	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
+
+const debug = false
 
 type Server struct {
 	agents                map[uuid.UUID]agent.Agent
@@ -38,6 +41,8 @@ type Server struct {
 	currentturn           utils.Tickturn
 	currentturnmutex      *sync.Mutex
 	nbhandshaked          int
+	DebugNbMutations      int
+	DebugNbUpdates        int
 }
 
 func NewServer(host string, port int, agentdir string, nbexpectedagents int, tickspersec int, stopticking chan bool) *Server {
@@ -55,7 +60,7 @@ func NewServer(host string, port int, agentdir string, nbexpectedagents int, tic
 		stopticking:           stopticking,
 		commserver:            nil,
 		containerorchestrator: orch,
-		tickduration:          time.Duration((1000 / time.Duration(tickspersec)) * time.Millisecond),
+		tickduration:          time.Duration((1000000 / time.Duration(tickspersec)) * time.Microsecond),
 		tickspersec:           tickspersec,
 		currentturnmutex:      &sync.Mutex{},
 	}
@@ -66,8 +71,7 @@ func (server *Server) Spawnagent() {
 	agent := agent.MakeNetAgentImp()
 	agentstate := state.MakeAgentState()
 
-	server.setAgent(agent)
-	server.state.SetAgentState(agent.GetId(), agentstate)
+	server.RegisterAgent(agent, agentstate)
 
 	container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, server.agentdir)
 	if err != nil {
@@ -85,6 +89,11 @@ func (server *Server) Spawnagent() {
 	}
 }
 
+func (server *Server) RegisterAgent(agent agent.Agent, state state.AgentState) {
+	server.setAgent(agent)
+	server.state.SetAgentState(agent.GetId(), state)
+}
+
 func (server *Server) setAgent(agent agent.Agent) {
 	server.agentsmutex.Lock()
 	server.agents[agent.GetId()] = agent
@@ -97,7 +106,7 @@ func (s *Server) SetExpectedTurn(turn utils.Tickturn) {
 	s.currentturnmutex.Unlock()
 }
 
-func (s *Server) GetExpectedTurn() utils.Tickturn {
+func (s *Server) GetTurn() utils.Tickturn {
 	s.currentturnmutex.Lock()
 	res := s.currentturn
 	s.currentturnmutex.Unlock()
@@ -105,7 +114,6 @@ func (s *Server) GetExpectedTurn() utils.Tickturn {
 }
 
 func (server *Server) Listen() {
-
 	server.commserver = comm.NewCommServer(server.host+":"+strconv.Itoa(server.port), 1024) // 1024: max size of message in bytes
 	log.Println("listening on " + server.host + ":" + strconv.Itoa(server.port))
 
@@ -146,7 +154,6 @@ func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
 		server.agentsmutex.Unlock()
 		return foundagent, nil
 	}
-
 	server.agentsmutex.Unlock()
 
 	return emptyagent, errors.New("Agent" + agentid + " not found")
@@ -154,77 +161,60 @@ func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
 
 func (server *Server) DoTick() {
 
-	turn := server.GetExpectedTurn()
-	turn = turn.Next()
-	server.SetExpectedTurn(turn)
+	turn := server.GetTurn()
+	server.SetExpectedTurn(turn.Next())
 
-	dolog := (turn.GetSeq() % server.tickspersec) == 0
-
-	start := time.Now()
-	timeoutduration := server.tickduration * 60 / 100
+	var dolog bool
+	if debug {
+		dolog = true
+	} else {
+		dolog = (turn.GetSeq() % server.tickspersec) == 0
+	}
 
 	if dolog {
-		log.Println("Tick !", turn)
+		fmt.Print(chalk.Yellow)
+		log.Println("######## Tick #####", turn, chalk.Reset)
 	}
 
 	// on met à jour l'état du serveur
+	// TODO: bon moment ?
 	server.DoUpdate()
 
-	// On ticke chaque agent
+	// Refreshing perception for every agent
 	for _, ag := range server.agents {
-		go func(server *Server, ag agent.Agent, turn utils.Tickturn, perception state.Perception) {
-			perceptionjson, _ := json.Marshal(perception)
-			message := []byte("{\"Method\": \"tick\", \"Arguments\": [" + strconv.Itoa(int(turn.GetSeq())) + "," + string(perceptionjson) + "]}\n")
+		go func(server *Server, ag agent.Agent, serverstate *state.ServerState) {
 
-			if netag, ok := ag.(agent.NetAgent); ok {
-				server.commserver.Send(message, netag.GetAddr())
-			}
-		}(server, ag, turn, ag.GetPerception(server.GetState()))
-	}
-
-	// On attend la réponse de chaque client, jusqu'au timeout
-	wg := &sync.WaitGroup{}
-	wg.Add(len(server.agents))
-
-	for _, ag := range server.agents {
-		go func(agent agent.Agent) {
-			if utils.ChanTimeout(agent.GetTickedChan(), timeoutduration) {
-				//log.Print(chalk.Green)
-				//log.Println("ALL CLIENTS ON TIME", chalk.Reset)
-			} else {
-				//log.Print(chalk.Magenta)
-				//log.Println("SOME CLIENTS TIMED OUT", chalk.Reset)
+			if debug {
+				fmt.Print(chalk.Cyan)
+				log.Println("REFRESHING perception for " + ag.String())
 			}
 
-			wg.Done()
-		}(ag)
+			agentstate := serverstate.GetAgentState(ag.GetId()) // TODO: retirer ceci; utile uniquement pour le prototypage de l'attracteur agent
+
+			ag.SetPerception(ag.GetPerception(serverstate), server, agentstate)
+
+		}(server, ag, server.GetState())
 	}
-
-	wg.Wait()
-	took := time.Now().Sub(start)
-
-	now := time.Now()
-	nexttick := now.Add(server.tickduration).Add(took * -1)
-	beforemutations := now
-
-	server.ProcessMutations()
 
 	if dolog {
-		aftermutations := time.Now()
-		processtook := utils.DiffMs(aftermutations, beforemutations)
-		nexttickin := utils.DiffMs(nexttick, aftermutations)
-
-		log.Print(chalk.Blue)
-		log.Println("All agents ticked in " + utils.FloatToStr(utils.DurationMs(took)) + " ms")
-		log.Println("ProcessMutations() took " + utils.FloatToStr(processtook) + " ms; next tick in " + utils.FloatToStr(nexttickin) + " ms")
-		log.Print(chalk.Reset)
-
 		// Debug : Nombre de goroutines
-		log.Print(chalk.Yellow)
-		log.Println("# Nombre de goroutines en vol : " + strconv.Itoa(runtime.NumGoroutine()))
-		log.Print(chalk.Reset)
+		fmt.Print(chalk.Blue)
+		log.Println("# Nombre de goroutines en vol : "+strconv.Itoa(runtime.NumGoroutine()), chalk.Reset)
 	}
 }
+
+/* <implementing protocol.AgentCommunicator> */
+
+func (server *Server) NetSend(message []byte, addr net.Addr) {
+	server.commserver.Send(message, addr)
+}
+
+func (server *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
+	server.state.PushMutationBatch(batch)
+	server.ProcessMutations()
+}
+
+/* </implementing protocol.AgentCommunicator> */
 
 func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 
@@ -269,22 +259,19 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 				log.Panicln(err)
 			}
 
-			expectedturn := server.GetExpectedTurn()
-			if mutations.GetTickTurnSeq() != int(expectedturn.GetSeq()) {
-				log.Print(chalk.Red)
-				log.Println("LATE FRAME !! from tick " + strconv.Itoa(int(mutations.GetTickTurnSeq())) + "; expected " + expectedturn.String())
-				log.Print(chalk.Reset)
+			turn := server.GetTurn()
+			if debug {
+				log.Println("GOT MUTATION FROM ", msg.GetAgentId(), "TURN", turn)
 			}
 
-			mutationbatch := statemutation.StateMutationBatch{
-				Turn:      expectedturn,
+			mutationbatch := protocol.StateMutationBatch{
 				AgentId:   ag.GetId(),
 				Mutations: mutations.GetMutations(),
 			}
 
-			server.DoPushMutationBatch(mutationbatch)
+			server.PushMutationBatch(mutationbatch)
 
-			ag.GetTickedChan() <- expectedturn
+			notify.PostTimeout("agent:"+ag.GetId().String()+":tickedturn:"+strconv.Itoa(turn.GetSeq()), nil, time.Microsecond*100)
 
 			break
 		}
@@ -296,12 +283,40 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 	}
 }
 
+func (server *Server) monitoring() {
+	monitorfreq := time.Second
+	debugNbMutations := 0
+	debugNbUpdates := 0
+	for {
+		select {
+		case <-time.After(monitorfreq):
+			{
+				fmt.Print(chalk.Cyan)
+				log.Println(
+					"-- MONITORING --",
+					/*server.DebugNbMutations, "mutations,", */ server.DebugNbMutations-debugNbMutations, "mutations per", monitorfreq,
+					";",
+					/*server.DebugNbUpdates, "updates,", */ server.DebugNbUpdates-debugNbUpdates, "updates per", monitorfreq,
+					chalk.Reset,
+				)
+
+				debugNbMutations = server.DebugNbMutations
+				debugNbUpdates = server.DebugNbUpdates
+
+			}
+		}
+	}
+}
+
 func (server *Server) OnAgentsReady() {
 	log.Print(chalk.Green)
 	log.Println("All agents ready; starting in 3 seconds")
 	log.Print(chalk.Reset)
 	time.Sleep(time.Duration(3 * time.Second))
 
+	go server.monitoring()
+
+	// blocking; interruptible by SIGTERM
 	server.StartTicking()
 }
 
@@ -331,29 +346,16 @@ func (server *Server) StartTicking() {
 	}(server)
 }
 
-func (server *Server) DoPushMutationBatch(batch statemutation.StateMutationBatch) {
-	server.state.PushMutationBatch(batch)
-}
-
 func (server *Server) ProcessMutations() {
+	server.DebugNbMutations++
 	server.state.ProcessMutations()
 }
 
 func (server *Server) DoUpdate() {
+	server.DebugNbUpdates++
 
 	// Updates physiques, liées au temps qui passe
 	// Avant de récuperer les mutations de chaque tour, et même avant deconstituer la perception de chaque agent
-
-	turn := server.GetExpectedTurn()
-
-	// update attractor
-	centerx, centery := server.state.PinCenter.Get()
-	radius := 120.0
-
-	x := centerx + radius*math.Cos(float64(turn.GetSeq())/10.0)
-	y := centery + radius*math.Sin(float64(turn.GetSeq())/10.0)
-
-	server.state.Pin = utils.MakeVector2(x, y)
 
 	server.state.Projectilesmutex.Lock()
 	for k, state := range server.state.Projectiles {

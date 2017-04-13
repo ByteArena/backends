@@ -14,24 +14,19 @@ module.exports = {
         const p = new Promise(function(resolve, reject) {
 
             const client = dgram.createSocket('udp4');
-            const json = JSON.stringify({
-                AgentId: agentid,
-                Type: "Handshake",
-                Payload: {
-                    Greetings: 'Hello from ' + agentid + ' !'
-                }
-            });
+            const json = JSON.stringify(wrapInTransport("Handshake", {
+                Greetings: 'Hello from ' + agentid + ' !'
+            }));
 
             const message = new Buffer(json);
 
             client.send(message, 0, message.length, port, host, function(err, nbbytes) {
-                
+
                 // handshake successful
 
                 let cbktickrequested = function() {}; // no-op
 
                 client.on('message', function(data, rinfo) {
-                    console.log(data);
                     const json = data.toString();
                     const decoded = JSON.parse(json);
 
@@ -48,7 +43,7 @@ module.exports = {
                         throw new Error('Invalid message received from server :' + json);
                     }
                 });
-                
+
                 resolve({
                     sendMutations(turn, mutations) {
                         return new Promise(function(resolve, reject) {
