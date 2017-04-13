@@ -10,13 +10,20 @@ type PerceptionSpecs struct {
 	MaxSteeringForce float64 // max force applied when steering (ie, max magnitude of steering vector)
 }
 
+type PerceptionVisionItem struct {
+	Tag      string // should be an enum, but no enum in Go
+	Center   utils.Vector2
+	Radius   float64
+	Velocity utils.Vector2
+}
+
 type PerceptionExternal struct {
-	Vision int             // TBD
-	Sound  []utils.Vector2 // tableau de vecteurs (volume et direction) dans un espace quantisé
-	Touch  int             // TBD; collisions ?
-	Time   int             // en ms depuis le début de la partie
-	Radar  int             // TBD; perception des obstacles ? position, vélocité, nature; position: segment 1d obstruant l'horizon 1D pour un monde 2D (à la Super hexagon) ?
-	Xray   int             // TBD; vision à travers les obstacles
+	Vision []PerceptionVisionItem // TBD
+	Sound  []utils.Vector2        // tableau de vecteurs (volume et direction) dans un espace quantisé
+	Touch  int                    // TBD; collisions ?
+	Time   int                    // en ms depuis le début de la partie
+	Radar  int                    // TBD; perception des obstacles ? position, vélocité, nature; position: segment 1d obstruant l'horizon 1D pour un monde 2D (à la Super hexagon) ?
+	Xray   int                    // TBD; vision à travers les obstacles
 }
 
 type PerceptionInternal struct {
@@ -32,7 +39,8 @@ type PerceptionInternal struct {
 }
 
 type PerceptionObjective struct {
-	Attractor utils.Vector2
+	Attractor         utils.Vector2
+	AttractorVelocity utils.Vector2
 	// TBD
 	// mission ?
 	// sens de la course ?

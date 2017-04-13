@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -65,15 +66,17 @@ func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
 		orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
 	}
 
-	err = orch.cli.ContainerRemove(
-		orch.ctx,
-		container.containerid.String(),
-		types.ContainerRemoveOptions{},
-	)
+	// Remove Now handled by docker directly; AutoRemove: true in container's HostConfig
+	/*
+		err = orch.cli.ContainerRemove(
+			orch.ctx,
+			container.containerid.String(),
+			types.ContainerRemoveOptions{},
+		)
 
-	if err != nil {
-		log.Panicln(err)
-	}
+		if err != nil {
+			log.Panicln(err)
+		}*/
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
@@ -84,24 +87,38 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 
 func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, agentdir string) (AgentContainer, error) {
 
+	var cmdline string
+	if strings.Contains(agentdir, "dummygo") {
+		cmdline = "/scripts/dummygo"
+	} else {
+		cmdline = "node --harmony /scripts/client.js"
+	}
+
 	containerconfig := container.Config{
 		Image: "node",
-		Cmd:   []string{"/bin/bash", "-c", "node --harmony /scripts/client.js"},
+		Cmd:   []string{"/bin/bash", "-c", cmdline},
 		User:  "node",
 		Env: []string{
 			"SWARMPORT=" + strconv.Itoa(port),
 			"SWARMHOST=" + host,
 			"AGENTID=" + agentid.String(),
 		},
+		AttachStdout: false,
+		AttachStderr: false,
 	}
 
 	hostconfig := container.HostConfig{
 		CapDrop:    []string{"ALL"},
 		Privileged: false,
 		Binds:      []string{agentdir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
+		//AutoRemove:     true,
+		ReadonlyRootfs: true,
+		NetworkMode:    "host",
 		Resources: container.Resources{
-			Memory:   1024 * 1024 * 32,   // 32M
-			CPUQuota: 5 * (100000 / 100), // 5%
+			Memory: 1024 * 1024 * 32, // 32M
+			//CPUQuota: 5 * (1000),       // 5% en cent-millièmes
+			//CPUShares: 1,
+			CPUPercent: 5,
 		},
 	}
 

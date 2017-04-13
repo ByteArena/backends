@@ -19,7 +19,7 @@ func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	}
 }
 
-func ChanTimeout(ch chan Tickturn, timeout time.Duration) bool {
+func ChanTimeout(ch chan interface{}, timeout time.Duration) bool {
 	select {
 	case <-ch:
 		return true // completed normally
