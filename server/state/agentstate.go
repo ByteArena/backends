@@ -53,12 +53,12 @@ func MakeAgentState() AgentState {
 	return AgentState{
 		Position:         utils.MakeVector2(initialx, initialy),
 		Velocity:         utils.MakeVector2(0, 0),
-		MaxSpeed:         8.0,
-		MaxSteeringForce: 0.6,
+		MaxSpeed:         5.0,
+		MaxSteeringForce: 0.7,
 		Radius:           r,
 		Mass:             math.Pi * r * r,
 		Tag:              "agent",
-		VisionRadius:     300,
+		VisionRadius:     800,
 	}
 }
 

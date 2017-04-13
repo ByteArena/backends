@@ -2,7 +2,6 @@ package attractoragent
 
 import (
 	"math"
-	"math/rand"
 
 	"github.com/netgusto/bytearena/server/agent"
 	"github.com/netgusto/bytearena/server/protocol"
@@ -16,7 +15,7 @@ type AttractorAgent struct {
 }
 
 func MakeAttractorAgent() AttractorAgent {
-	pin := utils.MakeVector2(rand.Float64()*600+100, rand.Float64()*300+100)
+	pin := utils.MakeVector2(400, 300)
 	return AttractorAgent{
 		LocalAgentImp: agent.MakeLocalAgentImp(),
 		pincenter:     pin,
@@ -34,10 +33,10 @@ func (agent AttractorAgent) SetPerception(perception state.Perception, comm prot
 
 	// update attractor
 	centerx, centery := agent.pincenter.Get()
-	radius := 120.0
+	radius := 130.0
 
-	absdesiredx := centerx + radius*math.Cos(float64(count)/10.0)
-	absdesiredy := centery + radius*math.Sin(float64(count)/10.0)
+	absdesiredx := centerx + radius*math.Cos(float64(count)/54.0)
+	absdesiredy := centery + radius*math.Sin(float64(count)/54.0)
 
 	count++
 

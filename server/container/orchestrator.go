@@ -108,10 +108,10 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	}
 
 	hostconfig := container.HostConfig{
-		CapDrop:    []string{"ALL"},
-		Privileged: false,
-		Binds:      []string{agentdir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
-		//AutoRemove:     true,
+		CapDrop:        []string{"ALL"},
+		Privileged:     false,
+		Binds:          []string{agentdir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
+		AutoRemove:     true,
 		ReadonlyRootfs: true,
 		NetworkMode:    "host",
 		Resources: container.Resources{
