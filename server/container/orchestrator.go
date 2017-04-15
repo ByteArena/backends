@@ -9,7 +9,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/netgusto/bytearena/server/protocol"
+	"github.com/netgusto/bytearena/server/config"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
@@ -85,14 +85,7 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 	}
 }
 
-func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, agentdir string, config protocol.Config) (AgentContainer, error) {
-
-	// var cmdline string
-	// if strings.Contains(agentdir, "dummygo") {
-	// 	cmdline = "/scripts/dummygo"
-	// } else {
-	// 	cmdline = "node --harmony /scripts/client.js"
-	// }
+func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, agentdir string, config config.AgentGameConfig) (AgentContainer, error) {
 
 	containerconfig := container.Config{
 		Image: "node",
@@ -110,7 +103,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	hostconfig := container.HostConfig{
 		CapDrop:        []string{"ALL"},
 		Privileged:     false,
-		Binds:          []string{agentdir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
+		Binds:          []string{config.Dir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
 		AutoRemove:     true,
 		ReadonlyRootfs: true,
 		NetworkMode:    "host",
