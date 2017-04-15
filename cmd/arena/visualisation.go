@@ -22,10 +22,10 @@ type vizmessage struct {
 }
 
 type vizagentmessage struct {
-	X            float64
 	Id           uuid.UUID
-	VisionRadius float64
+	X            float64
 	Y            float64
+	VisionRadius float64
 	Radius       float64
 	Kind         string
 	Orientation  float64
