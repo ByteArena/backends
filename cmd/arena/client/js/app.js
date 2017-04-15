@@ -73,6 +73,11 @@ function render() {
   $('#visualization').append(renderer.view);
 
   var stage = new PIXI.Container();
+  stage.position.y = renderer.height / renderer.resolution;
+  stage.scale.y = -1;
+
+  const agenttexture = PIXI.loader.resources["images/triangle.png"].texture;
+  agenttexture.rotate = 8;
 
   window.onStateUpdate = function(points) {
     stage.removeChildren();
@@ -93,9 +98,7 @@ function render() {
     if (points.Agents) {
       points.Agents.forEach((agent) => {
 
-        var sprite = new PIXI.Sprite(
-          PIXI.loader.resources['images/triangle.png'].texture
-        );
+        var sprite = new PIXI.Sprite(agenttexture);
 
         sprite.x = agent.X;
         sprite.y = agent.Y;
@@ -103,7 +106,7 @@ function render() {
         sprite.height = agent.Radius * 2;
         sprite.tint = 0x8D8D64;
         sprite.anchor.set(0.5);
-        sprite.rotation = Math.PI / 2 + agent.Orientation; // Math.PI/2: quart de tour vers la droite
+        sprite.rotation = -1 * agent.Orientation
 
         createAgentVision(agent).drawInStage(stage);
 
@@ -118,6 +121,5 @@ function render() {
 
 PIXI
   .loader
-  .add('images/circle.png')
   .add('images/triangle.png')
   .load(render);

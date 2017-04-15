@@ -100,21 +100,7 @@ func (serverstate *ServerState) ProcessMutations() {
 					}
 
 					nbmutations++
-
-					agentX, agentY := newstate.Position.Get()
-
-					projectile := ProjectileState{
-						Position: utils.MakeVector2(agentX, agentY),
-						Velocity: newstate.Position.Add(utils.MakeVector2(vec[0], vec[1])), // adding the agent position to "absolutize" the target vector
-						From:     newstate,
-						Ttl:      1,
-					}
-
-					projectileid := uuid.NewV4()
-
-					serverstate.Projectilesmutex.Lock()
-					serverstate.Projectiles[projectileid] = projectile
-					serverstate.Projectilesmutex.Unlock()
+					newstate = newstate.mutationShoot(serverstate, utils.MakeVector2(vec[0], vec[1]))
 
 					break
 				}

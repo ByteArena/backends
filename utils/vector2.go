@@ -111,6 +111,14 @@ func (a Vector2) Normalize() Vector2 {
 	return a
 }
 
+func (a Vector2) SetAngle(radians float64) Vector2 {
+	mag := a.Mag()
+	a.x = math.Sin(radians) * mag
+	a.y = math.Cos(radians) * mag
+
+	return a
+}
+
 func (a Vector2) Limit(max float64) Vector2 {
 
 	mSq := a.MagSq()
@@ -123,7 +131,20 @@ func (a Vector2) Limit(max float64) Vector2 {
 }
 
 func (a Vector2) Angle() float64 {
-	return math.Atan2(a.y, a.x)
+	if a.x == 0 && a.y == 0 {
+		return 0
+	}
+
+	angle := math.Atan2(a.y, a.x)
+
+	// Quart de tour à gauche
+	angle = math.Pi/2.0 - angle
+
+	if angle < 0 {
+		angle += 2 * math.Pi
+	}
+
+	return angle
 }
 
 func (a Vector2) ToArray() []float64 {

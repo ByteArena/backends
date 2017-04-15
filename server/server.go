@@ -118,13 +118,17 @@ func (server *Server) Listen() {
 	log.Println("listening on " + server.host + ":" + strconv.Itoa(server.port))
 
 	done := make(chan bool)
-	go func() {
-		err := server.commserver.Listen(server)
-		if err != nil {
-			log.Panicln(err)
-		}
-		done <- true
-	}()
+	if server.GetNbExpectedagents() > 0 {
+		go func() {
+			err := server.commserver.Listen(server)
+			if err != nil {
+				log.Panicln(err)
+			}
+			done <- true
+		}()
+	} else {
+		server.OnAgentsReady()
+	}
 	<-done
 }
 
