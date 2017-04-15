@@ -90,29 +90,6 @@ func getcmdenv() cmdenvironment {
 
 func main() {
 
-	/*
-		fmt.Println("Angle(0,0)", utils.RadianToDegree(utils.MakeVector2(0, 0).Angle()), "nul; doit valoir 0")
-		fmt.Println("Angle(0,1)", utils.RadianToDegree(utils.MakeVector2(0, 1).Angle()), "tout droit; doit valoir 0")
-		fmt.Println("Angle(1,1)", utils.RadianToDegree(utils.MakeVector2(1, 1).Angle()), "<= 45° ?")
-		fmt.Println("Angle(1,0)", utils.RadianToDegree(utils.MakeVector2(1, 0).Angle()), "<= 90°")
-		fmt.Println("Angle(0,-1)", utils.RadianToDegree(utils.MakeVector2(0, -1).Angle()), "<= 180°")
-		fmt.Println("Angle(-1,0)", utils.RadianToDegree(utils.MakeVector2(-1, 0).Angle()), "<= 270°")
-
-		fmt.Println("SetAngle(0)", utils.MakeVector2(1, 1).SetAngle(0).SetMag(1), "expected [0, 1]")
-		fmt.Println("SetAngle(90)", utils.MakeVector2(1, 1).SetAngle(math.Pi/2.0).SetMag(1), "expected [1, 0]")
-		fmt.Println("SetAngle(180)", utils.MakeVector2(1, 1).SetAngle(math.Pi).SetMag(1), "expected [0, -1]")
-		fmt.Println("SetAngle(270)", utils.MakeVector2(1, 1).SetAngle(math.Pi*1.5).SetMag(1), "expected [-1, -0]")
-
-		fmt.Println("SetAngle(0).Angle()", utils.RadianToDegree(utils.MakeVector2(1, 1).SetAngle(0).SetMag(1).Angle()), "expected 0")
-		fmt.Println("SetAngle(90).Angle()", utils.RadianToDegree(utils.MakeVector2(1, 1).SetAngle(math.Pi/2.0).SetMag(1).Angle()), "expected 90")
-		fmt.Println("SetAngle(180).Angle()", utils.RadianToDegree(utils.MakeVector2(1, 1).SetAngle(math.Pi).SetMag(1).Angle()), "expected 180")
-		fmt.Println("SetAngle(270).Angle()", utils.RadianToDegree(utils.MakeVector2(1, 1).SetAngle(math.Pi*1.5).SetMag(1).Angle()), "expected 270")
-		return
-	*/
-
-	//fmt.Println("Angle(2, 1)", utils.RadianToDegree(utils.MakeVector2(2, 1).Angle()), "<= ?")
-	//return
-
 	rand.Seed(time.Now().UnixNano())
 
 	cmdenv := getcmdenv()

@@ -20,14 +20,11 @@ func MakeAttractorAgent() AttractorAgent {
 	}
 }
 
-//var count int
-
 func (agent AttractorAgent) SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) {
 
 	speed := perception.Specs.MaxSpeed
 
 	desired := utils.MakeVector2(1, 20).SetMag(speed).Limit(perception.Specs.MaxSteeringForce)
-	//log.Println("DESIRED emitted", desired)
 
 	steeringx, steeringy := desired.Get()
 
