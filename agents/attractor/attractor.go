@@ -1,8 +1,6 @@
 package attractoragent
 
 import (
-	"math"
-
 	"github.com/netgusto/bytearena/server/agent"
 	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/server/state"
@@ -22,37 +20,16 @@ func MakeAttractorAgent() AttractorAgent {
 	}
 }
 
-var count int
+//var count int
 
 func (agent AttractorAgent) SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) {
 
-	//log.Println(perception)
-
-	curvelocity := perception.Internal.Velocity
 	speed := perception.Specs.MaxSpeed
 
-	// update attractor
-	centerx, centery := agent.pincenter.Get()
-	radius := 130.0
+	desired := utils.MakeVector2(1, 20).SetMag(speed).Limit(perception.Specs.MaxSteeringForce)
+	//log.Println("DESIRED emitted", desired)
 
-	absdesiredx := centerx + radius*math.Cos(float64(count)/54.0)
-	absdesiredy := centery + radius*math.Sin(float64(count)/54.0)
-
-	count++
-
-	desired := utils.MakeVector2(absdesiredx, absdesiredy).Sub(agentstate.Position)
-
-	disttotarget := desired.Mag()
-
-	if disttotarget < perception.Internal.Proprioception {
-		// arrival, slow down
-		speed = utils.Map(disttotarget, 0, perception.Internal.Proprioception, 0, perception.Specs.MaxSpeed)
-	}
-
-	desired = desired.SetMag(speed)
-	steering := desired.Sub(curvelocity).Limit(perception.Specs.MaxSteeringForce)
-
-	steeringx, steeringy := steering.Get()
+	steeringx, steeringy := desired.Get()
 
 	mutations := make([]protocol.MessageMutationImp, 1)
 	mutations[0] = protocol.MessageMutationImp{

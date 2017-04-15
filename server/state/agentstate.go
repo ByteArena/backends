@@ -5,6 +5,7 @@ import (
 	"math/rand"
 
 	"github.com/netgusto/bytearena/utils"
+	uuid "github.com/satori/go.uuid"
 )
 
 // Agent is a Simple Vehicle Model from Reynolds (http://www.red3d.com/cwr/steer/gdc99/)
@@ -31,13 +32,14 @@ import (
 // or by simulating moment of inertia.
 
 type AgentState struct {
-	Radius           float64
-	Mass             float64
-	Position         utils.Vector2
-	Velocity         utils.Vector2
-	MaxSteeringForce float64 // maximum magnitude the steering force applied to current velocity
-	MaxSpeed         float64 // maximum magnitude of the agent velocity
-	Orientation      float64 // heading angle in radian (degree ?) relative to arena north
+	Radius             float64
+	Mass               float64
+	Position           utils.Vector2
+	Velocity           utils.Vector2
+	Orientation        float64 // heading angle in radian (degree ?) relative to arena north
+	MaxSteeringForce   float64 // maximum magnitude the steering force applied to current velocity
+	MaxSpeed           float64 // maximum magnitude of the agent velocity
+	MaxAngularVelocity float64
 
 	Tag string // attractor
 
@@ -48,17 +50,20 @@ func MakeAgentState() AgentState {
 	initialx := rand.Float64() * 800
 	initialy := rand.Float64() * 600
 
-	r := 8 + rand.Float64()*3.0
+	r := 6 + rand.Float64()*6.0
+
+	maxdegreespertick := 8.0 + 5*(1/r) // bigger turn slower
 
 	return AgentState{
-		Position:         utils.MakeVector2(initialx, initialy),
-		Velocity:         utils.MakeVector2(0, 0),
-		MaxSpeed:         5.0,
-		MaxSteeringForce: 0.7,
-		Radius:           r,
-		Mass:             math.Pi * r * r,
-		Tag:              "agent",
-		VisionRadius:     800,
+		Position:           utils.MakeVector2(initialx, initialy),
+		Velocity:           utils.MakeVector2(0, 0),
+		MaxSpeed:           5.0,
+		MaxSteeringForce:   5.0,
+		MaxAngularVelocity: utils.DegreeToRadian(maxdegreespertick), // en radians/tick; Pi = 180°
+		Radius:             r,
+		Mass:               math.Pi * r * r, // for the moment, simple function of surface
+		Tag:                "agent",
+		VisionRadius:       800,
 	}
 }
 
@@ -68,10 +73,60 @@ func (state AgentState) Update() AgentState {
 	return state
 }
 
-func (state AgentState) mutationSteer(v utils.Vector2) AgentState {
-	steeringvec := v.Limit(state.MaxSteeringForce)
-	state.Velocity = state.Velocity.Add(steeringvec).Limit(state.MaxSpeed)
+func (state AgentState) mutationSteer(steering utils.Vector2) AgentState {
+
+	abssteering := state.localAngleToAbsoluteAngleVec(steering, &state.MaxAngularVelocity)
+	state.Velocity = abssteering.Limit(state.MaxSpeed)
+
 	return state
+}
+
+func (state AgentState) mutationShoot(serverstate *ServerState, aiming utils.Vector2) AgentState {
+
+	// on passe le vecteur de visée d'un angle relatif à un angle absolu
+	absaiming := state.localAngleToAbsoluteAngleVec(aiming, nil)
+
+	projectile := ProjectileState{
+		Position: state.Position.Clone(),
+		Velocity: state.Position.Add(absaiming), // adding the agent position to "absolutize" the target vector
+		From:     state,
+		Ttl:      1,
+	}
+
+	projectileid := uuid.NewV4()
+
+	serverstate.Projectilesmutex.Lock()
+	serverstate.Projectiles[projectileid] = projectile
+	serverstate.Projectilesmutex.Unlock()
+
+	return state
+}
+
+func (state AgentState) localAngleToAbsoluteAngleVec(vec utils.Vector2, maxangleconstraint *float64) utils.Vector2 {
+
+	abscurrentagentangle := state.Orientation
+	absvecangle := vec.Angle()
+
+	relvecangle := absvecangle
+
+	// On passe de 0° / 360° à -180° / +180°
+	if absvecangle > math.Pi { // 180° en radians
+		relvecangle -= math.Pi * 2 // 360° en radian
+	}
+
+	// On contraint la vélocité angulaire à un maximum
+	if maxangleconstraint != nil {
+		maxangleconstraintval := *maxangleconstraint
+		if math.Abs(relvecangle) > maxangleconstraintval {
+			if relvecangle > 0 {
+				relvecangle = maxangleconstraintval
+			} else {
+				relvecangle = -1 * maxangleconstraintval
+			}
+		}
+	}
+
+	return vec.SetAngle(abscurrentagentangle + relvecangle)
 }
 
 func (state AgentState) clone() AgentState {

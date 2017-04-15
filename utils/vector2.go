@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
 )
@@ -111,6 +112,35 @@ func (a Vector2) Normalize() Vector2 {
 	return a
 }
 
+func (a Vector2) SetAngle(radians float64) Vector2 {
+	// Rotation d'un quart de tour vers la gauche
+	// pour que l'angle soit relatif à Y et pas à X
+
+	//newradians := radians - math.Pi/2.0
+	newradians := radians
+
+	mag := a.Mag()
+	a.x = math.Sin(newradians) * mag
+	a.y = math.Cos(newradians) * mag
+
+	return a
+}
+
+/*
+func (a Vector2) Rotate() {
+  var newHeading = this.heading() + a;
+  if (this.p5) {
+    if (this.p5._angleMode === constants.DEGREES) {
+      newHeading = polarGeometry.degreesToRadians(newHeading);
+    }
+  }
+  var mag = this.mag();
+  this.x = Math.cos(newHeading) * mag;
+  this.y = Math.sin(newHeading) * mag;
+  return this;
+};
+*/
+
 func (a Vector2) Limit(max float64) Vector2 {
 
 	mSq := a.MagSq()
@@ -122,8 +152,53 @@ func (a Vector2) Limit(max float64) Vector2 {
 	return a
 }
 
+func (a Vector2) LimitAbsoluteAngle(maxradians float64) Vector2 {
+	angle := a.Angle()
+	log.Println(a, angle, angle*180.0/math.Pi)
+
+	if angle > maxradians {
+		a = a.SetAngle(maxradians)
+	}
+
+	return a
+}
+
+func (a Vector2) LimitAbsoluteAngleWithVector(maxradians float64, relvec Vector2) Vector2 {
+	relvecangle := relvec.Angle()
+	angle := a.Angle()
+	diff := angle - relvecangle
+	log.Println("angle", RadianToDegree(angle), "prev", RadianToDegree(relvecangle), "diff", RadianToDegree(diff), "max", RadianToDegree(maxradians))
+
+	/*
+		if math.Abs(diff) > maxradians {
+			//before := a.Angle()
+			if diff > 0 {
+				log.Println("YES, sup")
+				a = a.SetAngle(relvecangle + maxradians)
+			} else {
+				log.Println("YES, inf")
+				a = a.SetAngle(relvecangle - maxradians)
+			}
+		}*/
+
+	return a
+}
+
 func (a Vector2) Angle() float64 {
-	return math.Atan2(a.y, a.x)
+	if a.x == 0 && a.y == 0 {
+		return 0
+	}
+
+	angle := math.Atan2(a.y, a.x)
+
+	// Quart de tour à gauche
+	angle = math.Pi/2.0 - angle
+
+	if angle < 0 {
+		angle += 2 * math.Pi
+	}
+
+	return angle
 }
 
 func (a Vector2) ToArray() []float64 {

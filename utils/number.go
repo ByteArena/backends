@@ -36,3 +36,11 @@ func DurationMs(d time.Duration) float64 {
 func Map(n float64, start1 float64, stop1 float64, start2 float64, stop2 float64) float64 {
 	return ((n-start1)/(stop1-start1))*(stop2-start2) + start2
 }
+
+func RadianToDegree(rad float64) float64 {
+	return rad * (180.0 / math.Pi)
+}
+
+func DegreeToRadian(deg float64) float64 {
+	return deg * (math.Pi / 180.0)
+}

@@ -38,6 +38,8 @@ function flockforces(perception) {
         const otherposition = Vector2
             .fromArray(otheragent.Center)
             .add(othervelocity);
+        
+        otherposition.mag(otherposition.mag() - otheragent.Radius)
 
         if(otherposition.magSq() <= sepdistsq) {
             sepforce.sub(otherposition);
@@ -86,23 +88,17 @@ function move(tickturn, perception) {
     const curvelocity = Vector2.fromArray(perception.Internal.Velocity);
 
     //
-    // Shooting straight at next attractor position
-    //
-    const aimed = attractor.position.clone().add(attractor.velocity);
-
-    //
     // Following some pixels behind the attractor
     //
     const followpos = attractor.position
         .clone()
         .add(attractor.velocity)                    // attractor next position
-        .sub(attractor.velocity.clone().mag(30))    // 30px behind him
-        .sub(attractor.position.clone().mag(Math.random() * 50 + 100)); // at a random distance on the agent-attractor line
+        .sub(attractor.velocity.clone().mag(60))    // 60px behind him
     
     // Determine adapted speed with regards to distance with target
     const disttotarget = followpos.mag();
     let speed = perception.Specs.MaxSpeed;
-    if(disttotarget < 30) {
+    if(disttotarget < 60) {
         speed = map(disttotarget, 0, perception.Specs.MaxSpeed, 0, attractor.velocity.mag());
     }
     
@@ -111,14 +107,16 @@ function move(tickturn, perception) {
 
     // Determine steering based on following point, and flock forces
     desired = followpos.clone()
-        .add(flock.separation.mult(16))
+        .add(flock.separation.mult(32))
         .add(flock.alignment.mult(24))
-        .add(flock.cohesion)
-        .limit(speed);
+        .add(flock.cohesion);
 
-    const steering = desired
-        .clone()
-        .sub(curvelocity);
+    const steering = desired.clone();//.limit(0.1);
+
+    //
+    // Shooting straight at next attractor position
+    //
+    const aimed = attractor.position.clone().add(attractor.velocity);
 
     // Pushing batch of mutations for this turn
     this.sendMutations(tickturn, [
@@ -129,6 +127,7 @@ function move(tickturn, perception) {
         measurespeed(start);
     })
     .catch(err => { throw err; });
+
 }
 
 comm.connect(port, host, agentid)
