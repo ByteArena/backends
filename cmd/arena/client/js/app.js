@@ -51,7 +51,7 @@ function createAgentVision(agent) {
   const vision = new PIXI.Graphics();
 
   // Divided by 10 for now to stay in the stage
-  const radius = agent.VisionRadius / 10;
+  const radius = agent.VisionRadius;
 
   vision.lineStyle(2, 0xFF00FF);
   vision.drawCircle(agent.X, agent.Y, radius);

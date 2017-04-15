@@ -58,7 +58,7 @@ func MakeAgentState() AgentState {
 		Radius:           r,
 		Mass:             math.Pi * r * r,
 		Tag:              "agent",
-		VisionRadius:     800,
+		VisionRadius:     300,
 	}
 }
 
