@@ -43,7 +43,8 @@ type AgentState struct {
 
 	Tag string // attractor
 
-	VisionRadius float64
+	VisionRadius float64 // radius of vision circle
+	VisionAngle  float64 // angle of FOV
 }
 
 func MakeAgentState() AgentState {
@@ -64,6 +65,7 @@ func MakeAgentState() AgentState {
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
 		VisionRadius:       300,
+		VisionAngle:        utils.DegreeToRadian(60),
 	}
 }
 

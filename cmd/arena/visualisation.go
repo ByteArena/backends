@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/netgusto/bytearena/server"
 	"github.com/netgusto/bytearena/server/state"
+	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -25,18 +26,21 @@ type vizagentmessage struct {
 	Id           uuid.UUID
 	X            float64
 	Y            float64
+	Position     utils.Vector2
 	VisionRadius float64
+	VisionAngle  float64
 	Radius       float64
 	Kind         string
 	Orientation  float64
 }
 
 type vizprojectilemessage struct {
-	X      float64
-	Y      float64
-	Radius float64
-	From   vizagentmessage
-	Kind   string
+	X        float64
+	Y        float64
+	Position utils.Vector2
+	Radius   float64
+	From     vizagentmessage
+	Kind     string
 }
 
 type wsincomingmessage struct {
@@ -93,17 +97,12 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 
 				serverstate.Projectilesmutex.Lock()
 				for _, projectile := range serverstate.Projectiles {
-					x, y := projectile.Velocity.Get()
-					posx, posy := projectile.Position.Get()
-
 					msg.Projectiles = append(msg.Projectiles, vizprojectilemessage{
-						X:      x,
-						Y:      y,
-						Radius: projectile.Radius,
-						Kind:   "projectiles",
+						Position: projectile.Velocity,
+						Radius:   projectile.Radius,
+						Kind:     "projectiles",
 						From: vizagentmessage{
-							X: posx,
-							Y: posy,
+							Position: projectile.Position,
 						},
 					})
 				}
@@ -111,16 +110,14 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 
 				serverstate.Agentsmutex.Lock()
 				for id, agent := range serverstate.Agents {
-					x, y := agent.Position.Get()
-
 					msg.Agents = append(msg.Agents, vizagentmessage{
-						X:            x,
-						Y:            y,
-						Radius:       agent.Radius,
 						Id:           id,
-						VisionRadius: agent.VisionRadius,
 						Kind:         "agent",
+						Position:     agent.Position,
+						Radius:       agent.Radius,
 						Orientation:  agent.Orientation,
+						VisionRadius: agent.VisionRadius,
+						VisionAngle:  agent.VisionAngle,
 					})
 				}
 				serverstate.Agentsmutex.Unlock()
@@ -185,6 +182,14 @@ func visualization(srv *server.Server, host string, port int) {
 
 	http.HandleFunc("/js/app.js", func(w http.ResponseWriter, r *http.Request) {
 		appjssource, err := ioutil.ReadFile(basepath + "js/app.js")
+		if err != nil {
+			panic(err)
+		}
+		var appjsTemplate = template.Must(template.New("").Parse(string(appjssource)))
+		appjsTemplate.Execute(w, "ws://"+r.Host+"/ws")
+	})
+	http.HandleFunc("/js/vector2.js", func(w http.ResponseWriter, r *http.Request) {
+		appjssource, err := ioutil.ReadFile(basepath + "js/vector2.js")
 		if err != nil {
 			panic(err)
 		}
