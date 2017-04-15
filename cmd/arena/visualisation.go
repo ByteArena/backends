@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/netgusto/bytearena/server"
 	"github.com/netgusto/bytearena/server/state"
+	uuid "github.com/satori/go.uuid"
 )
 
 type vizmessage struct {
@@ -21,11 +22,13 @@ type vizmessage struct {
 }
 
 type vizagentmessage struct {
-	X           float64
-	Y           float64
-	Radius      float64
-	Kind        string
-	Orientation float64
+	Id           uuid.UUID
+	X            float64
+	Y            float64
+	VisionRadius float64
+	Radius       float64
+	Kind         string
+	Orientation  float64
 }
 
 type vizprojectilemessage struct {
@@ -107,15 +110,17 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 				serverstate.Projectilesmutex.Unlock()
 
 				serverstate.Agentsmutex.Lock()
-				for _, agent := range serverstate.Agents {
+				for id, agent := range serverstate.Agents {
 					x, y := agent.Position.Get()
 
 					msg.Agents = append(msg.Agents, vizagentmessage{
-						X:           x,
-						Y:           y,
-						Radius:      agent.Radius,
-						Kind:        "agent",
-						Orientation: agent.Orientation,
+						X:            x,
+						Y:            y,
+						Radius:       agent.Radius,
+						Id:           id,
+						VisionRadius: agent.VisionRadius,
+						Kind:         "agent",
+						Orientation:  agent.Orientation,
 					})
 				}
 				serverstate.Agentsmutex.Unlock()

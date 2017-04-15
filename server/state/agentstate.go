@@ -61,9 +61,9 @@ func MakeAgentState() AgentState {
 		MaxSteeringForce:   5.0,
 		MaxAngularVelocity: utils.DegreeToRadian(maxdegreespertick), // en radians/tick; Pi = 180°
 		Radius:             r,
-		Mass:               math.Pi * r * r, // for the moment, simple function of surface
+		Mass:               math.Pi * r * r,
 		Tag:                "agent",
-		VisionRadius:       800,
+		VisionRadius:       300,
 	}
 }
 
