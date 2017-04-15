@@ -75,7 +75,6 @@ func (state AgentState) Update() AgentState {
 	}
 
 	state.Position = state.Position.Add(state.Velocity)
-	//log.Println(state.Velocity.Mag())
 
 	return state
 }
