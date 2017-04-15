@@ -58,7 +58,7 @@ func MakeAgentState() AgentState {
 		Position:           utils.MakeVector2(initialx, initialy),
 		Velocity:           utils.MakeVector2(0, 0),
 		MaxSpeed:           5.0,
-		MaxSteeringForce:   5.0,
+		MaxSteeringForce:   0.8,
 		MaxAngularVelocity: utils.DegreeToRadian(maxdegreespertick), // en radians/tick; Pi = 180°
 		Radius:             r,
 		Mass:               math.Pi * r * r,
@@ -68,14 +68,39 @@ func MakeAgentState() AgentState {
 }
 
 func (state AgentState) Update() AgentState {
+	if state.Velocity.Mag() > 0.00001 {
+		state.Orientation = state.Velocity.Angle()
+	} else {
+		state.Velocity = utils.MakeVector2(0, 0)
+	}
+
 	state.Position = state.Position.Add(state.Velocity)
-	state.Orientation = state.Velocity.Angle()
+	//log.Println(state.Velocity.Mag())
+
 	return state
 }
 
 func (state AgentState) mutationSteer(steering utils.Vector2) AgentState {
 
-	abssteering := state.localAngleToAbsoluteAngleVec(steering, &state.MaxAngularVelocity)
+	// Limit acceleration/deceleration
+	velocitymag := state.Velocity.Mag()
+	diff := steering.Mag() - velocitymag
+
+	if math.Abs(diff) > state.MaxSteeringForce {
+		if diff > 0 {
+			steering = steering.SetMag(velocitymag + state.MaxSteeringForce)
+		} else {
+			steering = steering.SetMag(velocitymag - state.MaxSteeringForce)
+		}
+	}
+
+	steering = steering.Limit(state.MaxSpeed)
+	currentspeed := steering.Mag()
+
+	// angular velocity is relative to current speed
+	maxangularvelocity := utils.Map(currentspeed, 0, state.MaxSpeed, state.MaxAngularVelocity*0.05, state.MaxAngularVelocity)
+
+	abssteering := state.localAngleToAbsoluteAngleVec(steering, &maxangularvelocity)
 	state.Velocity = abssteering.Limit(state.MaxSpeed)
 
 	return state

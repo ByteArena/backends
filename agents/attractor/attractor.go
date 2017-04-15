@@ -20,11 +20,22 @@ func MakeAttractorAgent() AttractorAgent {
 	}
 }
 
+var speedchange = 0.0
+var sign = 1.0
+
 func (agent AttractorAgent) SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) {
 
 	speed := perception.Specs.MaxSpeed
 
-	desired := utils.MakeVector2(1, 20).SetMag(speed).Limit(perception.Specs.MaxSteeringForce)
+	if speedchange+0.01 >= speed {
+		sign = -1
+	} else if speedchange <= 0 {
+		sign = 1
+	}
+
+	speedchange += sign * 0.01
+
+	desired := utils.MakeVector2(1*sign, 20).SetMag(speed - speedchange)
 
 	steeringx, steeringy := desired.Get()
 

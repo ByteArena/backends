@@ -9,20 +9,6 @@ const port = process.env.SWARMPORT;
 const host = process.env.SWARMHOST;
 const agentid = process.env.AGENTID;
 
-let timecursor = 0;
-const times = [];
-
-function measurespeed(start) {
-    const duration = now() - start/* - 10*/;
-    times[timecursor%6000] = duration;
-    timecursor++;
-
-    const mean = times.reduce(function(carry, val) {
-        return carry + val;
-    }, 0) / times.length;
-    //console.log('Took', (duration).toFixed(2), '; mean', mean.toFixed(2));
-}
-
 function flockforces(perception) {
     const sepdist = 30; // separation distance
 
@@ -30,19 +16,16 @@ function flockforces(perception) {
     let alignforce = new Vector2(); // alignment force
     let cohesionforce = new Vector2(); // cohesion force
 
-    const sepdistsq = sepdist * sepdist;
-
     for(const otheragentkey in perception.External.Vision) {
         const otheragent = perception.External.Vision[otheragentkey];
         const othervelocity = Vector2.fromArray(otheragent.Velocity);
         const otherposition = Vector2
             .fromArray(otheragent.Center)
             .add(othervelocity);
-        
-        otherposition.mag(otherposition.mag() - otheragent.Radius)
 
-        if(otherposition.magSq() <= sepdistsq) {
-            sepforce.sub(otherposition);
+        const disttoother = otherposition.mag() - otheragent.Radius;
+        if(disttoother <= sepdist) {
+            sepforce.sub(otherposition.mult(2));
         }
 
         cohesionforce.add(otherposition);
@@ -80,12 +63,8 @@ function findAttractor(perception) {
 
 function move(tickturn, perception) {
 
-    const start = now();
-
     const attractor = findAttractor(perception);
     if(attractor === null) return;
-
-    const curvelocity = Vector2.fromArray(perception.Internal.Velocity);
 
     //
     // Following some pixels behind the attractor
@@ -98,8 +77,8 @@ function move(tickturn, perception) {
     // Determine adapted speed with regards to distance with target
     const disttotarget = followpos.mag();
     let speed = perception.Specs.MaxSpeed;
-    if(disttotarget < 60) {
-        speed = map(disttotarget, 0, perception.Specs.MaxSpeed, 0, attractor.velocity.mag());
+    if(disttotarget < 150) {
+        speed = attractor.velocity.mag();
     }
     
     // Adding flocking behaviour (keeps agents in a cohesive pack, but separated from one another to avoid collisions)
@@ -111,7 +90,7 @@ function move(tickturn, perception) {
         .add(flock.alignment.mult(24))
         .add(flock.cohesion);
 
-    const steering = desired.clone();//.limit(0.1);
+    const steering = desired.limit(speed);
 
     //
     // Shooting straight at next attractor position
@@ -123,9 +102,6 @@ function move(tickturn, perception) {
         { Method: 'steer', Arguments: steering.toArray(5) }, // 3: précision
         Math.random() < 0.95 ? null : { Method: 'shoot', Arguments: aimed.toArray(5) }, // 3: précision
     ])
-    .then(response => {
-        measurespeed(start);
-    })
     .catch(err => { throw err; });
 
 }

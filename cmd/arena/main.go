@@ -115,7 +115,7 @@ func main() {
 	agentstate.Tag = "attractor"
 	agentstate.Position = utils.MakeVector2(400, 300)
 	agentstate.Radius = 16
-	//agentstate.MaxAngularVelocity = math.Pi
+	agentstate.MaxSteeringForce = 0.4
 	srv.RegisterAgent(attractoragent.MakeAttractorAgent(), agentstate)
 
 	for i := 0; i < cmdenv.agents; i++ {
