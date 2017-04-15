@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -12,6 +14,7 @@ import (
 	"github.com/kardianos/osext"
 	"github.com/netgusto/bytearena/agents/attractor"
 	"github.com/netgusto/bytearena/server"
+	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/server/state"
 	"github.com/netgusto/bytearena/utils"
 )
@@ -117,8 +120,21 @@ func main() {
 	agentstate.Radius = 16
 	srv.RegisterAgent(attractoragent.MakeAttractorAgent(), agentstate)
 
-	for i := 0; i < cmdenv.agents; i++ {
-		go srv.Spawnagent()
+	filename := os.Args[1]
+	data, err := ioutil.ReadFile(filename)
+
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	var config protocol.FileConfigWrapper
+
+	if err := json.Unmarshal(data, &config); err != nil {
+		log.Panicln(err)
+	}
+
+	for _, agentconfig := range config.Agents {
+		go srv.Spawnagent(agentconfig)
 	}
 
 	// handling signals

@@ -1,0 +1,10 @@
+{
+  "agents": [
+    {
+      "cmd": "node --harmony /scripts/client.js"
+    },
+    {
+      "cmd": "node --harmony /scripts/client.js"
+    }
+  ]
+}

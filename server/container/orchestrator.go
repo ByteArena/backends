@@ -4,12 +4,12 @@ import (
 	"context"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/netgusto/bytearena/server/protocol"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
@@ -85,18 +85,18 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 	}
 }
 
-func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, agentdir string) (AgentContainer, error) {
+func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, agentdir string, config protocol.Config) (AgentContainer, error) {
 
-	var cmdline string
-	if strings.Contains(agentdir, "dummygo") {
-		cmdline = "/scripts/dummygo"
-	} else {
-		cmdline = "node --harmony /scripts/client.js"
-	}
+	// var cmdline string
+	// if strings.Contains(agentdir, "dummygo") {
+	// 	cmdline = "/scripts/dummygo"
+	// } else {
+	// 	cmdline = "node --harmony /scripts/client.js"
+	// }
 
 	containerconfig := container.Config{
 		Image: "node",
-		Cmd:   []string{"/bin/bash", "-c", cmdline},
+		Cmd:   []string{"/bin/bash", "-c", config.Cmd},
 		User:  "node",
 		Env: []string{
 			"SWARMPORT=" + strconv.Itoa(port),
