@@ -88,9 +88,9 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, agentdir string, config config.AgentGameConfig) (AgentContainer, error) {
 
 	containerconfig := container.Config{
-		Image: "node",
+		Image: config.Image,
 		Cmd:   []string{"/bin/bash", "-c", config.Cmd},
-		User:  "node",
+		User:  "root",
 		Env: []string{
 			"SWARMPORT=" + strconv.Itoa(port),
 			"SWARMHOST=" + host,

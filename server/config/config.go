@@ -10,8 +10,9 @@ import (
 )
 
 type AgentGameConfig struct {
-	Cmd string
-	Dir string
+	Cmd   string
+	Dir   string
+	Image string
 }
 
 type GameConfig struct {
