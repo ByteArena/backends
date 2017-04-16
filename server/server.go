@@ -14,6 +14,7 @@ import (
 	"github.com/bitly/go-notify"
 	"github.com/netgusto/bytearena/server/agent"
 	"github.com/netgusto/bytearena/server/comm"
+	"github.com/netgusto/bytearena/server/config"
 	"github.com/netgusto/bytearena/server/container"
 	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/server/state"
@@ -27,7 +28,6 @@ const debug = false
 type Server struct {
 	agents                map[uuid.UUID]agent.Agent
 	agentsmutex           *sync.Mutex
-	agentdir              string
 	host                  string
 	port                  int
 	state                 *state.ServerState
@@ -45,14 +45,13 @@ type Server struct {
 	DebugNbUpdates        int
 }
 
-func NewServer(host string, port int, agentdir string, nbexpectedagents int, tickspersec int, stopticking chan bool) *Server {
+func NewServer(host string, port int, nbexpectedagents int, tickspersec int, stopticking chan bool) *Server {
 
 	orch := container.MakeContainerOrchestrator()
 
 	return &Server{
 		agents:                make(map[uuid.UUID]agent.Agent),
 		agentsmutex:           &sync.Mutex{},
-		agentdir:              agentdir,
 		host:                  host,
 		port:                  port,
 		state:                 state.NewServerState(),
@@ -66,14 +65,14 @@ func NewServer(host string, port int, agentdir string, nbexpectedagents int, tic
 	}
 }
 
-func (server *Server) Spawnagent() {
+func (server *Server) Spawnagent(agentdir string, config config.AgentGameConfig) {
 
 	agent := agent.MakeNetAgentImp()
 	agentstate := state.MakeAgentState()
 
 	server.RegisterAgent(agent, agentstate)
 
-	container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, server.agentdir)
+	container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, agentdir, config)
 	if err != nil {
 		log.Panicln(err)
 	}

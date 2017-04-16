@@ -1,0 +1,4 @@
+{
+  "image": "node",
+  "cmd": "node --harmony /scripts/client.js"
+}
