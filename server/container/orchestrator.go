@@ -15,9 +15,10 @@ import (
 )
 
 type ContainerOrchestrator struct {
-	ctx        context.Context
-	cli        *client.Client
-	containers []AgentContainer
+	ctx          context.Context
+	cli          *client.Client
+	registryAuth string
+	containers   []AgentContainer
 }
 
 func MakeContainerOrchestrator() ContainerOrchestrator {
@@ -27,9 +28,12 @@ func MakeContainerOrchestrator() ContainerOrchestrator {
 		log.Panicln(err)
 	}
 
+	registryAuth := registryLogin(ctx, cli)
+
 	return ContainerOrchestrator{
-		ctx: ctx,
-		cli: cli,
+		ctx:          ctx,
+		cli:          cli,
+		registryAuth: registryAuth,
 	}
 }
 
@@ -128,6 +132,10 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 
 	agentcontainer := MakeAgentContainer(agentid, ContainerId(resp.ID))
 	orch.containers = append(orch.containers, agentcontainer)
+
+	orch.publishInRegistry(
+		"agent-" + agentid.String(), // container name
+	)
 
 	return agentcontainer, nil
 }
