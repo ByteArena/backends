@@ -40,9 +40,10 @@ type Server struct {
 	tickspersec           int
 	currentturn           utils.Tickturn
 	currentturnmutex      *sync.Mutex
-	nbhandshaked          int
-	DebugNbMutations      int
-	DebugNbUpdates        int
+
+	nbhandshaked     int
+	DebugNbMutations int
+	DebugNbUpdates   int
 }
 
 func NewServer(host string, port int, agentdir string, nbexpectedagents int, tickspersec int, stopticking chan bool) *Server {
@@ -83,6 +84,11 @@ func (server *Server) Spawnagent() {
 		log.Panicln(err)
 	}
 
+	err = server.containerorchestrator.LogsToStdOut(container)
+	if err != nil {
+		log.Panicln(err)
+	}
+
 	err = server.containerorchestrator.Wait(container)
 	if err != nil {
 		log.Panicln(err)
@@ -92,6 +98,10 @@ func (server *Server) Spawnagent() {
 func (server *Server) RegisterAgent(agent agent.Agent, state state.AgentState) {
 	server.setAgent(agent)
 	server.state.SetAgentState(agent.GetId(), state)
+}
+
+func (server *Server) SetObstacle(obstacle state.Obstacle) {
+	server.state.SetObstacle(obstacle)
 }
 
 func (server *Server) setAgent(agent agent.Agent) {
@@ -185,6 +195,7 @@ func (server *Server) DoTick() {
 	server.DoUpdate()
 
 	// Refreshing perception for every agent
+	server.GetState().DebugIntersects = make([]utils.Vector2, 0)
 	for _, ag := range server.agents {
 		go func(server *Server, ag agent.Agent, serverstate *state.ServerState) {
 

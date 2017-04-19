@@ -48,24 +48,25 @@ type AgentState struct {
 }
 
 func MakeAgentState() AgentState {
-	initialx := rand.Float64() * 800
-	initialy := rand.Float64() * 600
+	initialx := 100 + rand.Float64()*800
+	initialy := 100 + rand.Float64()*300
+
+	// initialx := 500.0
+	// initialy := 150.0
 
 	r := 6 + rand.Float64()*6.0
 
-	maxdegreespertick := 8.0 + 5*(1/r) // bigger turn slower
-
 	return AgentState{
 		Position:           utils.MakeVector2(initialx, initialy),
-		Velocity:           utils.MakeVector2(0, 0),
-		MaxSpeed:           5.0,
-		MaxSteeringForce:   5.0,
-		MaxAngularVelocity: utils.DegreeToRadian(maxdegreespertick), // en radians/tick; Pi = 180°
+		Velocity:           utils.MakeVector2(0.00001, 1),
+		MaxSpeed:           8.0,
+		MaxSteeringForce:   0.5,
+		MaxAngularVelocity: utils.DegreeToRadian(6), // en radians/tick; Pi = 180°
 		Radius:             r,
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
-		VisionRadius:       300,
-		VisionAngle:        utils.DegreeToRadian(60),
+		VisionRadius:       100,
+		VisionAngle:        utils.DegreeToRadian(45),
 	}
 }
 
@@ -77,6 +78,15 @@ func (state AgentState) Update() AgentState {
 
 func (state AgentState) mutationSteer(steering utils.Vector2) AgentState {
 
+	prevmag := state.Velocity.Mag()
+	diff := steering.Mag() - prevmag
+	if math.Abs(diff) > state.MaxSteeringForce {
+		if diff > 0 {
+			steering = steering.SetMag(prevmag + state.MaxSteeringForce)
+		} else {
+			steering = steering.SetMag(prevmag - state.MaxSteeringForce)
+		}
+	}
 	abssteering := state.localAngleToAbsoluteAngleVec(steering, &state.MaxAngularVelocity)
 	state.Velocity = abssteering.Limit(state.MaxSpeed)
 

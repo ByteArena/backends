@@ -91,6 +91,23 @@ class Vector2 {
         return this;
     }
 
+    angle() {
+        if(this.x == 0 && this.y == 0) {
+            return 0;
+        }
+
+        let angle = Math.atan2(this.y, this.x);
+
+        // Quart de tour à gauche
+        angle = Math.PI/2.0 - angle;
+
+        if (angle < 0) {
+            angle += 2 * Math.PI;
+        }
+
+        return angle;
+    }
+
     static fromArray(arr) {
         return new Vector2(arr[0], arr[1]);
     }

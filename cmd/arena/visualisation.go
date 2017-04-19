@@ -18,8 +18,10 @@ import (
 )
 
 type vizmessage struct {
-	Agents      []vizagentmessage
-	Projectiles []vizprojectilemessage
+	Agents          []vizagentmessage
+	Projectiles     []vizprojectilemessage
+	Obstacles       []vizobstaclemessage
+	DebugIntersects []utils.Vector2
 }
 
 type vizagentmessage struct {
@@ -41,6 +43,11 @@ type vizprojectilemessage struct {
 	Radius   float64
 	From     vizagentmessage
 	Kind     string
+}
+
+type vizobstaclemessage struct {
+	A utils.Vector2
+	B utils.Vector2
 }
 
 type wsincomingmessage struct {
@@ -121,6 +128,17 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 					})
 				}
 				serverstate.Agentsmutex.Unlock()
+
+				serverstate.Obstaclesmutex.Lock()
+				for _, obstacle := range serverstate.Obstacles {
+					msg.Obstacles = append(msg.Obstacles, vizobstaclemessage{
+						A: obstacle.A,
+						B: obstacle.B,
+					})
+				}
+				serverstate.Obstaclesmutex.Unlock()
+
+				msg.DebugIntersects = serverstate.DebugIntersects
 
 				json, err := json.Marshal(msg)
 				if err != nil {

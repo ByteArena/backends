@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/kardianos/osext"
-	"github.com/netgusto/bytearena/agents/attractor"
 	"github.com/netgusto/bytearena/server"
 	"github.com/netgusto/bytearena/server/state"
 	"github.com/netgusto/bytearena/utils"
@@ -111,12 +110,65 @@ func main() {
 	)
 
 	// Creating attractor as an agent
-	agentstate := state.MakeAgentState()
-	agentstate.Tag = "attractor"
-	agentstate.Position = utils.MakeVector2(400, 300)
-	agentstate.Radius = 16
-	//agentstate.MaxAngularVelocity = math.Pi
-	srv.RegisterAgent(attractoragent.MakeAttractorAgent(), agentstate)
+	/*
+		agentstate := state.MakeAgentState()
+		agentstate.Tag = "attractor"
+		agentstate.Position = utils.MakeVector2(400, 300)
+		agentstate.Radius = 16
+		srv.RegisterAgent(attractoragent.MakeAttractorAgent(), agentstate)
+	*/
+
+	// Creating obstacles
+
+	srv.SetObstacle(state.MakeObstacle(
+		utils.MakeVector2(0, 0),
+		utils.MakeVector2(1000, 0),
+	))
+
+	srv.SetObstacle(state.MakeObstacle(
+		utils.MakeVector2(1000, 0),
+		utils.MakeVector2(1000, 600),
+	))
+
+	srv.SetObstacle(state.MakeObstacle(
+		utils.MakeVector2(1000, 600),
+		utils.MakeVector2(0, 600),
+	))
+
+	srv.SetObstacle(state.MakeObstacle(
+		utils.MakeVector2(0, 600),
+		utils.MakeVector2(0, 0),
+	))
+
+	srv.SetObstacle(state.MakeObstacle(
+		utils.MakeVector2(100, 100),
+		utils.MakeVector2(900, 100),
+	))
+
+	srv.SetObstacle(state.MakeObstacle(
+		utils.MakeVector2(900, 100),
+		utils.MakeVector2(900, 500),
+	))
+
+	srv.SetObstacle(state.MakeObstacle(
+		utils.MakeVector2(900, 500),
+		utils.MakeVector2(500, 500),
+	))
+
+	srv.SetObstacle(state.MakeObstacle(
+		utils.MakeVector2(100, 500),
+		utils.MakeVector2(100, 100),
+	))
+
+	srv.SetObstacle(state.MakeObstacle(
+		utils.MakeVector2(300, 300),
+		utils.MakeVector2(300, 500),
+	))
+
+	srv.SetObstacle(state.MakeObstacle(
+		utils.MakeVector2(700, 200),
+		utils.MakeVector2(500, 400),
+	))
 
 	for i := 0; i < cmdenv.agents; i++ {
 		go srv.Spawnagent()
