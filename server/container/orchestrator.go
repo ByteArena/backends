@@ -1,6 +1,7 @@
 package container
 
 import (
+	"bufio"
 	"context"
 	"log"
 	"strconv"
@@ -43,6 +44,7 @@ func (orch *ContainerOrchestrator) StartAgentContainer(container AgentContainer)
 		container.containerid.String(),
 		types.ContainerStartOptions{},
 	)
+
 }
 
 func (orch *ContainerOrchestrator) Wait(container AgentContainer) error {
@@ -51,6 +53,33 @@ func (orch *ContainerOrchestrator) Wait(container AgentContainer) error {
 		container.containerid.String(),
 	)
 	return err
+}
+
+func (orch *ContainerOrchestrator) LogsToStdOut(container AgentContainer) error {
+	go func(orch *ContainerOrchestrator, container AgentContainer) {
+		reader, _ := orch.cli.ContainerLogs(orch.ctx, container.containerid.String(), types.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     true,
+			Details:    false,
+			Timestamps: false,
+		})
+		defer reader.Close()
+
+		r := bufio.NewReader(reader)
+		scanner := bufio.NewScanner(r)
+		for scanner.Scan() {
+			text := scanner.Text()
+			log.Println(chalk.Green, container.AgentId, chalk.Reset, text)
+		}
+
+		//p := make([]byte, 8)
+		//reader.Read(p)
+		//content, _ := ioutil.ReadAll(reader)
+		//log.Println("CONTAINER LOG", string(content))
+	}(orch, container)
+
+	return nil
 }
 
 func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
@@ -65,18 +94,6 @@ func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
 	if err != nil {
 		orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
 	}
-
-	// Remove Now handled by docker directly; AutoRemove: true in container's HostConfig
-	/*
-		err = orch.cli.ContainerRemove(
-			orch.ctx,
-			container.containerid.String(),
-			types.ContainerRemoveOptions{},
-		)
-
-		if err != nil {
-			log.Panicln(err)
-		}*/
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
