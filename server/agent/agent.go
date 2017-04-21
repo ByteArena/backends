@@ -68,8 +68,9 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 			// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
 			centervec = centervec.SetAngle(centervec.Angle() - orientation)
 			visionitem := state.PerceptionVisionItem{
-				Center:   centervec,
-				Radius:   otheragentstate.Radius,
+				CloseEdge: vector.MakeNullVector2(), // TODO: compute actual value for this
+				//Center:    centervec,
+				FarEdge:  vector.MakeNullVector2(), // TODO: compute actual value for this
 				Velocity: otheragentstate.Velocity.Clone().SetAngle(otheragentstate.Velocity.Angle() - orientation),
 				Tag:      otheragentstate.Tag,
 			}
@@ -132,13 +133,13 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 		{
 			// Sur les bords de la perception
 			// http://www.wyrmtale.com/blog/2013/115/2d-line-intersection-in-c
-			if point, intersects, colinear, _ := trigo.IntersectionWithLineSegmentOld(leftvisionrelvec, relvecA, relvecB); intersects && !colinear {
+			if point, intersects, colinear, _ := trigo.IntersectionWithLineSegment(vector.MakeNullVector2(), leftvisionrelvec, relvecA, relvecB); intersects && !colinear {
 				//log.Println("INTERSECT LEFT", point)
 				//serverstate.DebugIntersects = append(serverstate.DebugIntersects, point.Add(absoluteposition))
 				edges = append(edges, point.Add(absoluteposition))
 			}
 
-			if point, intersects, colinear, _ := trigo.IntersectionWithLineSegmentOld(rightvisionrelvec, relvecA, relvecB); intersects && !colinear {
+			if point, intersects, colinear, _ := trigo.IntersectionWithLineSegment(vector.MakeNullVector2(), rightvisionrelvec, relvecA, relvecB); intersects && !colinear {
 				//log.Println("INTERSECT RIGHT", point)
 				//serverstate.DebugIntersects = append(serverstate.DebugIntersects, point.Add(absoluteposition))
 				edges = append(edges, point.Add(absoluteposition))
@@ -147,7 +148,7 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 
 		{
 			// Sur l'horizon de perception (arc de cercle)
-			intersections := trigo.CircleLineCollision(
+			intersections := trigo.LineCircleIntersectionPoints(
 				relvecA,
 				relvecB,
 				vector.MakeNullVector2(),
@@ -177,19 +178,36 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 		if len(edges) == 2 {
 			edgeone := edges[0]
 			edgetwo := edges[1]
-			center := edgetwo.Add(edgeone).DivScalar(2)
+			//center := edgetwo.Add(edgeone).DivScalar(2)
 
-			visiblemag := edgetwo.Sub(edgeone).Mag()
+			//visiblemag := edgetwo.Sub(edgeone).Mag()
 
-			relcenter := center.Sub(absoluteposition) // aligned on north
-			relcenterangle := relcenter.Angle()
-			relcenteragentaligned := relcenter.SetAngle(relcenterangle - orientation)
+			//relcenter := center.Sub(absoluteposition) // aligned on north
+			//relcenterangle := relcenter.Angle()
+			//relcenteragentaligned := relcenter.SetAngle(relcenterangle - orientation)
+
+			relEdgeOne := edgeone.Sub(absoluteposition)
+			relEdgeTwo := edgetwo.Sub(absoluteposition)
+
+			relEdgeOneAgentAligned := relEdgeOne.SetAngle(relEdgeOne.Angle() - orientation)
+			relEdgeTwoAgentAligned := relEdgeTwo.SetAngle(relEdgeTwo.Angle() - orientation)
+
+			var closeEdge, farEdge vector.Vector2
+			/*if relEdgeTwoAgentAligned.MagSq() > relEdgeOneAgentAligned.MagSq() {
+				closeEdge = relEdgeOneAgentAligned
+				farEdge = relEdgeTwoAgentAligned
+			} else {
+				closeEdge = relEdgeTwoAgentAligned
+				farEdge = relEdgeOneAgentAligned
+			}*/
+			closeEdge = relEdgeOneAgentAligned
+			farEdge = relEdgeTwoAgentAligned
 
 			obstacleperception := state.PerceptionVisionItem{
-				Center:   relcenteragentaligned,
-				Radius:   visiblemag / 2,
-				Velocity: vector.MakeNullVector2(),
-				Tag:      "obstacle",
+				CloseEdge: closeEdge,
+				FarEdge:   farEdge,
+				Velocity:  vector.MakeNullVector2(),
+				Tag:       "obstacle",
 			}
 
 			p.External.Vision = append(p.External.Vision, obstacleperception)

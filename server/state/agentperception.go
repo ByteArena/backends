@@ -12,10 +12,10 @@ type PerceptionSpecs struct {
 }
 
 type PerceptionVisionItem struct {
-	Tag      string // should be an enum, but no enum in Go
-	Center   vector.Vector2
-	Radius   float64
-	Velocity vector.Vector2
+	Tag       string // should be an enum, but no enum in Go
+	CloseEdge vector.Vector2
+	FarEdge   vector.Vector2
+	Velocity  vector.Vector2
 }
 
 type PerceptionExternal struct {

@@ -87,17 +87,7 @@ function move(tickturn, perception) {
     const start = now();
 
     let followpos = new Vector2(0, perception.Specs.MaxSpeed/3);
-    let aimed;
-
     let desired = followpos.clone();
-    
-    // Adding flocking behaviour (keeps agents in a cohesive pack, but separated from one another to avoid collisions)
-    const flock = flockforces(perception);
-    desired
-    .add(flock.separation.mult(8));
-    //.add(flock.alignment.mult(24))
-    //.add(flock.cohesion);
-
     let steering = desired.clone();
 
     // on évite les obstacles
@@ -106,21 +96,15 @@ function move(tickturn, perception) {
 
         for(const otheragentkey in perception.External.Vision) {
             const otheragent = perception.External.Vision[otheragentkey];
-            if(otheragent.Tag === "obstacle") {
-                center = Vector2.fromArray(otheragent.Center);
-                centerdistsq = center.magSq()
-                relangle = center.angle();
+            if(otheragent.Tag !== "obstacle") continue;
 
-                //aimed = center;
+            closeEdge = Vector2.fromArray(otheragent.CloseEdge);
+            farEdge = Vector2.fromArray(otheragent.FarEdge);
 
-                // On passe de 0° / 360° à -180° / +180°
-			    if(relangle > Math.PI) { // 180° en radians
-				    relangle -= Math.PI * 2; // 360° en radian
-			    }
+            console.log('close', closeEdge, 'far', farEdge);
 
-                // On passe de 0° / 360° à -180° / +180°
-                avoidanceforce.add(new Vector2(-100, 0));
-            }
+            //center = Vector2.fromArray(otheragent.Center);
+            avoidanceforce.sub(new Vector2(10, 0));
         }
     }
 
@@ -135,13 +119,7 @@ function move(tickturn, perception) {
     // Pushing batch of mutations for this turn
     this.sendMutations(tickturn, [
         { Method: 'steer', Arguments: steering.toArray(5) },
-        aimed ? (/*Math.random() < 0.95 ? null : */{ Method: 'shoot', Arguments: aimed.toArray(5) }) : null,
     ])
-    /*
-    .then(response => {
-        measurespeed(start);
-    })
-    */
     .catch(err => { throw err; });
 
 }

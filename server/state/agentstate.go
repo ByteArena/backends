@@ -67,7 +67,7 @@ func MakeAgentState() AgentState {
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
 		VisionRadius:       100,
-		VisionAngle:        number.DegreeToRadian(45),
+		VisionAngle:        number.DegreeToRadian(140),
 	}
 }
 
