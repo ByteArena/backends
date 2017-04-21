@@ -123,7 +123,8 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		Binds:          []string{config.Dir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
 		AutoRemove:     true,
 		ReadonlyRootfs: true,
-		NetworkMode:    "host",
+		//NetworkMode:    "host",
+		NetworkMode: "bridge",
 		Resources: container.Resources{
 			Memory: 1024 * 1024 * 32, // 32M
 			//CPUQuota: 5 * (1000),       // 5% en cent-millièmes
@@ -147,4 +148,13 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	orch.containers = append(orch.containers, agentcontainer)
 
 	return agentcontainer, nil
+}
+
+func (orch *ContainerOrchestrator) GetHost() (string, error) {
+	res, err := orch.cli.NetworkInspect(orch.ctx, "bridge", true)
+	if err != nil {
+		return "", err
+	}
+
+	return res.IPAM.Config[0].Gateway, nil
 }

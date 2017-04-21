@@ -51,10 +51,21 @@ func NewServer(host string, port int, nbexpectedagents int, tickspersec int, sto
 
 	orch := container.MakeContainerOrchestrator()
 
+	gamehost := host
+
+	if host == "" {
+		host, err := orch.GetHost()
+		if err != nil {
+			log.Panicln("Could not determine host !")
+		}
+
+		gamehost = host
+	}
+
 	return &Server{
 		agents:                make(map[uuid.UUID]agent.Agent),
 		agentsmutex:           &sync.Mutex{},
-		host:                  host,
+		host:                  gamehost,
 		port:                  port,
 		state:                 state.NewServerState(),
 		nbexpectedagents:      nbexpectedagents,
@@ -124,8 +135,8 @@ func (s *Server) GetTurn() utils.Tickturn {
 }
 
 func (server *Server) Listen() {
-	server.commserver = comm.NewCommServer(server.host+":"+strconv.Itoa(server.port), 1024) // 1024: max size of message in bytes
-	log.Println("listening on " + server.host + ":" + strconv.Itoa(server.port))
+	server.commserver = comm.NewCommServer("0.0.0.0:"+strconv.Itoa(server.port), 1024) // 1024: max size of message in bytes
+	log.Println("listening on 0.0.0.0:" + strconv.Itoa(server.port))
 
 	done := make(chan bool)
 	if server.GetNbExpectedagents() > 0 {
