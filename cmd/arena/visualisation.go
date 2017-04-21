@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/netgusto/bytearena/server"
 	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/utils"
+	"github.com/netgusto/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -21,14 +21,14 @@ type vizmessage struct {
 	Agents          []vizagentmessage
 	Projectiles     []vizprojectilemessage
 	Obstacles       []vizobstaclemessage
-	DebugIntersects []utils.Vector2
+	DebugIntersects []vector.Vector2
 }
 
 type vizagentmessage struct {
 	Id           uuid.UUID
 	X            float64
 	Y            float64
-	Position     utils.Vector2
+	Position     vector.Vector2
 	VisionRadius float64
 	VisionAngle  float64
 	Radius       float64
@@ -39,15 +39,15 @@ type vizagentmessage struct {
 type vizprojectilemessage struct {
 	X        float64
 	Y        float64
-	Position utils.Vector2
+	Position vector.Vector2
 	Radius   float64
 	From     vizagentmessage
 	Kind     string
 }
 
 type vizobstaclemessage struct {
-	A utils.Vector2
-	B utils.Vector2
+	A vector.Vector2
+	B vector.Vector2
 }
 
 type wsincomingmessage struct {

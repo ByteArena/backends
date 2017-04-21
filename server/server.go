@@ -18,6 +18,7 @@ import (
 	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/server/state"
 	"github.com/netgusto/bytearena/utils"
+	"github.com/netgusto/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
@@ -195,7 +196,7 @@ func (server *Server) DoTick() {
 	server.DoUpdate()
 
 	// Refreshing perception for every agent
-	server.GetState().DebugIntersects = make([]utils.Vector2, 0)
+	server.GetState().DebugIntersects = make([]vector.Vector2, 0)
 	for _, ag := range server.agents {
 		go func(server *Server, ag agent.Agent, serverstate *state.ServerState) {
 

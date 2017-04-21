@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/netgusto/bytearena/server/protocol"
-	"github.com/netgusto/bytearena/utils"
+	"github.com/netgusto/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -24,7 +24,7 @@ type ServerState struct {
 	pendingmutations []protocol.StateMutationBatch
 	mutationsmutex   *sync.Mutex
 
-	DebugIntersects []utils.Vector2
+	DebugIntersects []vector.Vector2
 }
 
 /* ***************************************************************************/
@@ -46,7 +46,7 @@ func NewServerState() *ServerState {
 		pendingmutations: make([]protocol.StateMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
 
-		DebugIntersects: make([]utils.Vector2, 0),
+		DebugIntersects: make([]vector.Vector2, 0),
 	}
 }
 
@@ -104,7 +104,7 @@ func (serverstate *ServerState) ProcessMutations() {
 					}
 
 					nbmutations++
-					newstate = newstate.mutationSteer(utils.MakeVector2(vec[0], vec[1]))
+					newstate = newstate.mutationSteer(vector.MakeVector2(vec[0], vec[1]))
 
 					break
 				}
@@ -116,7 +116,7 @@ func (serverstate *ServerState) ProcessMutations() {
 					}
 
 					nbmutations++
-					newstate = newstate.mutationShoot(serverstate, utils.MakeVector2(vec[0], vec[1]))
+					newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
 
 					break
 				}

@@ -12,7 +12,7 @@ import (
 	"github.com/kardianos/osext"
 	"github.com/netgusto/bytearena/server"
 	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/utils"
+	"github.com/netgusto/bytearena/utils/vector"
 )
 
 type cmdenvironment struct {
@@ -109,65 +109,56 @@ func main() {
 		stopticking,
 	)
 
-	// Creating attractor as an agent
-	/*
-		agentstate := state.MakeAgentState()
-		agentstate.Tag = "attractor"
-		agentstate.Position = utils.MakeVector2(400, 300)
-		agentstate.Radius = 16
-		srv.RegisterAgent(attractoragent.MakeAttractorAgent(), agentstate)
-	*/
-
 	// Creating obstacles
 
 	srv.SetObstacle(state.MakeObstacle(
-		utils.MakeVector2(0, 0),
-		utils.MakeVector2(1000, 0),
+		vector.MakeVector2(0, 0),
+		vector.MakeVector2(1000, 0),
 	))
 
 	srv.SetObstacle(state.MakeObstacle(
-		utils.MakeVector2(1000, 0),
-		utils.MakeVector2(1000, 600),
+		vector.MakeVector2(1000, 0),
+		vector.MakeVector2(1000, 600),
 	))
 
 	srv.SetObstacle(state.MakeObstacle(
-		utils.MakeVector2(1000, 600),
-		utils.MakeVector2(0, 600),
+		vector.MakeVector2(1000, 600),
+		vector.MakeVector2(0, 600),
 	))
 
 	srv.SetObstacle(state.MakeObstacle(
-		utils.MakeVector2(0, 600),
-		utils.MakeVector2(0, 0),
+		vector.MakeVector2(0, 600),
+		vector.MakeVector2(0, 0),
 	))
 
 	srv.SetObstacle(state.MakeObstacle(
-		utils.MakeVector2(100, 100),
-		utils.MakeVector2(900, 100),
+		vector.MakeVector2(100, 100),
+		vector.MakeVector2(900, 100),
 	))
 
 	srv.SetObstacle(state.MakeObstacle(
-		utils.MakeVector2(900, 100),
-		utils.MakeVector2(900, 500),
+		vector.MakeVector2(900, 100),
+		vector.MakeVector2(900, 500),
 	))
 
 	srv.SetObstacle(state.MakeObstacle(
-		utils.MakeVector2(900, 500),
-		utils.MakeVector2(500, 500),
+		vector.MakeVector2(900, 500),
+		vector.MakeVector2(500, 500),
 	))
 
 	srv.SetObstacle(state.MakeObstacle(
-		utils.MakeVector2(100, 500),
-		utils.MakeVector2(100, 100),
+		vector.MakeVector2(100, 500),
+		vector.MakeVector2(100, 100),
 	))
 
 	srv.SetObstacle(state.MakeObstacle(
-		utils.MakeVector2(300, 300),
-		utils.MakeVector2(300, 500),
+		vector.MakeVector2(300, 300),
+		vector.MakeVector2(300, 500),
 	))
 
 	srv.SetObstacle(state.MakeObstacle(
-		utils.MakeVector2(700, 200),
-		utils.MakeVector2(500, 400),
+		vector.MakeVector2(700, 200),
+		vector.MakeVector2(500, 400),
 	))
 
 	for i := 0; i < cmdenv.agents; i++ {

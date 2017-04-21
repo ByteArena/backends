@@ -4,7 +4,8 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/netgusto/bytearena/utils"
+	"github.com/netgusto/bytearena/utils/number"
+	"github.com/netgusto/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -34,8 +35,8 @@ import (
 type AgentState struct {
 	Radius             float64
 	Mass               float64
-	Position           utils.Vector2
-	Velocity           utils.Vector2
+	Position           vector.Vector2
+	Velocity           vector.Vector2
 	Orientation        float64 // heading angle in radian (degree ?) relative to arena north
 	MaxSteeringForce   float64 // maximum magnitude the steering force applied to current velocity
 	MaxSpeed           float64 // maximum magnitude of the agent velocity
@@ -57,16 +58,16 @@ func MakeAgentState() AgentState {
 	r := 6 + rand.Float64()*6.0
 
 	return AgentState{
-		Position:           utils.MakeVector2(initialx, initialy),
-		Velocity:           utils.MakeVector2(0.00001, 1),
+		Position:           vector.MakeVector2(initialx, initialy),
+		Velocity:           vector.MakeVector2(0.00001, 1),
 		MaxSpeed:           8.0,
 		MaxSteeringForce:   0.5,
-		MaxAngularVelocity: utils.DegreeToRadian(6), // en radians/tick; Pi = 180°
+		MaxAngularVelocity: number.DegreeToRadian(6), // en radians/tick; Pi = 180°
 		Radius:             r,
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
 		VisionRadius:       100,
-		VisionAngle:        utils.DegreeToRadian(45),
+		VisionAngle:        number.DegreeToRadian(45),
 	}
 }
 
@@ -76,7 +77,7 @@ func (state AgentState) Update() AgentState {
 	return state
 }
 
-func (state AgentState) mutationSteer(steering utils.Vector2) AgentState {
+func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
 
 	prevmag := state.Velocity.Mag()
 	diff := steering.Mag() - prevmag
@@ -93,7 +94,7 @@ func (state AgentState) mutationSteer(steering utils.Vector2) AgentState {
 	return state
 }
 
-func (state AgentState) mutationShoot(serverstate *ServerState, aiming utils.Vector2) AgentState {
+func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Vector2) AgentState {
 
 	// on passe le vecteur de visée d'un angle relatif à un angle absolu
 	absaiming := state.localAngleToAbsoluteAngleVec(aiming, nil)
@@ -114,7 +115,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming utils.Vec
 	return state
 }
 
-func (state AgentState) localAngleToAbsoluteAngleVec(vec utils.Vector2, maxangleconstraint *float64) utils.Vector2 {
+func (state AgentState) localAngleToAbsoluteAngleVec(vec vector.Vector2, maxangleconstraint *float64) vector.Vector2 {
 
 	abscurrentagentangle := state.Orientation
 	absvecangle := vec.Angle()

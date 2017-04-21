@@ -6,7 +6,8 @@ import (
 
 	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/utils"
+	"github.com/netgusto/bytearena/utils/trigo"
+	"github.com/netgusto/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -80,13 +81,13 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 
 	// Vision: les obstacles
 	halfvisionangle := agentstate.VisionAngle / 2
-	leftvisionrelvec := utils.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle*-1)
-	rightvisionrelvec := utils.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle)
+	leftvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle*-1)
+	rightvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle)
 
 	serverstate.Obstaclesmutex.Lock()
 	for _, obstacle := range serverstate.Obstacles {
 
-		edges := make([]utils.Vector2, 0)
+		edges := make([]vector.Vector2, 0)
 
 		relvecA := obstacle.A.Sub(absoluteposition)
 		relvecB := obstacle.B.Sub(absoluteposition)
@@ -131,13 +132,13 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 		{
 			// Sur les bords de la perception
 			// http://www.wyrmtale.com/blog/2013/115/2d-line-intersection-in-c
-			if point, intersects, colinear, _ := leftvisionrelvec.IntersectionWithLineSegment(relvecA, relvecB); intersects && !colinear {
+			if point, intersects, colinear, _ := trigo.IntersectionWithLineSegmentOld(leftvisionrelvec, relvecA, relvecB); intersects && !colinear {
 				//log.Println("INTERSECT LEFT", point)
 				//serverstate.DebugIntersects = append(serverstate.DebugIntersects, point.Add(absoluteposition))
 				edges = append(edges, point.Add(absoluteposition))
 			}
 
-			if point, intersects, colinear, _ := rightvisionrelvec.IntersectionWithLineSegment(relvecA, relvecB); intersects && !colinear {
+			if point, intersects, colinear, _ := trigo.IntersectionWithLineSegmentOld(rightvisionrelvec, relvecA, relvecB); intersects && !colinear {
 				//log.Println("INTERSECT RIGHT", point)
 				//serverstate.DebugIntersects = append(serverstate.DebugIntersects, point.Add(absoluteposition))
 				edges = append(edges, point.Add(absoluteposition))
@@ -146,10 +147,10 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 
 		{
 			// Sur l'horizon de perception (arc de cercle)
-			intersections := utils.CircleLineCollision(
+			intersections := trigo.CircleLineCollision(
 				relvecA,
 				relvecB,
-				utils.MakeVector2(0, 0),
+				vector.MakeNullVector2(),
 				agentstate.VisionRadius,
 			)
 
@@ -157,7 +158,7 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 				// il faut vérifier que le point se trouve bien sur le segment
 				// il faut vérifier que l'angle du point de collision se trouve bien dans le champ de vision de l'agent
 
-				if point.PointOnLineSegment(relvecA, relvecB) {
+				if trigo.PointOnLineSegment(point, relvecA, relvecB) {
 					relvecangle := point.Angle() - orientation
 
 					// On passe de 0° / 360° à -180° / +180°
@@ -187,7 +188,7 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 			obstacleperception := state.PerceptionVisionItem{
 				Center:   relcenteragentaligned,
 				Radius:   visiblemag / 2,
-				Velocity: utils.MakeVector2(0, 0),
+				Velocity: vector.MakeNullVector2(),
 				Tag:      "obstacle",
 			}
 

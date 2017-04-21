@@ -1,4 +1,4 @@
-package utils
+package number
 
 import (
 	"math"
@@ -43,4 +43,10 @@ func RadianToDegree(rad float64) float64 {
 
 func DegreeToRadian(deg float64) float64 {
 	return deg * (math.Pi / 180.0)
+}
+
+var epsilon float64 = 0.0000000001
+
+func IsZero(f float64) bool {
+	return math.Abs(f) < epsilon
 }

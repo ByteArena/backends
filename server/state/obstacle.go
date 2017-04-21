@@ -1,15 +1,15 @@
 package state
 
 import (
-	"github.com/netgusto/bytearena/utils"
+	"github.com/netgusto/bytearena/utils/vector"
 )
 
 type Obstacle struct {
-	A utils.Vector2
-	B utils.Vector2
+	A vector.Vector2
+	B vector.Vector2
 }
 
-func MakeObstacle(a utils.Vector2, b utils.Vector2) Obstacle {
+func MakeObstacle(a vector.Vector2, b vector.Vector2) Obstacle {
 	return Obstacle{
 		A: a,
 		B: b,
