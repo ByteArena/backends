@@ -20,10 +20,15 @@ func main() {
 	filename := os.Args[1]
 	config := config.LoadServerConfig(filename)
 
+	host, exists := os.LookupEnv("HOST")
+	if !exists {
+		host = ""
+	}
+
 	stopticking := make(chan bool)
 
 	srv := server.NewServer(
-		config.Host,
+		host,
 		config.Port,
 		len(config.Agents),
 		config.Tps,
@@ -96,7 +101,7 @@ func main() {
 		os.Exit(1)
 	}()
 
-	go visualization(srv, config.Host, config.Port+1)
+	go visualization(srv, "0.0.0.0", config.Port+1)
 
 	srv.Listen()
 }

@@ -16,18 +16,16 @@ type AgentGameConfig struct {
 }
 
 type GameConfig struct {
-	Agents   []AgentGameConfig
 	Port     int
-	Agentdir string
-	Host     string
 	Tps      int
+	Agentdir string
+	Agents   []AgentGameConfig
 }
 
 type fileServerConfig struct {
 	Server struct {
 		Port     int
 		Tps      int
-		Host     string
 		Agentdir string
 	}
 	Agents []struct {
@@ -51,13 +49,13 @@ func LoadServerConfig(filename string) GameConfig {
 
 	assertInt(config.Server.Port, "Port number must be provided in the configuration")
 	assertInt(config.Server.Tps, "TPS must be provided in the configuration")
-	assertString(config.Server.Host, "Host must be provided in the configuration")
+	//assertString(config.Server.Host, "Host must be provided in the configuration")
 	assertString(config.Server.Agentdir, "Agentdir must be provided in the configuration")
 
 	gameconfig := GameConfig{
-		Tps:      config.Server.Tps,
-		Port:     config.Server.Port,
-		Host:     config.Server.Host,
+		Tps:  config.Server.Tps,
+		Port: config.Server.Port,
+		//Host:     config.Server.Host,
 		Agentdir: getAbsoluteDir(config.Server.Agentdir),
 	}
 
