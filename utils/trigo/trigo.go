@@ -188,3 +188,13 @@ func PointOnLineSegment(p vector.Vector2, a vector.Vector2, b vector.Vector2) bo
 
 	return py+t > ay && py-t < by
 }
+
+func FullCircleAngleToSignedHalfCircleAngle(rad float64) float64 {
+	if rad > math.Pi { // 180° en radians
+		rad -= math.Pi * 2 // 360° en radian
+	} else if rad < -math.Pi {
+		rad += math.Pi * 2 // 360° en radian
+	}
+
+	return rad
+}

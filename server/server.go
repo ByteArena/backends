@@ -207,6 +207,7 @@ func (server *Server) DoTick() {
 
 	// Refreshing perception for every agent
 	server.GetState().DebugIntersects = make([]vector.Vector2, 0)
+	server.GetState().DebugIntersectsRejected = make([]vector.Vector2, 0)
 	for _, ag := range server.agents {
 		go func(server *Server, ag agent.Agent, serverstate *state.ServerState) {
 
@@ -336,9 +337,9 @@ func (server *Server) monitoring() {
 
 func (server *Server) OnAgentsReady() {
 	log.Print(chalk.Green)
-	log.Println("All agents ready; starting in 3 seconds")
+	log.Println("All agents ready; starting in .5 second")
 	log.Print(chalk.Reset)
-	time.Sleep(time.Duration(3 * time.Second))
+	time.Sleep(time.Duration(time.Millisecond * 500))
 
 	go server.monitoring()
 

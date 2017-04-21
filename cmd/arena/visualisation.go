@@ -18,10 +18,11 @@ import (
 )
 
 type vizmessage struct {
-	Agents          []vizagentmessage
-	Projectiles     []vizprojectilemessage
-	Obstacles       []vizobstaclemessage
-	DebugIntersects []vector.Vector2
+	Agents                  []vizagentmessage
+	Projectiles             []vizprojectilemessage
+	Obstacles               []vizobstaclemessage
+	DebugIntersects         []vector.Vector2
+	DebugIntersectsRejected []vector.Vector2
 }
 
 type vizagentmessage struct {
@@ -139,6 +140,7 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 				serverstate.Obstaclesmutex.Unlock()
 
 				msg.DebugIntersects = serverstate.DebugIntersects
+				msg.DebugIntersectsRejected = serverstate.DebugIntersectsRejected
 
 				json, err := json.Marshal(msg)
 				if err != nil {

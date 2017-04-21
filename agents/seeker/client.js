@@ -101,10 +101,10 @@ function move(tickturn, perception) {
             closeEdge = Vector2.fromArray(otheragent.CloseEdge);
             farEdge = Vector2.fromArray(otheragent.FarEdge);
 
-            console.log('close', closeEdge, 'far', farEdge);
+            //console.log('close', closeEdge, 'far', farEdge);
 
             //center = Vector2.fromArray(otheragent.Center);
-            avoidanceforce.sub(new Vector2(10, 0));
+            avoidanceforce.sub(closeEdge.clone().mag(100));
         }
     }
 

@@ -130,11 +130,22 @@ function render() {
         }
 
         if (debug && points.DebugIntersects) {
-            const intersects = (new PIXI.Graphics())
-                    .lineStyle(0, 0x000000);
+            const intersects = new PIXI.Graphics();
             stage.addChild(intersects);
 
             points.DebugIntersects.forEach((intersect) => {
+                intersects
+                    .beginFill(0x0000FF)
+                    .drawCircle(intersect[0], intersect[1], 3)
+                    .endFill();
+            });
+        }
+
+        if (debug && points.DebugIntersectsRejected) {
+            const intersects = new PIXI.Graphics();
+            stage.addChild(intersects);
+
+            points.DebugIntersectsRejected.forEach((intersect) => {
                 intersects
                     .beginFill(0xFF0000)
                     .drawCircle(intersect[0], intersect[1], 3)

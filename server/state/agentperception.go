@@ -14,6 +14,7 @@ type PerceptionSpecs struct {
 type PerceptionVisionItem struct {
 	Tag       string // should be an enum, but no enum in Go
 	CloseEdge vector.Vector2
+	Center    vector.Vector2
 	FarEdge   vector.Vector2
 	Velocity  vector.Vector2
 }

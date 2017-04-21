@@ -24,7 +24,8 @@ type ServerState struct {
 	pendingmutations []protocol.StateMutationBatch
 	mutationsmutex   *sync.Mutex
 
-	DebugIntersects []vector.Vector2
+	DebugIntersects         []vector.Vector2
+	DebugIntersectsRejected []vector.Vector2
 }
 
 /* ***************************************************************************/
@@ -46,7 +47,8 @@ func NewServerState() *ServerState {
 		pendingmutations: make([]protocol.StateMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
 
-		DebugIntersects: make([]vector.Vector2, 0),
+		DebugIntersects:         make([]vector.Vector2, 0),
+		DebugIntersectsRejected: make([]vector.Vector2, 0),
 	}
 }
 
