@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "start": "node client.js"
+  },
   "dependencies": {
     "performance-now": "^2.1.0"
   }

@@ -1,0 +1,6 @@
+registry:
+  image: registry:2
+  net: host
+  volumes:
+    - ./docker/registry/config.yml:/etc/docker/registry/config.yml
+    - ./docker/registry/htpasswd:/var/htpasswd

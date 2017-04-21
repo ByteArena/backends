@@ -9,19 +9,24 @@ import (
 )
 
 func registryLogin(ctx context.Context, client *client.Client) string {
-	auth := types.AuthConfig{}
-
-	res, err := client.RegistryLogin(ctx, auth)
-
-	if err != nil {
-		log.Panicln(err)
+	auth := types.AuthConfig{
+		ServerAddress: "127.0.0.1:5000",
 	}
 
-	return res.IdentityToken
+	_, err := client.RegistryLogin(ctx, auth)
+
+	if err != nil {
+		log.Panicln("Error during login:", err)
+	}
+
+	// FIXME(sven): there is no auth yet
+	// return res.IdentityToken
+	return "no_token"
 }
 
 func (orch *ContainerOrchestrator) publishInRegistry(image string) {
 	options := types.ImagePushOptions{
+		All:          true,
 		RegistryAuth: orch.registryAuth,
 	}
 
@@ -32,6 +37,9 @@ func (orch *ContainerOrchestrator) publishInRegistry(image string) {
 	)
 
 	if err != nil {
-		log.Panicln(err)
+		log.Panicln("Error during image push:", err)
 	}
+
+	// TODO(sven): fix reader to avoid ressource leakage
+	// readCloser.Closer.Close()
 }
