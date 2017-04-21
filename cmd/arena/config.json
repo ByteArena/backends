@@ -1,0 +1,12 @@
+{
+  "server": {
+    "port": 8080,
+    "agentdir": "../../agents/",
+    "host": "192.168.1.19",
+    "tps": 20
+  },
+  "agents": [{
+    "scale": 10,
+    "dir": "seeker"
+  }]
+}
