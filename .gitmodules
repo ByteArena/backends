@@ -1,3 +1,0 @@
-[submodule "cmd/agent-builder/heroku-buildpack-nodejs"]
-	path = cmd/agent-builder/heroku-buildpack-nodejs
-	url = git@github.com:heroku/heroku-buildpack-nodejs.git
