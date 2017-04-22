@@ -38,14 +38,7 @@ func buildImage(buildPackName string, buildDir string) {
 }
 
 func launchBuildProcess(buildPackName string, bin string, buildDir string) {
-	cacheDir := path.Join(buildDir, ".build-cache")
-
-	// cmd := exec.Cmd{
-	// 	Path: bin,
-	// 	Args: []string{buildPackName, buildDir, cacheDir},
-	// }
-
-	cmd := exec.Command(bin, buildPackName, buildDir, cacheDir)
+	cmd := exec.Command(bin, buildPackName, buildDir)
 
 	var (
 		cmdOut []byte
