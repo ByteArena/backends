@@ -49,7 +49,7 @@ func IntersectionWithLineSegment(p vector.Vector2, p2 vector.Vector2, q vector.V
 	}
 
 	// 5. Otherwise, the two line segments are not parallel but do not intersect.
-	return vector.MakeNullVector2(), false, false, false
+	return vector.MakeNullVector2(), false, false, true
 }
 
 func IntersectionWithLineSegmentCheckOnly(p1 vector.Vector2, p2 vector.Vector2, p3 vector.Vector2, p4 vector.Vector2) (intersect bool) {

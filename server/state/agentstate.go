@@ -53,9 +53,6 @@ func MakeAgentState() AgentState {
 	initialx := 100 + rand.Float64()*800
 	initialy := 100 + rand.Float64()*300
 
-	// initialx := 500.0
-	// initialy := 400.0
-
 	r := 6 + rand.Float64()*6.0
 
 	return AgentState{

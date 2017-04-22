@@ -43,7 +43,7 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 	absoluteposition := agentstate.Position
 	orientation := agentstate.Orientation
 
-	p.Internal.Velocity = agentstate.Velocity.Clone()
+	p.Internal.Velocity = agentstate.Velocity.Clone().SetAngle(agentstate.Velocity.Angle() - orientation)
 	p.Internal.Proprioception = agentstate.Radius
 
 	// l'angle d'orientation de l'agent par rapport au "Nord" de l'arène
@@ -52,6 +52,8 @@ func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Percep
 	p.Specs.MaxSpeed = agentstate.MaxSpeed
 	p.Specs.MaxSteeringForce = agentstate.MaxSteeringForce
 	p.Specs.MaxAngularVelocity = agentstate.MaxAngularVelocity
+	p.Specs.VisionRadius = agentstate.VisionRadius
+	p.Specs.VisionAngle = agentstate.VisionAngle
 
 	// On calcule la perception Vision de l'agent
 	serverstate.Agentsmutex.Lock()

@@ -208,6 +208,8 @@ func (server *Server) DoTick() {
 	// Refreshing perception for every agent
 	server.GetState().DebugIntersects = make([]vector.Vector2, 0)
 	server.GetState().DebugIntersectsRejected = make([]vector.Vector2, 0)
+	server.GetState().DebugPoints = make([]vector.Vector2, 0)
+
 	for _, ag := range server.agents {
 		go func(server *Server, ag agent.Agent, serverstate *state.ServerState) {
 

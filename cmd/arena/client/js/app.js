@@ -4,6 +4,9 @@
         const vision = new PIXI.Graphics();
 
         const agentposition = Vector2.fromArray(agent.Position);
+        const agentvelocity = Vector2.fromArray(agent.Velocity);
+        const agentradius = agent.Radius;
+
         const radius = agent.VisionRadius;
         const angle = agent.VisionAngle;
         const orientation = agent.Orientation;
@@ -36,6 +39,44 @@
         vision
             .moveTo(agentposition.x, agentposition.y)
             .lineTo(agentposition.x+rightlineto.x, agentposition.y+rightlineto.y);
+
+        // normals
+        const normals = agentvelocity.normals();
+        const normalegauche = normals[0].clone().mag(agentradius+agentradius);
+        const normaledroite = normals[1].clone().mag(agentradius+agentradius);
+
+        vision
+            .lineStyle(2, 0xFF0000)
+            .moveTo(agentposition.x, agentposition.y)
+            .lineTo(agentposition.x+normalegauche.x, agentposition.y+normalegauche.y);
+        
+        vision
+            .lineStyle(2, 0x0000FF)
+            .moveTo(agentposition.x, agentposition.y)
+            .lineTo(agentposition.x+normaledroite.x, agentposition.y+normaledroite.y);
+        
+        // bordures couloir gauche et droite
+
+        const leftedge = normalegauche.clone().rotate(-Math.PI/2).mag(radius+5).add(normalegauche);
+        const rightedge = normaledroite.clone().rotate(Math.PI/2).mag(radius+5).add(normaledroite);
+
+        vision
+            .lineStyle(2, 0xFF0000)
+            .moveTo(agentposition.x+normalegauche.x, agentposition.y+normalegauche.y)
+            .lineTo(agentposition.x+leftedge.x, agentposition.y+leftedge.y);
+        
+        vision
+            .lineStyle(2, 0x0000FF)
+            .moveTo(agentposition.x+normaledroite.x, agentposition.y+normaledroite.y)
+            .lineTo(agentposition.x+rightedge.x, agentposition.y+rightedge.y);
+        
+        // topcap
+
+        const topcap = rightedge.clone().sub(leftedge);
+        vision
+            .lineStyle(2, 0x000000)
+            .moveTo(agentposition.x+leftedge.x, agentposition.y+leftedge.y)
+            .lineTo(agentposition.x+leftedge.x+topcap.x, agentposition.y+leftedge.y+topcap.y);
 
         return {
             drawInStage(stage) {
@@ -95,14 +136,13 @@
                 });
             }
 
-            if (debug && points.DebugIntersectsRejected) {
-                const intersects = new PIXI.Graphics();
-                stage.addChild(intersects);
-
-                points.DebugIntersectsRejected.forEach((intersect) => {
-                    intersects
+            if (debug && points.DebugPoints) {
+                const layer = new PIXI.Graphics();
+                stage.addChild(layer);
+                points.DebugPoints.forEach((point) => {
+                    layer
                         .beginFill(0xFF0000)
-                        .drawCircle(intersect[0], intersect[1], 3)
+                        .drawCircle(point[0], point[1], 3)
                         .endFill();
                 });
             }

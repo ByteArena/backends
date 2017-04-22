@@ -24,6 +24,7 @@ type vizmessage struct {
 	Obstacles               []vizobstaclemessage
 	DebugIntersects         []vector.Vector2
 	DebugIntersectsRejected []vector.Vector2
+	DebugPoints             []vector.Vector2
 }
 
 type vizagentmessage struct {
@@ -31,6 +32,7 @@ type vizagentmessage struct {
 	X            float64
 	Y            float64
 	Position     vector.Vector2
+	Velocity     vector.Vector2
 	VisionRadius float64
 	VisionAngle  float64
 	Radius       float64
@@ -123,6 +125,7 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 						Id:           id,
 						Kind:         "agent",
 						Position:     agent.Position,
+						Velocity:     agent.Velocity,
 						Radius:       agent.Radius,
 						Orientation:  agent.Orientation,
 						VisionRadius: agent.VisionRadius,
@@ -142,6 +145,7 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 
 				msg.DebugIntersects = serverstate.DebugIntersects
 				msg.DebugIntersectsRejected = serverstate.DebugIntersectsRejected
+				msg.DebugPoints = serverstate.DebugPoints
 
 				json, err := json.Marshal(msg)
 				if err != nil {
