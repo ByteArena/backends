@@ -1,63 +1,38 @@
-#!/usr/bin/env sh
+#!/bin/bash
 
-CONTAINER_ID=$(docker run --workdir /root -d ubuntu:16.04 /usr/bin/tail -f /dev/null)
+NAME="$1"
+SOURCE="$2"
 
-exec_container() {
-  echo "---> $1"
-  docker exec $CONTAINER_ID $1
-}
+# Build docker container from source dir
 
-copy_container() {
-  echo "---> $1:$2"
-  docker cp $1 $CONTAINER_ID:$2
-}
+ID=$(docker run -d -v $2:/tmp/app gliderlabs/herokuish /build)
+# ID=$(docker run -d -v $3:/tmp/app gliderlabs/herokuish /build)
 
-generate_entrypoint() {
-  echo "---> entrypoint"
+# Attach to build container to display log
 
-  sudo touch /root/entrypoint
+docker attach $ID
 
-  echo "#!/usr/bin/env sh" >> /root/entrypoint
-  echo "source /root/.profile.d/*.sh" >> /root/entrypoint
-  echo "npm start" >> /root/entrypoint
-}
-
-commit_and_tag_container() {
-  echo "---> commit"
-
-  BUILD_DATE=$(date +%Y%m%d)
-
-  SHA256=$(docker commit --author "ByteArena whatever <a@b.fr>" --message "Builded at $BUILD_DATE" $CONTAINER_ID)
-  NAME=$(echo $SHA256 | sed 's/sha256://')
-
-  echo "---> tag $NAME"
-
-  docker tag $NAME bytearena_foo
-}
-
-exec_container "apt-get update"
-exec_container "apt-get install -y curl"
-
-(
-  set -e
-
-  copy_container ./heroku-buildpack-$1/ /heroku-buildpack-$1/
-  copy_container $2/. /root
-
-  exec_container "ls /root"
-  exec_container "/heroku-buildpack-$1/bin/compile /root /tmp"
-
-  generate_entrypoint
-
-  commit_and_tag_container
-
-  docker stop $CONTAINER_ID
-  docker rm $CONTAINER_ID
-)
-
-if [ $? = 1 ]
-then
-  echo "Exited with code 1"
-  docker kill $CONTAINER_ID
-  docker rm -f $CONTAINER_ID
+if (($? != 0)); then
+	exit 1
 fi
+
+# Wait for container to finish
+
+test $(docker wait $ID) -eq 0
+
+# Commit changes to new tag
+
+docker commit $ID $NAME > /dev/null
+
+# Delete /tmp/app (bug fix)
+
+ID=$(docker run -d $NAME /bin/rm -rf /tmp/app)
+
+# Wait for container to finish
+
+test $(docker wait $ID) -eq 0
+
+# Commit tag
+
+docker commit $ID $NAME > /dev/null
+

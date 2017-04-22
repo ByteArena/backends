@@ -7,7 +7,7 @@ import (
 	"path"
 
 	"github.com/kardianos/osext"
-	"github.com/netgusto/bytearena/server/config"
+	// "github.com/netgusto/bytearena/server/config"
 )
 
 func throwIfError(err error) {
@@ -18,27 +18,22 @@ func throwIfError(err error) {
 
 func main() {
 	filename := os.Args[1]
-	config := config.LoadAgentConfig(filename)
+	// config := config.LoadAgentConfig(filename)
 
-	switch config.Image {
-	case "nodejs":
-		buildImage(config.Image, path.Dir(filename))
-	default:
-		log.Panicln("Supported images are: 'node', " + config.Image + " given")
-	}
+	buildImage(path.Dir(filename))
 }
 
-func buildImage(buildPackName string, buildDir string) {
+func buildImage(buildDir string) {
 
 	launchBuildProcess(
-		buildPackName,
+		"bytearena_foo",
 		getAbsoluteDir("build.sh"),
 		getAbsoluteDir(buildDir),
 	)
 }
 
-func launchBuildProcess(buildPackName string, bin string, buildDir string) {
-	cmd := exec.Command(bin, buildPackName, buildDir)
+func launchBuildProcess(name string, bin string, buildDir string) {
+	cmd := exec.Command(bin, name, buildDir)
 
 	var (
 		cmdOut []byte
@@ -50,6 +45,23 @@ func launchBuildProcess(buildPackName string, bin string, buildDir string) {
 	}
 
 	out := string(cmdOut)
+
+	log.Println("out", out)
+
+	// Deploy
+
+	cmd = exec.Command(
+		getAbsoluteDir("deploy.sh"),
+		name,
+		"127.0.0.1:5000",
+		"latest",
+	)
+
+	if cmdOut, err = cmd.Output(); err != nil {
+		log.Panicln("Error running command: ", err, string(cmdOut))
+	}
+
+	out = string(cmdOut)
 
 	log.Println("out", out)
 }
