@@ -24,6 +24,12 @@
 <script src="js/libs/pixi.min.js"></script>
 <script src="js/libs/jquery.slim.min.js"></script>
 <script src="js/vector2.js"></script>
+<script src="js/comm.js"></script>
 <script src="js/app.js"></script>
+<script>
+(function() {
+    comm("ws://{{.Host}}/ws");
+})();
+</script>
 </body>
 </html>
