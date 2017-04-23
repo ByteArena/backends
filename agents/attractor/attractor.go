@@ -5,15 +5,16 @@ import (
 	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/server/state"
 	"github.com/netgusto/bytearena/utils"
+	"github.com/netgusto/bytearena/utils/vector"
 )
 
 type AttractorAgent struct {
 	agent.LocalAgentImp
-	pincenter utils.Vector2
+	pincenter vector.Vector2
 }
 
 func MakeAttractorAgent() AttractorAgent {
-	pin := utils.MakeVector2(400, 300)
+	pin := vector.MakeVector2(400, 300)
 	return AttractorAgent{
 		LocalAgentImp: agent.MakeLocalAgentImp(),
 		pincenter:     pin,
@@ -24,7 +25,7 @@ func (agent AttractorAgent) SetPerception(perception state.Perception, comm prot
 
 	speed := perception.Specs.MaxSpeed
 
-	desired := utils.MakeVector2(1, 20).SetMag(speed).Limit(perception.Specs.MaxSteeringForce)
+	desired := vector.MakeVector2(1, 20).SetMag(speed).Limit(perception.Specs.MaxSteeringForce)
 
 	steeringx, steeringy := desired.Get()
 

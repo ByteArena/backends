@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/netgusto/bytearena/server/protocol"
-	"github.com/netgusto/bytearena/utils"
+	"github.com/netgusto/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -18,8 +18,13 @@ type ServerState struct {
 	Projectiles      map[uuid.UUID](ProjectileState)
 	Projectilesmutex *sync.Mutex
 
+	Obstacles      []Obstacle
+	Obstaclesmutex *sync.Mutex
+
 	pendingmutations []protocol.StateMutationBatch
 	mutationsmutex   *sync.Mutex
+
+	DebugIntersects []vector.Vector2
 }
 
 /* ***************************************************************************/
@@ -35,8 +40,13 @@ func NewServerState() *ServerState {
 		Projectiles:      make(map[uuid.UUID](ProjectileState)),
 		Projectilesmutex: &sync.Mutex{},
 
+		Obstacles:      make([]Obstacle, 0),
+		Obstaclesmutex: &sync.Mutex{},
+
 		pendingmutations: make([]protocol.StateMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
+
+		DebugIntersects: make([]vector.Vector2, 0),
 	}
 }
 
@@ -52,6 +62,12 @@ func (serverstate *ServerState) SetAgentState(agentid uuid.UUID, agentstate Agen
 	serverstate.Agentsmutex.Lock()
 	serverstate.Agents[agentid] = agentstate
 	serverstate.Agentsmutex.Unlock()
+}
+
+func (serverstate *ServerState) SetObstacle(obstacle Obstacle) {
+	serverstate.Obstaclesmutex.Lock()
+	serverstate.Obstacles = append(serverstate.Obstacles, obstacle)
+	serverstate.Obstaclesmutex.Unlock()
 }
 
 func (serverstate *ServerState) PushMutationBatch(batch protocol.StateMutationBatch) {
@@ -88,7 +104,7 @@ func (serverstate *ServerState) ProcessMutations() {
 					}
 
 					nbmutations++
-					newstate = newstate.mutationSteer(utils.MakeVector2(vec[0], vec[1]))
+					newstate = newstate.mutationSteer(vector.MakeVector2(vec[0], vec[1]))
 
 					break
 				}
@@ -100,7 +116,7 @@ func (serverstate *ServerState) ProcessMutations() {
 					}
 
 					nbmutations++
-					newstate = newstate.mutationShoot(serverstate, utils.MakeVector2(vec[0], vec[1]))
+					newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
 
 					break
 				}

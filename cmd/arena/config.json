@@ -2,7 +2,6 @@
   "server": {
     "port": 8080,
     "agentdir": "../../agents/",
-    "host": "192.168.1.120",
     "tps": 20
   },
   "agents": [{

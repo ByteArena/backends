@@ -1,10 +1,12 @@
-package utils
+package vector
 
 import (
 	"bytes"
 	"fmt"
 	"math"
 	"math/rand"
+
+	"github.com/netgusto/bytearena/utils/number"
 )
 
 type Vector2 struct {
@@ -14,6 +16,24 @@ type Vector2 struct {
 
 func MakeVector2(x float64, y float64) Vector2 {
 	return Vector2{x, y}
+}
+
+// Returns a random unit vector
+func MakeRandomVector2() Vector2 {
+	radians := rand.Float64() * math.Pi * 2
+	return MakeVector2(
+		math.Cos(radians),
+		math.Sin(radians),
+	)
+}
+
+// Returns a null vector2
+func MakeNullVector2() Vector2 {
+	return MakeVector2(0, 0)
+}
+
+func NewVector2(x float64, y float64) *Vector2 {
+	return &Vector2{x, y}
 }
 
 func (v Vector2) Get() (float64, float64) {
@@ -147,6 +167,22 @@ func (a Vector2) Angle() float64 {
 	return angle
 }
 
+func (a Vector2) Cross(v Vector2) float64 {
+	return a.x*v.y - a.y*v.x
+}
+
+func (a Vector2) Dot(v Vector2) float64 {
+	return a.x*v.x - a.y*v.y
+}
+
+func (a Vector2) IsNull() bool {
+	return isZero(a.x) && isZero(a.y)
+}
+
+func (a Vector2) Equals(b Vector2) bool {
+	return b.Sub(a).IsNull()
+}
+
 func (a Vector2) ToArray() []float64 {
 	res := make([]float64, 2)
 	res[0] = a.x
@@ -155,14 +191,11 @@ func (a Vector2) ToArray() []float64 {
 }
 
 func (a Vector2) String() string {
-	return "<Vector2(" + FloatToStr(a.x, 5) + ", " + FloatToStr(a.y, 5) + ")>"
+	return "<Vector2(" + number.FloatToStr(a.x, 5) + ", " + number.FloatToStr(a.y, 5) + ")>"
 }
 
-// Returns a random unit vector
-func MakeRandomVector2() Vector2 {
-	radians := rand.Float64() * math.Pi * 2
-	return MakeVector2(
-		math.Cos(radians),
-		math.Sin(radians),
-	)
+var epsilon float64 = 0.0000000001
+
+func isZero(f float64) bool {
+	return math.Abs(f) < epsilon
 }
