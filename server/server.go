@@ -78,14 +78,14 @@ func NewServer(host string, port int, nbexpectedagents int, tickspersec int, sto
 	}
 }
 
-func (server *Server) Spawnagent(agentdir string, config config.AgentGameConfig) {
+func (server *Server) Spawnagent(config config.AgentGameConfig) {
 
 	agent := agent.MakeNetAgentImp()
 	agentstate := state.MakeAgentState()
 
 	server.RegisterAgent(agent, agentstate)
 
-	container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, agentdir, config)
+	container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, config)
 	if err != nil {
 		log.Panicln(err)
 	}

@@ -106,7 +106,7 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 	}
 }
 
-func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, agentdir string, config config.AgentGameConfig) (AgentContainer, error) {
+func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, config config.AgentGameConfig) (AgentContainer, error) {
 
 	orch.cli.ImagePull(
 		orch.ctx,
@@ -136,6 +136,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		AutoRemove:     true,
 		ReadonlyRootfs: true,
 		//NetworkMode:    "host",
+		Links:       nil,
 		NetworkMode: "bridge",
 		Resources: container.Resources{
 			Memory: 1024 * 1024 * 32, // 32M

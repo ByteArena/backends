@@ -8,8 +8,6 @@ import (
 
 	"github.com/kardianos/osext"
 	"github.com/netgusto/bytearena/server/config"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 )
 
 func throwIfError(err error) {
@@ -27,27 +25,49 @@ func main() {
 	buildImage(dir, name)
 }
 
-func buildImage(buildDir string, name string) {
+func buildImage(absBuildDir string, name string) {
 
 	launchBuildProcess(
 		name,
 		getAbsoluteDir("build.sh"),
-		getAbsoluteDir(buildDir),
+		absBuildDir,
 	)
 }
 
-func cloneRepo(url string, dir string) string {
-	_, err := git.PlainClone("/tmp/"+dir, false, &git.CloneOptions{
-		URL:      url,
-		Auth:     Transport.ssh,
-		Progress: os.Stdout,
-	})
+func cloneRepo(url string, hash string) string {
+	/*
+		authmethod, err := ssh.NewSSHAgentAuth("git") // git@github.com:...
+		if err != nil {
+			log.Panicln("Erreur sur NewSSHAgentAuth", err)
+		}
+
+		_, err = git.PlainClone("/tmp/"+dir, false, &git.CloneOptions{
+			URL: url,
+			//Auth:     transport,
+			Progress: os.Stdout,
+			Auth:     authmethod,
+		})
+	*/
+
+	dir := "/tmp/" + hash
+	err := os.RemoveAll(dir)
+
+	cmd := exec.Command(getAbsoluteDir("clone.sh"), url, dir)
+
+	cmdOut, err := cmd.Output()
+	if err != nil {
+		log.Panicln("Error running command: ", err, string(cmdOut))
+	}
+
+	out := string(cmdOut)
+
+	log.Println("out", out)
 
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	return ""
+	return dir
 }
 
 func launchBuildProcess(name string, bin string, buildDir string) {

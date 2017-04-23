@@ -1,7 +1,6 @@
 {
   "server": {
     "port": 8080,
-    "agentdir": "../../agents/",
     "tps": 20
   },
   "agents": [{
