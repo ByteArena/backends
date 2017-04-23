@@ -7,7 +7,9 @@ import (
 	"path"
 
 	"github.com/kardianos/osext"
-	// "github.com/netgusto/bytearena/server/config"
+	"github.com/netgusto/bytearena/server/config"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 )
 
 func throwIfError(err error) {
@@ -17,19 +19,35 @@ func throwIfError(err error) {
 }
 
 func main() {
-	filename := os.Args[1]
-	// config := config.LoadAgentConfig(filename)
+	gitRepoUrl := os.Args[1]
 
-	buildImage(path.Dir(filename))
+	name := config.HashGitRepoName(gitRepoUrl)
+	dir := cloneRepo(gitRepoUrl, name)
+
+	buildImage(dir, name)
 }
 
-func buildImage(buildDir string) {
+func buildImage(buildDir string, name string) {
 
 	launchBuildProcess(
-		"bytearena_bar",
+		name,
 		getAbsoluteDir("build.sh"),
 		getAbsoluteDir(buildDir),
 	)
+}
+
+func cloneRepo(url string, dir string) string {
+	_, err := git.PlainClone("/tmp/"+dir, false, &git.CloneOptions{
+		URL:      url,
+		Auth:     Transport.ssh,
+		Progress: os.Stdout,
+	})
+
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	return ""
 }
 
 func launchBuildProcess(name string, bin string, buildDir string) {

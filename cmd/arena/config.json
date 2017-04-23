@@ -6,6 +6,6 @@
   },
   "agents": [{
     "scale": 10,
-    "dir": "seeker"
+    "git": "git@github.com:netgusto/bytearena-agent-seeker.git"
   }]
 }

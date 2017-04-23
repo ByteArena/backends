@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -10,8 +12,6 @@ import (
 )
 
 type AgentGameConfig struct {
-	Cmd   string
-	Dir   string
 	Image string
 }
 
@@ -30,7 +30,7 @@ type fileServerConfig struct {
 	}
 	Agents []struct {
 		Scale int
-		Dir   string
+		Git   string
 	}
 }
 
@@ -53,17 +53,13 @@ func LoadServerConfig(filename string) GameConfig {
 	assertString(config.Server.Agentdir, "Agentdir must be provided in the configuration")
 
 	gameconfig := GameConfig{
-		Tps:  config.Server.Tps,
-		Port: config.Server.Port,
-		//Host:     config.Server.Host,
+		Tps:      config.Server.Tps,
+		Port:     config.Server.Port,
 		Agentdir: getAbsoluteDir(config.Server.Agentdir),
 	}
 
 	for _, agentconfig := range config.Agents {
-		agentdir := path.Join(gameconfig.Agentdir, agentconfig.Dir)
-		config := LoadAgentConfig(agentdir + "/config.json")
-
-		config.Dir = agentdir
+		config := createAgentGameConfig(agentconfig.Git)
 
 		if agentconfig.Scale != 0 {
 
@@ -92,20 +88,12 @@ func assertString(value string, err string) {
 	}
 }
 
-func LoadAgentConfig(filename string) AgentGameConfig {
-	data, err := ioutil.ReadFile(filename)
+func createAgentGameConfig(git string) AgentGameConfig {
+	imageName := HashGitRepoName(git)
 
-	if err != nil {
-		log.Panicln(err)
+	return AgentGameConfig{
+		Image: imageName,
 	}
-
-	var config AgentGameConfig
-
-	if err := json.Unmarshal(data, &config); err != nil {
-		log.Panicln(err)
-	}
-
-	return config
 }
 
 func getAbsoluteDir(relative string) string {
@@ -116,4 +104,14 @@ func getAbsoluteDir(relative string) string {
 	}
 
 	return path.Join(exfolder, relative)
+}
+
+func HashGitRepoName(git string) string {
+	return getMD5Hash(git)
+}
+
+func getMD5Hash(text string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(text))
+	return hex.EncodeToString(hasher.Sum(nil))
 }

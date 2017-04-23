@@ -116,6 +116,8 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		},
 	)
 
+	log.Println(config.Image)
+
 	containerconfig := container.Config{
 		Image: config.Image,
 		User:  "root",
@@ -131,7 +133,6 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	hostconfig := container.HostConfig{
 		CapDrop:        []string{"ALL"},
 		Privileged:     false,
-		Binds:          []string{config.Dir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
 		AutoRemove:     true,
 		ReadonlyRootfs: true,
 		//NetworkMode:    "host",
@@ -162,7 +163,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 }
 
 func (orch *ContainerOrchestrator) GetHost() (string, error) {
-	res, err := orch.cli.NetworkInspect(orch.ctx, "bridge")
+	res, err := orch.cli.NetworkInspect(orch.ctx, "bridge", true)
 	if err != nil {
 		return "", err
 	}
