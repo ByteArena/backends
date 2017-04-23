@@ -16,9 +16,10 @@ import (
 )
 
 type ContainerOrchestrator struct {
-	ctx        context.Context
-	cli        *client.Client
-	containers []AgentContainer
+	ctx          context.Context
+	cli          *client.Client
+	registryAuth string
+	containers   []AgentContainer
 }
 
 func MakeContainerOrchestrator() ContainerOrchestrator {
@@ -28,9 +29,12 @@ func MakeContainerOrchestrator() ContainerOrchestrator {
 		log.Panicln(err)
 	}
 
+	registryAuth := registryLogin(ctx, cli)
+
 	return ContainerOrchestrator{
-		ctx: ctx,
-		cli: cli,
+		ctx:          ctx,
+		cli:          cli,
+		registryAuth: registryAuth,
 	}
 }
 
@@ -104,9 +108,16 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 
 func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, agentdir string, config config.AgentGameConfig) (AgentContainer, error) {
 
+	orch.cli.ImagePull(
+		orch.ctx,
+		"127.0.0.1:5000/bytearena_bar:latest",
+		types.ImagePullOptions{
+			RegistryAuth: orch.registryAuth,
+		},
+	)
+
 	containerconfig := container.Config{
 		Image: config.Image,
-		Cmd:   []string{"/bin/bash", "-c", config.Cmd},
 		User:  "root",
 		Env: []string{
 			"SWARMPORT=" + strconv.Itoa(port),

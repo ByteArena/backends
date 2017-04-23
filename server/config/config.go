@@ -61,7 +61,7 @@ func LoadServerConfig(filename string) GameConfig {
 
 	for _, agentconfig := range config.Agents {
 		agentdir := path.Join(gameconfig.Agentdir, agentconfig.Dir)
-		config := loadAgentConfig(agentdir + "/config.json")
+		config := LoadAgentConfig(agentdir + "/config.json")
 
 		config.Dir = agentdir
 
@@ -92,7 +92,7 @@ func assertString(value string, err string) {
 	}
 }
 
-func loadAgentConfig(filename string) AgentGameConfig {
+func LoadAgentConfig(filename string) AgentGameConfig {
 	data, err := ioutil.ReadFile(filename)
 
 	if err != nil {
