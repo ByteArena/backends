@@ -11,4 +11,3 @@ docker tag $NAME $REGISTRY/$NAME:$TAG
 # Push to remote registry
 
 docker push $REGISTRY/$NAME:$TAG
-

@@ -26,7 +26,7 @@ func main() {
 func buildImage(buildDir string) {
 
 	launchBuildProcess(
-		"bytearena_foo",
+		"bytearena_bar",
 		getAbsoluteDir("build.sh"),
 		getAbsoluteDir(buildDir),
 	)
