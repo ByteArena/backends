@@ -1,8 +1,0 @@
-{
-  "scripts": {
-    "start": "node --harmony client.js"
-  },
-  "dependencies": {
-    "performance-now": "^2.1.0"
-  }
-}
