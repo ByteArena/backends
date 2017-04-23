@@ -24,7 +24,11 @@ type ServerState struct {
 	pendingmutations []protocol.StateMutationBatch
 	mutationsmutex   *sync.Mutex
 
-	DebugIntersects []vector.Vector2
+	DebugIntersects         []vector.Vector2
+	DebugIntersectsRejected []vector.Vector2
+
+	DebugPoints      []vector.Vector2
+	debugPointsMutex *sync.Mutex
 }
 
 /* ***************************************************************************/
@@ -46,7 +50,14 @@ func NewServerState() *ServerState {
 		pendingmutations: make([]protocol.StateMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
 
-		DebugIntersects: make([]vector.Vector2, 0),
+		DebugIntersects:         make([]vector.Vector2, 0),
+		DebugIntersectsRejected: make([]vector.Vector2, 0),
+
+		DebugPoints:      make([]vector.Vector2, 0),
+		debugPointsMutex: &sync.Mutex{},
+
+		//DebugSegments: []vector.Vector2,
+		//debugSegmentsMutex: &sync.Mutex{},
 	}
 }
 
@@ -119,6 +130,27 @@ func (serverstate *ServerState) ProcessMutations() {
 					newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
 
 					break
+				}
+			case "debugvis":
+				{
+					var rawvecs [][]float64
+					if err := json.Unmarshal(mutation.GetArguments(), &rawvecs); err != nil {
+						log.Panicln(err)
+					}
+
+					if len(rawvecs) > 0 {
+						vecs := make([]vector.Vector2, len(rawvecs))
+						for i, rawvec := range rawvecs {
+							v := vector.MakeVector2(rawvec[0], rawvec[1])
+							vecs[i] = v.SetAngle(v.Angle() + agentstate.Orientation).Add(agentstate.Position)
+						}
+
+						serverstate.debugPointsMutex.Lock()
+						for _, vec := range vecs {
+							serverstate.DebugPoints = append(serverstate.DebugPoints, vec)
+						}
+						serverstate.debugPointsMutex.Unlock()
+					}
 				}
 			}
 		}

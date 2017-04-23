@@ -162,7 +162,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 }
 
 func (orch *ContainerOrchestrator) GetHost() (string, error) {
-	res, err := orch.cli.NetworkInspect(orch.ctx, "bridge", true)
+	res, err := orch.cli.NetworkInspect(orch.ctx, "bridge")
 	if err != nil {
 		return "", err
 	}

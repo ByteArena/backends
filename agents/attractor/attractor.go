@@ -4,7 +4,7 @@ import (
 	"github.com/netgusto/bytearena/server/agent"
 	"github.com/netgusto/bytearena/server/protocol"
 	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/utils"
+	"github.com/netgusto/bytearena/utils/number"
 	"github.com/netgusto/bytearena/utils/vector"
 )
 
@@ -32,7 +32,7 @@ func (agent AttractorAgent) SetPerception(perception state.Perception, comm prot
 	mutations := make([]protocol.MessageMutationImp, 1)
 	mutations[0] = protocol.MessageMutationImp{
 		Method:    "steer",
-		Arguments: []byte("[" + utils.FloatToStr(steeringx, 5) + ", " + utils.FloatToStr(steeringy, 5) + "]"),
+		Arguments: []byte("[" + number.FloatToStr(steeringx, 5) + ", " + number.FloatToStr(steeringy, 5) + "]"),
 	}
 
 	comm.PushMutationBatch(protocol.StateMutationBatch{

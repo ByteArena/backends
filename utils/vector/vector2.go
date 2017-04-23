@@ -172,7 +172,7 @@ func (a Vector2) Cross(v Vector2) float64 {
 }
 
 func (a Vector2) Dot(v Vector2) float64 {
-	return a.x*v.x - a.y*v.y
+	return a.x*v.x + a.y*v.y
 }
 
 func (a Vector2) IsNull() bool {

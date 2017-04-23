@@ -9,13 +9,16 @@ type PerceptionSpecs struct {
 	MaxSpeed           float64 // max distance covered per turn
 	MaxSteeringForce   float64 // max force applied when steering (ie, max magnitude of steering vector)
 	MaxAngularVelocity float64
+	VisionRadius       float64
+	VisionAngle        float64
 }
 
 type PerceptionVisionItem struct {
-	Tag      string // should be an enum, but no enum in Go
-	Center   vector.Vector2
-	Radius   float64
-	Velocity vector.Vector2
+	Tag       string // should be an enum, but no enum in Go
+	CloseEdge vector.Vector2
+	Center    vector.Vector2
+	FarEdge   vector.Vector2
+	Velocity  vector.Vector2
 }
 
 type PerceptionExternal struct {

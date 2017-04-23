@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -18,10 +19,12 @@ import (
 )
 
 type vizmessage struct {
-	Agents          []vizagentmessage
-	Projectiles     []vizprojectilemessage
-	Obstacles       []vizobstaclemessage
-	DebugIntersects []vector.Vector2
+	Agents                  []vizagentmessage
+	Projectiles             []vizprojectilemessage
+	Obstacles               []vizobstaclemessage
+	DebugIntersects         []vector.Vector2
+	DebugIntersectsRejected []vector.Vector2
+	DebugPoints             []vector.Vector2
 }
 
 type vizagentmessage struct {
@@ -29,6 +32,7 @@ type vizagentmessage struct {
 	X            float64
 	Y            float64
 	Position     vector.Vector2
+	Velocity     vector.Vector2
 	VisionRadius float64
 	VisionAngle  float64
 	Radius       float64
@@ -121,6 +125,7 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 						Id:           id,
 						Kind:         "agent",
 						Position:     agent.Position,
+						Velocity:     agent.Velocity,
 						Radius:       agent.Radius,
 						Orientation:  agent.Orientation,
 						VisionRadius: agent.VisionRadius,
@@ -139,6 +144,8 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 				serverstate.Obstaclesmutex.Unlock()
 
 				msg.DebugIntersects = serverstate.DebugIntersects
+				msg.DebugIntersectsRejected = serverstate.DebugIntersectsRejected
+				msg.DebugPoints = serverstate.DebugPoints
 
 				json, err := json.Marshal(msg)
 				if err != nil {
@@ -198,58 +205,37 @@ func visualization(srv *server.Server, host string, port int) {
 		staterelaymutex.Unlock()
 	})
 
-	http.HandleFunc("/js/app.js", func(w http.ResponseWriter, r *http.Request) {
-		appjssource, err := ioutil.ReadFile(basepath + "js/app.js")
-		if err != nil {
-			panic(err)
+	staticfile := func(relfile string, replacements bool) func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
+			log.Println(r.Host)
+			if strings.Contains(relfile, ".js") {
+				w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+			}
+
+			appjssource, err := ioutil.ReadFile(basepath + relfile)
+			if err != nil {
+				panic(err)
+			}
+
+			if replacements == false {
+				w.Write(appjssource)
+			} else {
+				var appjsTemplate = template.Must(template.New("").Parse(string(appjssource)))
+				appjsTemplate.Execute(w, struct {
+					Host string
+				}{r.Host})
+			}
 		}
-		var appjsTemplate = template.Must(template.New("").Parse(string(appjssource)))
-		appjsTemplate.Execute(w, "ws://"+r.Host+"/ws")
-	})
-	http.HandleFunc("/js/vector2.js", func(w http.ResponseWriter, r *http.Request) {
-		appjssource, err := ioutil.ReadFile(basepath + "js/vector2.js")
-		if err != nil {
-			panic(err)
-		}
-		var appjsTemplate = template.Must(template.New("").Parse(string(appjssource)))
-		appjsTemplate.Execute(w, "ws://"+r.Host+"/ws")
-	})
-	http.HandleFunc("/js/libs/pixi.min.js", func(w http.ResponseWriter, r *http.Request) {
-		pixijssource, err := ioutil.ReadFile(basepath + "js/libs/pixi.min.js")
-		if err != nil {
-			panic(err)
-		}
-		w.Write(pixijssource)
-	})
-	http.HandleFunc("/js/libs/jquery.slim.min.js", func(w http.ResponseWriter, r *http.Request) {
-		jqueryjssource, err := ioutil.ReadFile(basepath + "js/libs/jquery.slim.min.js")
-		if err != nil {
-			panic(err)
-		}
-		w.Write(jqueryjssource)
-	})
-	http.HandleFunc("/images/circle.png", func(w http.ResponseWriter, r *http.Request) {
-		imagesource, err := ioutil.ReadFile(basepath + "images/circle.png")
-		if err != nil {
-			panic(err)
-		}
-		w.Write(imagesource)
-	})
-	http.HandleFunc("/images/triangle.png", func(w http.ResponseWriter, r *http.Request) {
-		imagesource, err := ioutil.ReadFile(basepath + "images/triangle.png")
-		if err != nil {
-			panic(err)
-		}
-		w.Write(imagesource)
-	})
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		homesource, err := ioutil.ReadFile(basepath + "index.html")
-		if err != nil {
-			panic(err)
-		}
-		var homeTemplate = template.Must(template.New("").Parse(string(homesource)))
-		homeTemplate.Execute(w, nil)
-	})
+	}
+
+	http.HandleFunc("/js/comm.js", staticfile("js/comm.js", false))
+	http.HandleFunc("/js/app.js", staticfile("js/app.js", false))
+	http.HandleFunc("/js/vector2.js", staticfile("js/vector2.js", false))
+	http.HandleFunc("/js/libs/pixi.min.js", staticfile("js/libs/pixi.min.js", false))
+	http.HandleFunc("/js/libs/jquery.slim.min.js", staticfile("js/libs/jquery.slim.min.js", false))
+	http.HandleFunc("/images/circle.png", staticfile("images/circle.png", false))
+	http.HandleFunc("/images/triangle.png", staticfile("images/triangle.png", false))
+	http.HandleFunc("/", staticfile("index.html", true))
 
 	go http.ListenAndServe(*addr, nil)
 

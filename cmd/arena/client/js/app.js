@@ -1,186 +1,192 @@
-/* global PIXI */
-$(function() {
-    var $output = $("#output");
-    var $open = $("#open");
-    var $close = $("#close");
-    var ws;
+/* global PIXI, $ */
+(function($, PIXI) {
+    function createAgentVision(agent) {
+        const vision = new PIXI.Graphics();
 
-    var print = function(message) {
-        var d = $("<div></div>");
-        d.html(message);
-        output.append(d.get(0));
-    };
+        const agentposition = Vector2.fromArray(agent.Position);
+        const agentvelocity = Vector2.fromArray(agent.Velocity);
+        const agentradius = agent.Radius;
 
-    $open.click(function(e) {
+        const radius = agent.VisionRadius;
+        const angle = agent.VisionAngle;
+        const orientation = agent.Orientation;
 
-        if (ws) return;
+        const halfangle = angle/2;
 
-        ws = new WebSocket("{{.}}");
+        const leftlineto = (new Vector2(1, 1))
+            .mag(radius)
+            .setAngle(orientation - halfangle);
+        
+        const rightlineto = (new Vector2(1, 1))
+            .mag(radius)
+            .setAngle(orientation + halfangle);
 
-        ws.onopen = function(evt) {
-            print("OPEN");
-            $open.hide();
-            $close.show();
-        }
-        ws.onclose = function(evt) {
-            print("CLOSE");
-            ws.close();
-            ws = null;
-            $open.show();
-            $close.hide();
-        }
+        vision.lineStyle(1, 0xFFAAFF);
 
-        ws.onmessage = function(evt) {
-            window.onStateUpdate(JSON.parse(evt.data));
-        }
-
-        ws.onerror = function(evt) {
-            print("ERROR: " + evt.data);
-        }
-    });
-
-    $close.click(function(e) {
-        if (!ws) return;
-        ws.close();
-    });
-
-});
-
-function createAgentVision(agent) {
-    const vision = new PIXI.Graphics();
-
-    const agentposition = Vector2.fromArray(agent.Position);
-    const radius = agent.VisionRadius;
-    const angle = agent.VisionAngle;
-    const orientation = agent.Orientation;
-
-    const halfangle = angle/2;
-
-    const leftlineto = (new Vector2(1, 1))
-        .mag(radius)
-        .setAngle(orientation - halfangle);
-    
-    const rightlineto = (new Vector2(1, 1))
-        .mag(radius)
-        .setAngle(orientation + halfangle);
-
-    vision.lineStyle(1, 0xFFAAFF);
-
-    vision.arc(
-        agentposition.x,
-        agentposition.y,
-        radius,
-        (Math.PI/2) + (-1*orientation) - halfangle,
-        (Math.PI/2) + (-1*orientation) + halfangle
-    );
+        vision.arc(
+            agentposition.x,
+            agentposition.y,
+            radius,
+            (Math.PI/2) + (-1*orientation) - halfangle,
+            (Math.PI/2) + (-1*orientation) + halfangle
+        );
 
 
-    vision
-        .moveTo(agentposition.x, agentposition.y)
-        .lineTo(agentposition.x+leftlineto.x, agentposition.y+leftlineto.y);
-    
-    vision
-        .moveTo(agentposition.x, agentposition.y)
-        .lineTo(agentposition.x+rightlineto.x, agentposition.y+rightlineto.y);
+        vision
+            .moveTo(agentposition.x, agentposition.y)
+            .lineTo(agentposition.x+leftlineto.x, agentposition.y+leftlineto.y);
+        
+        vision
+            .moveTo(agentposition.x, agentposition.y)
+            .lineTo(agentposition.x+rightlineto.x, agentposition.y+rightlineto.y);
 
-    return {
-        drawInStage(stage) {
-            stage.addChild(vision);
-        }
-    };
-}
+        // normals
+        const normals = agentvelocity.normals();
+        const normalegauche = normals[0].clone().mag(agentradius+agentradius);
+        const normaledroite = normals[1].clone().mag(agentradius+agentradius);
 
-function render() {
+        vision
+            .lineStyle(2, 0xFF0000)
+            .moveTo(agentposition.x, agentposition.y)
+            .lineTo(agentposition.x+normalegauche.x, agentposition.y+normalegauche.y);
+        
+        vision
+            .lineStyle(2, 0x0000FF)
+            .moveTo(agentposition.x, agentposition.y)
+            .lineTo(agentposition.x+normaledroite.x, agentposition.y+normaledroite.y);
+        
+        // bordures couloir gauche et droite
 
-    //Create the renderer
-    var renderer = PIXI.autoDetectRenderer(1000, 600, {
-        antialias: true
-    });
-    renderer.backgroundColor = 0xFFFFFF;
-    $('#visualization').append(renderer.view);
-    $(renderer.view).on('mousemove', function() {
-        const mouseData = renderer.plugins.interaction.mouse.global;
-        $('#infos').html('(' + mouseData.x + ', ' + (renderer.height - mouseData.y) + ']');
-    });
+        const leftedge = normalegauche.clone().rotate(-Math.PI/2).mag(radius+5).add(normalegauche);
+        const rightedge = normaledroite.clone().rotate(Math.PI/2).mag(radius+5).add(normaledroite);
 
-    $debug = $('#debug');
+        vision
+            .lineStyle(2, 0xFF0000)
+            .moveTo(agentposition.x+normalegauche.x, agentposition.y+normalegauche.y)
+            .lineTo(agentposition.x+leftedge.x, agentposition.y+leftedge.y);
+        
+        vision
+            .lineStyle(2, 0x0000FF)
+            .moveTo(agentposition.x+normaledroite.x, agentposition.y+normaledroite.y)
+            .lineTo(agentposition.x+rightedge.x, agentposition.y+rightedge.y);
+        
+        // topcap
 
-    var stage = new PIXI.Container();
-    stage.position.y = renderer.height / renderer.resolution;
-    stage.scale.y = -1;
+        const topcap = rightedge.clone().sub(leftedge);
+        vision
+            .lineStyle(2, 0x000000)
+            .moveTo(agentposition.x+leftedge.x, agentposition.y+leftedge.y)
+            .lineTo(agentposition.x+leftedge.x+topcap.x, agentposition.y+leftedge.y+topcap.y);
 
-    const agenttexture = PIXI.loader.resources["images/triangle.png"].texture;
-    agenttexture.rotate = 8;
+        return {
+            drawInStage(stage) {
+                stage.addChild(vision);
+            }
+        };
+    }
 
-    window.onStateUpdate = function(points) {
-        stage.removeChildren();
+    function render() {
 
-        const debug = $debug.is(':checked');
+        //Create the renderer
+        var renderer = PIXI.autoDetectRenderer(1000, 600, {
+            antialias: true
+        });
+        renderer.backgroundColor = 0xFFFFFF;
+        $('#visualization').append(renderer.view);
+        $(renderer.view).on('mousemove', function() {
+            const mouseData = renderer.plugins.interaction.mouse.global;
+            $('#infos').html('(' + mouseData.x + ', ' + (renderer.height - mouseData.y) + ']');
+        });
 
-        if (points.Obstacles) {
-            const obstacles = (new PIXI.Graphics())
-                .lineStyle(3, 0x00FF00);
-            stage.addChild(obstacles);
+        $debug = $('#debug');
 
-            points.Obstacles.forEach((obstacle) => {
-                obstacles
-                    .moveTo(obstacle.A[0], obstacle.A[1])
-                    .lineTo(obstacle.B[0], obstacle.B[1]);
-            });
-        }
+        var stage = new PIXI.Container();
+        stage.position.y = renderer.height / renderer.resolution;
+        stage.scale.y = -1;
 
-        if (debug && points.DebugIntersects) {
-            const intersects = (new PIXI.Graphics())
-                    .lineStyle(0, 0x000000);
-            stage.addChild(intersects);
+        const agenttexture = PIXI.loader.resources["images/triangle.png"].texture;
+        agenttexture.rotate = 8;
 
-            points.DebugIntersects.forEach((intersect) => {
-                intersects
-                    .beginFill(0xFF0000)
-                    .drawCircle(intersect[0], intersect[1], 3)
-                    .endFill();
-            });
-        }
+        window.onStateUpdate = function(points) {
+            stage.removeChildren();
 
-        if (points.Projectiles) {
-            const projectiles = (new PIXI.Graphics())
-                    .lineStyle(2, 0xFF0000);
-            stage.addChild(projectiles);
+            const debug = $debug.is(':checked');
 
-            points.Projectiles.forEach((projectile) => {
-                projectiles
-                    .moveTo(projectile.From.Position[0], projectile.From.Position[1])
-                    .lineTo(projectile.Position[0], projectile.Position[1]);
-            });
-        }
+            if (points.Obstacles) {
+                const obstacles = (new PIXI.Graphics())
+                    .lineStyle(3, 0x00FF00);
+                stage.addChild(obstacles);
 
-        if (points.Agents) {
-            points.Agents.forEach((agent) => {
+                points.Obstacles.forEach((obstacle) => {
+                    obstacles
+                        .moveTo(obstacle.A[0], obstacle.A[1])
+                        .lineTo(obstacle.B[0], obstacle.B[1]);
+                });
+            }
 
-                var sprite = new PIXI.Sprite(agenttexture);
+            if (debug && points.DebugIntersects) {
+                const intersects = new PIXI.Graphics();
+                stage.addChild(intersects);
 
-                const position = Vector2.fromArray(agent.Position);
+                points.DebugIntersects.forEach((intersect) => {
+                    intersects
+                        .beginFill(0x0000FF)
+                        .drawCircle(intersect[0], intersect[1], 3)
+                        .endFill();
+                });
+            }
 
-                sprite.x = position.x;
-                sprite.y = position.y;
-                sprite.width = agent.Radius * 2;
-                sprite.height = agent.Radius * 2;
-                sprite.tint = 0x8D8D64;
-                sprite.anchor.set(0.5);
-                sprite.rotation = -1 * agent.Orientation
+            if (debug && points.DebugPoints) {
+                const layer = new PIXI.Graphics();
+                stage.addChild(layer);
+                points.DebugPoints.forEach((point) => {
+                    layer
+                        .beginFill(0xFF0000)
+                        .drawCircle(point[0], point[1], 3)
+                        .endFill();
+                });
+            }
 
-                if(debug) createAgentVision(agent).drawInStage(stage);
+            if (points.Projectiles) {
+                const projectiles = (new PIXI.Graphics())
+                        .lineStyle(2, 0xFF0000);
+                stage.addChild(projectiles);
 
-                //Create a container object called the `stage`
-                stage.addChild(sprite);
-            });
-        }
+                points.Projectiles.forEach((projectile) => {
+                    projectiles
+                        .moveTo(projectile.From.Position[0], projectile.From.Position[1])
+                        .lineTo(projectile.Position[0], projectile.Position[1]);
+                });
+            }
 
-        window.requestAnimationFrame(() => renderer.render(stage));
-    };
-}
+            if (points.Agents) {
+                points.Agents.forEach((agent) => {
 
-PIXI
-    .loader
-    .add('images/triangle.png')
-    .load(render);
+                    var sprite = new PIXI.Sprite(agenttexture);
+
+                    const position = Vector2.fromArray(agent.Position);
+
+                    sprite.x = position.x;
+                    sprite.y = position.y;
+                    sprite.width = agent.Radius * 2;
+                    sprite.height = agent.Radius * 2;
+                    sprite.tint = 0x8D8D64;
+                    sprite.anchor.set(0.5);
+                    sprite.rotation = -1 * agent.Orientation
+
+                    if(debug) createAgentVision(agent).drawInStage(stage);
+
+                    //Create a container object called the `stage`
+                    stage.addChild(sprite);
+                });
+            }
+
+            window.requestAnimationFrame(() => renderer.render(stage));
+        };
+    }
+
+    PIXI
+        .loader
+        .add('images/triangle.png')
+        .load(render);
+})($, PIXI)

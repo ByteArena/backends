@@ -7,19 +7,6 @@ import (
 	"github.com/netgusto/bytearena/utils/vector"
 )
 
-/// <summary>
-/// Test whether two line segments intersect. If so, calculate the intersection point.
-/// <see cref="http://stackoverflow.com/a/14143738/292237"/>
-/// </summary>
-/// <param name="p">Vector to the start point of p.</param>
-/// <param name="p2">Vector to the end point of p.</param>
-/// <param name="q">Vector to the start point of q.</param>
-/// <param name="q2">Vector to the end point of q.</param>
-/// <param name="intersection">The point of intersection, if any.</param>
-/// <param name="considerOverlapAsIntersect">Do we consider overlapping lines as intersecting?
-/// </param>
-/// <returns>True if an intersection point was found.</returns>
-
 func IntersectionWithLineSegment(p vector.Vector2, p2 vector.Vector2, q vector.Vector2, q2 vector.Vector2) (intersection vector.Vector2, intersects bool, colinear bool, parallel bool) {
 
 	r := p2.Sub(p)
@@ -62,7 +49,7 @@ func IntersectionWithLineSegment(p vector.Vector2, p2 vector.Vector2, q vector.V
 	}
 
 	// 5. Otherwise, the two line segments are not parallel but do not intersect.
-	return vector.MakeNullVector2(), false, false, false
+	return vector.MakeNullVector2(), false, false, true
 }
 
 func IntersectionWithLineSegmentCheckOnly(p1 vector.Vector2, p2 vector.Vector2, p3 vector.Vector2, p4 vector.Vector2) (intersect bool) {
@@ -104,7 +91,7 @@ func IntersectionWithLineSegmentCheckOnly(p1 vector.Vector2, p2 vector.Vector2, 
 	return doIntersect
 }
 
-func LineIntersectionPointBis(p0 vector.Vector2, p1 vector.Vector2, p2 vector.Vector2, p3 vector.Vector2) (point vector.Vector2, parallel bool) {
+func LinesIntersectionPoint(p0 vector.Vector2, p1 vector.Vector2, p2 vector.Vector2, p3 vector.Vector2) (point vector.Vector2, parallel bool) {
 
 	p0x, p0y := p0.Get()
 	p1x, p1y := p1.Get()
@@ -129,7 +116,7 @@ func LineIntersectionPointBis(p0 vector.Vector2, p1 vector.Vector2, p2 vector.Ve
 }
 
 // http://devmag.org.za/2009/04/17/basic-collision-detection-in-2d-part-2/
-func CircleLineCollision(LineP1 vector.Vector2, LineP2 vector.Vector2, CircleCentre vector.Vector2, Radius float64) []vector.Vector2 {
+func LineCircleIntersectionPoints(LineP1 vector.Vector2, LineP2 vector.Vector2, CircleCentre vector.Vector2, Radius float64) []vector.Vector2 {
 
 	LocalP1 := LineP1.Sub(CircleCentre)
 	LocalP2 := LineP2.Sub(CircleCentre)
@@ -171,46 +158,6 @@ func CircleLineCollision(LineP1 vector.Vector2, LineP2 vector.Vector2, CircleCen
 	return res
 }
 
-func IntersectionWithLineSegmentOld(a vector.Vector2, q vector.Vector2, q2 vector.Vector2) (intersection vector.Vector2, intersects bool, colinear bool, parallel bool) {
-	vec, intersects, parallel := _intersectionWithLineSegmentOld(a, q, q2)
-	return vec, intersects, false, parallel
-}
-
-func _intersectionWithLineSegmentOld(relvec vector.Vector2, segstart vector.Vector2, segend vector.Vector2) (point vector.Vector2, intersects bool, parallel bool) {
-	vecpointstart := vector.MakeNullVector2() // because vec is relative
-	vecpointend := relvec
-	intersectionpoint, parallel := LineIntersectionPointBis(
-		vecpointstart,
-		vecpointend,
-		segstart,
-		segend,
-	)
-
-	if parallel {
-		return intersectionpoint, false, true
-	}
-
-	// Have to determine if intersection point is on segment and on given vector
-	// => Point has to be both on vector and on line segment
-	//
-	// Point on vector ? Dist from vectorstart <= Mag(vec)
-	// Point on line segment ? Dist from segstart <= Mag(segment)
-
-	relvecmagsq := vecpointend.Sub(vecpointstart).MagSq()
-	distfromvecstartsq := intersectionpoint.Sub(vecpointstart).MagSq()
-	if distfromvecstartsq > relvecmagsq {
-		return intersectionpoint, false, false
-	}
-
-	segmagsq := segend.Sub(segstart).MagSq()
-	distfromsegstartsq := intersectionpoint.Sub(segstart).MagSq()
-	if distfromsegstartsq > segmagsq {
-		return intersectionpoint, false, false
-	}
-
-	return intersectionpoint, true, false
-}
-
 func PointOnLineSegment(p vector.Vector2, a vector.Vector2, b vector.Vector2) bool {
 	t := 0.0001
 
@@ -240,4 +187,14 @@ func PointOnLineSegment(p vector.Vector2, a vector.Vector2, b vector.Vector2) bo
 	}
 
 	return py+t > ay && py-t < by
+}
+
+func FullCircleAngleToSignedHalfCircleAngle(rad float64) float64 {
+	if rad > math.Pi { // 180° en radians
+		rad -= math.Pi * 2 // 360° en radian
+	} else if rad < -math.Pi {
+		rad += math.Pi * 2 // 360° en radian
+	}
+
+	return rad
 }

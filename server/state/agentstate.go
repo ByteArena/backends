@@ -5,6 +5,7 @@ import (
 	"math/rand"
 
 	"github.com/netgusto/bytearena/utils/number"
+	"github.com/netgusto/bytearena/utils/trigo"
 	"github.com/netgusto/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
@@ -52,9 +53,6 @@ func MakeAgentState() AgentState {
 	initialx := 100 + rand.Float64()*800
 	initialy := 100 + rand.Float64()*300
 
-	// initialx := 500.0
-	// initialy := 150.0
-
 	r := 6 + rand.Float64()*6.0
 
 	return AgentState{
@@ -67,7 +65,7 @@ func MakeAgentState() AgentState {
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
 		VisionRadius:       100,
-		VisionAngle:        number.DegreeToRadian(45),
+		VisionAngle:        number.DegreeToRadian(140),
 	}
 }
 
@@ -123,9 +121,7 @@ func (state AgentState) localAngleToAbsoluteAngleVec(vec vector.Vector2, maxangl
 	relvecangle := absvecangle
 
 	// On passe de 0° / 360° à -180° / +180°
-	if absvecangle > math.Pi { // 180° en radians
-		relvecangle -= math.Pi * 2 // 360° en radian
-	}
+	relvecangle = trigo.FullCircleAngleToSignedHalfCircleAngle(absvecangle)
 
 	// On contraint la vélocité angulaire à un maximum
 	if maxangleconstraint != nil {

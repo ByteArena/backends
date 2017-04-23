@@ -1,5 +1,4 @@
 const comm = require('./utils/comm');
-const now = require('performance-now');
 const Vector2 = require('./utils/vector2');
 const { map } = require('./utils/calc');
 
@@ -9,117 +8,103 @@ const port = process.env.SWARMPORT;
 const host = process.env.SWARMHOST;
 const agentid = process.env.AGENTID;
 
-let timecursor = 0;
-const times = [];
+// taked from http://stackoverflow.com/a/37865332/3528924
+function pointInRectangle(vP, vRA, vRB, vRC, vRD) {
+    //var AB = vector(r.A, r.B);
+    var AB = vRB.clone().sub(vRA);
+    //var AM = vector(r.A, m);
+    var AM = vP.clone().sub(vRA);
+    //var BC = vector(r.B, r.C);
+    var BC = vRC.clone().sub(vRB);
+    //var BM = vector(r.B, m);
+    var BM = vP.clone().sub(vRB);
 
-function measurespeed(start) {
-    const duration = now() - start/* - 10*/;
-    times[timecursor%6000] = duration;
-    timecursor++;
+    var dotABAM = AB.dot(AM);
+    var dotABAB = AB.dot(AB);
+    var dotBCBM = BC.dot(BM);
+    var dotBCBC = BC.dot(BC);
 
-    const mean = times.reduce(function(carry, val) {
-        return carry + val;
-    }, 0) / times.length;
-    console.log('Took', (duration).toFixed(2), '; mean', mean.toFixed(2));
-}
-
-function flockforces(perception) {
-    const sepdist = 30; // separation distance
-
-    let sepforce = new Vector2();   // Separation force
-    let alignforce = new Vector2(); // alignment force
-    let cohesionforce = new Vector2(); // cohesion force
-
-    if(perception.External.Vision && perception.External.Vision.length) {
-        const sepdistsq = sepdist * sepdist;
-
-        for(const otheragentkey in perception.External.Vision) {
-            const otheragent = perception.External.Vision[otheragentkey];
-            if(otheragent.Tag === "obstacle") continue;
-
-            const othervelocity = Vector2.fromArray(otheragent.Velocity);
-            const otherposition = Vector2
-                .fromArray(otheragent.Center)
-                .add(othervelocity);
-            
-            otherposition.mag(otherposition.mag() - otheragent.Radius)
-
-            if(otherposition.magSq() <= sepdistsq) {
-                sepforce.sub(otherposition);
-            }
-
-            cohesionforce.add(otherposition);
-            alignforce.add(othervelocity);
-        }
-
-        alignforce.div(perception.External.Vision.length);
-        cohesionforce.div(perception.External.Vision.length);
-    }
-
-    return {
-        separation: sepforce,
-        alignment: alignforce,
-        cohesion: cohesionforce,
-    };
-}
-
-function findAttractor(perception) {
-      // Finding the attractor
-    let attractor = null;
-    for(const otheragentkey in perception.External.Vision) {
-        const otheragent = perception.External.Vision[otheragentkey];
-        if(otheragent.Tag === "attractor") {
-            attractor = otheragent;
-            break;
-        }
-    }
-
-    if(attractor === null) return null;
-
-    return {
-        position: Vector2.fromArray(attractor.Center),
-        velocity: Vector2.fromArray(attractor.Velocity),
-    }
+    return 0 <= dotABAM && dotABAM <= dotABAB && 0 <= dotBCBM && dotBCBM <= dotBCBC;
 }
 
 function move(tickturn, perception) {
 
-    const start = now();
-
     let followpos = new Vector2(0, perception.Specs.MaxSpeed/3);
-    let aimed;
-
     let desired = followpos.clone();
-    
-    // Adding flocking behaviour (keeps agents in a cohesive pack, but separated from one another to avoid collisions)
-    const flock = flockforces(perception);
-    desired
-    .add(flock.separation.mult(8));
-    //.add(flock.alignment.mult(24))
-    //.add(flock.cohesion);
-
     let steering = desired.clone();
+
+    const agentvelocity = Vector2.fromArray(perception.Internal.Velocity);
+    const agentradius = perception.Internal.Proprioception;
+    const visionradius = perception.Specs.VisionRadius;
+
+    let debugpoints = [];
 
     // on évite les obstacles
     let avoidanceforce = new Vector2();
     if(perception.External.Vision) {
 
+        // normals
+
+        const normals = agentvelocity.normals();
+        const bottomleft = normals[0].clone().mag(agentradius+10);
+        const bottomright = normals[1].clone().mag(agentradius+10);
+        
+        // bordures couloir gauche et droite
+
+        const topleft = bottomleft.clone().rotate(-Math.PI/2).mag(visionradius+5).add(bottomleft);
+        const topright = bottomright.clone().rotate(Math.PI/2).mag(visionradius+5).add(bottomright);
+
+        // topcap
+
+        //const topcap = rightedge.clone().sub(leftedge);
+
         for(const otheragentkey in perception.External.Vision) {
             const otheragent = perception.External.Vision[otheragentkey];
-            if(otheragent.Tag === "obstacle") {
-                center = Vector2.fromArray(otheragent.Center);
-                centerdistsq = center.magSq()
-                relangle = center.angle();
+            if(otheragent.Tag !== "obstacle") continue;
 
-                //aimed = center;
+            closeEdge = Vector2.fromArray(otheragent.CloseEdge);
+            farEdge = Vector2.fromArray(otheragent.FarEdge);
+            const segment = farEdge.clone().sub(closeEdge);
 
-                // On passe de 0° / 360° à -180° / +180°
-			    if(relangle > Math.PI) { // 180° en radians
-				    relangle -= Math.PI * 2; // 360° en radian
-			    }
+            const edgestoavoid = [];
 
-                // On passe de 0° / 360° à -180° / +180°
-                avoidanceforce.add(new Vector2(-100, 0));
+            // can be overlapping, but not sure yet (test has been made on an axis aligned bounding box, but the corridor is oriented, not aligned)
+
+            if(pointInRectangle(closeEdge, bottomleft, bottomright, topright, topleft)) {
+                //console.log(closeEdge, "CLOSEEDGE IN CORRIDOR !");
+                edgestoavoid.push(closeEdge);
+            }
+
+            if(pointInRectangle(farEdge, bottomleft, bottomright, topright, topleft)) {
+                //console.log(farEdge, "FAREDGE IN CORRIDOR !");
+                //debugpoints.push(farEdge);
+                edgestoavoid.push(farEdge);
+            }
+
+            // test corridor intersection with line segment
+            let collision = Vector2.intersectionWithLineSegment(bottomleft, topleft, closeEdge, farEdge);
+            if(collision.intersects && !collision.colinear) {
+                // COLLISION LEFT
+                edgestoavoid.push(collision.intersection);
+            }
+
+            collision = Vector2.intersectionWithLineSegment(bottomright, topright, closeEdge, farEdge);
+            if(collision.intersects && !collision.colinear) {
+                // COLLISION RIGHT
+                edgestoavoid.push(collision.intersection);
+            }
+
+            if(edgestoavoid.length > 0) {
+                if(edgestoavoid.length !== 2) {
+                    console.log("OBSTACLE, SUM THIN WONG !");
+                } else {
+                    const pointa = edgestoavoid[0];
+                    const pointb = edgestoavoid[1];
+                    const center = pointb.clone().add(pointa).div(2);
+                    debugpoints.push(center);
+
+                    avoidanceforce.sub(new Vector2(100, 0));
+                }
             }
         }
     }
@@ -135,13 +120,9 @@ function move(tickturn, perception) {
     // Pushing batch of mutations for this turn
     this.sendMutations(tickturn, [
         { Method: 'steer', Arguments: steering.toArray(5) },
-        aimed ? (/*Math.random() < 0.95 ? null : */{ Method: 'shoot', Arguments: aimed.toArray(5) }) : null,
-    ])
-    /*
-    .then(response => {
-        measurespeed(start);
-    })
-    */
+    ].concat(debugpoints.map(point => {
+        return { Method: 'debugvis', Arguments: [point.toArray(5)] };
+    })))
     .catch(err => { throw err; });
 
 }
