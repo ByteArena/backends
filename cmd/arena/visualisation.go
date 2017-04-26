@@ -223,13 +223,13 @@ func visualization(srv *server.Server, host string, port int) {
 				var appjsTemplate = template.Must(template.New("").Parse(string(appjssource)))
 				appjsTemplate.Execute(w, struct {
 					Host        string
-					ArenaWidth  float64
-					ArenaHeight float64
+					ArenaWidth  int
+					ArenaHeight int
 					ArenaName   string
 				}{
 					r.Host,
-					arenaspecs.DimensionsPx.Width,
-					arenaspecs.DimensionsPx.Height,
+					arenaspecs.Surface.Width.RoundPixels(),
+					arenaspecs.Surface.Height.RoundPixels(),
 					arenaspecs.Name,
 				})
 			} else {

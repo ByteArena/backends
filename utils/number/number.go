@@ -50,3 +50,10 @@ var epsilon float64 = 0.0000000001
 func IsZero(f float64) bool {
 	return math.Abs(f) < epsilon
 }
+
+func Round(val float64) int {
+	if val < 0 {
+		return int(val - 0.5)
+	}
+	return int(val + 0.5)
+}

@@ -13,7 +13,7 @@ func NewSandboxArena() *SandboxArena {
 	return &SandboxArena{
 		specs: ArenaSpecs{
 			Name: "Sandbox Arena",
-			DimensionsPx: PixelSize2D{
+			Surface: PixelSurface{
 				Width:  800,
 				Height: 600,
 			},
@@ -28,8 +28,8 @@ func (a *SandboxArena) GetSpecs() ArenaSpecs {
 func (a *SandboxArena) Setup(srv *Server) {
 
 	specs := a.GetSpecs()
-	arenawidth := specs.DimensionsPx.Width
-	arenaheight := specs.DimensionsPx.Height
+	arenawidth := specs.Surface.Width.Pixels()
+	arenaheight := specs.Surface.Height.Pixels()
 	corridorbreadth := 100.0
 
 	srv.SetObstacle(state.MakeObstacle(
