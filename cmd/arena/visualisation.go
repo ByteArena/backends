@@ -205,7 +205,7 @@ func visualization(srv *server.Server, host string, port int) {
 		staterelaymutex.Unlock()
 	})
 
-	staticfile := func(relfile string, replacements bool) func(w http.ResponseWriter, r *http.Request) {
+	staticfile := func(relfile string) func(w http.ResponseWriter, r *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			log.Println(r.Host)
 			if strings.Contains(relfile, ".js") {
@@ -217,25 +217,26 @@ func visualization(srv *server.Server, host string, port int) {
 				panic(err)
 			}
 
-			if replacements == false {
-				w.Write(appjssource)
-			} else {
+			if relfile == "index.html" {
 				var appjsTemplate = template.Must(template.New("").Parse(string(appjssource)))
 				appjsTemplate.Execute(w, struct {
-					Host string
-				}{r.Host})
+					Host        string
+					ArenaWidth  float64
+					ArenaHeight float64
+				}{r.Host, 1000, 600})
+			} else {
+				w.Write(appjssource)
 			}
 		}
 	}
 
-	http.HandleFunc("/js/comm.js", staticfile("js/comm.js", false))
-	http.HandleFunc("/js/app.js", staticfile("js/app.js", false))
-	http.HandleFunc("/node_modules/bytearena-sdk/lib/browser/bytearenasdk.min.js", staticfile("node_modules/bytearena-sdk/lib/browser/bytearenasdk.min.js", false))
-	http.HandleFunc("/js/libs/pixi.min.js", staticfile("js/libs/pixi.min.js", false))
-	http.HandleFunc("/js/libs/jquery.slim.min.js", staticfile("js/libs/jquery.slim.min.js", false))
-	http.HandleFunc("/images/circle.png", staticfile("images/circle.png", false))
-	http.HandleFunc("/images/triangle.png", staticfile("images/triangle.png", false))
-	http.HandleFunc("/", staticfile("index.html", true))
+	http.HandleFunc("/js/comm.js", staticfile("js/comm.js"))
+	http.HandleFunc("/js/app.js", staticfile("js/app.js"))
+	http.HandleFunc("/node_modules/bytearena-sdk/lib/browser/bytearenasdk.min.js", staticfile("node_modules/bytearena-sdk/lib/browser/bytearenasdk.min.js"))
+	http.HandleFunc("/js/libs/pixi.min.js", staticfile("js/libs/pixi.min.js"))
+	http.HandleFunc("/js/libs/jquery.slim.min.js", staticfile("js/libs/jquery.slim.min.js"))
+	http.HandleFunc("/images/triangle.png", staticfile("images/triangle.png"))
+	http.HandleFunc("/", staticfile("index.html"))
 
 	go http.ListenAndServe(*addr, nil)
 

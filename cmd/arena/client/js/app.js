@@ -85,10 +85,12 @@
         };
     }
 
-    function render() {
+    function render(arenawidth, arenaheight) {
+
+        console.log(arenawidth, arenaheight);
 
         //Create the renderer
-        var renderer = PIXI.autoDetectRenderer(1000, 600, {
+        var renderer = PIXI.autoDetectRenderer(arenawidth, arenaheight, {
             antialias: true
         });
         renderer.backgroundColor = 0xFFFFFF;
@@ -185,8 +187,10 @@
         };
     }
 
-    PIXI
+    window.start = function(arenawidth, arenaheight) {
+        PIXI
         .loader
         .add('images/triangle.png')
-        .load(render);
+        .load(render.bind(null, arenawidth, arenaheight));
+    };
 })($, PIXI, bytearenasdk.vector.Vector2)

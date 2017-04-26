@@ -42,12 +42,14 @@ type Server struct {
 	currentturn           utils.Tickturn
 	currentturnmutex      *sync.Mutex
 
+	arena Arena
+
 	nbhandshaked     int
 	DebugNbMutations int
 	DebugNbUpdates   int
 }
 
-func NewServer(host string, port int, nbexpectedagents int, tickspersec int, stopticking chan bool) *Server {
+func NewServer(host string, port int, nbexpectedagents int, tickspersec int, stopticking chan bool, arena Arena) *Server {
 
 	orch := container.MakeContainerOrchestrator()
 
@@ -60,7 +62,7 @@ func NewServer(host string, port int, nbexpectedagents int, tickspersec int, sto
 		gamehost = host
 	}
 
-	return &Server{
+	s := &Server{
 		agents:                make(map[uuid.UUID]agent.Agent),
 		agentsmutex:           &sync.Mutex{},
 		host:                  gamehost,
@@ -73,7 +75,12 @@ func NewServer(host string, port int, nbexpectedagents int, tickspersec int, sto
 		tickduration:          time.Duration((1000000 / time.Duration(tickspersec)) * time.Microsecond),
 		tickspersec:           tickspersec,
 		currentturnmutex:      &sync.Mutex{},
+		arena:                 arena,
 	}
+
+	arena.Setup(s)
+
+	return s
 }
 
 func (server *Server) Spawnagent(config config.AgentGameConfig) {

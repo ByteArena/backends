@@ -17,13 +17,12 @@ func CheckError(err error) {
 }
 
 func main() {
-	log.Println("Hello, World !")
 
-	host, exists := os.LookupEnv("SWARMHOST")
-	utils.Assert(exists, "Missing SWARMHOST env variable")
+	host, exists := os.LookupEnv("HOST")
+	utils.Assert(exists, "Missing HOST env variable")
 
-	port, exists := os.LookupEnv("SWARMPORT")
-	utils.Assert(exists, "Missing SWARMPORT env variable")
+	port, exists := os.LookupEnv("PORT")
+	utils.Assert(exists, "Missing PORT env variable")
 
 	agentid, exists := os.LookupEnv("AGENTID")
 	utils.Assert(exists, "Missing AGENTID env variable")

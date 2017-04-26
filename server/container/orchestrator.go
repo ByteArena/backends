@@ -5,7 +5,6 @@ import (
 	"context"
 	"log"
 	"strconv"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -76,27 +75,26 @@ func (orch *ContainerOrchestrator) LogsToStdOut(container AgentContainer) error 
 			log.Println(chalk.Green, container.AgentId, chalk.Reset, text)
 		}
 
-		//p := make([]byte, 8)
-		//reader.Read(p)
-		//content, _ := ioutil.ReadAll(reader)
-		//log.Println("CONTAINER LOG", string(content))
 	}(orch, container)
 
 	return nil
 }
 
 func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
+	log.Println("TearDown !", container)
 
-	timeout := time.Second * 5
-	err := orch.cli.ContainerStop(
-		orch.ctx,
-		container.containerid.String(),
-		&timeout,
-	)
+	// TODO: understand why this is sloooooooow since feat-build-git
+	/*
+		timeout := time.Second * 5
+		err := orch.cli.ContainerStop(
+			orch.ctx,
+			container.containerid.String(),
+			&timeout,
+		)*/
 
-	if err != nil {
-		orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
-	}
+	//if err != nil {
+	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
+	//}
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
@@ -124,8 +122,8 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		Image: config.Image,
 		User:  "root",
 		Env: []string{
-			"SWARMPORT=" + strconv.Itoa(port),
-			"SWARMHOST=" + host,
+			"PORT=" + strconv.Itoa(port),
+			"HOST=" + host,
 			"AGENTID=" + agentid.String(),
 		},
 		AttachStdout: false,
