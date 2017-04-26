@@ -1,6 +1,7 @@
 # Byte Arena
 
 ![](https://cloud.githubusercontent.com/assets/4974818/24494371/57a8073c-1532-11e7-9026-469640cea9a7.png)
+
 ## Install
 
 ```bash
@@ -13,9 +14,12 @@ $ git clone git@github.com:netgusto/bytearena.git
 $ cd "$GOPATH"/src/github.com/netgusto/bytearena
 $ go get ./...
 
-# install agents
-$ cd agents/seeker
+# install visualization deps
+$ cd "$GOPATH"/src/github.com/netgusto/bytearena/cmd/arena/client
 $ npm install
+
+# install agents
+# TODO: update README.md with docker registry and build-agent operations
 
 ```
 
@@ -34,19 +38,12 @@ $ docker create node
 $ # Build and run
 $ go build && HOST=$LOCALIP PORT=8888 TPS=8 AGENTS=8 AGENTIMP=seeker ./arena
 # ctrl-c to tear down
+
+# http://$LOCALIP:8889 to display the web visualisation
+
 ```
 
 Options:
 * `TPS`: Turns per second
 * `AGENTS`: Number of agents to spawn (one container each)
 * `AGENTIMP`: Implementation of Agent (for the moment, subdir of /agents)
-
-**Visualisation**
-
-```bash
-$ cd "$GOPATH"/src/github.com/netgusto/bytearena/cmd/streamderiver
-$ # Build and run
-$ go build && ./streamderiver
-# ctrl-c to tear down
-# http://yourip:8080 to display the web visualisation (WIP; click open)
-```
