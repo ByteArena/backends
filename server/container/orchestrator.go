@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/netgusto/bytearena/server/config"
+	"github.com/netgusto/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
@@ -25,9 +26,7 @@ type ContainerOrchestrator struct {
 func MakeContainerOrchestrator() ContainerOrchestrator {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Failed to initialize docker client environment")
 
 	registryAuth := registryLogin(ctx, cli)
 
@@ -108,15 +107,18 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 
 func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, config config.AgentGameConfig) (AgentContainer, error) {
 
-	orch.cli.ImagePull(
+	//config.Image = "127.0.0.1:5000/bytearena_bar:latest"
+	config.Image = "127.0.0.1:5000/10c09925f84312b02486f93a41f32e58" // Sven, ceci est mon ID local; change-le quand tu auras un panic !
+
+	_, err := orch.cli.ImagePull(
 		orch.ctx,
-		"127.0.0.1:5000/bytearena_bar:latest",
+		config.Image,
 		types.ImagePullOptions{
 			RegistryAuth: orch.registryAuth,
 		},
 	)
 
-	log.Println(config.Image)
+	utils.Check(err, "Failed to pull "+config.Image+" from registry")
 
 	containerconfig := container.Config{
 		Image: config.Image,
@@ -153,9 +155,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		nil,              // network config
 		"agent-"+agentid.String(), // container name
 	)
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Failed to create docker container for agent "+agentid.String())
 
 	agentcontainer := MakeAgentContainer(agentid, ContainerId(resp.ID))
 	orch.containers = append(orch.containers, agentcontainer)

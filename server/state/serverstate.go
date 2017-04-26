@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/netgusto/bytearena/server/protocol"
+	"github.com/netgusto/bytearena/utils"
 	"github.com/netgusto/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
@@ -110,9 +111,8 @@ func (serverstate *ServerState) ProcessMutations() {
 			case "steer":
 				{
 					var vec []float64
-					if err := json.Unmarshal(mutation.GetArguments(), &vec); err != nil {
-						log.Panicln(err)
-					}
+					err := json.Unmarshal(mutation.GetArguments(), &vec)
+					utils.Check(err, "Failed to unmarshal JSON arguments for steer mutation, coming from agent "+batch.AgentId.String())
 
 					nbmutations++
 					newstate = newstate.mutationSteer(vector.MakeVector2(vec[0], vec[1]))
@@ -122,9 +122,8 @@ func (serverstate *ServerState) ProcessMutations() {
 			case "shoot":
 				{
 					var vec []float64
-					if err := json.Unmarshal(mutation.GetArguments(), &vec); err != nil {
-						log.Panicln(err)
-					}
+					err := json.Unmarshal(mutation.GetArguments(), &vec)
+					utils.Check(err, "Failed to unmarshal JSON arguments for shoot mutation, coming from agent "+batch.AgentId.String())
 
 					nbmutations++
 					newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
@@ -134,9 +133,8 @@ func (serverstate *ServerState) ProcessMutations() {
 			case "debugvis":
 				{
 					var rawvecs [][]float64
-					if err := json.Unmarshal(mutation.GetArguments(), &rawvecs); err != nil {
-						log.Panicln(err)
-					}
+					err := json.Unmarshal(mutation.GetArguments(), &rawvecs)
+					utils.Check(err, "Failed to unmarshal JSON arguments for debugvis mutation, coming from agent "+batch.AgentId.String())
 
 					if len(rawvecs) > 0 {
 						vecs := make([]vector.Vector2, len(rawvecs))

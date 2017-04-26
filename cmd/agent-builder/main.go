@@ -4,10 +4,9 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 
-	"github.com/kardianos/osext"
 	"github.com/netgusto/bytearena/server/config"
+	"github.com/netgusto/bytearena/utils"
 )
 
 func throwIfError(err error) {
@@ -29,7 +28,7 @@ func buildImage(absBuildDir string, name string) {
 
 	launchBuildProcess(
 		name,
-		getAbsoluteDir("build.sh"),
+		utils.GetAbsoluteDir("build.sh"),
 		absBuildDir,
 	)
 }
@@ -52,7 +51,7 @@ func cloneRepo(url string, hash string) string {
 	dir := "/tmp/" + hash
 	err := os.RemoveAll(dir)
 
-	cmd := exec.Command(getAbsoluteDir("clone.sh"), url, dir)
+	cmd := exec.Command(utils.GetAbsoluteDir("clone.sh"), url, dir)
 
 	cmdOut, err := cmd.Output()
 	if err != nil {
@@ -78,38 +77,24 @@ func launchBuildProcess(name string, bin string, buildDir string) {
 		err    error
 	)
 
-	if cmdOut, err = cmd.Output(); err != nil {
-		log.Panicln("Error running command: ", err, string(cmdOut))
-	}
+	cmdOut, err = cmd.Output()
+	utils.Check(err, "Error running command: "+string(cmdOut))
 
 	out := string(cmdOut)
-
 	log.Println("out", out)
 
 	// Deploy
 
 	cmd = exec.Command(
-		getAbsoluteDir("deploy.sh"),
+		utils.GetAbsoluteDir("deploy.sh"),
 		name,
 		"127.0.0.1:5000",
 		"latest",
 	)
 
-	if cmdOut, err = cmd.Output(); err != nil {
-		log.Panicln("Error running command: ", err, string(cmdOut))
-	}
+	cmdOut, err = cmd.Output()
+	utils.Check(err, "Error running command: "+string(cmdOut))
 
 	out = string(cmdOut)
-
 	log.Println("out", out)
-}
-
-func getAbsoluteDir(relative string) string {
-
-	exfolder, err := osext.ExecutableFolder()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return path.Join(exfolder, relative)
 }

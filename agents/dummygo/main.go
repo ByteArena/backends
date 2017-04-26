@@ -6,6 +6,8 @@ import (
 	"net"
 	"os"
 	"strconv"
+
+	"github.com/netgusto/bytearena/utils"
 )
 
 func CheckError(err error) {
@@ -18,19 +20,13 @@ func main() {
 	log.Println("Hello, World !")
 
 	host, exists := os.LookupEnv("SWARMHOST")
-	if !exists {
-		log.Panicln("Missing SWARMHOST env variable")
-	}
+	utils.Assert(exists, "Missing SWARMHOST env variable")
 
 	port, exists := os.LookupEnv("SWARMPORT")
-	if !exists {
-		log.Panicln("Missing SWARMPORT env variable")
-	}
+	utils.Assert(exists, "Missing SWARMPORT env variable")
 
 	agentid, exists := os.LookupEnv("AGENTID")
-	if !exists {
-		log.Panicln("Missing AGENTID env variable")
-	}
+	utils.Assert(exists, "Missing AGENTID env variable")
 
 	ServerAddr, err := net.ResolveUDPAddr("udp", host+":"+port)
 	CheckError(err)

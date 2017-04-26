@@ -1,12 +1,13 @@
 package comm
 
 import (
-	"log"
 	"net"
 
 	"github.com/netgusto/bytearena/server/protocol"
 
 	"encoding/json"
+
+	"github.com/netgusto/bytearena/utils"
 )
 
 // Client holds info about connection
@@ -41,9 +42,7 @@ func (s *CommServer) Send(message []byte, addr net.Addr) {
 func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 
 	listener, err := net.ListenPacket("udp4", s.address)
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Cannot listen on "+s.address)
 
 	s.conn = listener
 
@@ -51,19 +50,15 @@ func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 	for {
 		buf := make([]byte, s.buffsize)
 		n, addr, err := s.conn.ReadFrom(buf)
-		if err != nil {
-			log.Panicln(err)
-		}
+		utils.Check(err, "Read from buffer failed in CommServer::Listen()")
 
 		// Unmarshal message (unwrapping in an AgentMessage structure)
 		var msg protocol.MessageWrapperImp
 		err = json.Unmarshal(buf[0:n], &msg)
-		if err != nil {
-			log.Panicln(err)
-		}
+		utils.Check(err, "Failed to unmarshal incoming JSON in CommServer::Listen()")
+
 		msg.EmitterAddr = addr
 
 		go dispatcher.DispatchAgentMessage(msg)
-
 	}
 }
