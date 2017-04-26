@@ -38,7 +38,7 @@ func main() {
 	// Spawn agents
 
 	for _, agentconfig := range config.Agents {
-		go srv.Spawnagent(agentconfig)
+		go srv.SpawnAgent(agentconfig)
 	}
 
 	// handling signals

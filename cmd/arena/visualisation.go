@@ -218,12 +218,20 @@ func visualization(srv *server.Server, host string, port int) {
 			}
 
 			if relfile == "index.html" {
+				//arenaspecs := server.
+				arenaspecs := srv.GetArena().GetSpecs()
 				var appjsTemplate = template.Must(template.New("").Parse(string(appjssource)))
 				appjsTemplate.Execute(w, struct {
 					Host        string
 					ArenaWidth  float64
 					ArenaHeight float64
-				}{r.Host, 1000, 600})
+					ArenaName   string
+				}{
+					r.Host,
+					arenaspecs.DimensionsPx.Width,
+					arenaspecs.DimensionsPx.Height,
+					arenaspecs.Name,
+				})
 			} else {
 				w.Write(appjssource)
 			}

@@ -11,5 +11,6 @@ type PixelSize2D struct {
 }
 
 type ArenaSpecs struct {
+	Name         string
 	DimensionsPx PixelSize2D
 }

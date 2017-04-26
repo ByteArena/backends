@@ -7,19 +7,14 @@
         color: white;
         text-align: center;
     }
-
 </style>
 </head>
 <body>
 
-<button id="open">Connect</button>
-<button id="close" style="display: none;">Close</button>
-<hr />
-<label><input type="checkbox" id="debug" checked="checked" /> Debug</label>
+<h2 id="arenaname">{{.ArenaName}}</h2>
 <div id="visualization"></div>
+<label><input type="checkbox" id="debug" checked="checked" /> Debug</label>
 <div id="infos"></div>
-<hr />
-<div id="output"></div>
 
 <script src="js/libs/pixi.min.js"></script>
 <script src="js/libs/jquery.slim.min.js"></script>
@@ -29,7 +24,7 @@
 <script>
 (function() {
     comm("ws://{{.Host}}/ws");
-    start({{.ArenaWidth}}, {{.ArenaHeight}});
+    start("{{.ArenaWidth}}", "{{.ArenaHeight}}");
 })();
 </script>
 </body>

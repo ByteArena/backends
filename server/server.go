@@ -83,7 +83,11 @@ func NewServer(host string, port int, nbexpectedagents int, tickspersec int, sto
 	return s
 }
 
-func (server *Server) Spawnagent(config config.AgentGameConfig) {
+func (server *Server) GetArena() Arena {
+	return server.arena
+}
+
+func (server *Server) SpawnAgent(config config.AgentGameConfig) {
 
 	agent := agent.MakeNetAgentImp()
 	agentstate := state.MakeAgentState()

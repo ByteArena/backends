@@ -5,19 +5,24 @@ import (
 	"github.com/netgusto/bytearena/utils/vector"
 )
 
-type SandboxArena struct{}
+type SandboxArena struct {
+	specs ArenaSpecs
+}
 
 func NewSandboxArena() *SandboxArena {
-	return &SandboxArena{}
+	return &SandboxArena{
+		specs: ArenaSpecs{
+			Name: "Sandbox Arena",
+			DimensionsPx: PixelSize2D{
+				Width:  800,
+				Height: 600,
+			},
+		},
+	}
 }
 
 func (a *SandboxArena) GetSpecs() ArenaSpecs {
-	return ArenaSpecs{
-		DimensionsPx: PixelSize2D{
-			Width:  1000,
-			Height: 600,
-		},
-	}
+	return a.specs
 }
 
 func (a *SandboxArena) Setup(srv *Server) {

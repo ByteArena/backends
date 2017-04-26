@@ -97,7 +97,7 @@
         $('#visualization').append(renderer.view);
         $(renderer.view).on('mousemove', function() {
             const mouseData = renderer.plugins.interaction.mouse.global;
-            $('#infos').html('(' + mouseData.x + ', ' + (renderer.height - mouseData.y) + ']');
+            $('#infos').html('(' + Math.round(mouseData.x) + ', ' + Math.round(renderer.height - mouseData.y) + ')');
         });
 
         $debug = $('#debug');
@@ -109,7 +109,8 @@
         const agenttexture = PIXI.loader.resources["images/triangle.png"].texture;
         agenttexture.rotate = 8;
 
-        window.onStateUpdate = function(points) {
+        $("html").on("bytearena:stateupdate", function(evt, points) {
+
             stage.removeChildren();
 
             const debug = $debug.is(':checked');
@@ -184,7 +185,7 @@
             }
 
             window.requestAnimationFrame(() => renderer.render(stage));
-        };
+        });
     }
 
     window.start = function(arenawidth, arenaheight) {
