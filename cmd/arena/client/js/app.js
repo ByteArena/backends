@@ -1,5 +1,5 @@
-/* global PIXI, $ */
-(function($, PIXI) {
+/* global PIXI, $, bytearenasdk */
+(function($, PIXI, Vector2) {
     function createAgentVision(agent) {
         const vision = new PIXI.Graphics();
 
@@ -189,4 +189,4 @@
         .loader
         .add('images/triangle.png')
         .load(render);
-})($, PIXI)
+})($, PIXI, bytearenasdk.vector.Vector2)

@@ -230,7 +230,7 @@ func visualization(srv *server.Server, host string, port int) {
 
 	http.HandleFunc("/js/comm.js", staticfile("js/comm.js", false))
 	http.HandleFunc("/js/app.js", staticfile("js/app.js", false))
-	http.HandleFunc("/js/vector2.js", staticfile("js/vector2.js", false))
+	http.HandleFunc("/node_modules/bytearena-sdk/lib/browser/bytearenasdk.min.js", staticfile("node_modules/bytearena-sdk/lib/browser/bytearenasdk.min.js", false))
 	http.HandleFunc("/js/libs/pixi.min.js", staticfile("js/libs/pixi.min.js", false))
 	http.HandleFunc("/js/libs/jquery.slim.min.js", staticfile("js/libs/jquery.slim.min.js", false))
 	http.HandleFunc("/images/circle.png", staticfile("images/circle.png", false))
