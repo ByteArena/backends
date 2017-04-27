@@ -1,11 +1,11 @@
 package attractoragent
 
 import (
-	"github.com/netgusto/bytearena/server/agent"
-	"github.com/netgusto/bytearena/server/protocol"
-	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/utils/number"
-	"github.com/netgusto/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/server/agent"
+	"github.com/bytearena/bytearena/server/protocol"
+	"github.com/bytearena/bytearena/server/state"
+	"github.com/bytearena/bytearena/utils/number"
+	"github.com/bytearena/bytearena/utils/vector"
 )
 
 type AttractorAgent struct {

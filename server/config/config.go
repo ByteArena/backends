@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/netgusto/bytearena/utils"
+	"github.com/bytearena/bytearena/utils"
 )
 
 type AgentGameConfig struct {
@@ -94,15 +94,4 @@ func getMD5Hash(text string) string {
 	hasher := md5.New()
 	hasher.Write([]byte(text))
 	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-func LoadAgentConfig(filename string) AgentGameConfig {
-	data, err := ioutil.ReadFile(filename)
-	utils.Check(err, "Failed to load agent config "+filename)
-
-	var config AgentGameConfig
-	err = json.Unmarshal(data, &config)
-	utils.Check(err, "Failed to unmarshal agent config "+filename)
-
-	return config
 }

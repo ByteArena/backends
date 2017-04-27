@@ -12,9 +12,9 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/netgusto/bytearena/server"
-	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/server"
+	"github.com/bytearena/bytearena/server/state"
+	"github.com/bytearena/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 

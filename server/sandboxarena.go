@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/server/state"
+	"github.com/bytearena/bytearena/utils/vector"
 )
 
 type SandboxArena struct {

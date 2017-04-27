@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/netgusto/bytearena/utils/number"
+	"github.com/bytearena/bytearena/utils/number"
 )
 
 type Arena interface {

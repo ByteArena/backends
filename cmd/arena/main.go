@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/netgusto/bytearena/server"
-	"github.com/netgusto/bytearena/server/config"
+	"github.com/bytearena/bytearena/server"
+	"github.com/bytearena/bytearena/server/config"
 )
 
 func main() {

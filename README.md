@@ -6,16 +6,16 @@
 
 ```bash
 $ cd "$GOPATH"/src
-$ mkdir -p github.com/netgusto
-$ cd github.com/netgusto
-$ git clone git@github.com:netgusto/bytearena.git
+$ mkdir -p github.com/bytearena
+$ cd github.com/bytearena
+$ git clone git@github.com:bytearena/bytearena.git
 
 # install go pkgs
-$ cd "$GOPATH"/src/github.com/netgusto/bytearena
+$ cd "$GOPATH"/src/github.com/bytearena/bytearena
 $ go get ./...
 
 # install visualization deps
-$ cd "$GOPATH"/src/github.com/netgusto/bytearena/cmd/arena/client
+$ cd "$GOPATH"/src/github.com/bytearena/bytearena/cmd/arena/client
 $ npm install
 
 # install agents
@@ -32,7 +32,7 @@ Requires docker and golang.
 Replace `$LOCALIP` with your local LAN IP.
 
 ```bash
-$ cd "$GOPATH"/src/github.com/netgusto/bytearena/cmd/arena
+$ cd "$GOPATH"/src/github.com/bytearena/bytearena/cmd/arena
 $ # Pull node image
 $ docker create node
 $ # Build and run

@@ -1,13 +1,11 @@
 package comm
 
 import (
+	"encoding/json"
 	"net"
 
-	"github.com/netgusto/bytearena/server/protocol"
-
-	"encoding/json"
-
-	"github.com/netgusto/bytearena/utils"
+	"github.com/bytearena/bytearena/server/protocol"
+	"github.com/bytearena/bytearena/utils"
 )
 
 // Client holds info about connection

@@ -9,8 +9,8 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/netgusto/bytearena/server/config"
-	"github.com/netgusto/bytearena/utils"
+	"github.com/bytearena/bytearena/server/config"
+	"github.com/bytearena/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )

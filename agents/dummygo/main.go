@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/netgusto/bytearena/utils"
+	"github.com/bytearena/bytearena/utils"
 )
 
 func CheckError(err error) {

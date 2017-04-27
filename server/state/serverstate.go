@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/netgusto/bytearena/server/protocol"
-	"github.com/netgusto/bytearena/utils"
-	"github.com/netgusto/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/server/protocol"
+	"github.com/bytearena/bytearena/utils"
+	"github.com/bytearena/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 
