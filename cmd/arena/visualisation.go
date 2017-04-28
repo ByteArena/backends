@@ -12,9 +12,9 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/netgusto/bytearena/server"
-	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/server"
+	"github.com/bytearena/bytearena/server/state"
+	"github.com/bytearena/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -205,7 +205,7 @@ func visualization(srv *server.Server, host string, port int) {
 		staterelaymutex.Unlock()
 	})
 
-	staticfile := func(relfile string, replacements bool) func(w http.ResponseWriter, r *http.Request) {
+	staticfile := func(relfile string) func(w http.ResponseWriter, r *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			log.Println(r.Host)
 			if strings.Contains(relfile, ".js") {
@@ -217,25 +217,34 @@ func visualization(srv *server.Server, host string, port int) {
 				panic(err)
 			}
 
-			if replacements == false {
-				w.Write(appjssource)
-			} else {
+			if relfile == "index.html" {
+				//arenaspecs := server.
+				arenaspecs := srv.GetArena().GetSpecs()
 				var appjsTemplate = template.Must(template.New("").Parse(string(appjssource)))
 				appjsTemplate.Execute(w, struct {
-					Host string
-				}{r.Host})
+					Host        string
+					ArenaWidth  int
+					ArenaHeight int
+					ArenaName   string
+				}{
+					r.Host,
+					arenaspecs.Surface.Width.RoundPixels(),
+					arenaspecs.Surface.Height.RoundPixels(),
+					arenaspecs.Name,
+				})
+			} else {
+				w.Write(appjssource)
 			}
 		}
 	}
 
-	http.HandleFunc("/js/comm.js", staticfile("js/comm.js", false))
-	http.HandleFunc("/js/app.js", staticfile("js/app.js", false))
-	http.HandleFunc("/js/vector2.js", staticfile("js/vector2.js", false))
-	http.HandleFunc("/js/libs/pixi.min.js", staticfile("js/libs/pixi.min.js", false))
-	http.HandleFunc("/js/libs/jquery.slim.min.js", staticfile("js/libs/jquery.slim.min.js", false))
-	http.HandleFunc("/images/circle.png", staticfile("images/circle.png", false))
-	http.HandleFunc("/images/triangle.png", staticfile("images/triangle.png", false))
-	http.HandleFunc("/", staticfile("index.html", true))
+	http.HandleFunc("/js/comm.js", staticfile("js/comm.js"))
+	http.HandleFunc("/js/app.js", staticfile("js/app.js"))
+	http.HandleFunc("/node_modules/bytearena-sdk/lib/browser/bytearenasdk.min.js", staticfile("node_modules/bytearena-sdk/lib/browser/bytearenasdk.min.js"))
+	http.HandleFunc("/js/libs/pixi.min.js", staticfile("js/libs/pixi.min.js"))
+	http.HandleFunc("/js/libs/jquery.slim.min.js", staticfile("js/libs/jquery.slim.min.js"))
+	http.HandleFunc("/images/triangle.png", staticfile("images/triangle.png"))
+	http.HandleFunc("/", staticfile("index.html"))
 
 	go http.ListenAndServe(*addr, nil)
 

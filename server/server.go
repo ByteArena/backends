@@ -12,14 +12,14 @@ import (
 	"time"
 
 	"github.com/bitly/go-notify"
-	"github.com/netgusto/bytearena/server/agent"
-	"github.com/netgusto/bytearena/server/comm"
-	"github.com/netgusto/bytearena/server/config"
-	"github.com/netgusto/bytearena/server/container"
-	"github.com/netgusto/bytearena/server/protocol"
-	"github.com/netgusto/bytearena/server/state"
-	"github.com/netgusto/bytearena/utils"
-	"github.com/netgusto/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/server/agent"
+	"github.com/bytearena/bytearena/server/comm"
+	"github.com/bytearena/bytearena/server/config"
+	"github.com/bytearena/bytearena/server/container"
+	"github.com/bytearena/bytearena/server/protocol"
+	"github.com/bytearena/bytearena/server/state"
+	"github.com/bytearena/bytearena/utils"
+	"github.com/bytearena/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
@@ -42,12 +42,14 @@ type Server struct {
 	currentturn           utils.Tickturn
 	currentturnmutex      *sync.Mutex
 
+	arena Arena
+
 	nbhandshaked     int
 	DebugNbMutations int
 	DebugNbUpdates   int
 }
 
-func NewServer(host string, port int, nbexpectedagents int, tickspersec int, stopticking chan bool) *Server {
+func NewServer(host string, port int, nbexpectedagents int, tickspersec int, stopticking chan bool, arena Arena) *Server {
 
 	orch := container.MakeContainerOrchestrator()
 
@@ -55,14 +57,12 @@ func NewServer(host string, port int, nbexpectedagents int, tickspersec int, sto
 
 	if host == "" {
 		host, err := orch.GetHost()
-		if err != nil {
-			log.Panicln("Could not determine host !")
-		}
+		utils.Check(err, "Could not determine host !")
 
 		gamehost = host
 	}
 
-	return &Server{
+	s := &Server{
 		agents:                make(map[uuid.UUID]agent.Agent),
 		agentsmutex:           &sync.Mutex{},
 		host:                  gamehost,
@@ -75,10 +75,19 @@ func NewServer(host string, port int, nbexpectedagents int, tickspersec int, sto
 		tickduration:          time.Duration((1000000 / time.Duration(tickspersec)) * time.Microsecond),
 		tickspersec:           tickspersec,
 		currentturnmutex:      &sync.Mutex{},
+		arena:                 arena,
 	}
+
+	arena.Setup(s)
+
+	return s
 }
 
-func (server *Server) Spawnagent(config config.AgentGameConfig) {
+func (server *Server) GetArena() Arena {
+	return server.arena
+}
+
+func (server *Server) SpawnAgent(config config.AgentGameConfig) {
 
 	agent := agent.MakeNetAgentImp()
 	agentstate := state.MakeAgentState()
@@ -86,24 +95,16 @@ func (server *Server) Spawnagent(config config.AgentGameConfig) {
 	server.RegisterAgent(agent, agentstate)
 
 	container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, config)
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Failed to create docker container for "+agent.String())
 
 	err = server.containerorchestrator.StartAgentContainer(container)
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Failed to start docker container for "+agent.String())
 
 	err = server.containerorchestrator.LogsToStdOut(container)
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Failed to follow docker container logs for "+agent.String())
 
 	err = server.containerorchestrator.Wait(container)
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Failed to wait docker container completion for "+agent.String())
 }
 
 func (server *Server) RegisterAgent(agent agent.Agent, state state.AgentState) {
@@ -135,16 +136,16 @@ func (s *Server) GetTurn() utils.Tickturn {
 }
 
 func (server *Server) Listen() {
-	server.commserver = comm.NewCommServer("0.0.0.0:"+strconv.Itoa(server.port), 1024) // 1024: max size of message in bytes
-	log.Println("listening on 0.0.0.0:" + strconv.Itoa(server.port))
+	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
+	server.commserver = comm.NewCommServer(serveraddress, 1024) // 1024: max size of message in bytes
+	log.Println("Server listening on " + serveraddress)
 
 	done := make(chan bool)
 	if server.GetNbExpectedagents() > 0 {
 		go func() {
 			err := server.commserver.Listen(server)
-			if err != nil {
-				log.Panicln(err)
-			}
+			utils.Check(err, "Failed to listen on "+serveraddress)
+
 			done <- true
 		}()
 	} else {
@@ -248,27 +249,20 @@ func (server *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
 func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 
 	ag, err := server.DoFindAgent(msg.GetAgentId().String())
-	if err != nil {
-		log.Panicln("Handshake : agentid does not match any known agent !")
-	}
+	utils.Check(err, "agentid does not match any known agent in received agent message !")
 
 	switch msg.GetType() {
 	case "Handshake":
 		{
 			var handshake protocol.MessageHandshakeImp
 			err = json.Unmarshal(msg.GetPayload(), &handshake)
-			if err != nil {
-				log.Panicln(err)
-			}
+			utils.Check(err, "Failed to unmarshal JSON agent handshake payload")
 
 			ag, ok := ag.(agent.NetAgent)
-			if !ok {
-				log.Panicln(err)
-			}
+			utils.Assert(ok, "Failed to cast agent to NetAgent during handshake for "+ag.String())
 
 			server.setAgent(ag.SetAddr(msg.GetEmitterAddr()))
 
-			// Handshake successful ! Matching agent is found and bound to TCPClient
 			log.Println("Received handshake from agent " + ag.String() + "; agent said \"" + handshake.GetGreetings() + "\"")
 
 			server.nbhandshaked++
@@ -277,16 +271,15 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 				server.OnAgentsReady()
 			}
 
+			// TODO: handle some timeout here if all agents fail to handshake
+
 			break
 		}
 	case "Mutation":
 		{
 			var mutations protocol.MessageMutationsImp
 			err = json.Unmarshal(msg.GetPayload(), &mutations)
-			if err != nil {
-				log.Println(string(msg.GetPayload()))
-				log.Panicln(err)
-			}
+			utils.Check(err, "Failed to unmarshal JSON agent mutation payload for agent "+ag.String()+"; "+string(msg.GetPayload()))
 
 			turn := server.GetTurn()
 			if debug {

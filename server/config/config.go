@@ -6,9 +6,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
-	"path"
 
-	"github.com/kardianos/osext"
+	"github.com/bytearena/bytearena/utils"
 )
 
 type AgentGameConfig struct {
@@ -34,16 +33,12 @@ type fileServerConfig struct {
 
 func LoadServerConfig(filename string) GameConfig {
 	data, err := ioutil.ReadFile(filename)
-
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Failed to read server config file "+filename)
 
 	var config fileServerConfig
 
-	if err := json.Unmarshal(data, &config); err != nil {
-		log.Panicln(err)
-	}
+	err = json.Unmarshal(data, &config)
+	utils.Check(err, "Failed to unmarshal server config from JSON")
 
 	assertInt(config.Server.Port, "Port number must be provided in the configuration")
 	assertInt(config.Server.Tps, "TPS must be provided in the configuration")
@@ -89,16 +84,6 @@ func createAgentGameConfig(git string) AgentGameConfig {
 	return AgentGameConfig{
 		Image: imageName,
 	}
-}
-
-func getAbsoluteDir(relative string) string {
-
-	exfolder, err := osext.ExecutableFolder()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return path.Join(exfolder, relative)
 }
 
 func HashGitRepoName(git string) string {

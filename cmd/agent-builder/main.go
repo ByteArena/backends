@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
-	"path"
+	"strconv"
 
-	"github.com/kardianos/osext"
-	"github.com/netgusto/bytearena/server/config"
+	"github.com/ttacon/chalk"
+
+	"github.com/bytearena/bytearena/server/config"
+	"github.com/bytearena/bytearena/utils"
 )
 
 func throwIfError(err error) {
@@ -20,96 +23,88 @@ func main() {
 	gitRepoUrl := os.Args[1]
 
 	name := config.HashGitRepoName(gitRepoUrl)
-	dir := cloneRepo(gitRepoUrl, name)
 
+	dir := cloneRepo(gitRepoUrl, name)
 	buildImage(dir, name)
+	deployImage(name, "latest", "127.0.0.1", 5000)
 }
 
 func buildImage(absBuildDir string, name string) {
 
-	launchBuildProcess(
+	log.Println(fmt.Sprintf("%sBuilding agent%s", chalk.Blue, chalk.Reset))
+
+	dockerbin, err := exec.LookPath("docker")
+	utils.Check(err, "Error: docker command not found in path")
+
+	cmd := exec.Command(
+		dockerbin, "build", "-t",
 		name,
-		getAbsoluteDir("build.sh"),
 		absBuildDir,
 	)
+	cmd.Env = nil
+
+	stdoutStderr, err := cmd.CombinedOutput()
+	utils.Check(err, "Error running command: "+string(stdoutStderr))
+	log.Println(fmt.Sprintf("%s%s%s", chalk.Blue, stdoutStderr, chalk.Reset))
+}
+
+func deployImage(name string, tag string, registryhost string, registryport int) {
+
+	log.Println(fmt.Sprintf("%sDeploying to docker registry%s", chalk.Yellow, chalk.Reset))
+
+	dockerbin, err := exec.LookPath("docker")
+	utils.Check(err, "Error: docker command not found in path")
+
+	imageurl := registryhost + ":" + strconv.Itoa(registryport) + "/" + name + ":" + tag
+
+	// Tag
+	cmd := exec.Command(
+		dockerbin, "tag",
+		name,
+		imageurl,
+	)
+	cmd.Env = nil
+
+	// Push to remote registry
+	cmd = exec.Command(
+		dockerbin, "push",
+		imageurl,
+	)
+	cmd.Env = nil
+
+	stdoutStderr, err := cmd.CombinedOutput()
+	utils.Check(err, "Error running command: "+string(stdoutStderr))
+	log.Println(fmt.Sprintf("%s%s%s", chalk.Yellow, stdoutStderr, chalk.Reset))
 }
 
 func cloneRepo(url string, hash string) string {
-	/*
-		authmethod, err := ssh.NewSSHAgentAuth("git") // git@github.com:...
-		if err != nil {
-			log.Panicln("Erreur sur NewSSHAgentAuth", err)
-		}
 
-		_, err = git.PlainClone("/tmp/"+dir, false, &git.CloneOptions{
-			URL: url,
-			//Auth:     transport,
-			Progress: os.Stdout,
-			Auth:     authmethod,
-		})
-	*/
+	gitbin, err := exec.LookPath("git")
+	utils.Check(err, "Error: git not found in $PATH !")
 
 	dir := "/tmp/" + hash
-	err := os.RemoveAll(dir)
+	os.RemoveAll(dir)
+	log.Println(fmt.Sprintf("%sCloning %s into %s%s", chalk.Yellow, url, dir, chalk.Reset))
 
-	cmd := exec.Command(getAbsoluteDir("clone.sh"), url, dir)
+	cmd := exec.Command(
+		gitbin,
+		"clone", "-b", "master",
+		url,
+		dir,
+	)
 
-	cmdOut, err := cmd.Output()
-	if err != nil {
-		log.Panicln("Error running command: ", err, string(cmdOut))
-	}
+	/*
+		privatekey := "/Users/jerome/.ssh/bytearenaserver"
+		sshbin, err := exec.LookPath("ssh")
+		if err != nil {
+			log.Fatal("Error: ssh not found in $PATH !")
+		}
+		cmd.Env = []string{fmt.Sprintf("GIT_SSH_COMMAND=\"%s\" -i \"%s\"", sshbin, privatekey)}
+	*/
 
-	out := string(cmdOut)
-
-	log.Println("out", out)
-
-	if err != nil {
-		log.Panicln(err)
-	}
+	stdoutStderr, err := cmd.CombinedOutput()
+	utils.Check(err, "Error running command: "+string(stdoutStderr))
+	log.Println(fmt.Sprintf("%s%s%s", chalk.Yellow, stdoutStderr, chalk.Reset))
 
 	return dir
-}
-
-func launchBuildProcess(name string, bin string, buildDir string) {
-	cmd := exec.Command(bin, name, buildDir)
-
-	var (
-		cmdOut []byte
-		err    error
-	)
-
-	if cmdOut, err = cmd.Output(); err != nil {
-		log.Panicln("Error running command: ", err, string(cmdOut))
-	}
-
-	out := string(cmdOut)
-
-	log.Println("out", out)
-
-	// Deploy
-
-	cmd = exec.Command(
-		getAbsoluteDir("deploy.sh"),
-		name,
-		"127.0.0.1:5000",
-		"latest",
-	)
-
-	if cmdOut, err = cmd.Output(); err != nil {
-		log.Panicln("Error running command: ", err, string(cmdOut))
-	}
-
-	out = string(cmdOut)
-
-	log.Println("out", out)
-}
-
-func getAbsoluteDir(relative string) string {
-
-	exfolder, err := osext.ExecutableFolder()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return path.Join(exfolder, relative)
 }

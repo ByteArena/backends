@@ -3,8 +3,8 @@ package trigo
 import (
 	"math"
 
-	"github.com/netgusto/bytearena/utils/number"
-	"github.com/netgusto/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/utils/number"
+	"github.com/bytearena/bytearena/utils/vector"
 )
 
 func IntersectionWithLineSegment(p vector.Vector2, p2 vector.Vector2, q vector.Vector2, q2 vector.Vector2) (intersection vector.Vector2, intersects bool, colinear bool, parallel bool) {

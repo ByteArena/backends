@@ -1,5 +1,5 @@
-/* global PIXI, $ */
-(function($, PIXI) {
+/* global PIXI, $, bytearenasdk */
+(function($, PIXI, Vector2) {
     function createAgentVision(agent) {
         const vision = new PIXI.Graphics();
 
@@ -85,17 +85,19 @@
         };
     }
 
-    function render() {
+    function render(arenawidth, arenaheight) {
+
+        console.log(arenawidth, arenaheight);
 
         //Create the renderer
-        var renderer = PIXI.autoDetectRenderer(1000, 600, {
+        var renderer = PIXI.autoDetectRenderer(arenawidth, arenaheight, {
             antialias: true
         });
         renderer.backgroundColor = 0xFFFFFF;
         $('#visualization').append(renderer.view);
         $(renderer.view).on('mousemove', function() {
             const mouseData = renderer.plugins.interaction.mouse.global;
-            $('#infos').html('(' + mouseData.x + ', ' + (renderer.height - mouseData.y) + ']');
+            $('#infos').html('(' + Math.round(mouseData.x) + ', ' + Math.round(renderer.height - mouseData.y) + ')');
         });
 
         $debug = $('#debug');
@@ -107,7 +109,8 @@
         const agenttexture = PIXI.loader.resources["images/triangle.png"].texture;
         agenttexture.rotate = 8;
 
-        window.onStateUpdate = function(points) {
+        $("html").on("bytearena:stateupdate", function(evt, points) {
+
             stage.removeChildren();
 
             const debug = $debug.is(':checked');
@@ -182,11 +185,13 @@
             }
 
             window.requestAnimationFrame(() => renderer.render(stage));
-        };
+        });
     }
 
-    PIXI
+    window.start = function(arenawidth, arenaheight) {
+        PIXI
         .loader
         .add('images/triangle.png')
-        .load(render);
-})($, PIXI)
+        .load(render.bind(null, arenawidth, arenaheight));
+    };
+})($, PIXI, bytearenasdk.vector.Vector2)

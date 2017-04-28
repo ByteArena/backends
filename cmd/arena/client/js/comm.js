@@ -2,48 +2,34 @@
 
 window.comm = function(websocketurl) {
 
-    var $output = $("#output");
-    var $open = $("#open");
-    var $close = $("#close");
-    var ws;
+    let ws = null;
 
-    var print = function(message) {
-        var d = $("<div></div>");
-        d.html(message);
-        output.append(d.get(0));
-    };
+    function retry() {
+        console.log("RETRY !");
 
-    $open.click(function(e) {
-
-        if (ws) return;
-
-        ws = new WebSocket(websocketurl);
-
-        ws.onopen = function(evt) {
-            print("OPEN");
-            $open.hide();
-            $close.show();
+        try {
+            ws = new WebSocket(websocketurl);
+        } catch(e) {
+            //window.setTimeout(retry, 1000);
         }
-        ws.onclose = function(evt) {
-            print("CLOSE");
+
+        ws.onerror = evt => {
             ws.close();
-            ws = null;
-            $open.show();
-            $close.hide();
+            window.setTimeout(retry, 1000);
         }
-
-        ws.onmessage = function(evt) {
-            window.onStateUpdate(JSON.parse(evt.data));
+        ws.onopen = evt => {
+            console.log("WS OPEN");
+            ws.onmessage = evt => $("html").trigger("bytearena:stateupdate", JSON.parse(evt.data));
+            ws.onclose = function(evt) {
+                console.log("WS CLOSE");
+                if(ws !== null) {
+                    ws.close();
+                    ws = null;
+                }
+                window.setTimeout(retry, 1000);
+            }
         }
+    }
 
-        ws.onerror = function(evt) {
-            print("ERROR: " + evt.data);
-        }
-    });
-
-    $close.click(function(e) {
-        if (!ws) return;
-        ws.close();
-    });
-
+    retry();
 };
