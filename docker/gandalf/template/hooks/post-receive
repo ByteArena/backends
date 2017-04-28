@@ -1,0 +1,6 @@
+#!/bin/sh
+
+echo 'Merci pour ton code mec'
+
+echo "+ curl -s http://webhook:9000"
+curl -s http://webhook:9000/hooks/redeploy-webhook

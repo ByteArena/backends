@@ -1,0 +1,6 @@
+[
+  {
+    "id": "redeploy-webhook",
+    "execute-command": "curl http://agentbuilder/build"
+  }
+]
