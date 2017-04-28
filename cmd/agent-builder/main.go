@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/ttacon/chalk"
 
-	"github.com/bytearena/bytearena/server/config"
 	"github.com/bytearena/bytearena/utils"
 )
 
@@ -19,14 +20,51 @@ func throwIfError(err error) {
 	}
 }
 
+func buildAndDeploy(username string, repo string, gitHost string, registryHost string) {
+
+	fqRepo := username + "/" + repo
+	gitRepoURL := "git@" + gitHost + ":" + fqRepo + ".git"
+
+	imageName := fqRepo
+	dir := cloneRepo(gitRepoURL, imageName)
+	buildImage(dir, imageName)
+	deployImage(imageName, "latest", registryHost, 5000)
+}
+
+func createbuildRequestHandler(gitHost string, registryHost string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		buildAndDeploy(
+			params["username"],
+			params["repo"],
+			gitHost,
+			registryHost,
+		)
+	}
+}
+
 func main() {
-	gitRepoUrl := os.Args[1]
 
-	name := config.HashGitRepoName(gitRepoUrl)
+	registryHost := os.Getenv("REGISTRY_HOST")
+	utils.Assert(registryHost != "", "Error: missing REGISTRY_HOST env param")
 
-	dir := cloneRepo(gitRepoUrl, name)
-	buildImage(dir, name)
-	deployImage(name, "latest", "127.0.0.1", 5000)
+	gitHost := os.Getenv("GIT_HOST")
+	utils.Assert(gitHost != "", "Error: missing GIT_HOST env param")
+
+	port := os.Getenv("PORT")
+	utils.Assert(port != "", "Error: missing PORT env param")
+	_, err := strconv.Atoi(port)
+	utils.Check(err, "Error: PORT shoud be an int")
+
+	usernamepattern := "[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9]"
+
+	r := mux.NewRouter()
+	r.HandleFunc("/build/{username:"+usernamepattern+"}/{repo:"+usernamepattern+"}", createbuildRequestHandler(
+		gitHost,
+		registryHost,
+	))
+	http.Handle("/", r)
+	http.ListenAndServe(":"+port, nil)
 }
 
 func buildImage(absBuildDir string, name string) {
