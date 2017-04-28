@@ -1,6 +1,10 @@
 [
   {
     "id": "redeploy-webhook",
-    "execute-command": "curl http://agentbuilder/build"
+    "execute-command": "curl",
+    "response-message": "OK",
+    "pass-arguments-to-command": [
+      { "source": "string", "name": "http://agentbuilder/build/xtuc/agent" }
+    ],
   }
 ]
