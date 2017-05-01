@@ -8,13 +8,13 @@ services:
       - "5000:5000"
     volumes:
       - ./docker/registry/config.yml:/etc/docker/registry/config.yml
-    networks:
-      - private
 
   gandalf:
     build: ./docker/gandalf
-    networks:
-      - private
+    links:
+      - mongodb
+      - agentbuilder
+      - webhook
     volumes:
       - ./data/repositories:/home/git/repositories
     ports:
@@ -35,21 +35,10 @@ services:
       context: .
     environment:
       - PORT=80
-      - REGISTRY_HOST=registry
-      - GIT_HOST=gandalf
-    networks:
-      - private
+    links:
+      - registry
 
   webhook:
     build: ./docker/webhook
-    networks:
-      - private
-
-  jump-host:
-    image: ubuntu
-    networks:
-      - private
-
-networks:
-  private:
-    driver: bridge
+    links:
+      - agentbuilder
