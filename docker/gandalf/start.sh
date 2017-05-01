@@ -1,6 +1,5 @@
 echo "start rsyslog"
 
-# /usr/bin/rsyslog &
 service rsyslog start
 
 service ssh start

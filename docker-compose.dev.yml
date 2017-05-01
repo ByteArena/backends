@@ -9,12 +9,18 @@ services:
     volumes:
       - ./docker/registry/config.yml:/etc/docker/registry/config.yml
 
+  mongodb:
+    image: tutum/mongodb:3.0
+    ports:
+      - "27017:27017"
+    environment:
+      # - MONGODB_PASS=admin
+      - AUTH=no
+
   gandalf:
     build: ./docker/gandalf
     links:
       - mongodb
-      - agentbuilder
-      - webhook
     volumes:
       - ./data/repositories:/home/git/repositories
     ports:
@@ -23,22 +29,13 @@ services:
       - "22:22"
       - "9418:9418"
 
-  mongodb:
-    image: tutum/mongodb:3.0
-    environment:
-      # - MONGODB_PASS=admin
-      - AUTH=no
-
   agentbuilder:
     build:
       dockerfile: ./docker/agent-builder/Dockerfile
       context: .
     environment:
       - PORT=80
+      - GIT_HOST=gandalf
+      - REGISTRY_HOST=registry
     links:
       - registry
-
-  webhook:
-    build: ./docker/webhook
-    links:
-      - agentbuilder
