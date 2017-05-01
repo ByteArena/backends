@@ -1,6 +1,10 @@
 #!/bin/sh
 
-echo 'Merci pour ton code mec'
+set -x # echo on
 
-echo "+ curl -s http://webhook:9000"
-curl -s http://webhook:9000/hooks/redeploy-webhook
+REPOS_DIR="$HOME/repositories"
+REPO=$(echo $PWD | sed -e "s#$REPOS_DIR/##g")
+
+curl http://mq/pub/agent/repo.pushed \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"$TSURU_USER\",\"repo\":\"$REPO\"}"

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,11 +9,21 @@ import (
 	"os/exec"
 	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"github.com/ttacon/chalk"
 
 	"github.com/bytearena/bytearena/utils"
 )
+
+var CHANNEL = "agent"
+var TOPIC = "repo.pushed"
+
+type onMessageStruct struct {
+	Timestamp string          `json:"timestamp"`
+	Data      json.RawMessage `json:"data"`
+	Topic     string          `json:"topic"`
+	Channel   string          `json:"channel"`
+}
 
 func throwIfError(err error) {
 	if err != nil {
@@ -31,19 +42,10 @@ func buildAndDeploy(username string, repo string, gitHost string, registryHost s
 	deployImage(imageName, "latest", registryHost, 5000)
 }
 
-func createbuildRequestHandler(gitHost string, registryHost string) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		buildAndDeploy(
-			params["username"],
-			params["repo"],
-			gitHost,
-			registryHost,
-		)
-	}
-}
-
 func main() {
+
+	mqHost := os.Getenv("MQ_HOST")
+	utils.Assert(mqHost != "", "Error: missing MQ_HOST env param")
 
 	registryHost := os.Getenv("REGISTRY_HOST")
 	utils.Assert(registryHost != "", "Error: missing REGISTRY_HOST env param")
@@ -56,15 +58,54 @@ func main() {
 	_, err := strconv.Atoi(port)
 	utils.Check(err, "Error: PORT shoud be an int")
 
-	usernamepattern := "[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9]"
+	listen(mqHost, gitHost, registryHost)
+}
 
-	r := mux.NewRouter()
-	r.HandleFunc("/build/{username:"+usernamepattern+"}/{repo:"+usernamepattern+"}", createbuildRequestHandler(
-		gitHost,
-		registryHost,
-	))
-	http.Handle("/", r)
-	http.ListenAndServe(":"+port, nil)
+func listen(host string, gitHost string, registryHost string) {
+	dialer := websocket.DefaultDialer
+
+	conn, _, err := dialer.Dial("ws://"+host, http.Header{})
+
+	utils.Check(err, "Error: cannot connect to host "+host)
+
+	err = conn.WriteJSON(struct {
+		Action  string `json:"action"`
+		Channel string `json:"channel"`
+		Topic   string `json:"topic"`
+	}{
+		"sub",
+		CHANNEL,
+		TOPIC,
+	})
+
+	utils.Check(err, "Error: cannot subscribe to message broker")
+
+	for {
+		_, rawData, err := conn.ReadMessage()
+		utils.Check(err, "Received invalid message")
+
+		var message onMessageStruct
+
+		err = json.Unmarshal(rawData, &message)
+		utils.Check(err, "Received invalid message")
+
+		utils.Assert(
+			message.Channel == CHANNEL && message.Topic == TOPIC,
+			"unexpected message type, got "+message.Channel+":"+message.Topic,
+		)
+
+		var payload struct {
+			Username string `json:"username"`
+			Repo     string `json:"repo"`
+		}
+
+		err = json.Unmarshal(message.Data, &payload)
+		utils.Check(err, "Received invalid payload")
+
+		buildAndDeploy(payload.Username, payload.Repo, gitHost, registryHost)
+
+		log.Println("Build successful")
+	}
 }
 
 func buildImage(absBuildDir string, name string) {
