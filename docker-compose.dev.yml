@@ -33,7 +33,7 @@ services:
       - "9418:9418"
 
   mq:
-    build: /home/sven/Documents/netgusto/bytearena-message-broker
+    build: ./resources/bytearena-message-broker
     environment:
       - PORT=80
       - CHANNELS=agent
