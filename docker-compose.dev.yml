@@ -20,7 +20,11 @@ services:
       - AUTH=no
 
   gandalf:
-    build: ./docker/gandalf
+    build:
+      dockerfile: ./docker/gandalf/Dockerfile
+      context: .
+      args:
+        GIT_ADMIN_KEY_PUBLIC: ${GIT_ADMIN_KEY_PUBLIC}
     links:
       - mongodb
       - mq
@@ -42,6 +46,8 @@ services:
     build:
       dockerfile: ./docker/agent-builder/Dockerfile
       context: .
+      args:
+        GIT_ADMIN_KEY_PRIVATE: ${GIT_ADMIN_KEY_PRIVATE}
     environment:
       - PORT=80
       - GIT_HOST=gandalf

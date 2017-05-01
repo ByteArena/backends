@@ -2,8 +2,7 @@
 
 set -x # echo on
 
-REPOS_DIR="$HOME/repositories"
-REPO=$(echo $PWD | sed -e "s#$REPOS_DIR/##g")
+REPO=$(basename $PWD | sed -e "s/\.git//g")
 
 curl http://mq/pub/agent/repo.pushed \
   -H "Content-Type: application/json" \

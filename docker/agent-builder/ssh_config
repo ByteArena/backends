@@ -1,0 +1,5 @@
+Host gandalf
+    User git
+    IdentityFile /root/git_admin_key_private
+    StrictHostKeyChecking no
+
