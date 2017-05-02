@@ -43,6 +43,7 @@ services:
       - CHANNELS=agent
 
   agentbuilder:
+    depends_on: ["mq"]
     build:
       dockerfile: ./docker/agent-builder/Dockerfile
       context: .

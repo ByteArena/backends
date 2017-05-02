@@ -1,4 +1,4 @@
-FROM golang:latest
+FROM golang:1.8-stretch
 
 ARG GIT_ADMIN_KEY_PRIVATE
 

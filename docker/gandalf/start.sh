@@ -4,10 +4,10 @@ service rsyslog start
 
 service ssh start
 
-echo "starting git-daemon"
-
-/usr/bin/git daemon --base-path=/home/git/repositories --detach --export-all &
-
 echo "starting gandalf-server"
 
-su git -c "/usr/bin/gandalf-server"
+su git -c "/usr/bin/gandalf-server" &
+
+echo "starting git-daemon"
+
+su git -c "/usr/bin/git daemon --verbose --base-path=/home/git/repositories --export-all"
