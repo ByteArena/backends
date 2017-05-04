@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # TODO(sven): check for keys
 
 GIT_ADMIN_KEY_PRIVATE=$(cat "$PWD/.keys/git_admin_key" | base64) \
