@@ -1,5 +1,5 @@
 .DS_Store
 .vscode
 data
-.keys
-!.keys/.gitkeep
+.secrets
+!.secrets/.gitkeep
