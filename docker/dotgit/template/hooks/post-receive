@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -x # echo on
+
+# Available variables :
+# $GIT_USER         : the dotgit user (in db) authentified by the SSH public key; usually the same as owner, but can be different when an administrative account operates on repos
+# $GIT_REPO_OWNER   : the dotgit user (in db) to whom the operated GIT repository belongs
+# $GIT_REPO_NAME    : the name of the repository, without the owner name
+# $GIT_REPO_PATH    : the full path of the repository on disk
+# $GIT_OPERATION    : the current git operation (one of "receive-pack", "upload-pack")
+
+curl http://mq/pub/agent/repo.pushed \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"$GIT_REPO_OWNER\",\"repo\":\"$GIT_REPO_NAME\"}"

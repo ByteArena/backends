@@ -61,7 +61,7 @@ RUN chmod 600 /home/git/.ssh/authorized_keys
 #  AuthorizedKeysCommand accepts the tokens %%, %f, %h, %t, and %u.
 
 RUN echo '' >> /etc/ssh/sshd_config
-RUN echo 'AuthorizedKeysCommand /usr/bin/dotgit-keystore "%t" "%f"' >> /etc/ssh/sshd_config
+RUN echo 'AuthorizedKeysCommand /usr/bin/dotgit-keystore "%f"' >> /etc/ssh/sshd_config
 RUN echo 'AuthorizedKeysCommandUser git' >> /etc/ssh/sshd_config
 
 RUN echo "ChallengeResponseAuthentication no" >> /etc/ssh/sshd_config

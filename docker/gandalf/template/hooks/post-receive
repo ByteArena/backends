@@ -1,9 +1,0 @@
-#!/bin/sh
-
-set -x # echo on
-
-REPO=$(basename $PWD | sed -e "s/\.git//g")
-
-curl http://mq/pub/agent/repo.pushed \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"$TSURU_USER\",\"repo\":\"$REPO\"}"
