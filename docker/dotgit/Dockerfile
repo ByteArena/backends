@@ -12,7 +12,8 @@ RUN apt-get -y update
 RUN apt-get -y upgrade
 RUN apt-get -y install git openssh-server curl
 
-RUN adduser --disabled-password git
+RUN addgroup --gid 1000 git
+RUN adduser --disabled-password git --uid 1000 --gid 1000
 
 COPY ./dotgit $APP_HOME
 
