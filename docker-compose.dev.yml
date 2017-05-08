@@ -3,16 +3,12 @@ version: "2"
 services:
 
   registry:
-    image: registry:2
+    build: ./docker/registry
     ports:
       - "5000:5000"
-    volumes:
-      - ./docker/registry/config.yml:/etc/docker/registry/config.yml
 
   mysql:
     image: mysql:latest
-    volumes:
-        - ./data/mysql:/var/lib/mysql
     environment:
         MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
         MYSQL_DATABASE: ${DATABASE_NAME}
@@ -23,7 +19,7 @@ services:
       - "3306:3306"
 
   mq:
-    build: ./resources/bytearena-message-broker
+    build: $GOPATH/src/github.com/bytearena/bytearena-message-broker
     environment:
       - PORT=80
       - CHANNELS=agent
@@ -41,10 +37,6 @@ services:
     links:
       - mq
       - mysql
-    volumes:
-      - ./data/repositories:/home/git/repositories
-      - $GOPATH/src/github.com/bytearena/dotgit:/go/src/github.com/bytearena/dotgit
-      - $GOPATH/src/github.com/bytearena/bytearena/docker/dotgit/start.sh:/go/src/github.com/bytearena/dotgit/start.sh
     ports:
       - "22:22"
       - "9418:9418"
@@ -60,7 +52,7 @@ services:
         GIT_ADMIN_KEY_PRIVATE: ${GIT_ADMIN_KEY_PRIVATE}
     environment:
       - PORT=80
-      - GIT_HOST=gandalf
+      - GIT_HOST=dotgit
       - REGISTRY_HOST=registry
       - MQ_HOST=mq
     links:

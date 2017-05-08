@@ -2,6 +2,8 @@
 
 set -x # echo on
 
+env | grep GIT
+
 # Available variables :
 # $GIT_USER         : the dotgit user (in db) authentified by the SSH public key; usually the same as owner, but can be different when an administrative account operates on repos
 # $GIT_REPO_OWNER   : the dotgit user (in db) to whom the operated GIT repository belongs

@@ -10,7 +10,7 @@ ENV APP_HOME $BA_ROOT/dotgit
 
 RUN apt-get -y update
 RUN apt-get -y upgrade
-RUN apt-get -y install git openssh-server curl
+RUN apt-get -y install git openssh-server curl netcat
 
 RUN addgroup --gid 1000 git
 RUN adduser --disabled-password git --uid 1000 --gid 1000
@@ -22,6 +22,7 @@ RUN touch /etc/dotgit.conf
 RUN echo "{" >> /etc/dotgit.conf
 RUN echo "\"DatabaseURI\":\"$DATABASE_URI\"," >> /etc/dotgit.conf
 RUN echo "\"GitRepositoriesPath\":\"$GIT_REPOSITORIES_PATH\"," >> /etc/dotgit.conf
+RUN echo "\"GitAdminPublicKey\":\"$GIT_ADMIN_KEY_PUBLIC\"," >> /etc/dotgit.conf
 RUN echo "\"ApiPort\":$API_PORT" >> /etc/dotgit.conf
 RUN echo "}" >> /etc/dotgit.conf
 
@@ -68,6 +69,8 @@ RUN echo 'AuthorizedKeysCommandUser git' >> /etc/ssh/sshd_config
 RUN echo "ChallengeResponseAuthentication no" >> /etc/ssh/sshd_config
 RUN echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
 RUN echo "UsePAM no" >> /etc/ssh/sshd_config
+
+COPY ./bytearena/docker/dotgit/template /home/git/template
 
 # Permissions on /home/git
 RUN mkdir -p /home/git/repositories

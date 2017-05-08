@@ -172,13 +172,13 @@ func cloneRepo(url string, hash string) string {
 		dir,
 	)
 
-	// privatekey := "/root/git_admin_key_private"
+	privatekey := "/root/git_admin_key_private"
 
-	// sshbin, err := exec.LookPath("ssh")
-	// if err != nil {
-	// 	log.Fatal("Error: ssh not found in $PATH !")
-	// }
-	// cmd.Env = []string{fmt.Sprintf("GIT_SSH_COMMAND=\"%s\" -i \"%s\" -o \"StrictHostKeyChecking=no\"", sshbin, privatekey)}
+	sshbin, err := exec.LookPath("ssh")
+	if err != nil {
+		log.Fatal("Error: ssh not found in $PATH !")
+	}
+	cmd.Env = []string{fmt.Sprintf("GIT_SSH_COMMAND=\"%s\" -i \"%s\" -o \"StrictHostKeyChecking=no\"", sshbin, privatekey)}
 
 	stdoutStderr, err := cmd.CombinedOutput()
 	utils.Check(err, "Error running command: "+string(stdoutStderr))
