@@ -1,3 +1,0 @@
-[submodule "resources/bytearena-message-broker"]
-	path = resources/bytearena-message-broker
-	url = git@github.com:ByteArena/bytearena-message-broker.git
