@@ -50,6 +50,8 @@ services:
       context: .
       args:
         GIT_ADMIN_KEY_PRIVATE: ${GIT_ADMIN_KEY_PRIVATE}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PORT=80
       - GIT_HOST=dotgit

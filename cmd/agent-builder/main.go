@@ -127,14 +127,14 @@ func buildImage(absBuildDir string, name string) {
 	log.Println(fmt.Sprintf("%s%s%s", chalk.Blue, stdoutStderr, chalk.Reset))
 }
 
-func deployImage(name string, tag string, registryhost string, registryport int) {
+func deployImage(name string, imageVersion string, registryhost string, registryport int) {
 
 	log.Println(fmt.Sprintf("%sDeploying to docker registry%s", chalk.Yellow, chalk.Reset))
 
 	dockerbin, err := exec.LookPath("docker")
 	utils.Check(err, "Error: docker command not found in path")
 
-	imageurl := registryhost + ":" + strconv.Itoa(registryport) + "/" + name + ":" + tag
+	imageurl := registryhost + ":" + strconv.Itoa(registryport) + "/" + name + ":" + imageVersion
 
 	// Tag
 	cmd := exec.Command(
@@ -143,6 +143,9 @@ func deployImage(name string, tag string, registryhost string, registryport int)
 		imageurl,
 	)
 	cmd.Env = nil
+	stdoutStderr, err := cmd.CombinedOutput()
+	utils.Check(err, "Error running TAG command: "+string(stdoutStderr))
+	log.Println(fmt.Sprintf("%s%s%s", chalk.Yellow, stdoutStderr, chalk.Reset))
 
 	// Push to remote registry
 	cmd = exec.Command(
@@ -151,8 +154,8 @@ func deployImage(name string, tag string, registryhost string, registryport int)
 	)
 	cmd.Env = nil
 
-	stdoutStderr, err := cmd.CombinedOutput()
-	utils.Check(err, "Error running command: "+string(stdoutStderr))
+	stdoutStderr, err = cmd.CombinedOutput()
+	utils.Check(err, "Error running PUSH command: "+string(stdoutStderr))
 	log.Println(fmt.Sprintf("%s%s%s", chalk.Yellow, stdoutStderr, chalk.Reset))
 }
 
