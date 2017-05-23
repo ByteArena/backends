@@ -24,6 +24,8 @@ services:
         API_PORT: 8888
     links:
       - mq
+    environment:
+      - MYSQL_HOST=${DATABASE_HOST}
     ports:
       - "2222:22"
       - "9418:9418"
