@@ -25,7 +25,7 @@ services:
     links:
       - mq
     ports:
-      - "22:22"
+      - "2222:22"
       - "9418:9418"
       # uniquement pour connection de debug depuis l'extérieur du container
       - "8888:8888"
