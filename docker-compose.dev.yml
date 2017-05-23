@@ -55,7 +55,7 @@ services:
     environment:
       - PORT=80
       - GIT_HOST=dotgit
-      - REGISTRY_HOST=registry
+      - REGISTRY_HOST=localhost
       - MQ_HOST=mq
     links:
       - registry
