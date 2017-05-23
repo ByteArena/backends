@@ -26,6 +26,8 @@ services:
       - mq
     environment:
       - MYSQL_HOST=${DATABASE_HOST}
+    volumes:
+        - /data/git:/home/git/repositories
     ports:
       - "2222:22"
       - "9418:9418"
