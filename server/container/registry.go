@@ -3,14 +3,14 @@ package container
 import (
 	"context"
 
+	"github.com/bytearena/bytearena/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"github.com/bytearena/bytearena/utils"
 )
 
 func registryLogin(ctx context.Context, client *client.Client) string {
 	auth := types.AuthConfig{
-		ServerAddress: "127.0.0.1:5000",
+		ServerAddress: "registry.bytearena.com",
 	}
 
 	_, err := client.RegistryLogin(ctx, auth)

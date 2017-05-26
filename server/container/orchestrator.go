@@ -3,14 +3,15 @@ package container
 import (
 	"bufio"
 	"context"
+	"io/ioutil"
 	"log"
 	"strconv"
 
+	"github.com/bytearena/bytearena/server/config"
+	"github.com/bytearena/bytearena/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/bytearena/bytearena/server/config"
-	"github.com/bytearena/bytearena/utils"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
@@ -105,16 +106,15 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 
 func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, config config.AgentGameConfig) (AgentContainer, error) {
 
-	//config.Image = "127.0.0.1:5000/bytearena_bar:latest"
-	config.Image = "127.0.0.1:5000/10c09925f84312b02486f93a41f32e58" // Sven, ceci est mon ID local; change-le quand tu auras un panic !
-
-	_, err := orch.cli.ImagePull(
+	rc, err := orch.cli.ImagePull(
 		orch.ctx,
 		config.Image,
 		types.ImagePullOptions{
 			RegistryAuth: orch.registryAuth,
 		},
 	)
+	defer rc.Close()
+	ioutil.ReadAll(rc)
 
 	utils.Check(err, "Failed to pull "+config.Image+" from registry")
 
@@ -136,7 +136,6 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		AutoRemove:     true,
 		ReadonlyRootfs: true,
 		//NetworkMode:    "host",
-		Links:       nil,
 		NetworkMode: "bridge",
 		Resources: container.Resources{
 			Memory: 1024 * 1024 * 32, // 32M

@@ -1,10 +1,12 @@
 {
+  "registry": "registry.bytearena.com",
   "server": {
     "port": 8080,
     "tps": 20
   },
   "agents": [{
     "scale": 10,
-    "git": "git@github.com:netgusto/bytearena-agent-seeker.git"
+    "git": "git@github.com:netgusto/bytearena-agent-seeker.git",
+    "image": "xtuc/test:latest"
   }]
 }

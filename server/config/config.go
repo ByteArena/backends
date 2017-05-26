@@ -21,13 +21,15 @@ type GameConfig struct {
 }
 
 type fileServerConfig struct {
-	Server struct {
+	Registry string
+	Server   struct {
 		Port int
 		Tps  int
 	}
 	Agents []struct {
 		Scale int
 		Git   string
+		Image string
 	}
 }
 
@@ -42,6 +44,7 @@ func LoadServerConfig(filename string) GameConfig {
 
 	assertInt(config.Server.Port, "Port number must be provided in the configuration")
 	assertInt(config.Server.Tps, "TPS must be provided in the configuration")
+	assertString(config.Registry, "Registry must be provided in the configuration")
 
 	gameconfig := GameConfig{
 		Tps:  config.Server.Tps,
@@ -49,7 +52,7 @@ func LoadServerConfig(filename string) GameConfig {
 	}
 
 	for _, agentconfig := range config.Agents {
-		config := createAgentGameConfig(agentconfig.Git)
+		config := createAgentGameConfig(config.Registry, agentconfig.Image)
 
 		if agentconfig.Scale != 0 {
 
@@ -78,11 +81,10 @@ func assertString(value string, err string) {
 	}
 }
 
-func createAgentGameConfig(git string) AgentGameConfig {
-	imageName := HashGitRepoName(git)
+func createAgentGameConfig(registry string, image string) AgentGameConfig {
 
 	return AgentGameConfig{
-		Image: imageName,
+		Image: registry + "/" + image,
 	}
 }
 
