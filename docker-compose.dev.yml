@@ -34,6 +34,8 @@ services:
         DATABASE_URI: "${DATABASE_USER}:${DATABASE_PASSWORD}@tcp(${DATABASE_HOST}:${DATABASE_PORT})/${DATABASE_NAME}?charset=utf8"
         GIT_REPOSITORIES_PATH: "/home/git/repositories"
         API_PORT: 8888
+    environment:
+      - MYSQL_HOST=${DATABASE_HOST}
     links:
       - mq
       - mysql
