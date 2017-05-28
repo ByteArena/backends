@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/netgusto/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/utils/vector"
 )
 
 type Obstacle struct {

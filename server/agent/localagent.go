@@ -1,8 +1,8 @@
 package agent
 
 import (
-	"github.com/netgusto/bytearena/server/protocol"
-	"github.com/netgusto/bytearena/server/state"
+	"github.com/bytearena/bytearena/server/protocol"
+	"github.com/bytearena/bytearena/server/state"
 )
 
 type LocalAgent interface {
@@ -25,6 +25,4 @@ func (agent LocalAgentImp) String() string {
 }
 
 func (agent LocalAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) {
-	//perceptionjson, _ := json.Marshal(perception)
-	//log.Println("LOCAL AGENT", string(perceptionjson))
 }

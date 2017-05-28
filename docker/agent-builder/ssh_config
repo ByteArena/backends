@@ -1,0 +1,6 @@
+Host gandalf
+    User git
+    IdentityFile /root/git_admin_key_private
+    # StrictHostKeyChecking: do not check if host is in the known_hosts database before connecting (it's not)
+    StrictHostKeyChecking no
+

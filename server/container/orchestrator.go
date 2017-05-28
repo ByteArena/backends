@@ -3,14 +3,15 @@ package container
 import (
 	"bufio"
 	"context"
+	"io/ioutil"
 	"log"
 	"strconv"
-	"time"
 
+	"github.com/bytearena/bytearena/server/config"
+	"github.com/bytearena/bytearena/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/netgusto/bytearena/server/config"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
@@ -25,9 +26,7 @@ type ContainerOrchestrator struct {
 func MakeContainerOrchestrator() ContainerOrchestrator {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Failed to initialize docker client environment")
 
 	registryAuth := registryLogin(ctx, cli)
 
@@ -77,27 +76,26 @@ func (orch *ContainerOrchestrator) LogsToStdOut(container AgentContainer) error 
 			log.Println(chalk.Green, container.AgentId, chalk.Reset, text)
 		}
 
-		//p := make([]byte, 8)
-		//reader.Read(p)
-		//content, _ := ioutil.ReadAll(reader)
-		//log.Println("CONTAINER LOG", string(content))
 	}(orch, container)
 
 	return nil
 }
 
 func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
+	log.Println("TearDown !", container)
 
-	timeout := time.Second * 5
-	err := orch.cli.ContainerStop(
-		orch.ctx,
-		container.containerid.String(),
-		&timeout,
-	)
+	// TODO: understand why this is sloooooooow since feat-build-git
+	/*
+		timeout := time.Second * 5
+		err := orch.cli.ContainerStop(
+			orch.ctx,
+			container.containerid.String(),
+			&timeout,
+		)*/
 
-	if err != nil {
-		orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
-	}
+	//if err != nil {
+	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
+	//}
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
@@ -106,22 +104,26 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 	}
 }
 
-func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, agentdir string, config config.AgentGameConfig) (AgentContainer, error) {
+func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, config config.AgentGameConfig) (AgentContainer, error) {
 
-	orch.cli.ImagePull(
+	rc, err := orch.cli.ImagePull(
 		orch.ctx,
-		"127.0.0.1:5000/bytearena_bar:latest",
+		config.Image,
 		types.ImagePullOptions{
 			RegistryAuth: orch.registryAuth,
 		},
 	)
+	defer rc.Close()
+	ioutil.ReadAll(rc)
+
+	utils.Check(err, "Failed to pull "+config.Image+" from registry")
 
 	containerconfig := container.Config{
 		Image: config.Image,
 		User:  "root",
 		Env: []string{
-			"SWARMPORT=" + strconv.Itoa(port),
-			"SWARMHOST=" + host,
+			"PORT=" + strconv.Itoa(port),
+			"HOST=" + host,
 			"AGENTID=" + agentid.String(),
 		},
 		AttachStdout: false,
@@ -131,7 +133,6 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	hostconfig := container.HostConfig{
 		CapDrop:        []string{"ALL"},
 		Privileged:     false,
-		Binds:          []string{config.Dir + ":/scripts"}, // SCRIPTPATH references file path on docker host, not on current container
 		AutoRemove:     true,
 		ReadonlyRootfs: true,
 		//NetworkMode:    "host",
@@ -151,9 +152,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		nil,              // network config
 		"agent-"+agentid.String(), // container name
 	)
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Failed to create docker container for agent "+agentid.String())
 
 	agentcontainer := MakeAgentContainer(agentid, ContainerId(resp.ID))
 	orch.containers = append(orch.containers, agentcontainer)
@@ -162,7 +161,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 }
 
 func (orch *ContainerOrchestrator) GetHost() (string, error) {
-	res, err := orch.cli.NetworkInspect(orch.ctx, "bridge")
+	res, err := orch.cli.NetworkInspect(orch.ctx, "bridge", true)
 	if err != nil {
 		return "", err
 	}

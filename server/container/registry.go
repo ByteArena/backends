@@ -2,22 +2,19 @@ package container
 
 import (
 	"context"
-	"log"
 
+	"github.com/bytearena/bytearena/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
 func registryLogin(ctx context.Context, client *client.Client) string {
 	auth := types.AuthConfig{
-		ServerAddress: "127.0.0.1:5000",
+		ServerAddress: "registry.bytearena.com",
 	}
 
 	_, err := client.RegistryLogin(ctx, auth)
-
-	if err != nil {
-		log.Panicln("Error during login:", err)
-	}
+	utils.Check(err, "Failed to log onto docker registry")
 
 	// FIXME(sven): there is no auth yet
 	// return res.IdentityToken
@@ -35,10 +32,7 @@ func (orch *ContainerOrchestrator) publishInRegistry(image string) {
 		image,
 		options,
 	)
-
-	if err != nil {
-		log.Panicln("Error during image push:", err)
-	}
+	utils.Check(err, "Failed to push docker image to registry")
 
 	// TODO(sven): fix reader to avoid ressource leakage
 	// readCloser.Closer.Close()

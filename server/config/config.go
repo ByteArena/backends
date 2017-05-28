@@ -1,69 +1,58 @@
 package config
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"log"
-	"path"
 
-	"github.com/kardianos/osext"
+	"github.com/bytearena/bytearena/utils"
 )
 
 type AgentGameConfig struct {
-	Cmd   string
-	Dir   string
 	Image string
 }
 
 type GameConfig struct {
-	Port     int
-	Tps      int
-	Agentdir string
-	Agents   []AgentGameConfig
+	Port   int
+	Tps    int
+	Agents []AgentGameConfig
 }
 
 type fileServerConfig struct {
-	Server struct {
-		Port     int
-		Tps      int
-		Agentdir string
+	Registry string
+	Server   struct {
+		Port int
+		Tps  int
 	}
 	Agents []struct {
 		Scale int
-		Dir   string
+		Git   string
+		Image string
 	}
 }
 
 func LoadServerConfig(filename string) GameConfig {
 	data, err := ioutil.ReadFile(filename)
-
-	if err != nil {
-		log.Panicln(err)
-	}
+	utils.Check(err, "Failed to read server config file "+filename)
 
 	var config fileServerConfig
 
-	if err := json.Unmarshal(data, &config); err != nil {
-		log.Panicln(err)
-	}
+	err = json.Unmarshal(data, &config)
+	utils.Check(err, "Failed to unmarshal server config from JSON")
 
 	assertInt(config.Server.Port, "Port number must be provided in the configuration")
 	assertInt(config.Server.Tps, "TPS must be provided in the configuration")
-	//assertString(config.Server.Host, "Host must be provided in the configuration")
-	assertString(config.Server.Agentdir, "Agentdir must be provided in the configuration")
+	assertString(config.Registry, "Registry must be provided in the configuration")
 
 	gameconfig := GameConfig{
 		Tps:  config.Server.Tps,
 		Port: config.Server.Port,
-		//Host:     config.Server.Host,
-		Agentdir: getAbsoluteDir(config.Server.Agentdir),
 	}
 
 	for _, agentconfig := range config.Agents {
-		agentdir := path.Join(gameconfig.Agentdir, agentconfig.Dir)
-		config := LoadAgentConfig(agentdir + "/config.json")
-
-		config.Dir = agentdir
+		config := createAgentGameConfig(config.Registry, agentconfig.Image)
 
 		if agentconfig.Scale != 0 {
 
@@ -92,28 +81,19 @@ func assertString(value string, err string) {
 	}
 }
 
-func LoadAgentConfig(filename string) AgentGameConfig {
-	data, err := ioutil.ReadFile(filename)
+func createAgentGameConfig(registry string, image string) AgentGameConfig {
 
-	if err != nil {
-		log.Panicln(err)
+	return AgentGameConfig{
+		Image: registry + "/" + image,
 	}
-
-	var config AgentGameConfig
-
-	if err := json.Unmarshal(data, &config); err != nil {
-		log.Panicln(err)
-	}
-
-	return config
 }
 
-func getAbsoluteDir(relative string) string {
+func HashGitRepoName(git string) string {
+	return getMD5Hash(git)
+}
 
-	exfolder, err := osext.ExecutableFolder()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return path.Join(exfolder, relative)
+func getMD5Hash(text string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(text))
+	return hex.EncodeToString(hasher.Sum(nil))
 }
