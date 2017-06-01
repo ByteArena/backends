@@ -7,8 +7,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bytearena/bytearena/common/messagebroker"
 	"github.com/bytearena/bytearena/server"
 	"github.com/bytearena/bytearena/server/config"
+	"github.com/bytearena/bytearena/utils"
 )
 
 func main() {
@@ -22,6 +24,12 @@ func main() {
 	if !exists {
 		host = ""
 	}
+
+	brokerhost, exists := os.LookupEnv("MESSAGEBROKERHOST")
+	utils.Assert(exists, "Error: MESSAGEBROKERHOST should be defined in the environment")
+
+	brokerclient, err := messagebroker.NewClient(brokerhost)
+	utils.Check(err, "ERROR: Could not connect to messagebroker on "+brokerhost)
 
 	arena := server.NewSandboxArena()
 	stopticking := make(chan bool)
@@ -51,7 +59,9 @@ func main() {
 		os.Exit(1)
 	}()
 
-	go visualization(srv, "0.0.0.0", config.Port+1)
+	//go visualization(srv, "0.0.0.0", config.Port+1)
+
+	go streamState(srv, brokerclient)
 
 	srv.Listen()
 }

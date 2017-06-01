@@ -5,7 +5,7 @@
     "tps": 20
   },
   "agents": [{
-    "scale": 10,
+    "scale": 1,
     "git": "git@github.com:netgusto/bytearena-agent-seeker.git",
     "image": "xtuc/test:latest"
   }]

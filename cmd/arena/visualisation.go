@@ -11,48 +11,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gorilla/websocket"
+	commonprotocol "github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/server"
 	"github.com/bytearena/bytearena/server/state"
-	"github.com/bytearena/bytearena/utils/vector"
-	uuid "github.com/satori/go.uuid"
+	"github.com/bytearena/leakybucket/bucket"
+	"github.com/gorilla/websocket"
 )
-
-type vizmessage struct {
-	Agents                  []vizagentmessage
-	Projectiles             []vizprojectilemessage
-	Obstacles               []vizobstaclemessage
-	DebugIntersects         []vector.Vector2
-	DebugIntersectsRejected []vector.Vector2
-	DebugPoints             []vector.Vector2
-}
-
-type vizagentmessage struct {
-	Id           uuid.UUID
-	X            float64
-	Y            float64
-	Position     vector.Vector2
-	Velocity     vector.Vector2
-	VisionRadius float64
-	VisionAngle  float64
-	Radius       float64
-	Kind         string
-	Orientation  float64
-}
-
-type vizprojectilemessage struct {
-	X        float64
-	Y        float64
-	Position vector.Vector2
-	Radius   float64
-	From     vizagentmessage
-	Kind     string
-}
-
-type vizobstaclemessage struct {
-	A vector.Vector2
-	B vector.Vector2
-}
 
 type wsincomingmessage struct {
 	messageType int
@@ -60,9 +24,13 @@ type wsincomingmessage struct {
 	err         error
 }
 
-func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.ServerState) {
+func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.ServerState, tps int) {
 
-	upgrader := websocket.Upgrader{} // use default options
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { // allow Origin header (CORS)
+			return true
+		},
+	}
 
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -91,6 +59,24 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 		}
 	}(c, incomingmsg)
 
+	buk := bucket.NewBucket(tps, 10, func(batch bucket.Batch, bucket *bucket.Bucket) {
+
+		log.Println("batch !")
+		frames := batch.GetFrames()
+		jsonbatch := make([]json.RawMessage, len(frames))
+		for i, frame := range frames {
+			jsonbatch[i] = json.RawMessage(frame.GetPayload())
+		}
+
+		jsonstring, err := json.Marshal(jsonbatch)
+
+		err = c.WriteMessage(websocket.TextMessage, jsonstring)
+		if err != nil {
+			log.Println("write error !")
+			return
+		}
+	})
+
 	for {
 		select {
 		case <-incomingmsg:
@@ -104,15 +90,15 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 			}
 		case serverstate := <-statechan:
 			{
-				msg := vizmessage{}
+				msg := commonprotocol.VizMessage{}
 
 				serverstate.Projectilesmutex.Lock()
 				for _, projectile := range serverstate.Projectiles {
-					msg.Projectiles = append(msg.Projectiles, vizprojectilemessage{
+					msg.Projectiles = append(msg.Projectiles, commonprotocol.VizProjectileMessage{
 						Position: projectile.Velocity,
 						Radius:   projectile.Radius,
 						Kind:     "projectiles",
-						From: vizagentmessage{
+						From: commonprotocol.VizAgentMessage{
 							Position: projectile.Position,
 						},
 					})
@@ -121,7 +107,7 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 
 				serverstate.Agentsmutex.Lock()
 				for id, agent := range serverstate.Agents {
-					msg.Agents = append(msg.Agents, vizagentmessage{
+					msg.Agents = append(msg.Agents, commonprotocol.VizAgentMessage{
 						Id:           id,
 						Kind:         "agent",
 						Position:     agent.Position,
@@ -136,7 +122,7 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 
 				serverstate.Obstaclesmutex.Lock()
 				for _, obstacle := range serverstate.Obstacles {
-					msg.Obstacles = append(msg.Obstacles, vizobstaclemessage{
+					msg.Obstacles = append(msg.Obstacles, commonprotocol.VizObstacleMessage{
 						A: obstacle.A,
 						B: obstacle.B,
 					})
@@ -153,12 +139,7 @@ func wsendpoint(w http.ResponseWriter, r *http.Request, statechan chan state.Ser
 					return
 				}
 
-				//log.Println("Tick")
-				err = c.WriteMessage(websocket.TextMessage, json)
-				if err != nil {
-					log.Println("write error !")
-					return
-				}
+				buk.AddFrame(string(json))
 			}
 		}
 	}
@@ -196,7 +177,7 @@ func visualization(srv *server.Server, host string, port int) {
 		relayindex := len(staterelays) - 1
 		staterelaymutex.Unlock()
 
-		wsendpoint(w, r, relay)
+		wsendpoint(w, r, relay, srv.GetTicksPerSecond())
 
 		staterelaymutex.Lock()
 		copy(staterelays[relayindex:], staterelays[relayindex+1:])
@@ -226,11 +207,13 @@ func visualization(srv *server.Server, host string, port int) {
 					ArenaWidth  int
 					ArenaHeight int
 					ArenaName   string
+					Tps         int
 				}{
 					r.Host,
 					arenaspecs.Surface.Width.RoundPixels(),
 					arenaspecs.Surface.Height.RoundPixels(),
 					arenaspecs.Name,
+					srv.GetTicksPerSecond(),
 				})
 			} else {
 				w.Write(appjssource)

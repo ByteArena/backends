@@ -87,6 +87,10 @@ func (server *Server) GetArena() Arena {
 	return server.arena
 }
 
+func (server *Server) GetTicksPerSecond() int {
+	return server.tickspersec
+}
+
 func (server *Server) SpawnAgent(config config.AgentGameConfig) {
 
 	agent := agent.MakeNetAgentImp()

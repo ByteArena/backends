@@ -29,7 +29,9 @@ services:
     volumes:
         - /data/git:/home/git/repositories
     ports:
+      # le port 22 est utilisé par le routeur HAproxy, et route vers dotgit 2222
       - "2222:22"
+      # Le port du protocole git; voir issue bytearena/bytearena#58
       - "9418:9418"
       # uniquement pour connection de debug depuis l'extérieur du container
       - "8888:8888"

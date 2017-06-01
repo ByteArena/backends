@@ -25,6 +25,8 @@ type PixelSurface struct {
 }
 
 type ArenaSpecs struct {
+	Id      string
 	Name    string
 	Surface PixelSurface
+	Tps     int
 }

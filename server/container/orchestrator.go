@@ -37,25 +37,26 @@ func MakeContainerOrchestrator() ContainerOrchestrator {
 	}
 }
 
-func (orch *ContainerOrchestrator) StartAgentContainer(container AgentContainer) error {
+func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) error {
 
 	log.Print(chalk.Yellow)
-	log.Print("Spawning agent "+container.AgentId.String()+" in its own container", chalk.Reset)
+	log.Print("Spawning agent "+ctner.AgentId.String()+" in its own container", chalk.Reset)
 
 	return orch.cli.ContainerStart(
 		orch.ctx,
-		container.containerid.String(),
+		ctner.containerid.String(),
 		types.ContainerStartOptions{},
 	)
 
 }
 
-func (orch *ContainerOrchestrator) Wait(container AgentContainer) error {
-	_, err := orch.cli.ContainerWait(
+func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) error {
+	orch.cli.ContainerWait(
 		orch.ctx,
-		container.containerid.String(),
+		ctner.containerid.String(),
+		container.WaitConditionRemoved,
 	)
-	return err
+	return nil
 }
 
 func (orch *ContainerOrchestrator) LogsToStdOut(container AgentContainer) error {

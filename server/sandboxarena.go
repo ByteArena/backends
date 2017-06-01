@@ -12,6 +12,7 @@ type SandboxArena struct {
 func NewSandboxArena() *SandboxArena {
 	return &SandboxArena{
 		specs: ArenaSpecs{
+			Id:   "sandboxarena",
 			Name: "Sandbox Arena",
 			Surface: PixelSurface{
 				Width:  800,
