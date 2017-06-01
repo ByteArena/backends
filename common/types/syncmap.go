@@ -27,6 +27,23 @@ func (wmap *SyncMap) GetGeneric(id string) interface{} {
 	return res
 }
 
+func (wmap *SyncMap) Get(id string) interface{} {
+	return wmap.GetGeneric(id)
+}
+
+func (wmap *SyncMap) ToArrayGeneric() []interface{} {
+	wmap.lock.RLock()
+	res := make([]interface{}, wmap.Size())
+	i := 0
+	for _, item := range wmap.data {
+		res[i] = item
+		i++
+	}
+	wmap.lock.RUnlock()
+
+	return res
+}
+
 func (wmap *SyncMap) Set(id string, item interface{}) error {
 	wmap.lock.Lock()
 	wmap.data[id] = item

@@ -1,5 +1,44 @@
 {
+  "name": "bytearena-viz",
+  "version": "0.0.1",
+  "description": "Byte Arena SDK",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint src/",
+    "build:js": "rollup -c rollup.config.js",
+    "build": "npm run --silent lint && npm run --silent build:js",
+    "_watch:dev": "chokidar 'src/**/*.{js,ts}' -c 'npm run --silent build'",
+    "_watch:dev:nolint": "chokidar 'src/**/*.{js,ts}' -c 'npm run --silent build:js'",
+    "_livereload": "live-server --no-browser --cors --watch=./lib",
+    "dev": "npm run build && parallelshell 'npm run _watch:dev' 'npm run _livereload'",
+    "dev:nolint": "parallelshell 'npm run _watch:dev:nolint' 'npm run _livereload'",
+    "clean": "rm -Rf lib/*",
+    "prepublish": "npm run build"
+  },
+  "license": "MIT",
+  "homepage": "https://bytearena.com",
+  "devDependencies": {
+    "@alexlur/rollup-plugin-typescript": "^1.0.4",
+    "babel-cli": "^6.24.1",
+    "babel-eslint": "^7.2.3",
+    "babel-preset-babili": "0.0.12",
+    "babel-preset-es2015": "^6.24.1",
+    "babylonjs": "^3.0.0-alpha",
+    "chokidar-cli": "^1.2.0",
+    "eslint": "^3.19.0",
+    "live-server": "^1.2.0",
+    "parallelshell": "^2.0.0",
+    "rollup": "^0.41.6",
+    "rollup-plugin-babel": "^2.7.1",
+    "rollup-plugin-babili": "^3.0.0",
+    "rollup-plugin-commonjs": "^8.0.2",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-watch": "^3.2.2",
+    "typescript": "^2.3.2"
+  },
   "dependencies": {
-    "bytearena-sdk": "0.0.1"
+    "bytearena-sdk": "0.0.1",
+    "denque": "^1.1.1"
   }
 }

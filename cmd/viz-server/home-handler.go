@@ -2,10 +2,22 @@ package main
 
 import (
 	"net/http"
+	"strconv"
+
+	"github.com/bytearena/bytearena/cmd/viz-server/types"
 )
 
-func homeHandler() func(w http.ResponseWriter, r *http.Request) {
+func homeHandler(arenas *types.ArenaMap) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, VIZ SERVER !"))
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte("<h2>Welcome on VIZ SERVER !</h2>"))
+
+		arenasArray := arenas.ToArrayGeneric()
+
+		for _, item := range arenasArray {
+			if arena, ok := item.(*types.Arena); ok {
+				w.Write([]byte("<a href='/arena/" + arena.GetId() + "'>" + arena.GetName() + " (" + strconv.Itoa(arena.GetNumberWatchers()) + " watchers right now)</a><br />"))
+			}
+		}
 	}
 }

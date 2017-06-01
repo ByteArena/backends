@@ -4,6 +4,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
+	"strconv"
+	"time"
 
 	notify "github.com/bitly/go-notify"
 	"github.com/gorilla/handlers"
@@ -16,6 +19,8 @@ import (
 
 func main() {
 
+	webclientpath := "./webclient/"
+
 	port, exists := os.LookupEnv("PORT")
 	utils.Assert(exists, "Error: PORT should be defined in the environment")
 
@@ -26,40 +31,41 @@ func main() {
 	// /arena/id : visualisation de l'arène
 
 	// => Serveur HTTP
-	// => Ecoute des messages du messagebroker sur le canal viz
-	// 		=> Initialisation d'une arène : viz:init
-	// 		=> Démarrage d'une arène : viz:start
-	// 		=> State pour un tick : viz:frame
-	// 		=> Arrêt d'une arène : viz:stop
-	// => Redistribution des messages via websocket
-	// 		=> gestion d'un pool de connexions websocket
+	//		=> Service des assets statiques de la viz (js, modèles, textures)
+	// 		=> Ecoute des messages du messagebroker sur le canal viz
+	// 		=> Redistribution des messages via websocket
+	// 			=> gestion d'un pool de connexions websocket
 
 	brokerclient, err := messagebroker.NewClient(brokerhost)
 	utils.Check(err, "ERROR: could not connect to messagebroker")
 
 	brokerclient.Subscribe("viz", "message", func(msg messagebroker.BrokerMessage) {
-		log.Println("RECEIVED viz:message from MESSAGEBROKER")
-		notify.Post("viz:message", string(msg.Data))
+		log.Println("RECEIVED viz:message from MESSAGEBROKER; goroutines: " + strconv.Itoa(runtime.NumGoroutine()))
+		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond)
 	})
 
 	arenas := types.NewArenaMap()
-	sandboxarena := types.NewArena("sandboxarena", "Sandbox Arena !")
+	sandboxarena := types.NewArena("sandbox", "Sandbox Arena !")
 	arenas.Set(sandboxarena.GetId(), sandboxarena)
 
 	logger := os.Stdout
 
 	router := mux.NewRouter()
 	router.Handle("/", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(homeHandler()),
+		http.HandlerFunc(homeHandler(arenas)),
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(arenaHandler(arenas, "./webclient/")),
+		http.HandlerFunc(arenaHandler(arenas, webclientpath)),
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
 		http.HandlerFunc(websocketHandler(arenas)),
 	)).Methods("GET")
+
+	// Les assets de la viz (js, modèles, textures)
+	router.PathPrefix("/lib/").Handler(http.FileServer(http.Dir(webclientpath)))
+	router.PathPrefix("/res/").Handler(http.FileServer(http.Dir(webclientpath)))
 
 	serverAddr := ":" + port
 	log.Println("VIZ-SERVER listening on " + serverAddr)
