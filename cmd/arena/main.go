@@ -59,8 +59,6 @@ func main() {
 		os.Exit(1)
 	}()
 
-	//go visualization(srv, "0.0.0.0", config.Port+1)
-
 	go streamState(srv, brokerclient)
 
 	srv.Listen()

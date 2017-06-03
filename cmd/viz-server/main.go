@@ -45,7 +45,7 @@ func main() {
 	})
 
 	arenas := types.NewArenaMap()
-	sandboxarena := types.NewArena("sandbox", "Sandbox Arena !")
+	sandboxarena := types.NewArena("sandbox", "Sandbox Arena !", 20) // TODO(netgusto): fetch arena from DB
 	arenas.Set(sandboxarena.GetId(), sandboxarena)
 
 	logger := os.Stdout

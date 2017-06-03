@@ -34,6 +34,7 @@ type VizProjectileMessage struct {
 }
 
 type VizObstacleMessage struct {
-	A vector.Vector2
-	B vector.Vector2
+	Id uuid.UUID
+	A  vector.Vector2
+	B  vector.Vector2
 }

@@ -3,13 +3,15 @@ package types
 type Arena struct {
 	id   string
 	name string
+	tps  int
 	pool *WatcherMap
 }
 
-func NewArena(id string, name string) *Arena {
+func NewArena(id string, name string, tps int) *Arena {
 	return &Arena{
 		id:   id,
 		name: name,
+		tps:  tps,
 		pool: NewWatcherMap(),
 	}
 }
@@ -20,6 +22,10 @@ func (arena *Arena) GetId() string {
 
 func (arena *Arena) GetName() string {
 	return arena.name
+}
+
+func (arena *Arena) GetTps() int {
+	return arena.tps
 }
 
 func (arena *Arena) SetWatcher(watcher *Watcher) {

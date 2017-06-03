@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/bytearena/bytearena/cmd/viz-server/types"
 	"github.com/gorilla/mux"
@@ -29,8 +30,12 @@ func arenaHandler(arenas *types.ArenaMap, basepath string) func(w http.ResponseW
 		var vizhtmlTemplate = template.Must(template.New("").Parse(string(vizhtml)))
 		vizhtmlTemplate.Execute(w, struct {
 			WsURL string
+			Rand  int64
+			Tps   int
 		}{
-			"ws://" + r.Host + "/arena/" + arena.GetId() + "/ws",
+			WsURL: "ws://" + r.Host + "/arena/" + arena.GetId() + "/ws",
+			Rand:  time.Now().Unix(),
+			Tps:   arena.GetTps(),
 		})
 	}
 }
