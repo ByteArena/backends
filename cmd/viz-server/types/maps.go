@@ -22,18 +22,18 @@ func (wmap *WatcherMap) Get(id string) *Watcher {
 	return nil
 }
 
-type ArenaMap struct {
+type VizArenaMap struct {
 	*commontypes.SyncMap
 }
 
-func NewArenaMap() *ArenaMap {
-	return &ArenaMap{
+func NewVizArenaMap() *VizArenaMap {
+	return &VizArenaMap{
 		commontypes.NewSyncMap(),
 	}
 }
 
-func (amap *ArenaMap) Get(id string) *Arena {
-	if res, ok := (amap.GetGeneric(id)).(*Arena); ok {
+func (amap *VizArenaMap) Get(id string) *VizArena {
+	if res, ok := (amap.GetGeneric(id)).(*VizArena); ok {
 		return res
 	}
 

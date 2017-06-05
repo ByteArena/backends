@@ -7,7 +7,6 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/bytearena/bytearena/server/config"
 	"github.com/bytearena/bytearena/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -105,11 +104,11 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 	}
 }
 
-func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, config config.AgentGameConfig) (AgentContainer, error) {
+func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, dockerimage string) (AgentContainer, error) {
 
 	rc, err := orch.cli.ImagePull(
 		orch.ctx,
-		config.Image,
+		dockerimage,
 		types.ImagePullOptions{
 			RegistryAuth: orch.registryAuth,
 		},
@@ -117,10 +116,10 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	defer rc.Close()
 	ioutil.ReadAll(rc)
 
-	utils.Check(err, "Failed to pull "+config.Image+" from registry")
+	utils.Check(err, "Failed to pull "+dockerimage+" from registry")
 
 	containerconfig := container.Config{
-		Image: config.Image,
+		Image: dockerimage,
 		User:  "root",
 		Env: []string{
 			"PORT=" + strconv.Itoa(port),

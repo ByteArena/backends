@@ -30,7 +30,7 @@ func streamState(srv *server.Server, brokerclient *messagebroker.Client) {
 		select {
 		case state := <-stateobserver:
 			{
-				msg := transformServerStateToVizMessage(srv.GetArena().GetSpecs().Id, state)
+				msg := transformServerStateToVizMessage(srv.GetArena().GetId(), state)
 
 				json, err := json.Marshal(msg)
 				if err != nil {

@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func arenaHandler(arenas *types.ArenaMap, basepath string) func(w http.ResponseWriter, r *http.Request) {
+func arenaHandler(arenas *types.VizArenaMap, basepath string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		vars := mux.Vars(r)

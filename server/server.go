@@ -14,7 +14,6 @@ import (
 	"github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/server/agent"
 	"github.com/bytearena/bytearena/server/comm"
-	"github.com/bytearena/bytearena/server/config"
 	"github.com/bytearena/bytearena/server/container"
 	"github.com/bytearena/bytearena/server/protocol"
 	"github.com/bytearena/bytearena/server/state"
@@ -42,14 +41,17 @@ type Server struct {
 	currentturn           utils.Tickturn
 	currentturnmutex      *sync.Mutex
 
-	arena Arena
+	arena ArenaInstance
 
 	nbhandshaked     int
 	DebugNbMutations int
 	DebugNbUpdates   int
 }
 
-func NewServer(host string, port int, nbexpectedagents int, tickspersec int, stopticking chan bool, arena Arena) *Server {
+func NewServer(arena ArenaInstance, host string, port int, stopticking chan bool) *Server {
+
+	tickspersec := arena.GetTps()
+	nbexpectedagents := len(arena.GetContestants())
 
 	orch := container.MakeContainerOrchestrator()
 
@@ -83,7 +85,7 @@ func NewServer(host string, port int, nbexpectedagents int, tickspersec int, sto
 	return s
 }
 
-func (server *Server) GetArena() Arena {
+func (server *Server) GetArena() ArenaInstance {
 	return server.arena
 }
 
@@ -91,14 +93,14 @@ func (server *Server) GetTicksPerSecond() int {
 	return server.tickspersec
 }
 
-func (server *Server) SpawnAgent(config config.AgentGameConfig) {
+func (server *Server) SpawnAgent(dockerimage string) {
 
 	agent := agent.MakeNetAgentImp()
 	agentstate := state.MakeAgentState()
 
 	server.RegisterAgent(agent, agentstate)
 
-	container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, config)
+	container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
 	utils.Check(err, "Failed to create docker container for "+agent.String())
 
 	err = server.containerorchestrator.StartAgentContainer(container)
