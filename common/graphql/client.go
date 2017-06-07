@@ -20,6 +20,12 @@ func MakeClient(url string) Client {
 	}
 }
 
+func NewClient(url string) *Client {
+	return &Client{
+		url: url,
+	}
+}
+
 type graphqlwrapper struct {
 	Data   json.RawMessage `json:"data"`
 	Errors json.RawMessage `json:"errors"`
@@ -81,15 +87,18 @@ func (client Client) RequestAsync(query *Query) <-chan Response {
 
 		httpclient := &http.Client{}
 		resp, err := httpclient.Do(req)
-		defer resp.Body.Close()
-
 		if err != nil {
 			c <- Response{Error: err}
+			return
 		}
+
+		// defered after err because if err, resp is nil
+		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			c <- Response{Error: err}
+			return
 		}
 
 		var message graphqlwrapper
@@ -97,10 +106,12 @@ func (client Client) RequestAsync(query *Query) <-chan Response {
 		err = json.Unmarshal(body, &message)
 		if err != nil {
 			c <- Response{Error: errors.New("Could not understand response of graphql server")}
+			return
 		}
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			c <- Response{Error: errors.New("GraphQL server emitted an HTTP status code " + strconv.Itoa(resp.StatusCode) + "; " + string(message.Errors))}
+			return
 		}
 
 		c <- Response{Body: message.Data}

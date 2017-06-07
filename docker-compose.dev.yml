@@ -4,19 +4,19 @@ services:
 
   registry:
     build: ./docker/registry
-    ports:
-      - "5000:5000"
+    #ports:
+    #  - "5000:5000"
 
-  mysql:
-    image: mysql:latest
-    environment:
-        MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
-        MYSQL_DATABASE: ${DATABASE_NAME}
-        MYSQL_USER: ${DATABASE_USER}
-        MYSQL_PASSWORD: ${DATABASE_PASSWORD}
-    ports:
-      # uniquement pour connection de debug depuis l'extérieur du container
-      - "3306:3306"
+  # mysql:
+  #   image: mysql:latest
+  #   environment:
+  #       MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
+  #       MYSQL_DATABASE: ${DATABASE_NAME}
+  #       MYSQL_USER: ${DATABASE_USER}
+  #       MYSQL_PASSWORD: ${DATABASE_PASSWORD}
+  #   #ports:
+  #     # uniquement pour connection de debug depuis l'extérieur du container
+  #     #- "3306:3306"
 
   mq:
     build: $GOPATH/src/github.com/bytearena/bytearena-message-broker
@@ -25,7 +25,7 @@ services:
       - CHANNELS=agent
 
   dotgit:
-    depends_on: ["mysql"]
+    #depends_on: ["mysql"]
     build:
       context: $GOPATH/src/github.com/bytearena
       dockerfile: $GOPATH/src/github.com/bytearena/bytearena/docker/dotgit/Dockerfile
@@ -36,7 +36,7 @@ services:
         API_PORT: 8888
     links:
       - mq
-      - mysql
+      #- mysql
     environment:
       - MYSQL_HOST=${DATABASE_HOST}
     ports:
