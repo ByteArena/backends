@@ -21,7 +21,6 @@ services:
         GIT_ADMIN_KEY_PUBLIC: ${GIT_ADMIN_KEY_PUBLIC}
         DATABASE_URI: "${DATABASE_USER}:${DATABASE_PASSWORD}@tcp(${DATABASE_HOST}:${DATABASE_PORT})/${DATABASE_NAME}?charset=utf8"
         GIT_REPOSITORIES_PATH: "/home/git/repositories"
-        API_PORT: 8888
     links:
       - mq
     environment:
@@ -31,8 +30,6 @@ services:
     ports:
       - "2222:22"
       - "9418:9418"
-      # uniquement pour connection de debug depuis l'extérieur du container
-      - "8888:8888"
 
   agentbuilder:
     depends_on: ["mq"]
