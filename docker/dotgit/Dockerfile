@@ -3,8 +3,7 @@ FROM golang:1.8-stretch
 ARG DATABASE_URI
 ARG GIT_REPOSITORIES_PATH
 
-ENV BA_ROOT $GOPATH/src/github.com/bytearena
-ENV APP_HOME $BA_ROOT/dotgit
+ENV APP_HOME $GOPATH/src/github.com/bytearena
 
 RUN apt-get -y update
 RUN apt-get -y upgrade
@@ -13,8 +12,6 @@ RUN apt-get -y install git openssh-server curl netcat
 RUN addgroup --gid 1000 git
 RUN adduser --disabled-password git --uid 1000 --gid 1000
 
-COPY ./dotgit $APP_HOME
-
 # Fixing environment (commands called by ssh are executed in another env space, with user git)
 RUN touch /etc/dotgit.conf
 RUN echo "{" >> /etc/dotgit.conf
@@ -22,17 +19,19 @@ RUN echo "\"DatabaseURI\":\"$DATABASE_URI\"," >> /etc/dotgit.conf
 RUN echo "\"GitRepositoriesPath\":\"$GIT_REPOSITORIES_PATH\"" >> /etc/dotgit.conf
 RUN echo "}" >> /etc/dotgit.conf
 
+COPY ./ $APP_HOME
+
 # Build dotgit-ssh
-WORKDIR $APP_HOME/cmd/dotgit-ssh
+WORKDIR $APP_HOME/bytearena/dotgit/cmd/dotgit-ssh
 RUN go get -v ./...
 RUN go build
-RUN cp -f $APP_HOME/cmd/dotgit-ssh/dotgit-ssh /usr/bin
+RUN cp -f $APP_HOME/bytearena/dotgit/cmd/dotgit-ssh/dotgit-ssh /usr/bin
 
 # Build dotgit-keystore
-WORKDIR $APP_HOME/cmd/dotgit-keystore
+WORKDIR $APP_HOME/bytearena/dotgit/cmd/dotgit-keystore
 RUN go get -v ./...
 RUN go build
-RUN cp -f $APP_HOME/cmd/dotgit-keystore/dotgit-keystore /usr/bin
+RUN cp -f $APP_HOME/bytearena/dotgit/cmd/dotgit-keystore/dotgit-keystore /usr/bin
 RUN touch /var/log/dotgit-keystore.log && chown git:git /var/log/dotgit-keystore.log
 
 # Setting up SSH

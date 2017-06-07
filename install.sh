@@ -2,8 +2,6 @@
 
 set -e
 
-go get github.com/bytearena/dotgit
-
 MQ_DIRECTORY=$GOPATH/src/github.com/bytearena/bytearena-message-broker
 
 if [ ! -d "$MQ_DIRECTORY" ]; then

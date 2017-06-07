@@ -6,14 +6,14 @@ import (
 
 	"github.com/bytearena/bytearena/common/messagebroker"
 	commonprotocol "github.com/bytearena/bytearena/common/protocol"
+	"github.com/bytearena/bytearena/leakybucket"
 	"github.com/bytearena/bytearena/server"
 	"github.com/bytearena/bytearena/server/state"
-	"github.com/bytearena/leakybucket/bucket"
 )
 
 func streamState(srv *server.Server, brokerclient *messagebroker.Client) {
 
-	buk := bucket.NewBucket(srv.GetTicksPerSecond(), 10, func(batch bucket.Batch, bucket *bucket.Bucket) {
+	buk := leakybucket.NewBucket(srv.GetTicksPerSecond(), 10, func(batch leakybucket.Batch, bucket *leakybucket.Bucket) {
 
 		log.Println("batch !")
 		frames := batch.GetFrames()
