@@ -12,20 +12,26 @@ import (
 	"github.com/bytearena/bytearena/dotgit/protocol"
 )
 
-const fetchUserQuery = `
+const fragmentUser = `
+fragment userFields on User {
+	id
+	name
+	username
+	email
+	universalreader
+	universalwriter
+}
+`
+
+const fetchUserQuery = fragmentUser + `
 	query($username: String) {
 		users(username: $username) {
-			id
-			name
-			username
-			email
-			universalreader
-			universalwriter
+			...userFields
 		}
 	}
 `
 
-const fetchRepoQuery = `
+const fetchRepoQuery = fragmentUser + `
 	query($username: String!, $reponame: String) {
 		agents(username: $username, name: $reponame) {
 			id
@@ -37,21 +43,17 @@ const fetchRepoQuery = `
 				registry
 			}
 			owner {
-				id
-				username
+				...userFields
 			}
 		}
 	}
 `
 
-const fetchSSHPublicKeyQuery = `
+const fetchSSHPublicKeyQuery = fragmentUser + `
 	query($username: String, $fingerprint: String) {
 		sshpublickeys(username: $username, fingerprint: $fingerprint) {
 			owner {
-				id
-				name
-				username
-				email
+				...userFields
 			}
 			name
 			type
@@ -62,14 +64,11 @@ const fetchSSHPublicKeyQuery = `
 	}
 `
 
-const createSSHPublicKeyMutation = `
+const createSSHPublicKeyMutation = fragmentUser + `
 	mutation($key: SSHPublicKeyInputCreate!) {
 		createSSHPublicKey(key: $key) {
 			owner {
-				id
-				name
-				username
-				email
+				...userFields
 			}
 			name
 			type
@@ -173,11 +172,21 @@ func (db *GraphqlDatabase) FindRepository(user protocol.User, reponame string) (
 	intid, err := strconv.Atoi(apiagent.Id)
 	intownerid, err := strconv.Atoi(apiagent.Owner.Id)
 
+	owner := protocol.User{
+		ID:              uint(intownerid),
+		Username:        apiagent.Owner.Username,
+		Name:            apiagent.Owner.Name,
+		Email:           apiagent.Owner.Email,
+		UniversalReader: apiagent.Owner.UniversalReader,
+		UniversalWriter: apiagent.Owner.UniversalWriter,
+	}
+
 	return protocol.GitRepository{
 		ID:       uint(intid),
 		RepoName: apiagent.Image.Name + ":" + apiagent.Image.Tag,
 		Title:    apiagent.Name,
 		OwnerID:  intownerid,
+		Owner:    owner,
 	}, nil
 }
 
@@ -208,8 +217,18 @@ func (db *GraphqlDatabase) FindPublicKeyByFingerprint(fingerprint string) (proto
 	apipubkey := apiresponse.SSHPublicKeys[0]
 	intownerid, err := strconv.Atoi(apipubkey.Owner.Id)
 
+	owner := protocol.User{
+		ID:              uint(intownerid),
+		Username:        apipubkey.Owner.Username,
+		Name:            apipubkey.Owner.Name,
+		Email:           apipubkey.Owner.Email,
+		UniversalReader: apipubkey.Owner.UniversalReader,
+		UniversalWriter: apipubkey.Owner.UniversalWriter,
+	}
+
 	return protocol.GitPublicKey{
 		OwnerID:     intownerid,
+		Owner:       owner,
 		KeyName:     apipubkey.Name,
 		KeyType:     apipubkey.Type,
 		Key:         apipubkey.Key,

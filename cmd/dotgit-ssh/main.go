@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -21,16 +22,27 @@ func main() {
 
 	cnf := config.GetConfig()
 
+	f, err := os.OpenFile("/var/log/dotgit-ssh.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalln("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
+	log.Println("Starting a git-ssh session", os.Args, os.Getenv("SSH_ORIGINAL_COMMAND"))
+
 	var db protocol.Database = database.NewGraphQLDatabase()
 
-	err := db.Connect(cnf.GetDatabaseURI())
+	err = db.Connect(cnf.GetDatabaseURI())
 	if err != nil {
 		fmt.Println("Cannot connect to database", err)
+		log.Println("Cannot connect to database", err)
 		os.Exit(1)
 	}
 
 	if len(os.Args) != 2 {
 		fmt.Println("Error: fixed git username missing or invalid in call to ", os.Args[0])
+		log.Println("Error: fixed git username missing or invalid in call to ", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -40,30 +52,35 @@ func main() {
 	sshKeyFixedUser, err := db.FindUserByUsername(sshKeyFixedUsername)
 	if err != nil {
 		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 
 	gitOperation, gitRepoPath, err := parseGitCommand(originalGitCommand)
 	if err != nil {
 		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 
 	gitRepoUsername, gitRepoName, err := parseRepositoryName(gitRepoPath)
 	if err != nil {
 		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 
 	repoUser, err := db.FindUserByUsername(gitRepoUsername)
 	if err != nil {
 		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 
 	repo, err := db.FindRepository(repoUser, gitRepoName)
 	if err != nil {
 		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 
@@ -72,6 +89,7 @@ func main() {
 		{
 			if !hasWritePermission(sshKeyFixedUser, repo) {
 				fmt.Println("Write denied to required repository.")
+				log.Println("Write denied to required repository.")
 				os.Exit(1)
 			}
 			break
@@ -80,6 +98,7 @@ func main() {
 		{
 			if !hasReadPermission(sshKeyFixedUser, repo) {
 				fmt.Println("Read denied to required repository.")
+				log.Println("Read denied to required repository.")
 				os.Exit(1)
 			}
 			break
@@ -87,6 +106,7 @@ func main() {
 	default:
 		{
 			fmt.Println("Invalid git operation; should be either git-receive-pack or git-upload-pack.")
+			log.Println("Invalid git operation; should be either git-receive-pack or git-upload-pack.")
 			os.Exit(1)
 		}
 	}
@@ -94,6 +114,7 @@ func main() {
 	err = processGitOperation(repoUser, repo, gitOperation)
 	if err != nil {
 		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 }

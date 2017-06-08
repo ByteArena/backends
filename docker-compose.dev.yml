@@ -9,15 +9,17 @@ services:
     build: $GOPATH/src/github.com/bytearena/bytearena-message-broker
     environment:
       - PORT=80
-      - CHANNELS=agent
+      - CHANNELS=agent,viz
 
   dotgit:
     build:
       context: $GOPATH/src/github.com/bytearena
       dockerfile: $GOPATH/src/github.com/bytearena/bytearena/docker/dotgit/Dockerfile
       args:
-        DATABASE_URI: "${DATABASE_USER}:${DATABASE_PASSWORD}@tcp(${DATABASE_HOST}:${DATABASE_PORT})/${DATABASE_NAME}?charset=utf8"
-        GIT_REPOSITORIES_PATH: "/home/git/repositories"
+        DATABASE_URI: "${GRAPHQL_URL}"
+        GIT_REPOSITORIES_PATH: "/tmp/repositories"
+    volumes:
+      - ./data/repositories:/tmp/repositories
     links:
       - mq
     environment:
