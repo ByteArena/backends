@@ -4,16 +4,22 @@ services:
 
   registry:
     build: ./docker/registry
+    networks:
+      - backend
     ports:
       - "5000:5000"
 
   mq:
     build: $GOPATH/src/github.com/bytearena/bytearena-message-broker
+    networks:
+      - backend
     environment:
       - PORT=80
       - CHANNELS=agent,viz
 
   dotgit:
+    networks:
+      - backend
     build:
       context: $GOPATH/src/github.com/bytearena
       dockerfile: $GOPATH/src/github.com/bytearena/bytearena/docker/dotgit/Dockerfile
@@ -33,6 +39,8 @@ services:
       - "9418:9418"
 
   agentbuilder:
+    networks:
+      - backend
     depends_on: ["mq"]
     build:
       dockerfile: ./docker/agent-builder/Dockerfile
