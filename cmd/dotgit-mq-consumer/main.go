@@ -20,7 +20,7 @@ import (
 )
 
 type messageAgentSubmitted struct {
-	Id string
+	Id string `json:"id"`
 }
 
 func main() {
