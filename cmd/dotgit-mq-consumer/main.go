@@ -54,8 +54,9 @@ func main() {
 	brokerclient.Subscribe("agent", "submitted", func(msg messagebroker.BrokerMessage) {
 		log.Println("INFO:agent:submitted Received from MESSAGEBROKER")
 		var payload messageAgentSubmitted
-		err := json.Unmarshal(msg.Data, payload)
+		err := json.Unmarshal(msg.Data, &payload)
 		if err != nil {
+			log.Println(err)
 			log.Println("ERROR:agent:submitted Invalid payload " + string(msg.Data))
 			return
 		}
