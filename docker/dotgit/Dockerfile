@@ -16,7 +16,7 @@ RUN adduser --disabled-password git --uid 1000 --gid 1000
 RUN touch /etc/dotgit.conf
 RUN echo "{" >> /etc/dotgit.conf
 RUN echo "\"DatabaseURI\":\"$DATABASE_URI\"," >> /etc/dotgit.conf
-RUN echo "\"GitRepositoriesPath\":\"$GIT_REPOSITORIES_PATH\"" >> /etc/dotgit.conf
+RUN echo "\"GitRepositoriesPath\":\"$GIT_REPOSITORIES_PATH\"," >> /etc/dotgit.conf
 RUN echo "\"MqHost\":\"$MQ_HOST\"" >> /etc/dotgit.conf
 RUN echo "}" >> /etc/dotgit.conf
 
