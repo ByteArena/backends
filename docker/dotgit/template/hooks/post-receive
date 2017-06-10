@@ -11,6 +11,6 @@ env | grep GIT
 # $GIT_REPO_PATH    : the full path of the repository on disk
 # $GIT_OPERATION    : the current git operation (one of "receive-pack", "upload-pack")
 
-curl http://mq/pub/agent/repo.pushed \
+curl http://mq:5678/pub/agent/repo.pushed \
   -H "Content-Type: application/json" \
   -d "{\"username\":\"$GIT_REPO_OWNER\",\"repo\":\"$GIT_REPO_NAME\"}"
