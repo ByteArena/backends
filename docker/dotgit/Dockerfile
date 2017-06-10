@@ -2,6 +2,7 @@ FROM golang:1.8-stretch
 
 ARG DATABASE_URI
 ARG GIT_REPOSITORIES_PATH
+ARG MQ_HOST
 
 ENV APP_HOME $GOPATH/src/github.com/bytearena
 
