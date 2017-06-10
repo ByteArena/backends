@@ -65,6 +65,11 @@ RUN echo "ChallengeResponseAuthentication no" >> /etc/ssh/sshd_config
 RUN echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
 RUN echo "UsePAM no" >> /etc/ssh/sshd_config
 
+RUN echo "HostKey /opt/ssh/ssh_host_rsa_key"
+RUN echo "HostKey /opt/ssh/ssh_host_dsa_key"
+RUN echo "HostKey /opt/ssh/ssh_host_ecdsa_key"
+RUN echo "HostKey /opt/ssh/ssh_host_ed25519_key"
+
 COPY ./bytearena/docker/dotgit/template /home/git/template
 COPY ./bytearena/docker/dotgit/git-scripts /home/git/git-scripts
 
