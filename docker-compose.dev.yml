@@ -9,7 +9,7 @@ services:
     build: $GOPATH/src/github.com/bytearena/bytearena-message-broker
     environment:
       - PORT=80
-      - CHANNELS=agent,viz
+      - CHANNELS=agent,viz,ping,arena
 
   dotgit:
     build:

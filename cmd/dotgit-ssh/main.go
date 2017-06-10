@@ -29,7 +29,7 @@ func main() {
 	defer f.Close()
 
 	log.SetOutput(f)
-	log.Println("Starting a git-ssh session", os.Args, os.Getenv("SSH_ORIGINAL_COMMAND"))
+	log.Println("Starting a dotgit-ssh session", os.Args, os.Getenv("SSH_ORIGINAL_COMMAND"))
 
 	var db protocol.Database = database.NewGraphQLDatabase()
 

@@ -36,6 +36,13 @@ RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/dotgit-keystore/dotgit-keystore /usr/bin
 RUN touch /var/log/dotgit-keystore.log && chown git:git /var/log/dotgit-keystore.log
 
+# Build dotgit-mq-consumer
+WORKDIR $APP_HOME/bytearena/cmd/dotgit-mq-consumer
+RUN go get -v ./...
+RUN go build
+RUN cp -f $APP_HOME/bytearena/cmd/dotgit-mq-consumer/dotgit-mq-consumer /usr/bin
+RUN touch /var/log/dotgit-mq-consumer.log && chown git:git /var/log/dotgit-mq-consumer.log
+
 # Setting up SSH
 RUN mkdir -p /home/git/.ssh
 RUN touch /home/git/.ssh/authorized_keys

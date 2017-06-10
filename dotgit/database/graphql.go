@@ -5,11 +5,11 @@ package database
 import (
 	"encoding/json"
 	"errors"
-	"strconv"
 
 	"github.com/bytearena/bytearena/common/graphql"
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/dotgit/protocol"
+	"github.com/bytearena/bytearena/dotgit/utils"
 )
 
 const fragmentUser = `
@@ -32,8 +32,8 @@ const fetchUserQuery = fragmentUser + `
 `
 
 const fetchRepoQuery = fragmentUser + `
-	query($username: String!, $reponame: String) {
-		agents(username: $username, name: $reponame) {
+	query($username: String, $reponame: String, $id: Int) {
+		agents(username: $username, name: $reponame, id: $id) {
 			id
 			name
 			cloneurl
@@ -123,16 +123,7 @@ func (db *GraphqlDatabase) findUser(variables graphql.Variables) (protocol.User,
 
 	apiuser := apiresponse.Users[0]
 
-	intid, err := strconv.Atoi(apiuser.Id)
-
-	return protocol.User{
-		ID:              uint(intid),
-		Username:        apiuser.Username,
-		Name:            apiuser.Name,
-		Email:           apiuser.Email,
-		UniversalReader: apiuser.UniversalReader,
-		UniversalWriter: apiuser.UniversalWriter,
-	}, nil
+	return utils.GqlUserToUser(apiuser), nil
 }
 
 func (db *GraphqlDatabase) FindUserByUsername(username string) (protocol.User, error) {
@@ -156,10 +147,28 @@ func (db *GraphqlDatabase) FindRepository(user protocol.User, reponame string) (
 		return protocol.GitRepository{}, errors.New("There was an error fetching agent")
 	}
 
+	return processFoundRepository(data)
+}
+
+func (db *GraphqlDatabase) FindRepositoryById(id string) (protocol.GitRepository, error) {
+	data, err := db.client.RequestSync(
+		graphql.NewQuery(fetchRepoQuery).SetVariables(graphql.Variables{
+			"id": id,
+		}),
+	)
+
+	if err != nil {
+		return protocol.GitRepository{}, errors.New("There was an error fetching agent")
+	}
+
+	return processFoundRepository(data)
+}
+
+func processFoundRepository(data json.RawMessage) (protocol.GitRepository, error) {
 	var apiresponse struct {
 		Agents []graphqltype.AgentType `json:"agents"`
 	}
-	err = json.Unmarshal(data, &apiresponse)
+	err := json.Unmarshal(data, &apiresponse)
 	if err != nil || len(apiresponse.Agents) > 1 {
 		return protocol.GitRepository{}, errors.New("There was an error fetching agent")
 	}
@@ -169,25 +178,7 @@ func (db *GraphqlDatabase) FindRepository(user protocol.User, reponame string) (
 	}
 
 	apiagent := apiresponse.Agents[0]
-	intid, err := strconv.Atoi(apiagent.Id)
-	intownerid, err := strconv.Atoi(apiagent.Owner.Id)
-
-	owner := protocol.User{
-		ID:              uint(intownerid),
-		Username:        apiagent.Owner.Username,
-		Name:            apiagent.Owner.Name,
-		Email:           apiagent.Owner.Email,
-		UniversalReader: apiagent.Owner.UniversalReader,
-		UniversalWriter: apiagent.Owner.UniversalWriter,
-	}
-
-	return protocol.GitRepository{
-		ID:       uint(intid),
-		RepoName: apiagent.Image.Name + ":" + apiagent.Image.Tag,
-		Title:    apiagent.Name,
-		OwnerID:  intownerid,
-		Owner:    owner,
-	}, nil
+	return utils.GqlAgentToRepo(apiagent), nil
 }
 
 func (db *GraphqlDatabase) FindPublicKeyByFingerprint(fingerprint string) (protocol.GitPublicKey, error) {
@@ -215,26 +206,7 @@ func (db *GraphqlDatabase) FindPublicKeyByFingerprint(fingerprint string) (proto
 	}
 
 	apipubkey := apiresponse.SSHPublicKeys[0]
-	intownerid, err := strconv.Atoi(apipubkey.Owner.Id)
-
-	owner := protocol.User{
-		ID:              uint(intownerid),
-		Username:        apipubkey.Owner.Username,
-		Name:            apipubkey.Owner.Name,
-		Email:           apipubkey.Owner.Email,
-		UniversalReader: apipubkey.Owner.UniversalReader,
-		UniversalWriter: apipubkey.Owner.UniversalWriter,
-	}
-
-	return protocol.GitPublicKey{
-		OwnerID:     intownerid,
-		Owner:       owner,
-		KeyName:     apipubkey.Name,
-		KeyType:     apipubkey.Type,
-		Key:         apipubkey.Key,
-		Fingerprint: apipubkey.Fingerprint,
-		Comment:     apipubkey.Comment,
-	}, nil
+	return utils.GqlPubKeyToPubKey(apipubkey), nil
 }
 
 func (db *GraphqlDatabase) CreateUser(user protocol.User) error {

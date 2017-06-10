@@ -22,7 +22,7 @@ func main() {
 	defer f.Close()
 
 	log.SetOutput(f)
-	log.Println("Starting a ssh-keystore session")
+	log.Println("Starting a dotgit-keystore session")
 
 	if len(os.Args) != 2 {
 		fmt.Println("Invalid parameters; requires key fingerprint as only parameter")
