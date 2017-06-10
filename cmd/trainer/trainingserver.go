@@ -40,9 +40,9 @@ type TrainingServer struct {
 	stateobservers        []chan state.ServerState
 }
 
-func NewTrainingServer(tickspersec int) *TrainingServer {
+func NewTrainingServer(host string, port int, tickspersec int) *TrainingServer {
 	return &TrainingServer{
-		host:                  "192.168.0.3",
+		host:                  host,
 		port:                  8080,
 		stopticking:           make(chan struct{}),
 		tickspersec:           tickspersec,
@@ -138,7 +138,7 @@ func (server *TrainingServer) GetNbExpectedagents() int {
 func (server *TrainingServer) Listen() chan interface{} {
 	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
 	server.commserver = comm.NewCommServer(serveraddress, 1024) // 1024: max size of message in bytes
-	log.Println("Server listening on " + serveraddress)
+	log.Println("Server listening on port " + strconv.Itoa(server.port))
 
 	//block := make(chan struct{})
 	if server.GetNbExpectedagents() > 0 {
