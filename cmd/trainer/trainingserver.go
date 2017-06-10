@@ -29,7 +29,6 @@ type TrainingServer struct {
 	stopticking           chan struct{}
 	tickspersec           int
 	containerorchestrator container.ContainerOrchestrator
-	agentimages           map[uuid.UUID]string
 	agents                map[uuid.UUID]agent.Agent
 	agentsmutex           *sync.Mutex
 	state                 *state.ServerState
@@ -38,22 +37,39 @@ type TrainingServer struct {
 	currentturn           utils.Tickturn
 	currentturnmutex      *sync.Mutex
 	stateobservers        []chan state.ServerState
+	DebugNbMutations      int
+	DebugNbUpdates        int
+
+	agentimages map[uuid.UUID]string
 }
 
 func NewTrainingServer(host string, port int, tickspersec int) *TrainingServer {
+
+	orch := container.MakeContainerOrchestrator()
+
+	gamehost := host
+
+	if host == "" {
+		host, err := orch.GetHost()
+		utils.Check(err, "Could not determine host !")
+
+		gamehost = host
+	}
+
 	return &TrainingServer{
-		host:                  host,
-		port:                  8080,
+		host:                  gamehost,
+		port:                  port,
 		stopticking:           make(chan struct{}),
 		tickspersec:           tickspersec,
-		containerorchestrator: container.MakeContainerOrchestrator(),
-		agentimages:           make(map[uuid.UUID]string),
+		containerorchestrator: orch,
 		agents:                make(map[uuid.UUID]agent.Agent),
 		agentsmutex:           &sync.Mutex{},
 		state:                 state.NewServerState(),
 		commserver:            nil, // initialized in Listen()
 		nbhandshaked:          0,
 		currentturnmutex:      &sync.Mutex{},
+
+		agentimages: make(map[uuid.UUID]string),
 	}
 }
 

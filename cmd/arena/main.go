@@ -52,12 +52,10 @@ func main() {
 	arena, err := api.FetchArenaInstanceById(graphqlclient, arenainstanceid)
 	utils.Check(err, "Could not fetch arenainstance "+arenainstanceid)
 
-	stopticking := make(chan bool)
-
 	srv := server.NewServer(
-		arena,
 		arenahost, arenaportint,
-		stopticking,
+		arena.GetTps(),
+		arena,
 	)
 
 	for _, contestant := range arena.GetContestants() {
@@ -69,12 +67,11 @@ func main() {
 	signal.Notify(hassigtermed, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-hassigtermed
-		stopticking <- true
-		srv.TearDown()
-		os.Exit(1)
+		srv.Stop()
 	}()
 
 	go streamState(srv, brokerclient)
 
-	srv.Listen()
+	<-srv.Listen()
+	srv.TearDown()
 }

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bitly/go-notify"
+	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/server/agent"
 	"github.com/bytearena/bytearena/server/comm"
 	"github.com/bytearena/bytearena/server/container"
@@ -26,32 +26,26 @@ import (
 const debug = false
 
 type Server struct {
-	agents                map[uuid.UUID]agent.Agent
-	agentsmutex           *sync.Mutex
 	host                  string
 	port                  int
-	state                 *state.ServerState
-	nbexpectedagents      int
-	stopticking           chan bool
-	commserver            *comm.CommServer
-	stateobservers        []chan state.ServerState
-	containerorchestrator container.ContainerOrchestrator
-	tickduration          time.Duration
+	stopticking           chan struct{}
 	tickspersec           int
+	containerorchestrator container.ContainerOrchestrator
+	agents                map[uuid.UUID]agent.Agent
+	agentsmutex           *sync.Mutex
+	state                 *state.ServerState
+	commserver            *comm.CommServer
+	nbhandshaked          int
 	currentturn           utils.Tickturn
 	currentturnmutex      *sync.Mutex
+	stateobservers        []chan state.ServerState
+	DebugNbMutations      int
+	DebugNbUpdates        int
 
 	arena ArenaInstance
-
-	nbhandshaked     int
-	DebugNbMutations int
-	DebugNbUpdates   int
 }
 
-func NewServer(arena ArenaInstance, host string, port int, stopticking chan bool) *Server {
-
-	tickspersec := arena.GetTps()
-	nbexpectedagents := len(arena.GetContestants())
+func NewServer(host string, port int, tickspersec int, arena ArenaInstance) *Server {
 
 	orch := container.MakeContainerOrchestrator()
 
@@ -65,17 +59,16 @@ func NewServer(arena ArenaInstance, host string, port int, stopticking chan bool
 	}
 
 	s := &Server{
-		agents:                make(map[uuid.UUID]agent.Agent),
-		agentsmutex:           &sync.Mutex{},
 		host:                  gamehost,
 		port:                  port,
-		state:                 state.NewServerState(),
-		nbexpectedagents:      nbexpectedagents,
-		stopticking:           stopticking,
-		commserver:            nil,
-		containerorchestrator: orch,
-		tickduration:          time.Duration((1000000 / time.Duration(tickspersec)) * time.Microsecond),
+		stopticking:           make(chan struct{}),
 		tickspersec:           tickspersec,
+		containerorchestrator: orch,
+		agents:                make(map[uuid.UUID]agent.Agent),
+		agentsmutex:           &sync.Mutex{},
+		state:                 state.NewServerState(),
+		commserver:            nil, // initialized in Listen()
+		nbhandshaked:          0,
 		currentturnmutex:      &sync.Mutex{},
 		arena:                 arena,
 	}
@@ -141,27 +134,29 @@ func (s *Server) GetTurn() utils.Tickturn {
 	return res
 }
 
-func (server *Server) Listen() {
+func (server *Server) Listen() chan interface{} {
 	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
 	server.commserver = comm.NewCommServer(serveraddress, 1024) // 1024: max size of message in bytes
 	log.Println("Server listening on " + serveraddress)
 
-	done := make(chan bool)
 	if server.GetNbExpectedagents() > 0 {
 		go func() {
 			err := server.commserver.Listen(server)
 			utils.Check(err, "Failed to listen on "+serveraddress)
-
-			done <- true
+			notify.Post("app:stopticking", nil)
 		}()
 	} else {
 		server.OnAgentsReady()
 	}
-	<-done
+
+	block := make(chan interface{})
+	notify.Start("app:stopticking", block)
+
+	return block
 }
 
 func (server *Server) GetNbExpectedagents() int {
-	return server.nbexpectedagents
+	return len(server.arena.GetContestants())
 }
 
 func (server *Server) GetState() *state.ServerState {
@@ -350,7 +345,7 @@ func (server *Server) OnAgentsReady() {
 
 func (server *Server) StartTicking() {
 
-	tickduration := server.tickduration
+	tickduration := time.Duration((1000000 / time.Duration(server.tickspersec)) * time.Microsecond)
 	stopticking := server.stopticking
 
 	go func(server *Server) {
@@ -372,6 +367,10 @@ func (server *Server) StartTicking() {
 			}
 		}
 	}(server)
+}
+
+func (server *Server) Stop() {
+	close(server.stopticking)
 }
 
 func (server *Server) ProcessMutations() {
