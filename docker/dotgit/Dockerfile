@@ -2,6 +2,7 @@ FROM golang:1.8-stretch
 
 ARG DATABASE_URI
 ARG GIT_REPOSITORIES_PATH
+ARG MQ_HOST
 
 ENV APP_HOME $GOPATH/src/github.com/bytearena
 
@@ -65,6 +66,7 @@ RUN echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
 RUN echo "UsePAM no" >> /etc/ssh/sshd_config
 
 COPY ./bytearena/docker/dotgit/template /home/git/template
+COPY ./bytearena/docker/dotgit/git-scripts /home/git/git-scripts
 
 # Permissions on /home/git
 RUN mkdir -p /home/git/repositories
