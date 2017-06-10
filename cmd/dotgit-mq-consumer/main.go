@@ -90,6 +90,7 @@ func initRepo(db protocol.Database, mq *messagebroker.Client, agentid string) {
 	if err != nil {
 		errmsg := "ERROR:agent:submitted Could not fetch agent by id '" + agentid + "'"
 		log.Println(errmsg)
+		log.Println(err)
 		mq.Publish(
 			"agent", "repo-init-fail", commonutils.NewMQError(
 				"dotgit-mq-consumer",

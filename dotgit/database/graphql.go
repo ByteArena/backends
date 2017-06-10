@@ -32,7 +32,7 @@ const fetchUserQuery = fragmentUser + `
 `
 
 const fetchRepoQuery = fragmentUser + `
-	query($username: String, $reponame: String, $id: Int) {
+	query($username: String, $reponame: String, $id: String) {
 		agents(username: $username, name: $reponame, id: $id) {
 			id
 			name
@@ -144,7 +144,7 @@ func (db *GraphqlDatabase) FindRepository(user protocol.User, reponame string) (
 	)
 
 	if err != nil {
-		return protocol.GitRepository{}, errors.New("There was an error fetching agent")
+		return protocol.GitRepository{}, errors.New("There was an error fetching agent; " + err.Error())
 	}
 
 	return processFoundRepository(data)
@@ -158,7 +158,7 @@ func (db *GraphqlDatabase) FindRepositoryById(id string) (protocol.GitRepository
 	)
 
 	if err != nil {
-		return protocol.GitRepository{}, errors.New("There was an error fetching agent")
+		return protocol.GitRepository{}, errors.New("There was an error fetching agent; " + err.Error())
 	}
 
 	return processFoundRepository(data)
@@ -170,11 +170,11 @@ func processFoundRepository(data json.RawMessage) (protocol.GitRepository, error
 	}
 	err := json.Unmarshal(data, &apiresponse)
 	if err != nil || len(apiresponse.Agents) > 1 {
-		return protocol.GitRepository{}, errors.New("There was an error fetching agent")
+		return protocol.GitRepository{}, errors.New("There was an error fetching agent; " + err.Error())
 	}
 
 	if len(apiresponse.Agents) == 0 {
-		return protocol.GitRepository{}, errors.New("Agent not found")
+		return protocol.GitRepository{}, errors.New("Agent not found" + err.Error())
 	}
 
 	apiagent := apiresponse.Agents[0]
