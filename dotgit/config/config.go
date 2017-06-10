@@ -12,6 +12,7 @@ import (
 type Config struct {
 	DatabaseURI         string
 	GitRepositoriesPath string
+	MqHost              string
 }
 
 func (conf Config) GetDatabaseURI() string {
@@ -20,6 +21,10 @@ func (conf Config) GetDatabaseURI() string {
 
 func (conf Config) GetGitRepositoriesPath() string {
 	return conf.GitRepositoriesPath
+}
+
+func (conf Config) GetMqHost() string {
+	return conf.MqHost
 }
 
 func loadConfig(configpath string) (*Config, error) {
@@ -43,6 +48,10 @@ func loadConfig(configpath string) (*Config, error) {
 
 	if strings.TrimSpace(config.GetGitRepositoriesPath()) == "" {
 		return nil, errors.New("GitRepositoriesPath is missing in config file: " + configpath)
+	}
+
+	if strings.TrimSpace(config.GetMqHost()) == "" {
+		return nil, errors.New("MqHost is missing in config file: " + configpath)
 	}
 
 	return &config, nil

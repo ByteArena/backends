@@ -158,7 +158,9 @@ func parseRepositoryName(repopath string) (username string, reponame string, err
 
 func processGitOperation(user protocol.User, repo protocol.GitRepository, gitOperation string) error {
 
-	repoAbsPath := path.Join(config.GetConfig().GetGitRepositoriesPath(), utils.RepoRelPath(repo))
+	cnf := config.GetConfig()
+
+	repoAbsPath := path.Join(cnf.GetGitRepositoriesPath(), utils.RepoRelPath(repo))
 
 	gitbin, err := exec.LookPath("git")
 	if err != nil {
@@ -182,6 +184,7 @@ func processGitOperation(user protocol.User, repo protocol.GitRepository, gitOpe
 		"GIT_REPO_NAME="+repo.RepoName,
 		"GIT_REPO_PATH="+repoAbsPath,
 		"GIT_OPERATION="+gitOperation,
+		"MQ_HOST="+cnf.GetMqHost(),
 	)
 
 	err = cmd.Run()
