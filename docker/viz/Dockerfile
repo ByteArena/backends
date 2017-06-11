@@ -17,4 +17,4 @@ RUN go get -v ./...
 RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/viz-server/viz-server /usr/bin
 
-CMD /usr/bin/viz-server --port "$PORT" --mqhost "$MQHOST" --apiurl "$APIURL"
+CMD /usr/bin/viz-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}"
