@@ -1,5 +1,9 @@
 FROM golang:1.8-stretch
 
+ARG PORT
+ARG MQHOST
+ARG APIURL
+
 ENV APP_HOME $GOPATH/src/github.com/bytearena
 
 RUN apt-get -y update
@@ -13,4 +17,4 @@ RUN go get -v ./...
 RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/viz-server/viz-server /usr/bin
 
-CMD /usr/bin/viz-server
+CMD /usr/bin/viz-server --port "$PORT" --mqhost "$MQHOST" --apiurl "$APIURL"
