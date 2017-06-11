@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"net/http"
@@ -7,7 +7,7 @@ import (
 	"github.com/bytearena/bytearena/cmd/viz-server/types"
 )
 
-func homeHandler(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Request) {
+func Home(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write([]byte("<h2>Welcome on VIZ SERVER !</h2>"))

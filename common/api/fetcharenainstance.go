@@ -34,7 +34,7 @@ query ($instanceid: String = null) {
 			agent {
 				id
 				name
-				repo
+				cloneurl
 				owner {
 					id
 					name

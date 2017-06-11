@@ -1,31 +1,31 @@
 package types
 
+import (
+	"github.com/bytearena/bytearena/server"
+)
+
 type VizArena struct {
-	id   string
-	name string
-	tps  int
-	pool *WatcherMap
+	arenainstance server.ArenaInstance
+	pool          *WatcherMap
 }
 
-func NewVizArena(id string, name string, tps int) *VizArena {
+func NewVizArena(arenainstance server.ArenaInstance) *VizArena {
 	return &VizArena{
-		id:   id,
-		name: name,
-		tps:  tps,
-		pool: NewWatcherMap(),
+		pool:          NewWatcherMap(),
+		arenainstance: arenainstance,
 	}
 }
 
 func (arena *VizArena) GetId() string {
-	return arena.id
+	return arena.arenainstance.GetId()
 }
 
 func (arena *VizArena) GetName() string {
-	return arena.name
+	return arena.arenainstance.GetName()
 }
 
 func (arena *VizArena) GetTps() int {
-	return arena.tps
+	return arena.arenainstance.GetTps()
 }
 
 func (arena *VizArena) SetWatcher(watcher *Watcher) {

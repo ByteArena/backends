@@ -1,16 +1,19 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/bytearena/bytearena/common/api"
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/messagebroker"
+	commonprotocol "github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/server"
 	"github.com/bytearena/bytearena/utils"
 )
@@ -18,48 +21,37 @@ import (
 func main() {
 
 	rand.Seed(time.Now().UnixNano())
+	log.Println("Byte Arena Trainer v0.1")
 
-	arenahost, exists := os.LookupEnv("HOST") // override host if needed (useful for netgusto@macos)
-	if !exists {
-		arenahost = ""
-	}
+	host := flag.String("host", "", "IP serving the arena; required")
+	port := flag.Int("port", 8080, "Port serving the arena")
+	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
+	apiurl := flag.String("apiurl", "http://bytearena.com/privateapi/graphql", "GQL API URL")
+	arenainstanceid := flag.String("arenainstance", "", "Arena instance id")
 
-	// Arena PORT (for agents to connect to)
-	arenaport, exists := os.LookupEnv("PORT")
-	if !exists {
-		arenaport = "8080"
+	flag.Parse()
+
+	if *arenainstanceid == "" {
+		fmt.Println("-arenainstance is required")
+		os.Exit(1)
 	}
-	arenaportint, _ := strconv.Atoi(arenaport)
 
 	// Make message broker client
-	brokerhost, exists := os.LookupEnv("MESSAGEBROKERHOST")
-	utils.Assert(exists, "Error: MESSAGEBROKERHOST should be defined in the environment")
-
-	brokerclient, err := messagebroker.NewClient(brokerhost)
-	utils.Check(err, "ERROR: Could not connect to messagebroker on "+brokerhost)
+	brokerclient, err := messagebroker.NewClient(*mqhost)
+	utils.Check(err, "ERROR: Could not connect to messagebroker on "+*mqhost)
 
 	// Make GraphQL client
-	apiendpoint, exists := os.LookupEnv("APIENDPOINT")
-	utils.Assert(exists, "Error: APIENDPOINT should be defined in the environment")
-	graphqlclient := graphql.MakeClient(apiendpoint)
+	graphqlclient := graphql.MakeClient(*apiurl)
 
 	// Fetch arena **instance** from GraphQL
-	arenainstanceid, exists := os.LookupEnv("ARENAINSTANCEID")
-	if !exists {
-		arenainstanceid = "1"
-	}
+	arena, err := api.FetchArenaInstanceById(graphqlclient, *arenainstanceid)
+	utils.Check(err, "Could not fetch arenainstance "+*arenainstanceid)
+	log.Println(arena)
 
-	arena, err := api.FetchArenaInstanceById(graphqlclient, arenainstanceid)
-	utils.Check(err, "Could not fetch arenainstance "+arenainstanceid)
-
-	srv := server.NewServer(
-		arenahost, arenaportint,
-		arena.GetTps(),
-		arena,
-	)
+	srv := server.NewServer(*host, *port, arena)
 
 	for _, contestant := range arena.GetContestants() {
-		go srv.SpawnAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)
+		srv.RegisterAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)
 	}
 
 	// handling signals
@@ -70,8 +62,8 @@ func main() {
 		srv.Stop()
 	}()
 
-	go streamState(srv, brokerclient)
+	go commonprotocol.StreamState(srv, brokerclient)
 
-	<-srv.Listen()
+	<-srv.Start()
 	srv.TearDown()
 }
