@@ -13,6 +13,9 @@ RUN go get -v ./...
 RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/viz-server/viz-server /usr/bin
 
+# Bundle viz fronted
+COPY ./bytearena-viz $APP_HOME/bytearena/cmd/viz-server/webclient
+
 # Startup script
 COPY ./bytearena/docker/viz/start.sh $APP_HOME
 WORKDIR $APP_HOME
