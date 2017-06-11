@@ -4,7 +4,7 @@ ENV APP_HOME $GOPATH/src/github.com/bytearena
 
 RUN apt-get -y update
 RUN apt-get -y upgrade
-RUN apt-get -y install curl netcat
+RUN apt-get -y install curl netcat sudo
 
 COPY ./ $APP_HOME
 
