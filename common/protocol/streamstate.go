@@ -1,17 +1,16 @@
-package main
+package protocol
 
 import (
 	"encoding/json"
 	"log"
 
 	"github.com/bytearena/bytearena/common/messagebroker"
-	commonprotocol "github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/leakybucket"
 	"github.com/bytearena/bytearena/server"
 	"github.com/bytearena/bytearena/server/state"
 )
 
-func streamState(srv *server.Server, brokerclient *messagebroker.Client) {
+func StreamState(srv *server.Server, brokerclient *messagebroker.Client) {
 
 	buk := leakybucket.NewBucket(srv.GetTicksPerSecond(), 10, func(batch leakybucket.Batch, bucket *leakybucket.Bucket) {
 
@@ -45,19 +44,19 @@ func streamState(srv *server.Server, brokerclient *messagebroker.Client) {
 
 }
 
-func transformServerStateToVizMessage(arenaid string, state state.ServerState) commonprotocol.VizMessage {
+func transformServerStateToVizMessage(arenaid string, state state.ServerState) VizMessage {
 
-	msg := commonprotocol.VizMessage{
+	msg := VizMessage{
 		ArenaId: arenaid,
 	}
 
 	state.Projectilesmutex.Lock()
 	for _, projectile := range state.Projectiles {
-		msg.Projectiles = append(msg.Projectiles, commonprotocol.VizProjectileMessage{
+		msg.Projectiles = append(msg.Projectiles, VizProjectileMessage{
 			Position: projectile.Velocity,
 			Radius:   projectile.Radius,
 			Kind:     "projectiles",
-			From: commonprotocol.VizAgentMessage{
+			From: VizAgentMessage{
 				Position: projectile.Position,
 			},
 		})
@@ -66,7 +65,7 @@ func transformServerStateToVizMessage(arenaid string, state state.ServerState) c
 
 	state.Agentsmutex.Lock()
 	for id, agent := range state.Agents {
-		msg.Agents = append(msg.Agents, commonprotocol.VizAgentMessage{
+		msg.Agents = append(msg.Agents, VizAgentMessage{
 			Id:           id,
 			Kind:         "agent",
 			Position:     agent.Position,
@@ -81,7 +80,7 @@ func transformServerStateToVizMessage(arenaid string, state state.ServerState) c
 
 	state.Obstaclesmutex.Lock()
 	for _, obstacle := range state.Obstacles {
-		msg.Obstacles = append(msg.Obstacles, commonprotocol.VizObstacleMessage{
+		msg.Obstacles = append(msg.Obstacles, VizObstacleMessage{
 			Id: obstacle.Id,
 			A:  obstacle.A,
 			B:  obstacle.B,

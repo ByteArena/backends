@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bitly/go-notify"
+	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/server/agent"
 	"github.com/bytearena/bytearena/server/comm"
 	"github.com/bytearena/bytearena/server/container"
@@ -26,32 +26,28 @@ import (
 const debug = false
 
 type Server struct {
-	agents                map[uuid.UUID]agent.Agent
-	agentsmutex           *sync.Mutex
 	host                  string
 	port                  int
-	state                 *state.ServerState
-	nbexpectedagents      int
-	stopticking           chan bool
-	commserver            *comm.CommServer
-	stateobservers        []chan state.ServerState
-	containerorchestrator container.ContainerOrchestrator
-	tickduration          time.Duration
+	stopticking           chan struct{}
 	tickspersec           int
+	containerorchestrator container.ContainerOrchestrator
+	agents                map[uuid.UUID]agent.Agent
+	agentsmutex           *sync.Mutex
+	state                 *state.ServerState
+	commserver            *comm.CommServer
+	nbhandshaked          int
 	currentturn           utils.Tickturn
 	currentturnmutex      *sync.Mutex
+	stateobservers        []chan state.ServerState
+	DebugNbMutations      int
+	DebugNbUpdates        int
+
+	agentimages map[uuid.UUID]string
 
 	arena ArenaInstance
-
-	nbhandshaked     int
-	DebugNbMutations int
-	DebugNbUpdates   int
 }
 
-func NewServer(arena ArenaInstance, host string, port int, stopticking chan bool) *Server {
-
-	tickspersec := arena.GetTps()
-	nbexpectedagents := len(arena.GetContestants())
+func NewServer(host string, port int, arena ArenaInstance) *Server {
 
 	orch := container.MakeContainerOrchestrator()
 
@@ -65,19 +61,21 @@ func NewServer(arena ArenaInstance, host string, port int, stopticking chan bool
 	}
 
 	s := &Server{
-		agents:                make(map[uuid.UUID]agent.Agent),
-		agentsmutex:           &sync.Mutex{},
 		host:                  gamehost,
 		port:                  port,
-		state:                 state.NewServerState(),
-		nbexpectedagents:      nbexpectedagents,
-		stopticking:           stopticking,
-		commserver:            nil,
+		stopticking:           make(chan struct{}),
+		tickspersec:           arena.GetTps(),
 		containerorchestrator: orch,
-		tickduration:          time.Duration((1000000 / time.Duration(tickspersec)) * time.Microsecond),
-		tickspersec:           tickspersec,
+		agents:                make(map[uuid.UUID]agent.Agent),
+		agentsmutex:           &sync.Mutex{},
+		state:                 state.NewServerState(),
+		commserver:            nil, // initialized in Listen()
+		nbhandshaked:          0,
 		currentturnmutex:      &sync.Mutex{},
-		arena:                 arena,
+
+		agentimages: make(map[uuid.UUID]string),
+
+		arena: arena,
 	}
 
 	arena.Setup(s)
@@ -85,37 +83,41 @@ func NewServer(arena ArenaInstance, host string, port int, stopticking chan bool
 	return s
 }
 
-func (server *Server) GetArena() ArenaInstance {
-	return server.arena
-}
-
 func (server *Server) GetTicksPerSecond() int {
 	return server.tickspersec
 }
 
-func (server *Server) SpawnAgent(dockerimage string) {
+func (server *Server) spawnAgents() {
+	for _, ag := range server.agents {
+		agentstate := server.state.GetAgentState(ag.GetId())
+		agentimage := server.agentimages[ag.GetId()]
+
+		go func(agent agent.Agent, agentstate state.AgentState, dockerimage string) {
+
+			container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
+			utils.Check(err, "Failed to create docker container for "+agent.String())
+
+			err = server.containerorchestrator.StartAgentContainer(container)
+			utils.Check(err, "Failed to start docker container for "+agent.String())
+
+			err = server.containerorchestrator.LogsToStdOut(container)
+			utils.Check(err, "Failed to follow docker container logs for "+agent.String())
+
+			err = server.containerorchestrator.Wait(container)
+			utils.Check(err, "Failed to wait docker container completion for "+agent.String())
+		}(ag, agentstate, agentimage)
+	}
+}
+
+func (server *Server) RegisterAgent(agentimage string) {
 
 	agent := agent.MakeNetAgentImp()
 	agentstate := state.MakeAgentState()
 
-	server.RegisterAgent(agent, agentstate)
-
-	container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
-	utils.Check(err, "Failed to create docker container for "+agent.String())
-
-	err = server.containerorchestrator.StartAgentContainer(container)
-	utils.Check(err, "Failed to start docker container for "+agent.String())
-
-	err = server.containerorchestrator.LogsToStdOut(container)
-	utils.Check(err, "Failed to follow docker container logs for "+agent.String())
-
-	err = server.containerorchestrator.Wait(container)
-	utils.Check(err, "Failed to wait docker container completion for "+agent.String())
-}
-
-func (server *Server) RegisterAgent(agent agent.Agent, state state.AgentState) {
 	server.setAgent(agent)
-	server.state.SetAgentState(agent.GetId(), state)
+	server.state.SetAgentState(agent.GetId(), agentstate)
+
+	server.agentimages[agent.GetId()] = agentimage
 }
 
 func (server *Server) SetObstacle(obstacle state.Obstacle) {
@@ -141,27 +143,29 @@ func (s *Server) GetTurn() utils.Tickturn {
 	return res
 }
 
-func (server *Server) Listen() {
+func (server *Server) Listen() chan interface{} {
 	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
 	server.commserver = comm.NewCommServer(serveraddress, 1024) // 1024: max size of message in bytes
-	log.Println("Server listening on " + serveraddress)
+	log.Println("Server listening on port " + strconv.Itoa(server.port))
 
-	done := make(chan bool)
 	if server.GetNbExpectedagents() > 0 {
 		go func() {
 			err := server.commserver.Listen(server)
 			utils.Check(err, "Failed to listen on "+serveraddress)
-
-			done <- true
+			notify.Post("app:stopticking", nil)
 		}()
 	} else {
 		server.OnAgentsReady()
 	}
-	<-done
+
+	block := make(chan interface{})
+	notify.Start("app:stopticking", block)
+
+	return block
 }
 
 func (server *Server) GetNbExpectedagents() int {
-	return server.nbexpectedagents
+	return len(server.arena.GetContestants())
 }
 
 func (server *Server) GetState() *state.ServerState {
@@ -344,26 +348,23 @@ func (server *Server) OnAgentsReady() {
 
 	go server.monitoring()
 
-	// blocking; interruptible by SIGTERM
-	server.StartTicking()
+	server.startTicking()
 }
 
-func (server *Server) StartTicking() {
+func (server *Server) startTicking() {
 
-	tickduration := server.tickduration
-	stopticking := server.stopticking
+	go func() {
 
-	go func(server *Server) {
-
-		log.Println("Start ticking")
+		tickduration := time.Duration((1000000 / time.Duration(server.tickspersec)) * time.Microsecond)
 		ticker := time.Tick(tickduration)
 
 		for {
 			select {
-			case <-stopticking:
+			case <-server.stopticking:
 				{
-					log.Println("Stop Ticking !")
-					return
+					log.Println("Received stop ticking signal")
+					notify.Post("app:stopticking", nil)
+					return // exiting goroutine,
 				}
 			case <-ticker:
 				{
@@ -371,7 +372,19 @@ func (server *Server) StartTicking() {
 				}
 			}
 		}
-	}(server)
+	}()
+}
+
+func (server *Server) Start() chan interface{} {
+	log.Println("START !")
+	server.spawnAgents()
+	block := server.Listen()
+	return block
+
+}
+
+func (server *Server) Stop() {
+	close(server.stopticking)
 }
 
 func (server *Server) ProcessMutations() {
@@ -391,7 +404,7 @@ func (server *Server) DoUpdate() {
 		if state.Ttl <= 0 {
 			delete(server.state.Projectiles, k)
 		} else {
-			state.Ttl -= 1
+			state.Ttl--
 			server.state.Projectiles[k] = state
 		}
 	}
@@ -419,4 +432,8 @@ func (server *Server) SubscribeStateObservation() chan state.ServerState {
 	ch := make(chan state.ServerState)
 	server.stateobservers = append(server.stateobservers, ch)
 	return ch
+}
+
+func (server *Server) GetArena() ArenaInstance {
+	return server.arena
 }

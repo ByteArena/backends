@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"log"
@@ -16,7 +16,7 @@ type wsincomingmessage struct {
 	err         error
 }
 
-func websocketHandler(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Request) {
+func Websocket(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		arena := arenas.Get(vars["id"])
