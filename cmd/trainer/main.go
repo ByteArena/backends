@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"math/rand"
 	"os"
@@ -10,8 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	commonprotocol "github.com/bytearena/bytearena/common/protocol"
+	commonutils "github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/server"
+	"github.com/bytearena/bytearena/utils"
 )
 
 func main() {
@@ -26,8 +26,9 @@ func main() {
 	flag.Parse()
 
 	if *host == "" {
-		fmt.Println("-host is required")
-		os.Exit(1)
+		ip, err := commonutils.GetCurrentIP()
+		utils.Check(err, "Could not determine host IP; you can specify using the `--host` flag.")
+		*host = ip
 	}
 
 	arena := MockArenaInstance{
@@ -50,7 +51,7 @@ func main() {
 		srv.Stop()
 	}()
 
-	go commonprotocol.StreamState(srv, brokerclient)
+	//go commonprotocol.StreamState(srv, brokerclient)
 
 	<-srv.Start()
 	srv.TearDown()
