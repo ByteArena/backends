@@ -13,3 +13,12 @@ func GetAbsoluteDir(relative string) string {
 
 	return path.Join(exfolder, relative)
 }
+
+func GetExecutablePath() string {
+	binpath, _ := osext.Executable()
+	return binpath
+}
+
+func GetExecutableDir() string {
+	return path.Dir(GetExecutablePath())
+}

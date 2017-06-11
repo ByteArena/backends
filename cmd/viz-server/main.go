@@ -29,9 +29,9 @@ func main() {
 	// 		=> Redistribution des messages via websocket
 	// 			=> gestion d'un pool de connexions websocket
 
-	webclientpath := "./webclient/"
+	webclientpath := utils.GetExecutableDir() + "/webclient/"
 
-	log.Println("Byte Arena Viz Server v0.1")
+	log.Println("Byte Arena Viz Server v0.1; serving assets from " + webclientpath)
 
 	port := flag.Int("port", 8081, "Port of the viz server")
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
