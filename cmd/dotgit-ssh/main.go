@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/bytearena/bytearena/dotgit/config"
-
 	"github.com/bytearena/bytearena/dotgit/database"
 	"github.com/bytearena/bytearena/dotgit/protocol"
 	"github.com/bytearena/bytearena/dotgit/utils"

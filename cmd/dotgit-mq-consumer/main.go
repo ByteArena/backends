@@ -10,6 +10,7 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
+
 	"github.com/bytearena/bytearena/common/messagebroker"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/dotgit/config"

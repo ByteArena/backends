@@ -12,15 +12,17 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
+	uuid "github.com/satori/go.uuid"
+
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/state"
+	"github.com/bytearena/bytearena/arenatrainer"
 	"github.com/bytearena/bytearena/common/messagebroker"
-	commonprotocol "github.com/bytearena/bytearena/common/protocol"
+	"github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/bytearena/vizserver"
-	uuid "github.com/satori/go.uuid"
 )
 
 type arrayFlags []string
@@ -64,7 +66,7 @@ func main() {
 	}
 
 	// Make message broker client
-	brokerclient, err := NewMemoryMessageClient()
+	brokerclient, err := arenatrainer.NewMemoryMessageClient()
 	utils.Check(err, "ERROR: Could not connect to messagebroker")
 
 	srv := arenaserver.NewServer(*host, *port, arena)
@@ -89,7 +91,7 @@ func main() {
 		srv.Stop()
 	}()
 
-	go commonprotocol.StreamState(srv, brokerclient)
+	go protocol.StreamState(srv, brokerclient)
 
 	brokerclient.Subscribe("viz", "message", func(msg messagebroker.BrokerMessage) {
 		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond)

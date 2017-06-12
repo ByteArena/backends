@@ -1,9 +1,8 @@
-package main
+package arenatrainer
 
 import (
-	"time"
-
 	"encoding/json"
+	"time"
 
 	"github.com/bytearena/bytearena/common/messagebroker"
 )

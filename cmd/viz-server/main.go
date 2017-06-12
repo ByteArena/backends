@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"log"
 	"runtime"
@@ -8,8 +9,6 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
-
-	"errors"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common/api"
