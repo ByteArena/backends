@@ -4,9 +4,9 @@ import (
 	"log"
 	"math"
 
+	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/bytearena/bytearena/server/state"
 )
 
 func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentstate state.AgentState) []state.PerceptionVisionItem {

@@ -1,8 +1,8 @@
 package agent
 
 import (
-	"github.com/bytearena/bytearena/server/protocol"
-	"github.com/bytearena/bytearena/server/state"
+	"github.com/bytearena/bytearena/arenaserver/protocol"
+	"github.com/bytearena/bytearena/arenaserver/state"
 	uuid "github.com/satori/go.uuid"
 )
 

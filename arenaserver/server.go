@@ -1,4 +1,4 @@
-package server
+package arenaserver
 
 import (
 	"encoding/json"
@@ -12,13 +12,13 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
+	"github.com/bytearena/bytearena/arenaserver/agent"
+	"github.com/bytearena/bytearena/arenaserver/comm"
+	"github.com/bytearena/bytearena/arenaserver/container"
+	"github.com/bytearena/bytearena/arenaserver/protocol"
+	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/bytearena/bytearena/server/agent"
-	"github.com/bytearena/bytearena/server/comm"
-	"github.com/bytearena/bytearena/server/container"
-	"github.com/bytearena/bytearena/server/protocol"
-	"github.com/bytearena/bytearena/server/state"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )

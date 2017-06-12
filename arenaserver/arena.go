@@ -1,12 +1,12 @@
-package server
+package arenaserver
 
 import (
-	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/bytearena/bytearena/server/state"
-
 	"log"
 
+	"github.com/bytearena/bytearena/arenaserver/state"
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
+	"github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
 type ArenaInstance interface {
@@ -14,7 +14,7 @@ type ArenaInstance interface {
 	GetId() string
 	GetName() string
 	GetTps() int
-	GetSurface() PixelSurface
+	GetSurface() types.PixelSurface
 	GetContestants() []Contestant
 }
 
@@ -39,10 +39,10 @@ func (a *ArenaInstanceGql) GetName() string {
 func (a *ArenaInstanceGql) GetTps() int {
 	return a.gqlarenainstance.Tps
 }
-func (a *ArenaInstanceGql) GetSurface() PixelSurface {
-	return PixelSurface{
-		Width:  PixelUnit(a.gqlarenainstance.Arena.Surface.Width),
-		Height: PixelUnit(a.gqlarenainstance.Arena.Surface.Height),
+func (a *ArenaInstanceGql) GetSurface() types.PixelSurface {
+	return types.PixelSurface{
+		Width:  types.PixelUnit(a.gqlarenainstance.Arena.Surface.Width),
+		Height: types.PixelUnit(a.gqlarenainstance.Arena.Surface.Height),
 	}
 }
 

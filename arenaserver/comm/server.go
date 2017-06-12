@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net"
 
+	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/server/protocol"
 )
 
 // Client holds info about connection

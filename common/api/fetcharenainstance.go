@@ -6,9 +6,9 @@ import (
 
 	"errors"
 
+	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common/graphql"
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
-	"github.com/bytearena/bytearena/server"
 )
 
 const arenainstanceQuery = `
@@ -51,7 +51,7 @@ query ($instanceid: String = null) {
 }
 `
 
-func FetchArenaInstances(graphqlclient graphql.Client) ([]server.ArenaInstance, error) {
+func FetchArenaInstances(graphqlclient graphql.Client) ([]arenaserver.ArenaInstance, error) {
 	data, err := graphqlclient.RequestSync(
 		graphql.NewQuery(arenainstanceQuery),
 	)
@@ -65,15 +65,15 @@ func FetchArenaInstances(graphqlclient graphql.Client) ([]server.ArenaInstance, 
 	}
 	json.Unmarshal(data, &apiresponse)
 
-	res := make([]server.ArenaInstance, 0)
+	res := make([]arenaserver.ArenaInstance, 0)
 	for _, arenainstance := range apiresponse.Arenainstances {
-		res = append(res, server.NewArenaInstanceGql(arenainstance))
+		res = append(res, arenaserver.NewArenaInstanceGql(arenainstance))
 	}
 
 	return res, nil
 }
 
-func FetchArenaInstanceById(graphqlclient graphql.Client, arenainstanceid string) (server.ArenaInstance, error) {
+func FetchArenaInstanceById(graphqlclient graphql.Client, arenainstanceid string) (arenaserver.ArenaInstance, error) {
 
 	data, err := graphqlclient.RequestSync(
 		graphql.NewQuery(arenainstanceQuery).SetVariables(graphql.Variables{
@@ -90,7 +90,7 @@ func FetchArenaInstanceById(graphqlclient graphql.Client, arenainstanceid string
 		Arenainstances []graphqltype.ArenaInstanceType `json:"arenainstances"`
 	}
 	json.Unmarshal(data, &apiresponse)
-	arena := server.NewArenaInstanceGql(apiresponse.Arenainstances[0])
+	arena := arenaserver.NewArenaInstanceGql(apiresponse.Arenainstances[0])
 
 	return arena, nil
 }

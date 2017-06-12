@@ -10,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common/api"
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/messagebroker"
 	commonprotocol "github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/server"
 )
 
 func main() {
@@ -48,7 +48,7 @@ func main() {
 	utils.Check(err, "Could not fetch arenainstance "+*arenainstanceid)
 	log.Println(arena)
 
-	srv := server.NewServer(*host, *port, arena)
+	srv := arenaserver.NewServer(*host, *port, arena)
 
 	for _, contestant := range arena.GetContestants() {
 		srv.RegisterAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)

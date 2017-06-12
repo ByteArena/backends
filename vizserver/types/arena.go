@@ -1,15 +1,15 @@
 package types
 
 import (
-	"github.com/bytearena/bytearena/server"
+	"github.com/bytearena/bytearena/arenaserver"
 )
 
 type VizArena struct {
-	arenainstance server.ArenaInstance
+	arenainstance arenaserver.ArenaInstance
 	pool          *WatcherMap
 }
 
-func NewVizArena(arenainstance server.ArenaInstance) *VizArena {
+func NewVizArena(arenainstance arenaserver.ArenaInstance) *VizArena {
 	return &VizArena{
 		pool:          NewWatcherMap(),
 		arenainstance: arenainstance,

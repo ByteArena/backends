@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net"
 
-	"github.com/bytearena/bytearena/server/protocol"
-	"github.com/bytearena/bytearena/server/state"
+	"github.com/bytearena/bytearena/arenaserver/protocol"
+	"github.com/bytearena/bytearena/arenaserver/state"
 )
 
 type NetAgent interface {

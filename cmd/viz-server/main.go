@@ -11,11 +11,11 @@ import (
 
 	"errors"
 
+	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common/api"
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/messagebroker"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/server"
 	"github.com/bytearena/bytearena/vizserver"
 )
 
@@ -52,7 +52,7 @@ func main() {
 	serverAddr := ":" + strconv.Itoa(*port)
 	log.Println("VIZ-SERVER listening on " + serverAddr)
 
-	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]server.ArenaInstance, error) {
+	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]arenaserver.ArenaInstance, error) {
 		arenainstances, err := api.FetchArenaInstances(graphqlclient)
 		if err != nil {
 			return nil, errors.New("Could not fetch arena instances from GraphQL server")

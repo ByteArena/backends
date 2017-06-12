@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/bytearena/bytearena/arenaserver"
+	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/messagebroker"
 	"github.com/bytearena/bytearena/leakybucket"
-	"github.com/bytearena/bytearena/server"
-	"github.com/bytearena/bytearena/server/state"
 )
 
-func StreamState(srv *server.Server, brokerclient messagebroker.ClientInterface) {
+func StreamState(srv *arenaserver.Server, brokerclient messagebroker.ClientInterface) {
 
 	buk := leakybucket.NewBucket(srv.GetTicksPerSecond(), 10, func(batch leakybucket.Batch, bucket *leakybucket.Bucket) {
 		frames := batch.GetFrames()

@@ -1,4 +1,4 @@
-package server
+package types
 
 import "github.com/bytearena/bytearena/common/utils/number"
 

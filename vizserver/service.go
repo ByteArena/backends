@@ -6,15 +6,15 @@ import (
 
 	"log"
 
+	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/server"
 	apphandler "github.com/bytearena/bytearena/vizserver/handler"
 	"github.com/bytearena/bytearena/vizserver/types"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
-type FetchArenasCbk func() ([]server.ArenaInstance, error)
+type FetchArenasCbk func() ([]arenaserver.ArenaInstance, error)
 
 type VizService struct {
 	addr          string
