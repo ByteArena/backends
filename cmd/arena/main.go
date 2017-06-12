@@ -21,7 +21,7 @@ import (
 func main() {
 
 	rand.Seed(time.Now().UnixNano())
-	log.Println("Byte Arena Trainer v0.1")
+	log.Println("Byte Arena Server v0.1")
 
 	host := flag.String("host", "", "IP serving the arena; required")
 	port := flag.Int("port", 8080, "Port serving the arena")

@@ -4,20 +4,20 @@ import (
 	commontypes "github.com/bytearena/bytearena/common/types"
 )
 
-type subscriptionCallback func(msg BrokerMessage)
+type SubscriptionCallback func(msg BrokerMessage)
 
-type subscriptionMap struct {
+type SubscriptionMap struct {
 	*commontypes.SyncMap
 }
 
-func newSubscriptionMap() *subscriptionMap {
-	return &subscriptionMap{
+func NewSubscriptionMap() *SubscriptionMap {
+	return &SubscriptionMap{
 		commontypes.NewSyncMap(),
 	}
 }
 
-func (smap *subscriptionMap) Get(id string) subscriptionCallback {
-	if res, ok := (smap.GetGeneric(id)).(subscriptionCallback); ok {
+func (smap *SubscriptionMap) Get(id string) SubscriptionCallback {
+	if res, ok := (smap.GetGeneric(id)).(SubscriptionCallback); ok {
 		return res
 	}
 

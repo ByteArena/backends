@@ -84,7 +84,7 @@ func main() {
 	<-hassigtermed
 }
 
-func initRepo(db protocol.Database, mq *messagebroker.Client, agentid string) {
+func initRepo(db protocol.Database, mq messagebroker.ClientInterface, agentid string) {
 	// fetch de l'agent sur graphql
 	agent, err := db.FindRepositoryById(agentid)
 	if err != nil {

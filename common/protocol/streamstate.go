@@ -10,11 +10,9 @@ import (
 	"github.com/bytearena/bytearena/server/state"
 )
 
-func StreamState(srv *server.Server, brokerclient *messagebroker.Client) {
+func StreamState(srv *server.Server, brokerclient messagebroker.ClientInterface) {
 
 	buk := leakybucket.NewBucket(srv.GetTicksPerSecond(), 10, func(batch leakybucket.Batch, bucket *leakybucket.Bucket) {
-
-		log.Println("batch !")
 		frames := batch.GetFrames()
 		jsonbatch := make([]json.RawMessage, len(frames))
 		for i, frame := range frames {

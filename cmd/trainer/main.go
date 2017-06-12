@@ -6,12 +6,20 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
+	notify "github.com/bitly/go-notify"
+	"github.com/bytearena/bytearena/common/messagebroker"
+	commonprotocol "github.com/bytearena/bytearena/common/protocol"
 	commonutils "github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/server"
+	"github.com/bytearena/bytearena/server/state"
 	"github.com/bytearena/bytearena/utils"
+	"github.com/bytearena/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/vizserver"
+	uuid "github.com/satori/go.uuid"
 )
 
 func main() {
@@ -37,6 +45,10 @@ func main() {
 		agentimage:    "xtuc/test",
 	}
 
+	// Make message broker client
+	brokerclient, err := NewMemoryMessageClient()
+	utils.Check(err, "ERROR: Could not connect to messagebroker")
+
 	srv := server.NewServer(*host, *port, arena)
 
 	for _, contestant := range arena.GetContestants() {
@@ -51,7 +63,25 @@ func main() {
 		srv.Stop()
 	}()
 
-	//go commonprotocol.StreamState(srv, brokerclient)
+	go commonprotocol.StreamState(srv, brokerclient)
+
+	brokerclient.Subscribe("viz", "message", func(msg messagebroker.BrokerMessage) {
+		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond)
+	})
+
+	go func(arenainstance server.ArenaInstance) {
+		webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
+
+		vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]server.ArenaInstance, error) {
+			res := make([]server.ArenaInstance, 1)
+			res[0] = arenainstance
+			return res, nil
+		})
+
+		if err := vizservice.ListenAndServe(); err != nil {
+			log.Panicln("Could not start viz service")
+		}
+	}(arena)
 
 	<-srv.Start()
 	srv.TearDown()
@@ -64,7 +94,29 @@ type MockArenaInstance struct {
 }
 
 func (ins MockArenaInstance) Setup(srv *server.Server) {
+	srv.SetObstacle(state.Obstacle{
+		Id: uuid.NewV4(),
+		A:  vector.MakeVector2(0, 0),
+		B:  vector.MakeVector2(1000, 0),
+	})
 
+	srv.SetObstacle(state.Obstacle{
+		Id: uuid.NewV4(),
+		A:  vector.MakeVector2(1000, 0),
+		B:  vector.MakeVector2(1000, 1000),
+	})
+
+	srv.SetObstacle(state.Obstacle{
+		Id: uuid.NewV4(),
+		A:  vector.MakeVector2(1000, 1000),
+		B:  vector.MakeVector2(0, 1000),
+	})
+
+	srv.SetObstacle(state.Obstacle{
+		Id: uuid.NewV4(),
+		A:  vector.MakeVector2(0, 1000),
+		B:  vector.MakeVector2(0, 0),
+	})
 }
 
 func (ins MockArenaInstance) GetId() string {

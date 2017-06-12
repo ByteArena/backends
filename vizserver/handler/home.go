@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/bytearena/bytearena/cmd/viz-server/types"
+	"github.com/bytearena/bytearena/vizserver/types"
 )
 
 func Home(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Request) {

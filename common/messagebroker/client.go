@@ -25,7 +25,7 @@ type BrokerMessage struct {
 
 type Client struct {
 	conn          *websocket.Conn
-	subscriptions *subscriptionMap
+	subscriptions *SubscriptionMap
 }
 
 func NewClient(host string) (*Client, error) {
@@ -38,7 +38,7 @@ func NewClient(host string) (*Client, error) {
 
 	c := &Client{
 		conn:          conn,
-		subscriptions: newSubscriptionMap(),
+		subscriptions: NewSubscriptionMap(),
 	}
 
 	go c.waitAndListen()
@@ -61,20 +61,12 @@ func (client *Client) waitAndListen() {
 			"unexpected (unsubscribed) message type "+message.Channel+":"+message.Topic,
 		)
 
-		/*
-			var payload struct {
-				Username string `json:"username"`
-				Repo     string `json:"repo"`
-			}
-
-			err = json.Unmarshal(message.Data, &payload)
-			utils.Check(err, "Received invalid payload")
-		*/
 		subscription(message)
 	}
 }
 
-func (client *Client) Subscribe(channel string, topic string, onmessage subscriptionCallback) error {
+/* <messagebroker.MessageBrokerClientInterface> */
+func (client *Client) Subscribe(channel string, topic string, onmessage SubscriptionCallback) error {
 	err := client.conn.WriteJSON(brokerAction{
 		Action:  "sub",
 		Channel: channel,
@@ -104,3 +96,5 @@ func (client *Client) Publish(channel string, topic string, payload interface{})
 
 	return nil
 }
+
+/* </messagebroker.MessageBrokerClientInterface> */

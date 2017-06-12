@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bytearena/bytearena/cmd/viz-server/types"
+	"github.com/bytearena/bytearena/vizserver/types"
 	"github.com/gorilla/mux"
 )
 
