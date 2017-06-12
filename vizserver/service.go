@@ -6,8 +6,8 @@ import (
 
 	"log"
 
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/server"
-	"github.com/bytearena/bytearena/utils"
 	apphandler "github.com/bytearena/bytearena/vizserver/handler"
 	"github.com/bytearena/bytearena/vizserver/types"
 	"github.com/gorilla/handlers"

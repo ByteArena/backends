@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/bytearena/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/common/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 

@@ -1,6 +1,6 @@
 package state
 
-import "github.com/bytearena/bytearena/utils/vector"
+import "github.com/bytearena/bytearena/common/utils/vector"
 
 type PerceptionSpecs struct {
 	// Weight int

@@ -14,8 +14,8 @@ import (
 	"github.com/bytearena/bytearena/common/api"
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/messagebroker"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/server"
-	"github.com/bytearena/bytearena/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
 

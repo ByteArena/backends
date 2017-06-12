@@ -14,11 +14,10 @@ import (
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/common/messagebroker"
 	commonprotocol "github.com/bytearena/bytearena/common/protocol"
-	commonutils "github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/bytearena/server"
 	"github.com/bytearena/bytearena/server/state"
-	"github.com/bytearena/bytearena/utils"
-	"github.com/bytearena/bytearena/utils/vector"
 	"github.com/bytearena/bytearena/vizserver"
 	uuid "github.com/satori/go.uuid"
 )
@@ -49,7 +48,7 @@ func main() {
 	flag.Parse()
 
 	if *host == "" {
-		ip, err := commonutils.GetCurrentIP()
+		ip, err := utils.GetCurrentIP()
 		utils.Check(err, "Could not determine host IP; you can specify using the `--host` flag.")
 		*host = ip
 	}

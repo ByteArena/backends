@@ -14,8 +14,8 @@ import (
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/messagebroker"
 	commonprotocol "github.com/bytearena/bytearena/common/protocol"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/server"
-	"github.com/bytearena/bytearena/utils"
 )
 
 func main() {

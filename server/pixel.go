@@ -1,6 +1,6 @@
 package server
 
-import "github.com/bytearena/bytearena/utils/number"
+import "github.com/bytearena/bytearena/common/utils/number"
 
 type PixelUnit float64
 

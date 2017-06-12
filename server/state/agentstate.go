@@ -4,9 +4,9 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/bytearena/bytearena/utils/number"
-	"github.com/bytearena/bytearena/utils/trigo"
-	"github.com/bytearena/bytearena/utils/vector"
+	"github.com/bytearena/bytearena/common/utils/number"
+	"github.com/bytearena/bytearena/common/utils/trigo"
+	"github.com/bytearena/bytearena/common/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 

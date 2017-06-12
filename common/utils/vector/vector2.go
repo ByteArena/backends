@@ -6,7 +6,7 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/bytearena/bytearena/utils/number"
+	"github.com/bytearena/bytearena/common/utils/number"
 )
 
 type Vector2 struct {

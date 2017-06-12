@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/bytearena/bytearena/utils"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/gorilla/websocket"
 )
 

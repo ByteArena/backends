@@ -1,8 +1,8 @@
 package server
 
 import (
+	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/bytearena/server/state"
-	"github.com/bytearena/bytearena/utils/vector"
 
 	"log"
 

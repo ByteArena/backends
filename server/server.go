@@ -12,13 +12,13 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
+	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/bytearena/server/agent"
 	"github.com/bytearena/bytearena/server/comm"
 	"github.com/bytearena/bytearena/server/container"
 	"github.com/bytearena/bytearena/server/protocol"
 	"github.com/bytearena/bytearena/server/state"
-	"github.com/bytearena/bytearena/utils"
-	"github.com/bytearena/bytearena/utils/vector"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )

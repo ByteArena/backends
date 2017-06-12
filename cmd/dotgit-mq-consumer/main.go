@@ -11,12 +11,11 @@ import (
 
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/common/messagebroker"
-	commonutils "github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/dotgit/config"
 	"github.com/bytearena/bytearena/dotgit/database"
 	"github.com/bytearena/bytearena/dotgit/protocol"
 	dotgitutils "github.com/bytearena/bytearena/dotgit/utils"
-	"github.com/bytearena/bytearena/utils"
 )
 
 type messageAgentSubmitted struct {
@@ -92,10 +91,10 @@ func initRepo(db protocol.Database, mq messagebroker.ClientInterface, agentid st
 		log.Println(errmsg)
 		log.Println(err)
 		mq.Publish(
-			"agent", "repo-init-fail", commonutils.NewMQError(
+			"agent", "repo-init-fail", utils.NewMQError(
 				"dotgit-mq-consumer",
 				errmsg,
-			).SetPayload(commonutils.MQPayload{
+			).SetPayload(utils.MQPayload{
 				"agentid": agentid,
 			}),
 		)
@@ -108,10 +107,10 @@ func initRepo(db protocol.Database, mq messagebroker.ClientInterface, agentid st
 		errmsg := "ERROR:agent:submitted Could not fetch agent by id '" + agentid + "'"
 		log.Println(errmsg)
 		mq.Publish(
-			"agent", "repo-init-fail", commonutils.NewMQError(
+			"agent", "repo-init-fail", utils.NewMQError(
 				"dotgit-mq-consumer",
 				errmsg,
-			).SetPayload(commonutils.MQPayload{
+			).SetPayload(utils.MQPayload{
 				"agentid": agentid,
 			}),
 		)
@@ -120,10 +119,10 @@ func initRepo(db protocol.Database, mq messagebroker.ClientInterface, agentid st
 
 	// appel de mq
 	mq.Publish(
-		"agent", "repo-init-success", commonutils.NewMQMessage(
+		"agent", "repo-init-success", utils.NewMQMessage(
 			"dotgit-mq-consumer",
 			"Git Repo "+agent.Owner.Username+"/"+agent.RepoName+" has been successfuly initialized.",
-		).SetPayload(commonutils.MQPayload{
+		).SetPayload(utils.MQPayload{
 			"agentid": agentid,
 		}),
 	)
