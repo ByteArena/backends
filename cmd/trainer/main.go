@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -22,6 +23,17 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+type arrayFlags []string
+
+func (i *arrayFlags) String() string {
+	return "my string representation"
+}
+
+func (i *arrayFlags) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
 func main() {
 
 	rand.Seed(time.Now().UnixNano())
@@ -31,6 +43,9 @@ func main() {
 	host := flag.String("host", "", "IP serving the trainer; required")
 	port := flag.Int("port", 8080, "Port serving the trainer")
 
+	var agentimages arrayFlags
+	flag.Var(&agentimages, "agent", "Agent image in docker; example netgusto/meatgrinder")
+
 	flag.Parse()
 
 	if *host == "" {
@@ -39,10 +54,13 @@ func main() {
 		*host = ip
 	}
 
-	arena := MockArenaInstance{
-		tps:           *tickspersec,
-		agentregistry: "registry.bytearena.com",
-		agentimage:    "xtuc/test",
+	if len(agentimages) == 0 {
+		panic("Please, specify at least one agent image using --agent")
+	}
+
+	arena := NewMockArenaInstance(*tickspersec)
+	for _, contestant := range agentimages {
+		arena.AddContestant(contestant)
 	}
 
 	// Make message broker client
@@ -52,7 +70,15 @@ func main() {
 	srv := server.NewServer(*host, *port, arena)
 
 	for _, contestant := range arena.GetContestants() {
-		srv.RegisterAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)
+		var image string
+
+		if contestant.AgentRegistry == "" {
+			image = contestant.AgentImage
+		} else {
+			image = contestant.AgentRegistry + "/" + contestant.AgentImage
+		}
+
+		srv.RegisterAgent(image)
 	}
 
 	// handling signals
@@ -88,12 +114,18 @@ func main() {
 }
 
 type MockArenaInstance struct {
-	tps           int
-	agentregistry string
-	agentimage    string
+	tps         int
+	contestants []server.Contestant
 }
 
-func (ins MockArenaInstance) Setup(srv *server.Server) {
+func NewMockArenaInstance(tps int) *MockArenaInstance {
+	return &MockArenaInstance{
+		tps:         tps,
+		contestants: make([]server.Contestant, 0),
+	}
+}
+
+func (ins *MockArenaInstance) Setup(srv *server.Server) {
 	srv.SetObstacle(state.Obstacle{
 		Id: uuid.NewV4(),
 		A:  vector.MakeVector2(0, 0),
@@ -119,34 +151,48 @@ func (ins MockArenaInstance) Setup(srv *server.Server) {
 	})
 }
 
-func (ins MockArenaInstance) GetId() string {
+func (ins *MockArenaInstance) GetId() string {
 	return "1"
 }
 
-func (ins MockArenaInstance) GetName() string {
+func (ins *MockArenaInstance) GetName() string {
 	return "Trainer instance"
 }
 
-func (ins MockArenaInstance) GetTps() int {
+func (ins *MockArenaInstance) GetTps() int {
 	return ins.tps
 }
 
-func (ins MockArenaInstance) GetSurface() server.PixelSurface {
+func (ins *MockArenaInstance) GetSurface() server.PixelSurface {
 	return server.PixelSurface{
 		Width:  1000,
 		Height: 1000,
 	}
 }
 
-func (ins MockArenaInstance) GetContestants() []server.Contestant {
-	res := make([]server.Contestant, 1)
-	res[0] = server.Contestant{
-		Id:            "1",
-		Username:      "trainer-user",
-		AgentName:     "Trainee",
-		AgentRegistry: ins.agentregistry,
-		AgentImage:    ins.agentimage,
+func (ins *MockArenaInstance) AddContestant(agentimage string) {
+
+	parts := strings.Split(agentimage, "/")
+	var registry string
+	var imagename string
+
+	if len(parts) == 3 {
+		registry = parts[0]
+		imagename = strings.Join(parts[1:], "/")
+	} else {
+		registry = ""
+		imagename = agentimage
 	}
 
-	return res
+	ins.contestants = append(ins.contestants, server.Contestant{
+		Id:            strconv.Itoa(len(ins.contestants) + 1),
+		Username:      "trainer-user",
+		AgentName:     "Trainee " + agentimage,
+		AgentRegistry: registry,
+		AgentImage:    imagename,
+	})
+}
+
+func (ins *MockArenaInstance) GetContestants() []server.Contestant {
+	return ins.contestants
 }

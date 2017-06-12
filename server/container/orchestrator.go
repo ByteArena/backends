@@ -113,6 +113,8 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 			RegistryAuth: orch.registryAuth,
 		},
 	)
+
+	utils.Assert(rc != nil, "Could not find docker image '"+dockerimage+"'")
 	defer rc.Close()
 	ioutil.ReadAll(rc)
 
