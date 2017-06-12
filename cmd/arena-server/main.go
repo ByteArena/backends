@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/bytearena/bytearena/arenaserver"
-	"github.com/bytearena/bytearena/common/api"
 	"github.com/bytearena/bytearena/common/graphql"
-	"github.com/bytearena/bytearena/common/messagebroker"
-	commonprotocol "github.com/bytearena/bytearena/common/protocol"
+	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
+	"github.com/bytearena/bytearena/common/mq"
+	"github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
@@ -37,14 +37,14 @@ func main() {
 	}
 
 	// Make message broker client
-	brokerclient, err := messagebroker.NewClient(*mqhost)
+	brokerclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: Could not connect to messagebroker on "+*mqhost)
 
 	// Make GraphQL client
 	graphqlclient := graphql.MakeClient(*apiurl)
 
 	// Fetch arena **instance** from GraphQL
-	arena, err := api.FetchArenaInstanceById(graphqlclient, *arenainstanceid)
+	arena, err := apiqueries.FetchArenaInstanceById(graphqlclient, *arenainstanceid)
 	utils.Check(err, "Could not fetch arenainstance "+*arenainstanceid)
 	log.Println(arena)
 
@@ -62,7 +62,7 @@ func main() {
 		srv.Stop()
 	}()
 
-	go commonprotocol.StreamState(srv, brokerclient)
+	go protocol.StreamState(srv, brokerclient)
 
 	<-srv.Start()
 	srv.TearDown()

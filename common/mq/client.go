@@ -1,4 +1,4 @@
-package messagebroker
+package mq
 
 import (
 	"encoding/json"
@@ -65,7 +65,7 @@ func (client *Client) waitAndListen() {
 	}
 }
 
-/* <messagebroker.MessageBrokerClientInterface> */
+/* <mq.MessageBrokerClientInterface> */
 func (client *Client) Subscribe(channel string, topic string, onmessage SubscriptionCallback) error {
 	err := client.conn.WriteJSON(brokerAction{
 		Action:  "sub",
@@ -97,4 +97,4 @@ func (client *Client) Publish(channel string, topic string, payload interface{})
 	return nil
 }
 
-/* </messagebroker.MessageBrokerClientInterface> */
+/* </mq.MessageBrokerClientInterface> */

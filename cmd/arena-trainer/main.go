@@ -17,7 +17,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/arenatrainer"
-	"github.com/bytearena/bytearena/common/messagebroker"
+	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -93,7 +93,7 @@ func main() {
 
 	go protocol.StreamState(srv, brokerclient)
 
-	brokerclient.Subscribe("viz", "message", func(msg messagebroker.BrokerMessage) {
+	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
 		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond)
 	})
 

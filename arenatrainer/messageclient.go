@@ -4,22 +4,22 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/bytearena/bytearena/common/messagebroker"
+	"github.com/bytearena/bytearena/common/mq"
 )
 
 type MemoryMessageClient struct {
-	subscriptions *messagebroker.SubscriptionMap
+	subscriptions *mq.SubscriptionMap
 }
 
 func NewMemoryMessageClient() (*MemoryMessageClient, error) {
 	c := &MemoryMessageClient{
-		subscriptions: messagebroker.NewSubscriptionMap(),
+		subscriptions: mq.NewSubscriptionMap(),
 	}
 
 	return c, nil
 }
 
-func (client *MemoryMessageClient) Subscribe(channel string, topic string, onmessage messagebroker.SubscriptionCallback) error {
+func (client *MemoryMessageClient) Subscribe(channel string, topic string, onmessage mq.SubscriptionCallback) error {
 	client.subscriptions.Set(channel+":"+topic, onmessage)
 	return nil
 }
@@ -33,7 +33,7 @@ func (client *MemoryMessageClient) Publish(channel string, topic string, payload
 			return err
 		}
 
-		go subscription(messagebroker.BrokerMessage{
+		go subscription(mq.BrokerMessage{
 			Timestamp: time.Now().Format(time.RFC3339),
 			Topic:     topic,
 			Channel:   channel,

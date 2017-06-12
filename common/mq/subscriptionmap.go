@@ -1,4 +1,4 @@
-package messagebroker
+package mq
 
 import (
 	commontypes "github.com/bytearena/bytearena/common/types"

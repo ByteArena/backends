@@ -6,11 +6,12 @@ import (
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/state"
-	"github.com/bytearena/bytearena/common/messagebroker"
+	"github.com/bytearena/bytearena/common/mq"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/leakybucket"
 )
 
-func StreamState(srv *arenaserver.Server, brokerclient messagebroker.ClientInterface) {
+func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface) {
 
 	buk := leakybucket.NewBucket(srv.GetTicksPerSecond(), 10, func(batch leakybucket.Batch, bucket *leakybucket.Bucket) {
 		frames := batch.GetFrames()
@@ -42,19 +43,19 @@ func StreamState(srv *arenaserver.Server, brokerclient messagebroker.ClientInter
 
 }
 
-func transformServerStateToVizMessage(arenaid string, state state.ServerState) VizMessage {
+func transformServerStateToVizMessage(arenaid string, state state.ServerState) types.VizMessage {
 
-	msg := VizMessage{
+	msg := types.VizMessage{
 		ArenaId: arenaid,
 	}
 
 	state.Projectilesmutex.Lock()
 	for _, projectile := range state.Projectiles {
-		msg.Projectiles = append(msg.Projectiles, VizProjectileMessage{
+		msg.Projectiles = append(msg.Projectiles, types.VizProjectileMessage{
 			Position: projectile.Velocity,
 			Radius:   projectile.Radius,
 			Kind:     "projectiles",
-			From: VizAgentMessage{
+			From: types.VizAgentMessage{
 				Position: projectile.Position,
 			},
 		})
@@ -63,7 +64,7 @@ func transformServerStateToVizMessage(arenaid string, state state.ServerState) V
 
 	state.Agentsmutex.Lock()
 	for id, agent := range state.Agents {
-		msg.Agents = append(msg.Agents, VizAgentMessage{
+		msg.Agents = append(msg.Agents, types.VizAgentMessage{
 			Id:           id,
 			Kind:         "agent",
 			Position:     agent.Position,
@@ -78,7 +79,7 @@ func transformServerStateToVizMessage(arenaid string, state state.ServerState) V
 
 	state.Obstaclesmutex.Lock()
 	for _, obstacle := range state.Obstacles {
-		msg.Obstacles = append(msg.Obstacles, VizObstacleMessage{
+		msg.Obstacles = append(msg.Obstacles, types.VizObstacleMessage{
 			Id: obstacle.Id,
 			A:  obstacle.A,
 			B:  obstacle.B,

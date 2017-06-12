@@ -11,9 +11,9 @@ import (
 	notify "github.com/bitly/go-notify"
 
 	"github.com/bytearena/bytearena/arenaserver"
-	"github.com/bytearena/bytearena/common/api"
 	"github.com/bytearena/bytearena/common/graphql"
-	"github.com/bytearena/bytearena/common/messagebroker"
+	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
+	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
@@ -37,10 +37,10 @@ func main() {
 	flag.Parse()
 
 	// Connect to Message broker
-	mqclient, err := messagebroker.NewClient(*mqhost)
+	mqclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: could not connect to messagebroker")
 
-	mqclient.Subscribe("viz", "message", func(msg messagebroker.BrokerMessage) {
+	mqclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
 		log.Println("RECEIVED viz:message from MESSAGEBROKER; goroutines: " + strconv.Itoa(runtime.NumGoroutine()))
 		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond)
 	})
@@ -52,7 +52,7 @@ func main() {
 	log.Println("VIZ-SERVER listening on " + serverAddr)
 
 	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]arenaserver.ArenaInstance, error) {
-		arenainstances, err := api.FetchArenaInstances(graphqlclient)
+		arenainstances, err := apiqueries.FetchArenaInstances(graphqlclient)
 		if err != nil {
 			return nil, errors.New("Could not fetch arena instances from GraphQL server")
 		}
