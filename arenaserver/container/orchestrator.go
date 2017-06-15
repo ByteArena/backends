@@ -3,11 +3,13 @@ package container
 import (
 	"bufio"
 	"context"
+	"errors"
 	"io/ioutil"
 	"log"
 	"strconv"
 
 	"github.com/bytearena/bytearena/common/utils"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -104,24 +106,68 @@ func (orch *ContainerOrchestrator) TearDownAll() {
 	}
 }
 
+type DockerRef struct {
+	Registry string
+	Path     string
+	Tag      string
+}
+
+func normalizeDockerRef(dockerimage string) (string, error) {
+
+	p, _ := reference.Parse(dockerimage)
+	named, ok := p.(reference.Named)
+	if !ok {
+		return "", errors.New("Invalid docker image name")
+	}
+
+	parsedRefWithTag := reference.TagNameOnly(named)
+	return parsedRefWithTag.String(), nil
+}
+
 func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, dockerimage string) (AgentContainer, error) {
 
-	rc, err := orch.cli.ImagePull(
-		orch.ctx,
-		dockerimage,
-		types.ImagePullOptions{
-			RegistryAuth: orch.registryAuth,
-		},
-	)
+	normalizedDockerimage, err := normalizeDockerRef(dockerimage)
 
-	utils.Assert(rc != nil, "Could not find docker image '"+dockerimage+"'")
-	defer rc.Close()
-	ioutil.ReadAll(rc)
+	if err != nil {
+		return AgentContainer{}, err
+	}
 
-	utils.Check(err, "Failed to pull "+dockerimage+" from registry")
+	localimages, _ := orch.cli.ImageList(orch.ctx, types.ImageListOptions{})
+	foundlocal := false
+	for _, localimage := range localimages {
+		for _, alias := range localimage.RepoTags {
+			if normalizedAlias, err := normalizeDockerRef(alias); err == nil {
+				if normalizedAlias == normalizedDockerimage {
+					foundlocal = true
+					break
+				}
+			}
+		}
+
+		if foundlocal {
+			break
+		}
+	}
+
+	if !foundlocal {
+		rc, err := orch.cli.ImagePull(
+			orch.ctx,
+			dockerimage,
+			types.ImagePullOptions{
+				RegistryAuth: orch.registryAuth,
+			},
+		)
+
+		if err != nil {
+			return AgentContainer{}, errors.New("Failed to pull " + dockerimage + " from registry; " + err.Error())
+		}
+
+		defer rc.Close()
+		ioutil.ReadAll(rc)
+	}
 
 	containerconfig := container.Config{
-		Image: dockerimage,
+		Image: normalizedDockerimage,
 		User:  "root",
 		Env: []string{
 			"PORT=" + strconv.Itoa(port),
@@ -154,7 +200,9 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		nil,              // network config
 		"agent-"+agentid.String(), // container name
 	)
-	utils.Check(err, "Failed to create docker container for agent "+agentid.String())
+	if err != nil {
+		return AgentContainer{}, errors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
+	}
 
 	agentcontainer := MakeAgentContainer(agentid, ContainerId(resp.ID))
 	orch.containers = append(orch.containers, agentcontainer)
