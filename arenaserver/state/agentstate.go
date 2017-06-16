@@ -58,19 +58,26 @@ func MakeAgentState() AgentState {
 	return AgentState{
 		Position:           vector.MakeVector2(initialx, initialy),
 		Velocity:           vector.MakeVector2(0.00001, 1),
-		MaxSpeed:           8.0,
-		MaxSteeringForce:   0.5,
+		MaxSpeed:           20.0 / 3,
+		MaxSteeringForce:   1.0,
 		MaxAngularVelocity: number.DegreeToRadian(6), // en radians/tick; Pi = 180°
 		Radius:             r,
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
-		VisionRadius:       100,
-		VisionAngle:        number.DegreeToRadian(140),
+		VisionRadius:       400,
+		VisionAngle:        number.DegreeToRadian(180),
 	}
 }
 
 func (state AgentState) Update() AgentState {
-	state.Position = state.Position.Add(state.Velocity)
+	newPosition := state.Position.Add(state.Velocity)
+	x, y := newPosition.Get()
+	if x < 0 || y < 0 || x > 1000 || y > 1000 {
+		// nothing
+	} else {
+		state.Position = state.Position.Add(state.Velocity)
+	}
+
 	state.Orientation = state.Velocity.Angle()
 	return state
 }

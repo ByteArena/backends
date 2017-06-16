@@ -16,26 +16,42 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 	absoluteposition := agentstate.Position
 	orientation := agentstate.Orientation
 
-	// On calcule la perception Vision de l'agent
+	// On détermine les bords gauche et droit du cône de vision de l'agent
+	halfvisionangle := agentstate.VisionAngle / 2
+	leftvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle*-1)
+	rightvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle)
+
+	// On détermine la perception visuelle de l'agent
+
+	///////////////////////////////////////////////////////////////////////////
+	// Vision: Les autres agents
+	///////////////////////////////////////////////////////////////////////////
+
 	serverstate.Agentsmutex.Lock()
 	radiussq := agentstate.VisionRadius * agentstate.VisionRadius
 	for otheragentid, otheragentstate := range serverstate.Agents {
 
 		if otheragentid == agent.GetId() {
-			continue
+			continue // one cannot see itself
 		}
 
 		centervec := otheragentstate.Position.Sub(agentstate.Position)
+		centersegment := vector.MakeSegment2(vector.MakeNullVector2(), centervec)
+		agentdiameter := centersegment.OrthogonalToBCentered().SetLengthFromCenter(otheragentstate.Radius * 2)
+
+		closeEdge, farEdge := agentdiameter.Get()
+
 		distsq := centervec.MagSq()
 		if distsq <= radiussq {
 			// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
 			centervec = centervec.SetAngle(centervec.Angle() - orientation)
 			visionitem := state.PerceptionVisionItem{
-				CloseEdge: vector.MakeNullVector2(), // TODO: compute actual value for this
+				CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - orientation), // perpendicular to relative position vector, left side
 				Center:    centervec,
-				FarEdge:   vector.MakeNullVector2(), // TODO: compute actual value for this
+				FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - orientation), // perpendicular to relative position vector, right side
 				Velocity:  otheragentstate.Velocity.Clone().SetAngle(otheragentstate.Velocity.Angle() - orientation),
-				Tag:       otheragentstate.Tag,
+				//Tag:       otheragentstate.Tag,
+				Tag: "agent",
 			}
 
 			vision = append(vision, visionitem)
@@ -43,10 +59,9 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 	}
 	serverstate.Agentsmutex.Unlock()
 
+	///////////////////////////////////////////////////////////////////////////
 	// Vision: les obstacles
-	halfvisionangle := agentstate.VisionAngle / 2
-	leftvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle*-1)
-	rightvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle)
+	///////////////////////////////////////////////////////////////////////////
 
 	serverstate.Obstaclesmutex.Lock()
 	for _, obstacle := range serverstate.Obstacles {
@@ -174,7 +189,7 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 			vision = append(vision, obstacleperception)
 
 		} else if len(edges) > 0 {
-			log.Println("NOPE !", edges)
+			log.Println("NOPE !", edges) // problems with FOV > 180
 		}
 
 		for _, edge := range edges {

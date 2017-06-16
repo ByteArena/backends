@@ -50,6 +50,11 @@ func (v Vector2) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+func (v Vector2) MarshalJSONString() string {
+	json, _ := v.MarshalJSON()
+	return string(json)
+}
+
 func (a Vector2) Clone() Vector2 {
 	return Vector2{
 		x: a.x,
@@ -131,6 +136,26 @@ func (a Vector2) Normalize() Vector2 {
 	return a
 }
 
+func (a Vector2) OrthogonalClockwise() Vector2 {
+	return MakeVector2(a.y, -a.x)
+}
+
+func (a Vector2) OrthogonalCounterClockwise() Vector2 {
+	return MakeVector2(-a.y, a.x)
+}
+
+func (a Vector2) Center() Vector2 {
+	return a.MultScalar(0.5)
+}
+
+func (a Vector2) Translate(translation Vector2) Vector2 {
+	return a.Add(translation)
+}
+
+func (a Vector2) MoveCenterTo(newcenterpos Vector2) Vector2 {
+	return a.Translate(newcenterpos.Sub(a.Center()))
+}
+
 func (a Vector2) SetAngle(radians float64) Vector2 {
 	mag := a.Mag()
 	a.x = math.Sin(radians) * mag
@@ -183,18 +208,11 @@ func (a Vector2) Equals(b Vector2) bool {
 	return b.Sub(a).IsNull()
 }
 
-func (a Vector2) ToArray() []float64 {
-	res := make([]float64, 2)
-	res[0] = a.x
-	res[1] = a.y
-	return res
-}
-
 func (a Vector2) String() string {
 	return "<Vector2(" + number.FloatToStr(a.x, 5) + ", " + number.FloatToStr(a.y, 5) + ")>"
 }
 
-var epsilon float64 = 0.0000000001
+var epsilon float64 = 0.000001
 
 func isZero(f float64) bool {
 	return math.Abs(f) < epsilon
