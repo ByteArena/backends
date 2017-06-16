@@ -69,8 +69,8 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 		edges := make([]vector.Vector2, 0)
 		rejectededges := make([]vector.Vector2, 0)
 
-		relvecA := obstacle.A.Sub(absoluteposition)
-		relvecB := obstacle.B.Sub(absoluteposition)
+		relvecA := obstacle.GetA().Sub(absoluteposition)
+		relvecB := obstacle.GetA().Sub(absoluteposition)
 
 		distsqA := relvecA.MagSq()
 		distsqB := relvecB.MagSq()

@@ -81,8 +81,8 @@ func transformServerStateToVizMessage(arenaid string, state state.ServerState) t
 	for _, obstacle := range state.Obstacles {
 		msg.Obstacles = append(msg.Obstacles, types.VizObstacleMessage{
 			Id: obstacle.Id,
-			A:  obstacle.A,
-			B:  obstacle.B,
+			A:  obstacle.GetA(),
+			B:  obstacle.GetB(),
 		})
 	}
 	state.Obstaclesmutex.Unlock()

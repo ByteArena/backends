@@ -23,6 +23,14 @@ func (s Segment2) Get() (Vector2, Vector2) {
 	return s.a, s.b
 }
 
+func (s Segment2) GetA() Vector2 {
+	return s.a
+}
+
+func (s Segment2) GetB() Vector2 {
+	return s.b
+}
+
 func (s Segment2) Equals(s2 Segment2) bool {
 	return s2.a.Equals(s.a) && s2.b.Equals(s.b)
 }

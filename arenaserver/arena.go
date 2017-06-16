@@ -64,8 +64,10 @@ func (a *ArenaInstanceGql) GetContestants() []Contestant {
 func (a *ArenaInstanceGql) Setup(srv *Server) {
 	for _, obstacle := range a.gqlarenainstance.Arena.Obstacles {
 		srv.SetObstacle(state.MakeObstacle(
-			vector.MakeVector2(obstacle.A.X, obstacle.A.Y),
-			vector.MakeVector2(obstacle.B.X, obstacle.B.Y),
+			vector.MakeSegment2(
+				vector.MakeVector2(obstacle.A.X, obstacle.A.Y),
+				vector.MakeVector2(obstacle.B.X, obstacle.B.Y),
+			),
 		))
 	}
 }

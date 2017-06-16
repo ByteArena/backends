@@ -6,15 +6,21 @@ import (
 )
 
 type Obstacle struct {
-	Id uuid.UUID
-	A  vector.Vector2
-	B  vector.Vector2
+	Id      uuid.UUID
+	segment vector.Segment2
 }
 
-func MakeObstacle(a vector.Vector2, b vector.Vector2) Obstacle {
+func MakeObstacle(s vector.Segment2) Obstacle {
 	return Obstacle{
-		Id: uuid.NewV4(),
-		A:  a,
-		B:  b,
+		Id:      uuid.NewV4(),
+		segment: s,
 	}
+}
+
+func (o Obstacle) GetA() vector.Vector2 {
+	return o.segment.GetA()
+}
+
+func (o Obstacle) GetB() vector.Vector2 {
+	return o.segment.GetB()
 }

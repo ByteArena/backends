@@ -12,7 +12,6 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
-	uuid "github.com/satori/go.uuid"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/state"
@@ -128,29 +127,34 @@ func NewMockArenaInstance(tps int) *MockArenaInstance {
 }
 
 func (ins *MockArenaInstance) Setup(srv *arenaserver.Server) {
-	srv.SetObstacle(state.Obstacle{
-		Id: uuid.NewV4(),
-		A:  vector.MakeVector2(0, 0),
-		B:  vector.MakeVector2(1000, 0),
-	})
 
-	srv.SetObstacle(state.Obstacle{
-		Id: uuid.NewV4(),
-		A:  vector.MakeVector2(1000, 0),
-		B:  vector.MakeVector2(1000, 1000),
-	})
+	srv.SetObstacle(
+		state.MakeObstacle(vector.MakeSegment2(
+			vector.MakeVector2(0, 0),
+			vector.MakeVector2(1000, 0),
+		)),
+	)
 
-	srv.SetObstacle(state.Obstacle{
-		Id: uuid.NewV4(),
-		A:  vector.MakeVector2(1000, 1000),
-		B:  vector.MakeVector2(0, 1000),
-	})
+	srv.SetObstacle(
+		state.MakeObstacle(vector.MakeSegment2(
+			vector.MakeVector2(1000, 0),
+			vector.MakeVector2(1000, 1000),
+		)),
+	)
 
-	srv.SetObstacle(state.Obstacle{
-		Id: uuid.NewV4(),
-		A:  vector.MakeVector2(0, 1000),
-		B:  vector.MakeVector2(0, 0),
-	})
+	srv.SetObstacle(
+		state.MakeObstacle(vector.MakeSegment2(
+			vector.MakeVector2(1000, 1000),
+			vector.MakeVector2(0, 1000),
+		)),
+	)
+
+	srv.SetObstacle(
+		state.MakeObstacle(vector.MakeSegment2(
+			vector.MakeVector2(0, 1000),
+			vector.MakeVector2(0, 0),
+		)),
+	)
 }
 
 func (ins *MockArenaInstance) GetId() string {
