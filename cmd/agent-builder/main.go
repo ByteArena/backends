@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ttacon/chalk"
 
-	"github.com/bytearena/bytearena/utils"
+	"github.com/bytearena/bytearena/common/utils"
 )
 
 var CHANNEL = "agent"

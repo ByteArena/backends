@@ -1,12 +1,10 @@
 FROM golang:1.8-stretch
 
-ARG GIT_ADMIN_KEY_PUBLIC
 ARG DATABASE_URI
 ARG GIT_REPOSITORIES_PATH
-ARG API_PORT
+ARG MQ_HOST
 
-ENV BA_ROOT $GOPATH/src/github.com/bytearena
-ENV APP_HOME $BA_ROOT/dotgit
+ENV APP_HOME $GOPATH/src/github.com/bytearena
 
 RUN apt-get -y update
 RUN apt-get -y upgrade
@@ -15,44 +13,41 @@ RUN apt-get -y install git openssh-server curl netcat
 RUN addgroup --gid 1000 git
 RUN adduser --disabled-password git --uid 1000 --gid 1000
 
-COPY ./dotgit $APP_HOME
-
 # Fixing environment (commands called by ssh are executed in another env space, with user git)
 RUN touch /etc/dotgit.conf
 RUN echo "{" >> /etc/dotgit.conf
 RUN echo "\"DatabaseURI\":\"$DATABASE_URI\"," >> /etc/dotgit.conf
 RUN echo "\"GitRepositoriesPath\":\"$GIT_REPOSITORIES_PATH\"," >> /etc/dotgit.conf
-RUN echo "\"GitAdminPublicKey\":\"$GIT_ADMIN_KEY_PUBLIC\"," >> /etc/dotgit.conf
-RUN echo "\"ApiPort\":$API_PORT" >> /etc/dotgit.conf
+RUN echo "\"MqHost\":\"$MQ_HOST\"" >> /etc/dotgit.conf
 RUN echo "}" >> /etc/dotgit.conf
 
-# Build dotgit-ssh
-WORKDIR $APP_HOME/cmd/dotgit-ssh
-RUN go get -v ./...
-RUN go build
-RUN cp -f $APP_HOME/cmd/dotgit-ssh/dotgit-ssh /usr/bin
+COPY ./ $APP_HOME
 
-# Build dotgit-api
-WORKDIR $APP_HOME/cmd/dotgit-api
+# Build dotgit-ssh
+WORKDIR $APP_HOME/bytearena/cmd/dotgit-ssh
 RUN go get -v ./...
 RUN go build
-RUN cp -f $APP_HOME/cmd/dotgit-api/dotgit-api /usr/bin
+RUN cp -f $APP_HOME/bytearena/cmd/dotgit-ssh/dotgit-ssh /usr/bin
+RUN touch /var/log/dotgit-ssh.log && chown git:git /var/log/dotgit-ssh.log
 
 # Build dotgit-keystore
-WORKDIR $APP_HOME/cmd/dotgit-keystore
+WORKDIR $APP_HOME/bytearena/cmd/dotgit-keystore
 RUN go get -v ./...
 RUN go build
-RUN cp -f $APP_HOME/cmd/dotgit-keystore/dotgit-keystore /usr/bin
+RUN cp -f $APP_HOME/bytearena/cmd/dotgit-keystore/dotgit-keystore /usr/bin
 RUN touch /var/log/dotgit-keystore.log && chown git:git /var/log/dotgit-keystore.log
+
+# Build dotgit-mq-consumer
+WORKDIR $APP_HOME/bytearena/cmd/dotgit-mq-consumer
+RUN go get -v ./...
+RUN go build
+RUN cp -f $APP_HOME/bytearena/cmd/dotgit-mq-consumer/dotgit-mq-consumer /usr/bin
+RUN touch /var/log/dotgit-mq-consumer.log && chown git:git /var/log/dotgit-mq-consumer.log
 
 # Setting up SSH
 RUN mkdir -p /home/git/.ssh
 RUN touch /home/git/.ssh/authorized_keys
 RUN chmod 600 /home/git/.ssh/authorized_keys
-
-#RUN echo -n 'no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/usr/bin/dotgit-ssh _agentbuilder"' >> /home/git/.ssh/authorized_keys
-#RUN echo -n ' ' >> /home/git/.ssh/authorized_keys
-#RUN echo "$GIT_ADMIN_KEY_PUBLIC" | base64 -d >> /home/git/.ssh/authorized_keys
 
 #  Arguments to some keywords can make use of tokens, which are expanded at runtime:
 #        %%    A literal `%'.
@@ -70,7 +65,13 @@ RUN echo "ChallengeResponseAuthentication no" >> /etc/ssh/sshd_config
 RUN echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
 RUN echo "UsePAM no" >> /etc/ssh/sshd_config
 
+RUN echo "HostKey /opt/ssh/ssh_host_rsa_key"
+RUN echo "HostKey /opt/ssh/ssh_host_dsa_key"
+RUN echo "HostKey /opt/ssh/ssh_host_ecdsa_key"
+RUN echo "HostKey /opt/ssh/ssh_host_ed25519_key"
+
 COPY ./bytearena/docker/dotgit/template /home/git/template
+COPY ./bytearena/docker/dotgit/git-scripts /home/git/git-scripts
 
 # Permissions on /home/git
 RUN mkdir -p /home/git/repositories
