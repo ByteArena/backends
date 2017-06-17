@@ -12,10 +12,10 @@ WORKDIR $APP_HOME/cmd/arena-server
 
 RUN go get -v ./...
 RUN go build
-RUN cp -f $APP_HOME/bytearena/cmd/arena-server/arena-server /usr/bin
+RUN cp -f $APP_HOME/cmd/arena-server/arena-server /usr/bin
 
 # Startup script
-COPY ./bytearena/docker/arena-server/start.sh $APP_HOME
+COPY ./docker/arena-server/start.sh $APP_HOME
 WORKDIR $APP_HOME
 
 CMD ["bash", "start.sh"]
