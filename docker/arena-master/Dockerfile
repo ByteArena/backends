@@ -8,9 +8,9 @@ RUN apt-get -y install git openssh-server curl netcat
 
 COPY ./ $APP_HOME
 
-WORKDIR $APP_HOME/cmd/arena-server
+WORKDIR $APP_HOME/cmd/arena-master
 
 RUN go get -v ./...
 RUN go build
 
-CMD ["arena-server"]
+CMD ["arena-master"]
