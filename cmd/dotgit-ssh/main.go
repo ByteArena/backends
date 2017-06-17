@@ -182,6 +182,7 @@ func processGitOperation(user protocol.User, repo protocol.GitRepository, gitOpe
 		"GIT_REPO_OWNER="+repo.Owner.Username,
 		"GIT_REPO_NAME="+repo.Name,
 		"GIT_REPO_PATH="+repoAbsPath,
+		"GIT_CLONE_URL="+repo.CloneURL,
 		"GIT_OPERATION="+gitOperation,
 		"MQ_HOST="+cnf.GetMqHost(),
 	)

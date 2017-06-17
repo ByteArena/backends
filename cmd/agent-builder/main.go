@@ -31,13 +31,10 @@ func throwIfError(err error) {
 	}
 }
 
-func buildAndDeploy(username string, repo string, gitHost string, registryHost string) {
+func buildAndDeploy(username string, repo string, cloneurl string, registryHost string) {
+	imageName := username + "/" + repo
 
-	fqRepo := username + "/" + repo
-	gitRepoURL := "git@" + gitHost + ":" + fqRepo + ".git"
-
-	imageName := fqRepo
-	dir := cloneRepo(gitRepoURL, imageName)
+	dir := cloneRepo(cloneurl, imageName)
 	buildImage(dir, imageName)
 	deployImage(imageName, "latest", registryHost, 5000)
 }
@@ -97,12 +94,13 @@ func listen(host string, gitHost string, registryHost string) {
 		var payload struct {
 			Username string `json:"username"`
 			Repo     string `json:"repo"`
+			CloneURL string `json:"cloneurl"`
 		}
 
 		err = json.Unmarshal(message.Data, &payload)
 		utils.Check(err, "Received invalid payload")
 
-		buildAndDeploy(payload.Username, payload.Repo, gitHost, registryHost)
+		buildAndDeploy(payload.Username, payload.Repo, payload.CloneURL, registryHost)
 
 		log.Println("Build successful")
 	}

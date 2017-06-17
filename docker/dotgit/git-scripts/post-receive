@@ -9,8 +9,9 @@ env | grep GIT
 # $GIT_REPO_OWNER   : the dotgit user (in db) to whom the operated GIT repository belongs
 # $GIT_REPO_NAME    : the name of the repository, without the owner name
 # $GIT_REPO_PATH    : the full path of the repository on disk
+# $GIT_CLONE_URL    : clone url for repo
 # $GIT_OPERATION    : the current git operation (one of "receive-pack", "upload-pack")
 
 curl "http://$MQ_HOST/pub/agent/repo.pushed" \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"$GIT_REPO_OWNER\",\"repo\":\"$GIT_REPO_NAME\"}"
+  -d "{\"username\":\"$GIT_REPO_OWNER\",\"repo\":\"$GIT_REPO_NAME\",\"cloneurl\":\"$GIT_CLONE_URL\"}"
