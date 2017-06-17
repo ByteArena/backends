@@ -123,7 +123,7 @@ func initRepo(db protocol.Database, mqclient mq.ClientInterface, agentid string)
 	mqclient.Publish(
 		"agent", "repo-init-success", types.NewMQMessage(
 			"dotgit-mq-consumer",
-			"Git Repo "+agent.Owner.Username+"/"+agent.RepoName+" has been successfuly initialized.",
+			"Git Repo "+agent.CloneURL+" has been successfuly initialized.",
 		).SetPayload(types.MQPayload{
 			"agentid": agentid,
 		}),
