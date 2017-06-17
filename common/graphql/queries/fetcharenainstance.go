@@ -34,7 +34,6 @@ query ($instanceid: String = null) {
 			agent {
 				id
 				name
-				cloneurl
 				owner {
 					id
 					name

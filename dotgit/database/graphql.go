@@ -36,7 +36,12 @@ const fetchRepoQuery = fragmentUser + `
 		agents(username: $username, name: $reponame, id: $id) {
 			id
 			name
-			cloneurl
+			gitrepository {
+				cloneurl
+				username
+				reponame
+				ref
+			}
 			image {
 				name
 				tag
