@@ -39,7 +39,7 @@ const fetchRepoQuery = fragmentUser + `
 			gitrepository {
 				cloneurl
 				username
-				reponame
+				name
 				ref
 			}
 			image {

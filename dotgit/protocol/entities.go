@@ -15,14 +15,15 @@ func (user User) String() string {
 
 type GitRepository struct {
 	ID       uint   `json:"-"`
-	RepoName string `json:"reponame"`
-	Title    string `json:"title"`
+	CloneURL string `json:"cloneurl"`
+	Ref      string `json:"ref"`
+	Name     string `json:"name"`
 	Owner    User   `json:"-"`
 	OwnerID  int    `json:"-"`
 }
 
 func (repo GitRepository) String() string {
-	return "<GitRepository(" + repo.Owner.Username + "/" + repo.RepoName + ")>"
+	return "<GitRepository(" + repo.CloneURL + ")>"
 }
 
 type GitPublicKey struct {
@@ -30,9 +31,9 @@ type GitPublicKey struct {
 	Owner       User   `json:"-"`
 	OwnerID     int    `json:"-"`
 	KeyName     string `json:"keyname"`
-	KeyType     string `json: "keytype"` // ssh-rsa
-	Key         string `json: "key"`     // key
-	Comment     string `json:"comment"`  // comment
+	KeyType     string `json:"keytype"` // ssh-rsa
+	Key         string `json:"key"`     // key
+	Comment     string `json:"comment"` // comment
 	Fingerprint string `json:"-"`
 }
 

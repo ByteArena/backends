@@ -26,12 +26,11 @@ func GqlAgentToRepo(gqlagent graphqltype.AgentType) protocol.GitRepository {
 	owner := GqlUserToUser(gqlagent.Owner)
 
 	return protocol.GitRepository{
-		ID:           uint(intid),
-		RepoCloneUrl: gqlagent.GitRepository.Cloneurl,
-		RepoRef:      gqlagent.GitRepository.Ref,
-		Title:        gqlagent.Name,
-		OwnerID:      int(owner.ID),
-		Owner:        owner,
+		ID:       uint(intid),
+		CloneURL: gqlagent.GitRepository.CloneURL,
+		Ref:      gqlagent.GitRepository.Ref,
+		OwnerID:  int(owner.ID),
+		Owner:    owner,
 	}
 }
 

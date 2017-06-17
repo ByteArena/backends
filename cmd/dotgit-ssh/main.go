@@ -180,7 +180,7 @@ func processGitOperation(user protocol.User, repo protocol.GitRepository, gitOpe
 		os.Environ(),
 		"GIT_USER="+user.Username,
 		"GIT_REPO_OWNER="+repo.Owner.Username,
-		"GIT_REPO_NAME="+repo.RepoName,
+		"GIT_REPO_NAME="+repo.Name,
 		"GIT_REPO_PATH="+repoAbsPath,
 		"GIT_OPERATION="+gitOperation,
 		"MQ_HOST="+cnf.GetMqHost(),
