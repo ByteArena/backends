@@ -9,7 +9,7 @@ import (
 )
 
 type messageArenaHandshake struct {
-	Uuid string `json:"uuid"`
+	id string `json:"id"`
 }
 
 type ListeningChanStruct chan struct{}

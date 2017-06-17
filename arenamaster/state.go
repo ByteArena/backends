@@ -1,7 +1,7 @@
 package arenamaster
 
 type ArenaState struct {
-	uuid string
+	id string
 }
 
 type State struct {

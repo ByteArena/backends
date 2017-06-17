@@ -11,14 +11,14 @@ type onLogicResponseCallable func(*mq.Client)
 type onLogic func(state *State, payload *types.MQPayload) onLogicResponseCallable
 
 func onArenaHandshake(state *State, payload *types.MQPayload) onLogicResponseCallable {
-	uuid, ok := (*payload)["uuid"].(string)
+	id, ok := (*payload)["id"].(string)
 
 	if ok {
 		state.arenas = append(state.arenas, ArenaState{
-			uuid: uuid,
+			id: id,
 		})
 
-		log.Println(uuid + " joined the pool")
+		log.Println(id + " joined the pool")
 	}
 
 	return nil
@@ -33,7 +33,7 @@ func onArenaLaunch(state *State, payload *types.MQPayload) onLogicResponseCallab
 
 		return func(client *mq.Client) {
 			var msg struct{}
-			client.Publish("arena", arena.uuid+".launch", msg)
+			client.Publish("arena", arena.id+".launch", msg)
 		}
 	}
 
