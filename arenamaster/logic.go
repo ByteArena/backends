@@ -32,8 +32,12 @@ func onArenaLaunch(state *State, payload *types.MQPayload) onLogicResponseCallab
 		state.arenas = state.arenas[1:]
 
 		return func(client *mq.Client) {
-			var msg struct{}
-			client.Publish("arena", arena.id+".launch", msg)
+
+			if id, ok := (*payload)["id"].(string); ok {
+				client.Publish("arena", arena.id+".launch", types.MQPayload{
+					"id": id,
+				})
+			}
 		}
 	}
 
