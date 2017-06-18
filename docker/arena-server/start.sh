@@ -1,1 +1,1 @@
-/usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}"
+/usr/bin/arena-server --host "${HOST}" --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}"
