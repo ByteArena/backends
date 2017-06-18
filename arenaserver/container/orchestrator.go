@@ -183,9 +183,8 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	hostconfig := container.HostConfig{
 		CapDrop:        []string{"ALL"},
 		Privileged:     false,
-		AutoRemove:     false, //FIXME(sven): for debuging purposes, change it
+		AutoRemove:     true,
 		ReadonlyRootfs: true,
-		//NetworkMode:    "host",
 		NetworkMode: "bridge",
 		Resources: container.Resources{
 			Memory: 1024 * 1024 * 32, // 32M
