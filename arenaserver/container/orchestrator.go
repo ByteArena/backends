@@ -177,6 +177,8 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		AttachStdout: false,
 		AttachStderr: false,
 	}
+	
+	log.Println("container config", containerconfig)
 
 	hostconfig := container.HostConfig{
 		CapDrop:        []string{"ALL"},
