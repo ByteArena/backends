@@ -183,7 +183,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	hostconfig := container.HostConfig{
 		CapDrop:        []string{"ALL"},
 		Privileged:     false,
-		AutoRemove:     true,
+		AutoRemove:     false, //FIXME(sven): for debuging purposes, change it
 		ReadonlyRootfs: true,
 		//NetworkMode:    "host",
 		NetworkMode: "bridge",
