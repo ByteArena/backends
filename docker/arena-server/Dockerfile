@@ -16,7 +16,7 @@ RUN apt-get -y update
 RUN apt-get -y install docker-ce
 
 RUN mkdir /etc/docker
-RUN echo '{ "insecure-registries" : ["$REGISTRY_ADDR"] }' | sudo tee /etc/docker/daemon.json
+RUN echo "{ \"insecure-registries\" : [\"$REGISTRY_ADDR\"] }" | sudo tee /etc/docker/daemon.json
 
 COPY ./ $APP_HOME
 
