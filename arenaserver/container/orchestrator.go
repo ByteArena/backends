@@ -177,7 +177,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		AttachStdout: false,
 		AttachStderr: false,
 	}
-	
+
 	log.Println("container config", containerconfig)
 
 	hostconfig := container.HostConfig{
@@ -185,13 +185,13 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		Privileged:     false,
 		AutoRemove:     true,
 		ReadonlyRootfs: true,
-		NetworkMode: "bridge",
-		Resources: container.Resources{
-			Memory: 1024 * 1024 * 32, // 32M
-			//CPUQuota: 5 * (1000),       // 5% en cent-millièmes
-			//CPUShares: 1,
-			CPUPercent: 5,
-		},
+		NetworkMode:    "bridge",
+		// Resources: container.Resources{
+		// 	Memory: 1024 * 1024 * 32, // 32M
+		// 	//CPUQuota: 5 * (1000),       // 5% en cent-millièmes
+		// 	//CPUShares: 1,
+		// 	CPUPercent: 5,
+		// },
 	}
 
 	resp, err := orch.cli.ContainerCreate(
