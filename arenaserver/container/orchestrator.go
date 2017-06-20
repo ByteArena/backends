@@ -184,7 +184,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		CapDrop:        []string{"ALL"},
 		Privileged:     false,
 		AutoRemove:     true,
-		ReadonlyRootfs: true,
+		ReadonlyRootfs: false,
 		NetworkMode:    "bridge",
 		// Resources: container.Resources{
 		// 	Memory: 1024 * 1024 * 32, // 32M
