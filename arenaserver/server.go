@@ -59,8 +59,8 @@ func NewServer(host string, port int, arena ArenaInstance) *Server {
 
 		gamehost = host
 	}
-	
-	log.Println("Use host: "+host)
+
+	log.Println("Use host: " + host)
 
 	s := &Server{
 		host:                  gamehost,

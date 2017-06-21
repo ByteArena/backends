@@ -111,5 +111,13 @@ func main() {
 	streamArenaStopped := make(chan interface{})
 	notify.Start("arena:stop", streamArenaStopped)
 
+	healthCheckServer := arenaserver.NewHealthCheckServer("8099")
+
+	healthCheckServer.Register("test", func() (err error, ok bool) {
+		return nil, true
+	})
+
+	healthCheckServer.Listen()
+
 	<-streamArenaStopped
 }
