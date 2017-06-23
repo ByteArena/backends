@@ -18,14 +18,16 @@ type HealthChecks struct {
 }
 
 type HealthCheckHttpResponse struct {
-	Checks []HealthChecks
+	Checks     []HealthChecks
+	StatusCode int
 }
 
 type HealthCheckHandler func() (err error, ok bool)
 
 func (server *HealthCheckServer) httpHandler(w http.ResponseWriter, r *http.Request) {
 	res := HealthCheckHttpResponse{
-		Checks: make([]HealthChecks, 0),
+		Checks:     make([]HealthChecks, 0),
+		StatusCode: 200,
 	}
 
 	for _, checker := range server.Checkers {
@@ -36,6 +38,8 @@ func (server *HealthCheckServer) httpHandler(w http.ResponseWriter, r *http.Requ
 			res.Checks = append(res.Checks, HealthChecks{
 				Status: checkerRes,
 			})
+		} else {
+			res.StatusCode = http.StatusInternalServerError
 		}
 	}
 
@@ -43,6 +47,7 @@ func (server *HealthCheckServer) httpHandler(w http.ResponseWriter, r *http.Requ
 	utils.Check(err, "Failed to marshal response")
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(res.StatusCode)
 	w.Write(data)
 }
 
