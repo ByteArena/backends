@@ -1,8 +1,7 @@
-package arenaserver
+package healthcheck
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/bytearena/bytearena/common/utils"
@@ -63,5 +62,4 @@ func (server *HealthCheckServer) Listen() {
 
 func (server *HealthCheckServer) Register(name string, handler HealthCheckHandler) {
 	server.Checkers = append(server.Checkers, handler)
-	log.Println("register")
 }
