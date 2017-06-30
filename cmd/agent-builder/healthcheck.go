@@ -19,15 +19,19 @@ func PingRegistry(host string) (error, bool) {
 func StartHealthCheck(registryHost string) {
 	healthCheckServer := healthcheck.NewHealthCheckServer()
 
-	healthCheckServer.Register("Docker registry", func() (err error, ok bool) {
-		pingErr, status := PingRegistry(registryHost)
+	// FIXME(sven): doesn't work be cause the registryHost passed in the env
+	// is used by the docker client which runs on the host.
+	// We pass localhost and it's only accessible from the host
 
-		if pingErr != nil {
-			return pingErr, status
-		} else {
-			return nil, status
-		}
-	})
+	// healthCheckServer.Register("Docker registry", func() (err error, ok bool) {
+	// 	pingErr, status := PingRegistry(registryHost)
+
+	// 	if pingErr != nil {
+	// 		return pingErr, status
+	// 	} else {
+	// 		return nil, status
+	// 	}
+	// })
 
 	healthCheckServer.Listen()
 }
