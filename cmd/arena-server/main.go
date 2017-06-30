@@ -66,6 +66,16 @@ func main() {
 		}
 	})
 
+	healthCheckServer.Register("graphql", func() (err error, ok bool) {
+		pingErr, status := graphqlclient.Ping()
+
+		if pingErr != nil {
+			return pingErr, status
+		} else {
+			return nil, status
+		}
+	})
+
 	healthCheckServer.Listen()
 
 	streamArenaLaunched := make(chan interface{})

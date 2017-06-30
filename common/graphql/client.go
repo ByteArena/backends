@@ -119,3 +119,13 @@ func (client Client) RequestAsync(query *Query) <-chan Response {
 
 	return c
 }
+
+func (client Client) Ping() (error, bool) {
+	req, err := http.Get(client.url + "/schema")
+
+	if err != nil && req.StatusCode != 200 {
+		return err, false
+	}
+
+	return nil, true
+}
