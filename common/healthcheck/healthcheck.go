@@ -15,6 +15,7 @@ type HealthCheckServer struct {
 type HealthChecks struct {
 	Status bool
 	Name   string
+	Detail string
 }
 
 type HealthCheckHttpResponse struct {
@@ -38,9 +39,16 @@ func (server *HealthCheckServer) httpHandler(w http.ResponseWriter, r *http.Requ
 			res.Checks = append(res.Checks, HealthChecks{
 				Status: checkerRes,
 				Name:   name,
+				Detail: "",
 			})
 		} else {
 			res.StatusCode = http.StatusInternalServerError
+
+			res.Checks = append(res.Checks, HealthChecks{
+				Status: false,
+				Name:   name,
+				Detail: err.Error(),
+			})
 		}
 	}
 
