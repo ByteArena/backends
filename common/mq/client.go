@@ -97,4 +97,9 @@ func (client *Client) Publish(channel string, topic string, payload interface{})
 	return nil
 }
 
+func (client *Client) Ping() (err error) {
+	var data interface{}
+	return client.Publish("ping", "ping", data)
+}
+
 /* </mq.MessageBrokerClientInterface> */

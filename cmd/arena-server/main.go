@@ -71,6 +71,8 @@ func main() {
 		notify.PostTimeout("arena:launch", payload, time.Millisecond)
 	})
 
+	StartHealthCheck(brokerclient, graphqlclient)
+
 	go func() {
 		for {
 			select {
