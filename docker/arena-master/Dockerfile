@@ -13,4 +13,6 @@ WORKDIR $APP_HOME/cmd/arena-master
 RUN go get -v ./...
 RUN go build
 
+HEALTHCHECK --interval=1s --timeout=1s --retries=3 CMD ["curl", "--fail", "localhost:8099/health"]
+
 CMD ["arena-master"]

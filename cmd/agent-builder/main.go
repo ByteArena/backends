@@ -50,10 +50,7 @@ func main() {
 	gitHost := os.Getenv("GIT_HOST")
 	utils.Assert(gitHost != "", "Error: missing GIT_HOST env param")
 
-	port := os.Getenv("PORT")
-	utils.Assert(port != "", "Error: missing PORT env param")
-	_, err := strconv.Atoi(port)
-	utils.Check(err, "Error: PORT shoud be an int")
+	StartHealthCheck(registryHost)
 
 	listen(mqHost, gitHost, registryHost)
 }
