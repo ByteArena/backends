@@ -27,6 +27,8 @@ func main() {
 
 	server := arenamaster.NewServer(brokerclient)
 
+	StartHealthCheck(brokerclient)
+
 	// handling signals
 	hassigtermed := make(chan os.Signal, 2)
 	signal.Notify(hassigtermed, os.Interrupt, syscall.SIGTERM)
