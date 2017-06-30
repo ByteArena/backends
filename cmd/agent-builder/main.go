@@ -50,6 +50,8 @@ func main() {
 	gitHost := os.Getenv("GIT_HOST")
 	utils.Assert(gitHost != "", "Error: missing GIT_HOST env param")
 
+	StartHealthCheck(registryHost)
+
 	listen(mqHost, gitHost, registryHost)
 }
 

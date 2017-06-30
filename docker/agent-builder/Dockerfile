@@ -26,4 +26,6 @@ RUN chmod 600 /root/git_admin_key_private
 RUN mkdir -p /root/.ssh
 COPY ./docker/agent-builder/ssh_config /root/.ssh/config
 
+HEALTHCHECK --interval=1s --timeout=1s --retries=3 CMD ["curl", "--fail", "localhost:8099/health"]
+
 CMD ["agent-builder"]
