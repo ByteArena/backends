@@ -8,7 +8,7 @@ import (
 )
 
 type HealthCheckServer struct {
-	Checkers []HealthCheckHandler
+	Checkers map[string]HealthCheckHandler
 	port     string
 }
 
@@ -30,13 +30,14 @@ func (server *HealthCheckServer) httpHandler(w http.ResponseWriter, r *http.Requ
 		StatusCode: 200,
 	}
 
-	for _, checker := range server.Checkers {
+	for name, checker := range server.Checkers {
 		err, checkerRes := checker()
 
 		if err == nil {
 
 			res.Checks = append(res.Checks, HealthChecks{
 				Status: checkerRes,
+				Name:   name,
 			})
 		} else {
 			res.StatusCode = http.StatusInternalServerError
@@ -51,10 +52,10 @@ func (server *HealthCheckServer) httpHandler(w http.ResponseWriter, r *http.Requ
 	w.Write(data)
 }
 
-func NewHealthCheckServer(port string) *HealthCheckServer {
-
+func NewHealthCheckServer() *HealthCheckServer {
 	return &HealthCheckServer{
-		port: port,
+		port:     "8099",
+		Checkers: make(map[string]HealthCheckHandler, 0),
 	}
 }
 
@@ -66,5 +67,5 @@ func (server *HealthCheckServer) Listen() {
 }
 
 func (server *HealthCheckServer) Register(name string, handler HealthCheckHandler) {
-	server.Checkers = append(server.Checkers, handler)
+	server.Checkers[name] = handler
 }

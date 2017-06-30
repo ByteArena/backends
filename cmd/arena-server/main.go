@@ -54,7 +54,7 @@ func main() {
 		"id": arenaServerUUID.String(),
 	}))
 
-	healthCheckServer := healthcheck.NewHealthCheckServer("8099")
+	healthCheckServer := healthcheck.NewHealthCheckServer()
 
 	healthCheckServer.Register("test", func() (err error, ok bool) {
 		pingErr := brokerclient.Ping()
