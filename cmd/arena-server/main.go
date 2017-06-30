@@ -14,7 +14,6 @@ import (
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
-	"github.com/bytearena/bytearena/common/healthcheck"
 
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/protocol"
@@ -54,30 +53,6 @@ func main() {
 		"id": arenaServerUUID.String(),
 	}))
 
-	healthCheckServer := healthcheck.NewHealthCheckServer()
-
-	healthCheckServer.Register("mq", func() (err error, ok bool) {
-		pingErr := brokerclient.Ping()
-
-		if pingErr != nil {
-			return pingErr, false
-		} else {
-			return nil, true
-		}
-	})
-
-	healthCheckServer.Register("graphql", func() (err error, ok bool) {
-		pingErr, status := graphqlclient.Ping()
-
-		if pingErr != nil {
-			return pingErr, status
-		} else {
-			return nil, status
-		}
-	})
-
-	healthCheckServer.Listen()
-
 	streamArenaLaunched := make(chan interface{})
 	notify.Start("arena:launch", streamArenaLaunched)
 
@@ -95,6 +70,8 @@ func main() {
 
 		notify.PostTimeout("arena:launch", payload, time.Millisecond)
 	})
+
+	StartHealthCheck(brokerclient, graphqlclient)
 
 	go func() {
 		for {
