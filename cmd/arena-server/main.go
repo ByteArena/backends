@@ -56,7 +56,7 @@ func main() {
 
 	healthCheckServer := healthcheck.NewHealthCheckServer()
 
-	healthCheckServer.Register("test", func() (err error, ok bool) {
+	healthCheckServer.Register("mq", func() (err error, ok bool) {
 		pingErr := brokerclient.Ping()
 
 		if pingErr != nil {
