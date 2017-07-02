@@ -17,6 +17,9 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
+	agstate "github.com/bytearena/bytearena/arenaserver/state/agent"
+	stateprotocol "github.com/bytearena/bytearena/arenaserver/state/protocol"
+	srvstate "github.com/bytearena/bytearena/arenaserver/state/server"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	uuid "github.com/satori/go.uuid"
@@ -33,12 +36,12 @@ type Server struct {
 	containerorchestrator container.ContainerOrchestrator
 	agents                map[uuid.UUID]agent.Agent
 	agentsmutex           *sync.Mutex
-	state                 *state.ServerState
+	state                 *srvstate.ServerState
 	commserver            *comm.CommServer
 	nbhandshaked          int
 	currentturn           utils.Tickturn
 	currentturnmutex      *sync.Mutex
-	stateobservers        []chan state.ServerState
+	stateobservers        []chan srvstate.ServerState
 	DebugNbMutations      int
 	DebugNbUpdates        int
 
@@ -68,7 +71,7 @@ func NewServer(host string, port int, arena ArenaInstance) *Server {
 		containerorchestrator: orch,
 		agents:                make(map[uuid.UUID]agent.Agent),
 		agentsmutex:           &sync.Mutex{},
-		state:                 state.NewServerState(),
+		state:                 srvstate.NewServerState(),
 		commserver:            nil, // initialized in Listen()
 		nbhandshaked:          0,
 		currentturnmutex:      &sync.Mutex{},
@@ -92,7 +95,7 @@ func (server *Server) spawnAgents() {
 		agentstate := server.state.GetAgentState(ag.GetId())
 		agentimage := server.agentimages[ag.GetId()]
 
-		go func(agent agent.Agent, agentstate state.AgentState, dockerimage string) {
+		go func(agent agent.Agent, agentstate stateprotocol.AgentStateInterface, dockerimage string) {
 
 			container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
 			utils.Check(err, "Failed to create docker container for "+agent.String())
@@ -112,7 +115,7 @@ func (server *Server) spawnAgents() {
 func (server *Server) RegisterAgent(agentimage string) {
 
 	agent := agent.MakeNetAgentImp()
-	agentstate := state.MakeAgentState()
+	agentstate := agstate.MakeAgentState()
 
 	server.setAgent(agent)
 	server.state.SetAgentState(agent.GetId(), agentstate)
@@ -168,7 +171,7 @@ func (server *Server) GetNbExpectedagents() int {
 	return len(server.arena.GetContestants())
 }
 
-func (server *Server) GetState() *state.ServerState {
+func (server *Server) GetState() *srvstate.ServerState {
 	return server.state
 }
 
@@ -222,7 +225,7 @@ func (server *Server) DoTick() {
 	server.GetState().DebugPoints = make([]vector.Vector2, 0)
 
 	for _, ag := range server.agents {
-		go func(server *Server, ag agent.Agent, serverstate *state.ServerState) {
+		go func(server *Server, ag agent.Agent, serverstate *srvstate.ServerState) {
 
 			if debug {
 				fmt.Print(chalk.Cyan)
@@ -289,6 +292,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 		{
 			var mutations protocol.MessageMutationsImp
 			err = json.Unmarshal(msg.GetPayload(), &mutations)
+
 			utils.Check(err, "Failed to unmarshal JSON agent mutation payload for agent "+ag.String()+"; "+string(msg.GetPayload()))
 
 			turn := server.GetTurn()
@@ -396,7 +400,7 @@ func (server *Server) DoUpdate() {
 	server.DebugNbUpdates++
 
 	// Updates physiques, liées au temps qui passe
-	// Avant de récuperer les mutations de chaque tour, et même avant deconstituer la perception de chaque agent
+	// Avant de récuperer les mutations de chaque tour, et même avant de constituer la perception de chaque agent
 
 	server.state.Projectilesmutex.Lock()
 	for k, state := range server.state.Projectiles {
@@ -422,14 +426,14 @@ func (server *Server) DoUpdate() {
 	serverCloned := *server.state
 
 	for _, subscriber := range server.stateobservers {
-		go func(s chan state.ServerState) {
+		go func(s chan srvstate.ServerState) {
 			s <- serverCloned
 		}(subscriber)
 	}
 }
 
-func (server *Server) SubscribeStateObservation() chan state.ServerState {
-	ch := make(chan state.ServerState)
+func (server *Server) SubscribeStateObservation() chan srvstate.ServerState {
+	ch := make(chan srvstate.ServerState)
 	server.stateobservers = append(server.stateobservers, ch)
 	return ch
 }

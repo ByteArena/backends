@@ -5,7 +5,8 @@ import (
 	"net"
 
 	"github.com/bytearena/bytearena/arenaserver/protocol"
-	"github.com/bytearena/bytearena/arenaserver/state"
+	agentstate "github.com/bytearena/bytearena/arenaserver/state/agent"
+	stateprotocol "github.com/bytearena/bytearena/arenaserver/state/protocol"
 )
 
 type NetAgent interface {
@@ -29,7 +30,7 @@ func (agent NetAgentImp) String() string {
 	return "<NetAgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent NetAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) {
+func (agent NetAgentImp) SetPerception(perception agentstate.Perception, comm protocol.AgentCommunicator, agentstate stateprotocol.AgentStateInterface) {
 	perceptionjson, _ := json.Marshal(perception)
 	message := []byte("{\"Method\": \"tick\", \"Arguments\": [0," + string(perceptionjson) + "]}\n") // TODO: remove 0 (ex turn)
 	comm.NetSend(message, agent.GetAddr())

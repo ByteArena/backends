@@ -11,7 +11,7 @@ type StateMutation struct {
 
 type StateMutationBatch struct {
 	AgentId   uuid.UUID
-	Mutations []MessageMutationImp
+	Mutations []MessageMutation
 }
 
 type StateMutationPusher interface {

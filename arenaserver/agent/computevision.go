@@ -4,22 +4,28 @@ import (
 	"log"
 	"math"
 
-	"github.com/bytearena/bytearena/arenaserver/state"
+	agstate "github.com/bytearena/bytearena/arenaserver/state/agent"
+	stateprotocol "github.com/bytearena/bytearena/arenaserver/state/protocol"
+	srvstate "github.com/bytearena/bytearena/arenaserver/state/server"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
-func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentstate state.AgentState) []state.PerceptionVisionItem {
+func (agent AgentImp) computeAgentVision(serverstate *srvstate.ServerState, agentstate stateprotocol.AgentStateInterface) []agstate.PerceptionVisionItem {
 
-	vision := make([]state.PerceptionVisionItem, 0)
+	vision := make([]agstate.PerceptionVisionItem, 0)
 
-	absoluteposition := agentstate.Position
-	orientation := agentstate.Orientation
+	orientation := agentstate.GetOrientation()
+	absoluteposition := agentstate.GetPosition()
+	//velocity := agentstate.GetVelocity()
+	//radius := agentstate.GetRadius()
+	visionRadius := agentstate.GetVisionRadius()
+	visionAngle := agentstate.GetVisionAngle()
 
 	// On détermine les bords gauche et droit du cône de vision de l'agent
-	halfvisionangle := agentstate.VisionAngle / 2
-	leftvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle*-1)
-	rightvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle)
+	halfvisionangle := visionAngle / 2
+	leftvisionrelvec := vector.MakeVector2(1, 1).SetMag(visionRadius).SetAngle(orientation + halfvisionangle*-1)
+	rightvisionrelvec := vector.MakeVector2(1, 1).SetMag(visionRadius).SetAngle(orientation + halfvisionangle)
 
 	// On détermine la perception visuelle de l'agent
 
@@ -28,16 +34,16 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 	///////////////////////////////////////////////////////////////////////////
 
 	serverstate.Agentsmutex.Lock()
-	radiussq := agentstate.VisionRadius * agentstate.VisionRadius
+	radiussq := visionRadius * visionRadius
 	for otheragentid, otheragentstate := range serverstate.Agents {
 
 		if otheragentid == agent.GetId() {
 			continue // one cannot see itself
 		}
 
-		centervec := otheragentstate.Position.Sub(agentstate.Position)
+		centervec := otheragentstate.GetPosition().Sub(absoluteposition)
 		centersegment := vector.MakeSegment2(vector.MakeNullVector2(), centervec)
-		agentdiameter := centersegment.OrthogonalToBCentered().SetLengthFromCenter(otheragentstate.Radius * 2)
+		agentdiameter := centersegment.OrthogonalToBCentered().SetLengthFromCenter(otheragentstate.GetRadius() * 2)
 
 		closeEdge, farEdge := agentdiameter.Get()
 
@@ -45,11 +51,11 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 		if distsq <= radiussq {
 			// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
 			centervec = centervec.SetAngle(centervec.Angle() - orientation)
-			visionitem := state.PerceptionVisionItem{
+			visionitem := agstate.PerceptionVisionItem{
 				CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - orientation), // perpendicular to relative position vector, left side
 				Center:    centervec,
 				FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - orientation), // perpendicular to relative position vector, right side
-				Velocity:  otheragentstate.Velocity.Clone().SetAngle(otheragentstate.Velocity.Angle() - orientation),
+				Velocity:  otheragentstate.GetVelocity().Clone().SetAngle(otheragentstate.GetVelocity().Angle() - orientation),
 				//Tag:       otheragentstate.Tag,
 				Tag: "agent",
 			}
@@ -70,7 +76,7 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 		rejectededges := make([]vector.Vector2, 0)
 
 		relvecA := obstacle.GetA().Sub(absoluteposition)
-		relvecB := obstacle.GetA().Sub(absoluteposition)
+		relvecB := obstacle.GetB().Sub(absoluteposition)
 
 		distsqA := relvecA.MagSq()
 		distsqB := relvecB.MagSq()
@@ -128,7 +134,7 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 				relvecA,
 				relvecB,
 				vector.MakeNullVector2(),
-				agentstate.VisionRadius,
+				visionRadius,
 			)
 
 			for _, point := range intersections {
@@ -178,7 +184,7 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 				farEdge = relEdgeOneAgentAligned
 			}
 
-			obstacleperception := state.PerceptionVisionItem{
+			obstacleperception := agstate.PerceptionVisionItem{
 				CloseEdge: closeEdge,
 				Center:    relcenteragentaligned,
 				FarEdge:   farEdge,

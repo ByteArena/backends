@@ -1,13 +1,16 @@
-package state
+package agent
 
 import (
+	"encoding/json"
 	"math"
 	"math/rand"
 
+	serverprotocol "github.com/bytearena/bytearena/arenaserver/protocol"
+	stateprotocol "github.com/bytearena/bytearena/arenaserver/state/protocol"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/number"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
-	uuid "github.com/satori/go.uuid"
 )
 
 // Agent is a Simple Vehicle Model from Reynolds (http://www.red3d.com/cwr/steer/gdc99/)
@@ -34,19 +37,22 @@ import (
 // or by simulating moment of inertia.
 
 type AgentState struct {
-	Radius             float64
-	Mass               float64
-	Position           vector.Vector2
-	Velocity           vector.Vector2
-	Orientation        float64 // heading angle in radian (degree ?) relative to arena north
+
+	// Common to all kinds of agents
+	Tag string // attractor
+
+	Radius       float64
+	Mass         float64
+	Position     vector.Vector2
+	Velocity     vector.Vector2
+	Orientation  float64 // heading angle in radians relative to arena north
+	VisionRadius float64 // radius of vision circle
+	VisionAngle  float64 // angle of FOV
+
+	// Holonomic drive agents
 	MaxSteeringForce   float64 // maximum magnitude the steering force applied to current velocity
 	MaxSpeed           float64 // maximum magnitude of the agent velocity
 	MaxAngularVelocity float64
-
-	Tag string // attractor
-
-	VisionRadius float64 // radius of vision circle
-	VisionAngle  float64 // angle of FOV
 }
 
 func MakeAgentState() AgentState {
@@ -65,11 +71,11 @@ func MakeAgentState() AgentState {
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
 		VisionRadius:       400,
-		VisionAngle:        number.DegreeToRadian(180),
+		VisionAngle:        number.DegreeToRadian(120),
 	}
 }
 
-func (state AgentState) Update() AgentState {
+func (state AgentState) Update() stateprotocol.AgentStateInterface {
 	newPosition := state.Position.Add(state.Velocity)
 	x, y := newPosition.Get()
 	if x < 0 || y < 0 || x > 1000 || y > 1000 {
@@ -82,7 +88,7 @@ func (state AgentState) Update() AgentState {
 	return state
 }
 
-func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
+func (state AgentState) MutationSteer(steering vector.Vector2) stateprotocol.AgentStateInterface {
 
 	prevmag := state.Velocity.Mag()
 	diff := steering.Mag() - prevmag
@@ -99,12 +105,13 @@ func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
 	return state
 }
 
-func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Vector2) AgentState {
+/*
+func (state AgentState) mutationShoot(serverstate *srvstate.ServerState, aiming vector.Vector2) AgentState {
 
 	// on passe le vecteur de visée d'un angle relatif à un angle absolu
 	absaiming := state.localAngleToAbsoluteAngleVec(aiming, nil)
 
-	projectile := ProjectileState{
+	projectile := statepkg.ProjectileState{
 		Position: state.Position.Clone(),
 		Velocity: state.Position.Add(absaiming), // adding the agent position to "absolutize" the target vector
 		From:     state,
@@ -119,6 +126,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 
 	return state
 }
+*/
 
 func (state AgentState) localAngleToAbsoluteAngleVec(vec vector.Vector2, maxangleconstraint *float64) vector.Vector2 {
 
@@ -145,14 +153,67 @@ func (state AgentState) localAngleToAbsoluteAngleVec(vec vector.Vector2, maxangl
 	return vec.SetAngle(abscurrentagentangle + relvecangle)
 }
 
-func (state AgentState) clone() AgentState {
+func (state AgentState) Clone() stateprotocol.AgentStateInterface {
 	return state // yes, passed by value !
 }
 
-func (state AgentState) validate() bool {
-	return true
+func (state AgentState) ProcessMutations(mutations []serverprotocol.MessageMutation) stateprotocol.AgentStateInterface {
+
+	newstate := state.Clone()
+
+	nbmutations := 0
+	for _, mutation := range mutations {
+
+		switch mutation.GetMethod() {
+		case "steer":
+			{
+				var vec []float64
+				err := json.Unmarshal(mutation.GetArguments(), &vec)
+				utils.Check(err, "Failed to unmarshal JSON arguments for steer mutation")
+
+				nbmutations++
+				newstate = newstate.MutationSteer(vector.MakeVector2(vec[0], vec[1]))
+
+				break
+			}
+			/*case "shoot":
+			{
+				var vec []float64
+				err := json.Unmarshal(mutation.GetArguments(), &vec)
+				utils.Check(err, "Failed to unmarshal JSON arguments for shoot mutation")
+
+				nbmutations++
+				newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
+
+				break
+			}*/
+		}
+	}
+
+	return newstate
+
 }
 
-func (state AgentState) validateTransition(fromstate AgentState) bool {
-	return true
+func (state AgentState) GetOrientation() float64 {
+	return state.Orientation
+}
+
+func (state AgentState) GetVelocity() vector.Vector2 {
+	return state.Velocity
+}
+
+func (state AgentState) GetPosition() vector.Vector2 {
+	return state.Position
+}
+
+func (state AgentState) GetRadius() float64 {
+	return state.Radius
+}
+
+func (state AgentState) GetVisionRadius() float64 {
+	return state.VisionRadius
+}
+
+func (state AgentState) GetVisionAngle() float64 {
+	return state.VisionAngle
 }

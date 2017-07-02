@@ -2,7 +2,8 @@ package agent
 
 import (
 	"github.com/bytearena/bytearena/arenaserver/protocol"
-	"github.com/bytearena/bytearena/arenaserver/state"
+	agentstate "github.com/bytearena/bytearena/arenaserver/state/agent"
+	stateprotocol "github.com/bytearena/bytearena/arenaserver/state/protocol"
 )
 
 type LocalAgent interface {
@@ -24,5 +25,5 @@ func (agent LocalAgentImp) String() string {
 	return "<LocalAgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent LocalAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) {
+func (agent LocalAgentImp) SetPerception(perception agentstate.Perception, comm protocol.AgentCommunicator, agentstate stateprotocol.AgentStateInterface) {
 }

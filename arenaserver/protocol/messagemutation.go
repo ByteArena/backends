@@ -22,8 +22,12 @@ type MessageMutationImp struct {
 	Arguments json.RawMessage
 }
 
-func (m MessageMutationsImp) GetMutations() []MessageMutationImp {
-	return m.Mutations
+func (m MessageMutationsImp) GetMutations() []MessageMutation {
+	res := make([]MessageMutation, len(m.Mutations))
+	for i, v := range m.Mutations {
+		res[i] = MessageMutation(v)
+	}
+	return res
 }
 
 func (m MessageMutationImp) GetMethod() string {

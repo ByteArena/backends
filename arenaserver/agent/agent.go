@@ -2,15 +2,17 @@ package agent
 
 import (
 	"github.com/bytearena/bytearena/arenaserver/protocol"
-	"github.com/bytearena/bytearena/arenaserver/state"
+	agentstate "github.com/bytearena/bytearena/arenaserver/state/agent"
+	stateprotocol "github.com/bytearena/bytearena/arenaserver/state/protocol"
+	serverstate "github.com/bytearena/bytearena/arenaserver/state/server"
 	uuid "github.com/satori/go.uuid"
 )
 
 type Agent interface {
 	GetId() uuid.UUID
 	String() string
-	GetPerception(serverstate *state.ServerState) state.Perception
-	SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) // abstract method
+	GetPerception(serverstate *serverstate.ServerState) agentstate.Perception
+	SetPerception(perception agentstate.Perception, comm protocol.AgentCommunicator, agentstate stateprotocol.AgentStateInterface) // abstract method
 }
 
 type AgentImp struct {
@@ -31,27 +33,33 @@ func (agent AgentImp) String() string {
 	return "<AgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent AgentImp) GetPerception(serverstate *state.ServerState) state.Perception {
-	p := state.Perception{}
-	agentstate := serverstate.GetAgentState(agent.GetId())
+func (agent AgentImp) GetPerception(serverstate *serverstate.ServerState) agentstate.Perception {
+	p := agentstate.Perception{}
+	agstate := serverstate.GetAgentState(agent.GetId())
 
-	orientation := agentstate.Orientation
+	orientation := agstate.GetOrientation()
+	velocity := agstate.GetVelocity()
+	radius := agstate.GetRadius()
+	visionRadius := agstate.GetVisionRadius()
+	visionAngle := agstate.GetVisionAngle()
 
-	p.Internal.Velocity = agentstate.Velocity.Clone().SetAngle(agentstate.Velocity.Angle() - orientation)
-	p.Internal.Proprioception = agentstate.Radius
+	p.Internal.Velocity = velocity.Clone().SetAngle(velocity.Angle() - orientation)
+	p.Internal.Proprioception = radius
 	p.Internal.Magnetoreception = orientation // l'angle d'orientation de l'agent par rapport au "Nord" de l'arène
 
-	p.Specs.MaxSpeed = agentstate.MaxSpeed
-	p.Specs.MaxSteeringForce = agentstate.MaxSteeringForce
-	p.Specs.MaxAngularVelocity = agentstate.MaxAngularVelocity
-	p.Specs.VisionRadius = agentstate.VisionRadius
-	p.Specs.VisionAngle = agentstate.VisionAngle
+	p.Specs.VisionRadius = visionRadius
+	p.Specs.VisionAngle = visionAngle
 
-	p.External.Vision = agent.computeAgentVision(serverstate, agentstate)
+	// TODO(netgusto) : handle specifics of agent depending on drive mode (here, props for holonomic drive)
+	// p.Specs.MaxSpeed = agstate.MaxSpeed
+	// p.Specs.MaxSteeringForce = agstate.MaxSteeringForce
+	// p.Specs.MaxAngularVelocity = agstate.MaxAngularVelocity
+
+	p.External.Vision = agent.computeAgentVision(serverstate, agstate)
 
 	return p
 }
 
-func (agent AgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator, agentstate state.AgentState) {
+func (agent AgentImp) SetPerception(perception agentstate.Perception, comm protocol.AgentCommunicator, agentstate stateprotocol.AgentStateInterface) {
 	// I'm abstract, override me !
 }

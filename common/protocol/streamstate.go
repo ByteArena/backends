@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/bytearena/bytearena/arenaserver"
-	"github.com/bytearena/bytearena/arenaserver/state"
+	srvstate "github.com/bytearena/bytearena/arenaserver/state/server"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/leakybucket"
@@ -43,7 +43,7 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface) {
 
 }
 
-func transformServerStateToVizMessage(arenaid string, state state.ServerState) types.VizMessage {
+func transformServerStateToVizMessage(arenaid string, state srvstate.ServerState) types.VizMessage {
 
 	msg := types.VizMessage{
 		ArenaId: arenaid,
@@ -67,12 +67,12 @@ func transformServerStateToVizMessage(arenaid string, state state.ServerState) t
 		msg.Agents = append(msg.Agents, types.VizAgentMessage{
 			Id:           id,
 			Kind:         "agent",
-			Position:     agent.Position,
-			Velocity:     agent.Velocity,
-			Radius:       agent.Radius,
-			Orientation:  agent.Orientation,
-			VisionRadius: agent.VisionRadius,
-			VisionAngle:  agent.VisionAngle,
+			Position:     agent.GetPosition(),
+			Velocity:     agent.GetVelocity(),
+			Radius:       agent.GetRadius(),
+			Orientation:  agent.GetOrientation(),
+			VisionRadius: agent.GetVisionRadius(),
+			VisionAngle:  agent.GetVisionAngle(),
 		})
 	}
 	state.Agentsmutex.Unlock()

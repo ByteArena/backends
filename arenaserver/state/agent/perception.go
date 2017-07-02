@@ -1,4 +1,4 @@
-package state
+package agent
 
 import "github.com/bytearena/bytearena/common/utils/vector"
 
