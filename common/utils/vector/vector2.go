@@ -212,6 +212,24 @@ func (a Vector2) String() string {
 	return "<Vector2(" + number.FloatToStr(a.x, 5) + ", " + number.FloatToStr(a.y, 5) + ")>"
 }
 
+func (a Vector2) SetX(x float64) Vector2 {
+	a.x = x
+	return a
+}
+
+func (a Vector2) GetX() float64 {
+	return a.x
+}
+
+func (a Vector2) SetY(y float64) Vector2 {
+	a.y = y
+	return a
+}
+
+func (a Vector2) GetY() float64 {
+	return a.y
+}
+
 var epsilon float64 = 0.000001
 
 func isZero(f float64) bool {
