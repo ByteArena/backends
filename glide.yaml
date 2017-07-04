@@ -1,12 +1,14 @@
 package: github.com/bytearena/bytearena
+ignore:
+- github.com/bytearena/bytearena
 import:
 - package: github.com/bitly/go-notify
 - package: github.com/docker/distribution
-  version: ~2.6.1
+  version: f86db6b22663a27ba4d278220b7e34be528b1e79 # freezes master on 2017-07-04 23:54:45 Europe/Paris
   subpackages:
   - reference
 - package: github.com/docker/docker
-  version: ~17.5.0-ce-rc3
+  version: 82c2a08b6018586f3c8f35405c3bd6fce3c78ccd # freezes master on 2017-07-04 23:54:45 Europe/Paris
   subpackages:
   - api/types
   - api/types/container
