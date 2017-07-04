@@ -1,0 +1,24 @@
+package: github.com/bytearena/bytearena
+import:
+- package: github.com/bitly/go-notify
+- package: github.com/docker/distribution
+  version: ~2.6.1
+  subpackages:
+  - reference
+- package: github.com/docker/docker
+  version: ~17.5.0-ce-rc3
+  subpackages:
+  - api/types
+  - api/types/container
+  - client
+- package: github.com/gorilla/handlers
+  version: ~1.2.1
+- package: github.com/gorilla/mux
+  version: ~1.4.0
+- package: github.com/gorilla/websocket
+  version: ~1.2.0
+- package: github.com/kardianos/osext
+- package: github.com/satori/go.uuid
+  version: ~1.1.0
+- package: github.com/ttacon/chalk
+  version: ~0.1.0
