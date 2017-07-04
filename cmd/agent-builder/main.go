@@ -4,40 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
 
-	"github.com/gorilla/websocket"
 	"github.com/ttacon/chalk"
 
+	"github.com/bytearena/bytearena/common/mq"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 )
-
-var CHANNEL = "agent"
-var TOPIC = "repo.pushed"
-
-type onMessageStruct struct {
-	Timestamp string          `json:"timestamp"`
-	Data      json.RawMessage `json:"data"`
-	Topic     string          `json:"topic"`
-	Channel   string          `json:"channel"`
-}
-
-func throwIfError(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func buildAndDeploy(username string, repo string, cloneurl string, registryHost string) {
-	imageName := username + "/" + repo
-
-	dir := cloneRepo(cloneurl, imageName)
-	buildImage(dir, imageName)
-	deployImage(imageName, "latest", registryHost, 5000)
-}
 
 func main() {
 
@@ -50,57 +26,64 @@ func main() {
 	gitHost := os.Getenv("GIT_HOST")
 	utils.Assert(gitHost != "", "Error: missing GIT_HOST env param")
 
-	StartHealthCheck(registryHost)
+	brokerclient, err := mq.NewClient(mqHost)
+	utils.Check(err, "ERROR: could not connect to messagebroker at "+string(mqHost))
 
-	listen(mqHost, gitHost, registryHost)
-}
-
-func listen(host string, gitHost string, registryHost string) {
-	dialer := websocket.DefaultDialer
-
-	conn, _, err := dialer.Dial("ws://"+host, http.Header{})
-
-	utils.Check(err, "Error: cannot connect to host "+host)
-
-	err = conn.WriteJSON(struct {
-		Action  string `json:"action"`
-		Channel string `json:"channel"`
-		Topic   string `json:"topic"`
-	}{
-		"sub",
-		CHANNEL,
-		TOPIC,
+	brokerclient.Subscribe("agent", "repo.pushed", func(msg mq.BrokerMessage) {
+		onRepoPushedMessage(msg, registryHost)
 	})
 
-	utils.Check(err, "Error: cannot subscribe to message broker")
+	StartHealthCheck(registryHost)
+}
 
-	for {
-		_, rawData, err := conn.ReadMessage()
-		utils.Check(err, "Received invalid message")
+func onRepoPushedMessage(msg mq.BrokerMessage, registryHost string) {
 
-		var message onMessageStruct
+	log.Println(string(msg.Data))
 
-		err = json.Unmarshal(rawData, &message)
-		utils.Check(err, "Received invalid message")
-
-		utils.Assert(
-			message.Channel == CHANNEL && message.Topic == TOPIC,
-			"unexpected message type, got "+message.Channel+":"+message.Topic,
-		)
-
-		var payload struct {
-			Username string `json:"username"`
-			Repo     string `json:"repo"`
-			CloneURL string `json:"cloneurl"`
-		}
-
-		err = json.Unmarshal(message.Data, &payload)
-		utils.Check(err, "Received invalid payload")
-
-		buildAndDeploy(payload.Username, payload.Repo, payload.CloneURL, registryHost)
-
-		log.Println("Build successful")
+	var message types.MQMessage
+	err := json.Unmarshal(msg.Data, &message)
+	if err != nil {
+		log.Println(err)
+		log.Println("ERROR:agent Invalid MQMessage " + string(msg.Data))
+		return
 	}
+
+	log.Println(message)
+
+	if message.Payload == nil {
+		log.Println("ERROR:agent Invalid Payload in MQMessage")
+		return
+	}
+
+	payload := (*message.Payload)
+
+	username, ok := payload["username"].(string)
+	if !ok {
+		log.Println("ERROR: missing username in MQMessage")
+		return
+	}
+
+	repo, ok := payload["repo"].(string)
+	if !ok {
+		log.Println("ERROR: missing repo in MQMessage")
+		return
+	}
+
+	cloneurl, ok := payload["cloneurl"].(string)
+	if !ok {
+		log.Println("ERROR: missing cloneurl in MQMessage")
+		return
+	}
+
+	buildAndDeploy(username, repo, cloneurl, registryHost)
+}
+
+func buildAndDeploy(username string, repo string, cloneurl string, registryHost string) {
+	imageName := username + "/" + repo
+
+	dir := cloneRepo(cloneurl, imageName)
+	buildImage(dir, imageName)
+	deployImage(imageName, "latest", registryHost, 5000)
 }
 
 func buildImage(absBuildDir string, name string) {
