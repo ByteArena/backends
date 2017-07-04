@@ -3,9 +3,12 @@ package mq
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
+	"sync"
 
 	"github.com/bytearena/bytearena/common/utils"
+	"github.com/cenkalti/backoff"
 	"github.com/gorilla/websocket"
 )
 
@@ -26,6 +29,8 @@ type BrokerMessage struct {
 type Client struct {
 	conn          *websocket.Conn
 	subscriptions *SubscriptionMap
+	mu            sync.Mutex
+	host          string
 }
 
 func NewClient(host string) (*Client, error) {
@@ -39,15 +44,50 @@ func NewClient(host string) (*Client, error) {
 	c := &Client{
 		conn:          conn,
 		subscriptions: NewSubscriptionMap(),
+		host:          host,
 	}
 
 	go c.waitAndListen()
 	return c, nil
 }
 
+func (client *Client) tryReconnect() bool {
+	log.Println("tryReconnect")
+
+	dialer := websocket.DefaultDialer
+	conn, _, err := dialer.Dial("ws://"+client.host, http.Header{})
+	if err != nil {
+		return false
+	}
+
+	client.conn = conn
+
+	return true
+}
+
 func (client *Client) waitAndListen() {
 	for {
 		_, rawData, err := client.conn.ReadMessage()
+
+		if websocket.IsUnexpectedCloseError(err) {
+			log.Println("Unexpected close")
+
+			f := func() error {
+				res := client.tryReconnect()
+
+				if res == true {
+					return nil
+				} else {
+					return errors.New("error")
+				}
+			}
+
+			backoff.Retry(f, backoff.NewExponentialBackOff())
+
+			log.Println("Reconnected")
+			continue
+		}
+
 		utils.Check(err, "Received invalid message")
 
 		var message BrokerMessage

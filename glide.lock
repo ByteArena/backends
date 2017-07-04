@@ -1,8 +1,10 @@
-hash: 8ed33758f0a4f32fbca01af4d6980f198b01be8a21aa0f53e24f3b32c062b6e1
-updated: 2017-07-04T18:54:39.510660668+02:00
+hash: 643255e16aeb035b2ed000d03b5d54a30ad97551a16c5a576b745a87e77626c2
+updated: 2017-07-04T19:43:28.989943233+02:00
 imports:
 - name: github.com/bitly/go-notify
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
+- name: github.com/cenkalti/backoff
+  version: 32cd0c5b3aef12c76ed64aaf678f6c79736be7dc
 - name: github.com/docker/distribution
   version: a25b9ef0c9fe242ac04bb20d3a028442b7d266b6
   subpackages:
