@@ -105,9 +105,16 @@ func (client *Client) waitAndListen() {
 	}
 }
 
+func (client *Client) write(msg brokerAction) error {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+
+	return client.conn.WriteJSON(msg)
+}
+
 /* <mq.MessageBrokerClientInterface> */
 func (client *Client) Subscribe(channel string, topic string, onmessage SubscriptionCallback) error {
-	err := client.conn.WriteJSON(brokerAction{
+	err := client.write(brokerAction{
 		Action:  "sub",
 		Channel: channel,
 		Topic:   topic,
@@ -123,7 +130,7 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 }
 
 func (client *Client) Publish(channel string, topic string, payload interface{}) error {
-	err := client.conn.WriteJSON(brokerAction{
+	err := client.write(brokerAction{
 		Action:  "pub",
 		Channel: channel,
 		Topic:   topic,
