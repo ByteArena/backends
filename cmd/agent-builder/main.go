@@ -48,8 +48,6 @@ func onRepoPushedMessage(msg mq.BrokerMessage, registryHost string) {
 		return
 	}
 
-	log.Println(message)
-
 	if message.Payload == nil {
 		log.Println("ERROR:agent Invalid Payload in MQMessage")
 		return
