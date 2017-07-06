@@ -3,3 +3,4 @@
 data
 .secrets
 !.secrets/.gitkeep
+vendor
