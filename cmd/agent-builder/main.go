@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -80,11 +81,16 @@ func buildAndDeploy(username string, repo string, cloneurl string, registryHost 
 	imageName := username + "/" + repo
 
 	dir := cloneRepo(cloneurl, imageName)
-	buildImage(dir, imageName)
-	deployImage(imageName, "latest", registryHost, 5000)
+	err := buildImage(dir, imageName)
+
+	if err != nil {
+		deployImage(imageName, "latest", registryHost, 5000)
+	} else {
+		log.Println(err.Error())
+	}
 }
 
-func buildImage(absBuildDir string, name string) {
+func buildImage(absBuildDir string, name string) error {
 
 	log.Println(fmt.Sprintf("%sBuilding agent%s", chalk.Blue, chalk.Reset))
 
@@ -99,8 +105,14 @@ func buildImage(absBuildDir string, name string) {
 	cmd.Env = nil
 
 	stdoutStderr, err := cmd.CombinedOutput()
-	utils.Check(err, "Error running command: "+string(stdoutStderr))
+
+	if err != nil {
+		return errors.New("Error running command: " + string(stdoutStderr))
+	}
+
 	log.Println(fmt.Sprintf("%s%s%s", chalk.Blue, stdoutStderr, chalk.Reset))
+
+	return nil
 }
 
 func deployImage(name string, imageVersion string, registryhost string, registryport int) {
