@@ -33,7 +33,7 @@ func main() {
 		onRepoPushedMessage(msg, registryHost)
 	})
 
-	StartHealthCheck(registryHost)
+	StartHealthCheck(brokerclient, registryHost)
 }
 
 func onRepoPushedMessage(msg mq.BrokerMessage, registryHost string) {
