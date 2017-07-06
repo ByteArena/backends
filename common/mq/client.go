@@ -3,7 +3,6 @@ package mq
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"sync"
 
@@ -34,26 +33,21 @@ type Client struct {
 }
 
 func NewClient(host string) (*Client, error) {
-
-	dialer := websocket.DefaultDialer
-	conn, _, err := dialer.Dial("ws://"+host, http.Header{})
-	if err != nil {
-		return nil, errors.New("Error: cannot connect to messagebroker host " + host)
-	}
-
 	c := &Client{
-		conn:          conn,
+		conn:          nil,
 		subscriptions: NewSubscriptionMap(),
 		host:          host,
 	}
 
+	hasConnected := c.connect()
+	utils.Assert(hasConnected, "Error: cannot connect to messagebroker host "+host)
+
 	go c.waitAndListen()
+
 	return c, nil
 }
 
-func (client *Client) tryReconnect() bool {
-	log.Println("tryReconnect")
-
+func (client *Client) connect() bool {
 	dialer := websocket.DefaultDialer
 	conn, _, err := dialer.Dial("ws://"+client.host, http.Header{})
 	if err != nil {
@@ -65,26 +59,31 @@ func (client *Client) tryReconnect() bool {
 	return true
 }
 
+func handleUnexepectedClose(client *Client) {
+	utils.Debug("mq-client", "Unexpected close")
+
+	f := func() error {
+		utils.Debug("mq-client", "Try to reconnect")
+		hasConnected := client.connect()
+
+		if hasConnected == true {
+			utils.Debug("mq-client", "Reconnected")
+			return nil
+		} else {
+			return errors.New("connection failed")
+		}
+	}
+
+	backoff.Retry(f, backoff.NewExponentialBackOff())
+}
+
 func (client *Client) waitAndListen() {
 	for {
 		_, rawData, err := client.conn.ReadMessage()
 
 		if websocket.IsUnexpectedCloseError(err) {
-			log.Println("Unexpected close")
+			handleUnexepectedClose(client)
 
-			f := func() error {
-				res := client.tryReconnect()
-
-				if res == true {
-					return nil
-				} else {
-					return errors.New("error")
-				}
-			}
-
-			backoff.Retry(f, backoff.NewExponentialBackOff())
-
-			log.Println("Reconnected")
 			continue
 		}
 
@@ -105,16 +104,9 @@ func (client *Client) waitAndListen() {
 	}
 }
 
-func (client *Client) write(msg brokerAction) error {
-	client.mu.Lock()
-	defer client.mu.Unlock()
-
-	return client.conn.WriteJSON(msg)
-}
-
 /* <mq.MessageBrokerClientInterface> */
 func (client *Client) Subscribe(channel string, topic string, onmessage SubscriptionCallback) error {
-	err := client.write(brokerAction{
+	err := client.conn.WriteJSON(brokerAction{
 		Action:  "sub",
 		Channel: channel,
 		Topic:   topic,
@@ -130,7 +122,7 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 }
 
 func (client *Client) Publish(channel string, topic string, payload interface{}) error {
-	err := client.write(brokerAction{
+	err := client.conn.WriteJSON(brokerAction{
 		Action:  "pub",
 		Channel: channel,
 		Topic:   topic,
