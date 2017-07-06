@@ -38,9 +38,6 @@ func main() {
 }
 
 func onRepoPushedMessage(msg mq.BrokerMessage, registryHost string) {
-
-	log.Println(string(msg.Data))
-
 	var message types.MQMessage
 	err := json.Unmarshal(msg.Data, &message)
 	if err != nil {
@@ -80,11 +77,19 @@ func onRepoPushedMessage(msg mq.BrokerMessage, registryHost string) {
 func buildAndDeploy(username string, repo string, cloneurl string, registryHost string) {
 	imageName := username + "/" + repo
 
-	dir := cloneRepo(cloneurl, imageName)
-	err := buildImage(dir, imageName)
+	utils.Debug("agent-builder", "build and deploy image: "+imageName)
 
-	if err != nil {
-		deployImage(imageName, "latest", registryHost, 5000)
+	err, dir := cloneRepo(cloneurl, imageName)
+
+	if err == nil {
+		err = buildImage(dir, imageName)
+
+		if err == nil {
+			deployImage(imageName, "latest", registryHost, 5000)
+		} else {
+			log.Println(err.Error())
+		}
+
 	} else {
 		log.Println(err.Error())
 	}
@@ -147,10 +152,10 @@ func deployImage(name string, imageVersion string, registryhost string, registry
 	log.Println(fmt.Sprintf("%s%s%s", chalk.Yellow, stdoutStderr, chalk.Reset))
 }
 
-func cloneRepo(url string, hash string) string {
+func cloneRepo(url string, hash string) (error, string) {
 
 	gitbin, err := exec.LookPath("git")
-	utils.Check(err, "Error: git not found in $PATH !")
+	utils.Check(err, "Error: git not found in $PATH")
 
 	dir := "/tmp/" + hash
 	os.RemoveAll(dir)
@@ -167,13 +172,15 @@ func cloneRepo(url string, hash string) string {
 
 	sshbin, err := exec.LookPath("ssh")
 	if err != nil {
-		log.Fatal("Error: ssh not found in $PATH !")
+		log.Fatal("Error: ssh not found in $PATH")
 	}
 	cmd.Env = []string{fmt.Sprintf("GIT_SSH_COMMAND=\"%s\" -i \"%s\" -o \"StrictHostKeyChecking=no\"", sshbin, privatekey)}
 
 	stdoutStderr, err := cmd.CombinedOutput()
-	utils.Check(err, "Error running command: "+string(stdoutStderr))
-	log.Println(fmt.Sprintf("%s%s%s", chalk.Yellow, stdoutStderr, chalk.Reset))
 
-	return dir
+	if err != nil {
+		return errors.New("Error running command: " + string(stdoutStderr)), ""
+	}
+
+	return nil, dir
 }
