@@ -87,17 +87,16 @@ func buildAndDeploy(username string, repo string, cloneurl string, registryHost 
 		if err == nil {
 			deployImage(imageName, "latest", registryHost, 5000)
 		} else {
-			log.Println(err.Error())
+			utils.Debug("error", err.Error())
 		}
 
 	} else {
-		log.Println(err.Error())
+		utils.Debug("error", err.Error())
 	}
 }
 
 func buildImage(absBuildDir string, name string) error {
-
-	log.Println(fmt.Sprintf("%sBuilding agent%s", chalk.Blue, chalk.Reset))
+	utils.Debug("agent-builder", "Building agent")
 
 	dockerbin, err := exec.LookPath("docker")
 	utils.Check(err, "Error: docker command not found in path")
@@ -121,8 +120,7 @@ func buildImage(absBuildDir string, name string) error {
 }
 
 func deployImage(name string, imageVersion string, registryhost string, registryport int) {
-
-	log.Println(fmt.Sprintf("%sDeploying to docker registry%s", chalk.Yellow, chalk.Reset))
+	utils.Debug("agent-builder", "Deploying to docker registry")
 
 	dockerbin, err := exec.LookPath("docker")
 	utils.Check(err, "Error: docker command not found in path")
@@ -159,7 +157,7 @@ func cloneRepo(url string, hash string) (error, string) {
 
 	dir := "/tmp/" + hash
 	os.RemoveAll(dir)
-	log.Println(fmt.Sprintf("%sCloning %s into %s%s", chalk.Yellow, url, dir, chalk.Reset))
+	utils.Debug("agent-builder", "Cloning "+url+" into "+dir)
 
 	cmd := exec.Command(
 		gitbin,
