@@ -10,6 +10,8 @@ RUN apt-get -y update
 RUN apt-get -y upgrade
 RUN apt-get -y install git openssh-server curl netcat
 
+RUN curl https://glide.sh/get | sh
+
 RUN addgroup --gid 1000 git
 RUN adduser --disabled-password git --uid 1000 --gid 1000
 
@@ -23,23 +25,23 @@ RUN echo "}" >> /etc/dotgit.conf
 
 COPY ./ $APP_HOME
 
+WORKDIR $APP_HOME/bytearena/
+RUN glide install
+
 # Build dotgit-ssh
 WORKDIR $APP_HOME/bytearena/cmd/dotgit-ssh
-RUN go get -v ./...
 RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/dotgit-ssh/dotgit-ssh /usr/bin
 RUN touch /var/log/dotgit-ssh.log && chown git:git /var/log/dotgit-ssh.log
 
 # Build dotgit-keystore
 WORKDIR $APP_HOME/bytearena/cmd/dotgit-keystore
-RUN go get -v ./...
 RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/dotgit-keystore/dotgit-keystore /usr/bin
 RUN touch /var/log/dotgit-keystore.log && chown git:git /var/log/dotgit-keystore.log
 
 # Build dotgit-mq-consumer
 WORKDIR $APP_HOME/bytearena/cmd/dotgit-mq-consumer
-RUN go get -v ./...
 RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/dotgit-mq-consumer/dotgit-mq-consumer /usr/bin
 RUN touch /var/log/dotgit-mq-consumer.log && chown git:git /var/log/dotgit-mq-consumer.log

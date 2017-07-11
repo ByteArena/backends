@@ -12,7 +12,7 @@ $ git clone git@github.com:bytearena/bytearena.git
 
 # install go pkgs
 $ cd "$GOPATH"/src/github.com/bytearena/bytearena
-$ go get ./...
+$ glide install
 
 # install visualization deps
 $ cd "$GOPATH"/src/github.com/bytearena/bytearena/cmd/arena/client
