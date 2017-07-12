@@ -18,7 +18,8 @@ RUN curl https://glide.sh/get | sh
 COPY . $APP_HOME
 
 WORKDIR $APP_HOME
-RUN glide --debug install
+# RUN glide --debug install
+RUN go get ./...
 
 WORKDIR $APP_HOME/cmd/agent-builder
 

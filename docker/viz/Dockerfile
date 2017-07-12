@@ -15,7 +15,8 @@ RUN apt-get install -y nodejs
 RUN curl https://glide.sh/get | sh
 
 WORKDIR $APP_HOME/bytearena/
-RUN glide --debug install
+# RUN glide --debug install
+RUN go get ./...
 
 WORKDIR $APP_HOME/bytearena/cmd/viz-server
 RUN go build
