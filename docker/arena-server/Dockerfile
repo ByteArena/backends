@@ -23,11 +23,10 @@ RUN echo "{ \"insecure-registries\" : [\"$REGISTRY_ADDR\"] }" | sudo tee /etc/do
 COPY ./ $APP_HOME
 
 WORKDIR $APP_HOME
-RUN glide install
+RUN glide --debug install
 
 WORKDIR $APP_HOME/cmd/arena-server
 
-RUN glide install
 RUN go build
 RUN cp -f $APP_HOME/cmd/arena-server/arena-server /usr/bin
 

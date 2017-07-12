@@ -11,7 +11,7 @@ RUN curl https://glide.sh/get | sh
 COPY ./ $APP_HOME
 
 WORKDIR $APP_HOME
-RUN glide install
+RUN glide --debug install
 
 WORKDIR $APP_HOME/cmd/arena-master
 

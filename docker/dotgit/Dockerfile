@@ -26,7 +26,7 @@ RUN echo "}" >> /etc/dotgit.conf
 COPY ./ $APP_HOME
 
 WORKDIR $APP_HOME/bytearena/
-RUN glide install
+RUN glide --debug install
 
 # Build dotgit-ssh
 WORKDIR $APP_HOME/bytearena/cmd/dotgit-ssh
