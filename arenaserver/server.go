@@ -147,7 +147,7 @@ func (s *Server) GetTurn() utils.Tickturn {
 
 func (server *Server) Listen() chan interface{} {
 	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
-	server.commserver = comm.NewCommServer(serveraddress, 1024) // 1024: max size of message in bytes
+	server.commserver = comm.NewCommServer(serveraddress, 8192) // 8192: max size of message in bytes
 	log.Println("Server listening on port " + strconv.Itoa(server.port))
 
 	if server.GetNbExpectedagents() > 0 {

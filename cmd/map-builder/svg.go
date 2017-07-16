@@ -217,11 +217,22 @@ Loop:
 	return nil
 }
 
-func (n *SVGBasicNode) GetParent() SVGNode                    { return n.parent }
-func (n *SVGBasicNode) GetChildren() []SVGNode                { return n.children }
-func (n *SVGBasicNode) AddChild(child SVGNode)                { n.children = append(n.children, child) }
-func (n *SVGBasicNode) GetId() string                         { return n.id }
-func (n *SVGBasicNode) GetFill() string                       { return n.fill }
+func (n *SVGBasicNode) GetParent() SVGNode     { return n.parent }
+func (n *SVGBasicNode) GetChildren() []SVGNode { return n.children }
+func (n *SVGBasicNode) AddChild(child SVGNode) { n.children = append(n.children, child) }
+func (n *SVGBasicNode) GetId() string          { return n.id }
+func (n *SVGBasicNode) GetFill() string {
+	if n.fill != "" {
+		return n.fill
+	}
+
+	if n.parent != nil {
+		return n.parent.GetFill() // inherit fill from parent if not defined on current node
+	}
+
+	return ""
+}
+
 func (n *SVGBasicNode) GetTransform() vector.Matrix2          { return n.transform }
 func (n *SVGBasicNode) SetTransform(transform vector.Matrix2) { n.transform = transform }
 func (n *SVGBasicNode) GetFullTransform() vector.Matrix2 {

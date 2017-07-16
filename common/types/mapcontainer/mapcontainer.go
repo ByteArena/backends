@@ -50,6 +50,13 @@ type MapGround struct {
 	Polygons []MapPolygon `json:"polygons"`
 }
 
+func MakeMapGround(id string, polygons []MapPolygon) MapGround {
+	return MapGround{
+		Id:       id,
+		Polygons: polygons,
+	}
+}
+
 type MapPolygon struct {
 	Points []MapPoint
 }
@@ -88,10 +95,15 @@ type MapStart struct {
         "grounds": [
             {
                 "id": "theground",
-                "polygons": [
+                "outline": [
                     [[0, 0], [0, 100], [100, 100], [100, 0], [0, 0]],
                     [[20, 20], [20, 80], [80, 80], [80, 0], [0, 0]]
-                ]
+				],
+				"mesh": [
+					[[0, 0], [0, 100], [100, 100]],
+					[[0, 0], [0, 100], [100, 100]],
+					[[0, 0], [0, 100], [100, 100]]
+				]
             }
         ],
         "starts": [
