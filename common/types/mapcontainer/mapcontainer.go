@@ -1,7 +1,10 @@
 package mapcontainer
 
-import "encoding/json"
-import "github.com/bytearena/bytearena/common/utils/number"
+import (
+	"encoding/json"
+
+	"github.com/bytearena/bytearena/common/utils/number"
+)
 
 type MapContainer struct {
 	Meta struct {
@@ -30,6 +33,18 @@ func (p *MapPoint) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (a *MapPoint) UnmarshalJSON(b []byte) error {
+	var floats []float64
+	if err := json.Unmarshal(b, &floats); err != nil {
+		return err
+	}
+
+	a.X = floats[0]
+	a.Y = floats[1]
+
+	return nil
+}
+
 type MapGround struct {
 	Id       string       `json:"id"`
 	Polygons []MapPolygon `json:"polygons"`
@@ -41,6 +56,17 @@ type MapPolygon struct {
 
 func (p *MapPolygon) MarshalJSON() ([]byte, error) {
 	return json.Marshal(p.Points)
+}
+
+func (a *MapPolygon) UnmarshalJSON(b []byte) error {
+	var points []MapPoint
+	if err := json.Unmarshal(b, &points); err != nil {
+		return err
+	}
+
+	a.Points = points
+
+	return nil
 }
 
 type MapStart struct {

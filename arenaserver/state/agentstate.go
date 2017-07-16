@@ -50,8 +50,8 @@ type AgentState struct {
 }
 
 func MakeAgentState() AgentState {
-	initialx := 100 + rand.Float64()*800
-	initialy := 100 + rand.Float64()*300
+	initialx := 500 + rand.Float64()*800
+	initialy := 500 + rand.Float64()*300
 
 	r := 6 + rand.Float64()*6.0
 
@@ -70,14 +70,15 @@ func MakeAgentState() AgentState {
 }
 
 func (state AgentState) Update() AgentState {
-	newPosition := state.Position.Add(state.Velocity)
-	x, y := newPosition.Get()
-	if x < 0 || y < 0 || x > 1000 || y > 1000 {
-		// nothing
-	} else {
-		state.Position = state.Position.Add(state.Velocity)
-	}
+	//newPosition := state.Position.Add(state.Velocity)
+	//x, y := newPosition.Get()
+	// if x < 0 || y < 0 || x > 1000 || y > 1000 {
+	// 	// nothing
+	// } else {
+	// 	state.Position = state.Position.Add(state.Velocity)
+	// }
 
+	state.Position = state.Position.Add(state.Velocity)
 	state.Orientation = state.Velocity.Angle()
 	return state
 }

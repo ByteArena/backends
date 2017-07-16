@@ -37,8 +37,9 @@ func main() {
 	//fmt.Println(SVGDebug(svg, 0))
 
 	builtmap := buildMap(svg, *pxperunit)
-	jsonmap, _ := json.MarshalIndent(builtmap, "", "  ")
-	fmt.Println(string(jsonmap))
+	bjsonmap, _ := json.MarshalIndent(builtmap, "", "  ")
+
+	fmt.Println(string(bjsonmap))
 }
 
 func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
