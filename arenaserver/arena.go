@@ -3,14 +3,12 @@ package arenaserver
 import (
 	"log"
 
-	"github.com/bytearena/bytearena/arenaserver/state"
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
-	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
 type ArenaInstance interface {
-	Setup(srv *Server)
+	//Setup(srv *Server)
 	GetId() string
 	GetName() string
 	GetTps() int
@@ -55,11 +53,15 @@ func (a *ArenaInstanceGql) GetContestants() []Contestant {
 	return res
 }
 
-func (a *ArenaInstanceGql) Setup(srv *Server) {
-	for _, obstacle := range a.gqlarenainstance.Arena.Obstacles {
-		srv.SetObstacle(state.MakeObstacle(
-			vector.MakeVector2(obstacle.A.X, obstacle.A.Y),
-			vector.MakeVector2(obstacle.B.X, obstacle.B.Y),
-		))
-	}
+// func (a *ArenaInstanceGql) Setup(srv *Server) {
+// 	for _, obstacle := range a.gqlarenainstance.Arena.Obstacles {
+// 		srv.SetObstacle(state.MakeObstacle(
+// 			vector.MakeVector2(obstacle.A.X, obstacle.A.Y),
+// 			vector.MakeVector2(obstacle.B.X, obstacle.B.Y),
+// 		))
+// 	}
+// }
+
+func (a *ArenaInstanceGql) GetMapContainer() *mapcontainer.MapContainer {
+	return nil // TODO: implement this for graphql !
 }

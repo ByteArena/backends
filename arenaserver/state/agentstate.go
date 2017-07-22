@@ -50,14 +50,17 @@ type AgentState struct {
 }
 
 func MakeAgentState() AgentState {
-	initialx := 500 + rand.Float64()*800
-	initialy := 500 + rand.Float64()*300
+	// initialx := 500 + rand.Float64()*800
+	// initialy := 500 + rand.Float64()*300
+
+	initialx := 500.0
+	initialy := 500.0
 
 	r := 6 + rand.Float64()*6.0
 
 	return AgentState{
-		Position:           vector.MakeVector2(initialx, initialy),
-		Velocity:           vector.MakeVector2(0.00001, 1),
+		Position: vector.MakeVector2(initialx, initialy),
+		//Velocity:           vector.MakeVector2(0.00001, 1),
 		MaxSpeed:           20.0 / 3,
 		MaxSteeringForce:   1.0,
 		MaxAngularVelocity: number.DegreeToRadian(6), // en radians/tick; Pi = 180°

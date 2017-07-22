@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -58,21 +59,19 @@ func Websocket(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Re
 			return nil
 		})
 
+		// Listen to messages incoming from viz; mandatory to notice when websocket is closed client side
 		incomingmsg := make(chan wsincomingmessage)
 		go func(client *websocket.Conn, ch chan wsincomingmessage) {
 			messageType, p, err := client.ReadMessage()
 			ch <- wsincomingmessage{messageType, p, err}
 		}(c, incomingmsg)
 
+		// Listen to viz messages coming from arenaserver
 		vizmsgchan := make(chan interface{})
 		notify.Start("viz:message", vizmsgchan)
 
 		for {
 			select {
-			// case <-incomingmsg:
-			// 	{
-			// 		log.Println(incomingmsg)
-			// 	}
 			case <-clientclosedsocket:
 				{
 					log.Println("<-clientclosedsocket")
@@ -81,7 +80,8 @@ func Websocket(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Re
 			case vizmsg := <-vizmsgchan:
 				{
 					if json, ok := vizmsg.(string); ok {
-						c.WriteMessage(websocket.TextMessage, []byte(json))
+						// TODO: better management of message type encapsulation
+						c.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", json)))
 					}
 				}
 			}

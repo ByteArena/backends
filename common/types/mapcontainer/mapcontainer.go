@@ -46,16 +46,20 @@ func (a *MapPoint) UnmarshalJSON(b []byte) error {
 }
 
 type MapGround struct {
-	Id       string       `json:"id"`
-	Polygons []MapPolygon `json:"polygons"`
+	Id      string       `json:"id"`
+	Outline []MapPolygon `json:"outline"`
+	Mesh    Mesh         `json:"mesh"`
 }
 
 func MakeMapGround(id string, polygons []MapPolygon) MapGround {
 	return MapGround{
-		Id:       id,
-		Polygons: polygons,
+		Id:      id,
+		Outline: polygons,
+		Mesh:    Mesh{},
 	}
 }
+
+type Mesh [][][]float64
 
 type MapPolygon struct {
 	Points []MapPoint

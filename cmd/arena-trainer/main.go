@@ -13,6 +13,7 @@ import (
 	notify "github.com/bitly/go-notify"
 
 	"github.com/bytearena/bytearena/arenaserver"
+	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/arenatrainer"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/protocol"
@@ -64,7 +65,7 @@ func main() {
 	brokerclient, err := arenatrainer.NewMemoryMessageClient()
 	utils.Check(err, "ERROR: Could not connect to messagebroker")
 
-	srv := arenaserver.NewServer(*host, *port, arena)
+	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(), arena)
 
 	for _, contestant := range arena.GetContestants() {
 		var image string
@@ -89,7 +90,7 @@ func main() {
 	go protocol.StreamState(srv, brokerclient)
 
 	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
-		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond)
+		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond) // string because received as string from MQ, and no need to manipulate it on our side
 	})
 
 	go func(arenainstance arenaserver.ArenaInstance) {

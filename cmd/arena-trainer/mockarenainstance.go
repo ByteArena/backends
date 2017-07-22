@@ -9,10 +9,7 @@ import (
 	"strings"
 
 	"github.com/bytearena/bytearena/arenaserver"
-	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
-	"github.com/bytearena/bytearena/common/utils/vector"
-	uuid "github.com/satori/go.uuid"
 )
 
 type MockArenaInstance struct {
@@ -88,36 +85,12 @@ func (ins *MockArenaInstance) GetMapContainer() *mapcontainer.MapContainer {
 	return ins.mapContainer
 }
 
+/*
 func (ins *MockArenaInstance) Setup(srv *arenaserver.Server) {
-	/*
-		srv.SetObstacle(state.Obstacle{
-			Id: uuid.NewV4(),
-			A:  vector.MakeVector2(0, 0),
-			B:  vector.MakeVector2(1000, 0),
-		})
-
-		srv.SetObstacle(state.Obstacle{
-			Id: uuid.NewV4(),
-			A:  vector.MakeVector2(1000, 0),
-			B:  vector.MakeVector2(1000, 1000),
-		})
-
-		srv.SetObstacle(state.Obstacle{
-			Id: uuid.NewV4(),
-			A:  vector.MakeVector2(1000, 1000),
-			B:  vector.MakeVector2(0, 1000),
-		})
-
-		srv.SetObstacle(state.Obstacle{
-			Id: uuid.NewV4(),
-			A:  vector.MakeVector2(0, 1000),
-			B:  vector.MakeVector2(0, 0),
-		})
-	*/
 
 	mapcontainer := ins.GetMapContainer()
 	for _, ground := range mapcontainer.Data.Grounds {
-		for _, polygon := range ground.Polygons {
+		for _, polygon := range ground.Outline {
 			for i := 0; i < len(polygon.Points)-1; i++ {
 				a := polygon.Points[i]
 				b := polygon.Points[i+1]
@@ -130,3 +103,4 @@ func (ins *MockArenaInstance) Setup(srv *arenaserver.Server) {
 		}
 	}
 }
+*/

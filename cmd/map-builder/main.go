@@ -11,6 +11,7 @@ import (
 
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	poly2tri "github.com/netgusto/poly2tri-go"
 )
 
 func main() {
@@ -125,7 +126,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 
 		// Normalize coords for each subpath
 		// Z => expand
-		// TODO: m => M (relative => abs)
+		// m => M (relative => abs)
 
 		for i, subpath := range subpathes {
 			for j, op := range subpath {
@@ -147,7 +148,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 		}
 
 		// Make polygons
-		ground := mapcontainer.MapGround{Id: svgpath.GetId(), Polygons: make([]mapcontainer.MapPolygon, 0)}
+		ground := mapcontainer.MapGround{Id: svgpath.GetId(), Outline: make([]mapcontainer.MapPolygon, 0)}
 		for _, subpath := range subpathes {
 			points := make([]mapcontainer.MapPoint, 0)
 			for _, op := range subpath {
@@ -158,8 +159,47 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 				points = append(points, mapcontainer.MapPoint{x, y})
 			}
 
-			ground.Polygons = append(ground.Polygons, mapcontainer.MapPolygon{Points: points})
+			ground.Outline = append(ground.Outline, mapcontainer.MapPolygon{Points: points})
 		}
+
+		// Make meshes from polygons
+
+		contour := make([]*poly2tri.Point, 0)
+
+		for _, point := range ground.Outline[0].Points[:len(ground.Outline[0].Points)-2] { // avoid last point (repetition of the first point)
+			contour = append(contour, poly2tri.NewPoint(point.X, point.Y))
+		}
+
+		swctx := poly2tri.NewSweepContext(contour, false)
+
+		for _, holePolygon := range ground.Outline[1:] {
+			hole := make([]*poly2tri.Point, 0)
+			for _, point := range holePolygon.Points[:len(holePolygon.Points)-2] { // avoid last point (repetition of the first point)
+				hole = append(hole, poly2tri.NewPoint(point.X, point.Y))
+			}
+
+			swctx.AddHole(hole)
+		}
+
+		swctx.Triangulate()
+		triangles := swctx.GetTriangles()
+		// log.Println(triangles)
+		// panic("toooo")
+
+		// jsonmesh, _ := json.MarshalIndent(triangles, "", "  ")
+		// fmt.Println(string(jsonmesh))
+
+		// fmt.Println("<svg height=\"1000\" width=\"1000\">")
+		// for _, triangle := range triangles {
+		// 	fmt.Print(fmt.Sprintf("	<polygon points=\"%f,%f %f,%f %f,%f\" style=\"fill:lime;stroke:purple;stroke-width:1\" />\n",
+		// 		triangle.Points[0].GetX()*10, triangle.Points[0].GetY()*10,
+		// 		triangle.Points[1].GetX()*10, triangle.Points[1].GetY()*10,
+		// 		triangle.Points[2].GetX()*10, triangle.Points[2].GetY()*10,
+		// 	))
+		// }
+		// fmt.Println("</svg>")
+
+		ground.Mesh = triangles
 
 		grounds = append(grounds, ground)
 	}

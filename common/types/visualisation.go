@@ -13,6 +13,7 @@ type VizMessage struct {
 	DebugIntersects         []vector.Vector2
 	DebugIntersectsRejected []vector.Vector2
 	DebugPoints             []vector.Vector2
+	Meshes                  []VizMeshMessage
 }
 
 type VizAgentMessage struct {
@@ -37,4 +38,7 @@ type VizObstacleMessage struct {
 	Id uuid.UUID
 	A  vector.Vector2
 	B  vector.Vector2
+}
+
+type VizMeshMessage struct {
 }

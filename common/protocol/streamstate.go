@@ -13,7 +13,7 @@ import (
 
 func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface) {
 
-	buk := leakybucket.NewBucket(srv.GetTicksPerSecond(), 10, func(batch leakybucket.Batch, bucket *leakybucket.Bucket) {
+	buk := leakybucket.NewBucket(srv.GetTicksPerSecond(), srv.GetTicksPerSecond(), func(batch leakybucket.Batch, bucket *leakybucket.Bucket) {
 		frames := batch.GetFrames()
 		jsonbatch := make([]json.RawMessage, len(frames))
 		for i, frame := range frames {
@@ -26,9 +26,12 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface) {
 	stateobserver := srv.SubscribeStateObservation()
 	for {
 		select {
-		case state := <-stateobserver:
+		case serverstate := <-stateobserver:
 			{
-				msg := transformServerStateToVizMessage(srv.GetArena().GetId(), state)
+				msg := transformServerStateToVizMessage(
+					srv.GetArena(),
+					serverstate,
+				)
 
 				json, err := json.Marshal(msg)
 				if err != nil {
@@ -43,10 +46,10 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface) {
 
 }
 
-func transformServerStateToVizMessage(arenaid string, state state.ServerState) types.VizMessage {
+func transformServerStateToVizMessage(arenainstance arenaserver.ArenaInstance, state state.ServerState) types.VizMessage {
 
 	msg := types.VizMessage{
-		ArenaId: arenaid,
+		ArenaId: arenainstance.GetId(),
 	}
 
 	state.Projectilesmutex.Lock()
@@ -76,16 +79,6 @@ func transformServerStateToVizMessage(arenaid string, state state.ServerState) t
 		})
 	}
 	state.Agentsmutex.Unlock()
-
-	state.Obstaclesmutex.Lock()
-	for _, obstacle := range state.Obstacles {
-		msg.Obstacles = append(msg.Obstacles, types.VizObstacleMessage{
-			Id: obstacle.Id,
-			A:  obstacle.A,
-			B:  obstacle.B,
-		})
-	}
-	state.Obstaclesmutex.Unlock()
 
 	msg.DebugIntersects = state.DebugIntersects
 	msg.DebugIntersectsRejected = state.DebugIntersectsRejected
