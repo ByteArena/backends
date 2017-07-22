@@ -16,6 +16,7 @@ RUN apt-get -y install docker-ce
 RUN curl https://glide.sh/get | sh
 
 COPY . $APP_HOME
+COPY ./docker/agent-builder/start.sh $APP_HOME
 
 WORKDIR $APP_HOME
 RUN glide --debug install
@@ -23,6 +24,7 @@ RUN glide --debug install
 WORKDIR $APP_HOME/cmd/agent-builder
 
 RUN go build
+RUN cp -f $APP_HOME/cmd/agent-builder/agent-builder /usr/bin
 
 COPY .secrets/git_admin_key /root/git_admin_key_private
 RUN chmod 600 /root/git_admin_key_private
@@ -32,4 +34,4 @@ COPY ./docker/agent-builder/ssh_config /root/.ssh/config
 
 HEALTHCHECK --interval=1s --timeout=1s --retries=3 CMD ["curl", "--fail", "localhost:8099/health"]
 
-CMD ["agent-builder"]
+CMD ["bash", "start.sh"]
