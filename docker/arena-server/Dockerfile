@@ -15,14 +15,19 @@ RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debia
 RUN apt-get -y update
 RUN apt-get -y install docker-ce
 
+RUN curl https://glide.sh/get | sh
+
 RUN mkdir /etc/docker
 RUN echo "{ \"insecure-registries\" : [\"$REGISTRY_ADDR\"] }" | sudo tee /etc/docker/daemon.json
 
 COPY ./ $APP_HOME
 
+WORKDIR $APP_HOME
+# RUN glide --debug install
+RUN go get ./...
+
 WORKDIR $APP_HOME/cmd/arena-server
 
-RUN go get -v ./...
 RUN go build
 RUN cp -f $APP_HOME/cmd/arena-server/arena-server /usr/bin
 

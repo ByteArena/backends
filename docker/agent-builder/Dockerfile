@@ -13,11 +13,16 @@ RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debia
 RUN apt-get -y update
 RUN apt-get -y install docker-ce
 
+RUN curl https://glide.sh/get | sh
+
 COPY . $APP_HOME
+
+WORKDIR $APP_HOME
+# RUN glide --debug install
+RUN go get ./...
 
 WORKDIR $APP_HOME/cmd/agent-builder
 
-RUN go get -v ./...
 RUN go build
 
 COPY .secrets/git_admin_key /root/git_admin_key_private

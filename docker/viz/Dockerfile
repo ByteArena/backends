@@ -12,8 +12,13 @@ COPY ./ $APP_HOME
 RUN curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
 RUN apt-get install -y nodejs
 
+RUN curl https://glide.sh/get | sh
+
+WORKDIR $APP_HOME/bytearena/
+# RUN glide --debug install
+RUN go get ./...
+
 WORKDIR $APP_HOME/bytearena/cmd/viz-server
-RUN go get -v ./...
 RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/viz-server/viz-server /usr/bin
 
