@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # function teardown {
 #     echo teardown
 # }
