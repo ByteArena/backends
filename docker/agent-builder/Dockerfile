@@ -16,7 +16,7 @@ RUN apt-get -y install docker-ce
 RUN curl https://glide.sh/get | sh
 
 COPY . $APP_HOME
-COPY ./docker/agent-builder/start.sh $APP_HOME
+COPY ./docker/agent-builder/start.sh $APP_HOME/cmd/agent-builder
 
 WORKDIR $APP_HOME
 RUN glide --debug install
