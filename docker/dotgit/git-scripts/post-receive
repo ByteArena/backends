@@ -12,6 +12,8 @@ env | grep GIT
 # $GIT_CLONE_URL    : clone url for repo
 # $GIT_OPERATION    : the current git operation (one of "receive-pack", "upload-pack")
 
-curl "http://$MQ_HOST/pub/agent/repo.pushed" \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"$GIT_REPO_OWNER\",\"repo\":\"$GIT_REPO_NAME\",\"cloneurl\":\"$GIT_CLONE_URL\"}"
+/usr/bin/mq-cli \
+    -mqhost="$MQ_HOST" \
+    --publish agent:repo.pushed \
+    --data "{\"username\":\"$GIT_REPO_OWNER\",\"repo\":\"$GIT_REPO_NAME\",\"cloneurl\":\"$GIT_CLONE_URL\"}"
+
