@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/number"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
@@ -49,12 +50,9 @@ type AgentState struct {
 	VisionAngle  float64 // angle of FOV
 }
 
-func MakeAgentState() AgentState {
-	// initialx := 500 + rand.Float64()*800
-	// initialy := 500 + rand.Float64()*300
-
-	initialx := 500.0
-	initialy := 500.0
+func MakeAgentState(start mapcontainer.MapStart) AgentState {
+	initialx := start.Point.X
+	initialy := start.Point.Y
 
 	r := 6 + rand.Float64()*6.0
 
