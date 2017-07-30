@@ -16,8 +16,10 @@ type MapContainer struct {
 		Repository     string `json:"repository"`
 	} `json:"meta"`
 	Data struct {
-		Grounds []MapGround `json:"grounds"`
-		Starts  []MapStart  `json:"starts"`
+		Grounds   []MapGround   `json:"grounds"`
+		Starts    []MapStart    `json:"starts"`
+		Obstacles []MapObstacle `json:"obstacles"`
+		Objects   []MapObject   `json:"objects"`
 	} `json:"data"`
 }
 
@@ -87,6 +89,18 @@ func (a *MapPolygon) UnmarshalJSON(b []byte) error {
 type MapStart struct {
 	Id    string   `json:"id"`
 	Point MapPoint `json:"point"`
+}
+
+type MapObstacle struct {
+	Id    string   `json:"id"`
+	Point MapPoint `json:"point"`
+}
+
+type MapObject struct {
+	Id       string   `json:"id"`
+	Point    MapPoint `json:"point"`
+	Type     string   `json:"type"`
+	Diameter float64  `json:"diameter"`
 }
 
 /*

@@ -346,8 +346,49 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 	}
 
 	/************************************/
-	/* TODO: Processing OBSTACLES */
+	/* Processing OBJECTS */
 	/************************************/
+
+	objects := make([]mapcontainer.MapObject, 0)
+	for _, svgobstacle := range svgobstacles {
+		switch typednode := svgobstacle.(type) {
+		case *SVGCircle:
+			{
+				cx, cy := typednode.GetCenter()
+				cxt, cyt := typednode.
+					GetFullTransform().
+					Mul(worldTransform).
+					Transform(cx, cy)
+
+				objects = append(objects, mapcontainer.MapObject{
+					Id:       "id",
+					Point:    mapcontainer.MapPoint{cxt, cyt},
+					Diameter: typednode.r,
+					Type:     "rocksTallOre",
+				})
+			}
+		case *SVGEllipse:
+			{
+				cx, cy := typednode.GetCenter()
+				cxt, cyt := typednode.
+					GetFullTransform().
+					Mul(worldTransform).
+					Transform(cx, cy)
+
+				objects = append(objects, mapcontainer.MapObject{
+					Id:       "id",
+					Point:    mapcontainer.MapPoint{cxt, cyt},
+					Diameter: typednode.rx,
+					Type:     "rocksTallOre",
+				})
+			}
+		}
+	}
+
+	/************************************/
+	/* Processing OBSTACLES */
+	/************************************/
+	obstacles := make([]mapcontainer.MapObstacle, 0)
 
 	/************************************/
 	/* TODO: Processing CUSTOMOBSTACLES */
@@ -364,6 +405,8 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 
 	builtmap.Data.Grounds = grounds
 	builtmap.Data.Starts = starts
+	builtmap.Data.Objects = objects
+	builtmap.Data.Obstacles = obstacles
 
 	return builtmap
 }

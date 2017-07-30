@@ -4,7 +4,7 @@
     "kind": "deathmatch",
     "theme": "desert",
     "maxcontestants": 2,
-    "date": "2017-07-30T19:16:07+02:00",
+    "date": "2017-07-30T22:29:03+02:00",
     "repository": "https://github.com/bytearena/maps"
   },
   "data": {
@@ -1464,6 +1464,693 @@
           177.97368,
           15.095
         ]
+      }
+    ],
+    "obstacles": [],
+    "objects": [
+      {
+        "id": "id",
+        "point": [
+          292.24261,
+          130.8564
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          297.05223,
+          121.23791
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          301.26065,
+          111.61941
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          283.22458,
+          128.45178
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          297.05223,
+          142.87952
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          301.86185,
+          133.26103
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          306.07027,
+          123.64253
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          288.0342,
+          140.4749
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          289.2366,
+          121.23791
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          291.04021,
+          112.82172
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          285.62939,
+          109.21478
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          292.24261,
+          106.209
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          293.01015,
+          152.1791
+        ],
+        "type": "rocksTallOre",
+        "diameter": 8.79158317
+      },
+      {
+        "id": "id",
+        "point": [
+          299.01015,
+          157.1791
+        ],
+        "type": "rocksTallOre",
+        "diameter": 8.79158317
+      },
+      {
+        "id": "id",
+        "point": [
+          292.24261,
+          98.39397
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          360.77969,
+          139.27259
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          360.77969,
+          146.48646
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          367.99412,
+          144.08184
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          362.5833,
+          132.65987
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          367.39291,
+          136.26681
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          377.01215,
+          128.45178
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          369.79772,
+          124.24368
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          377.61336,
+          121.2379
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          328.91596,
+          157.30727
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          322.90394,
+          176.54426
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          331.32077,
+          171.13386
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          325.30875,
+          184.96045
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          330.11837,
+          178.94889
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          324.10634,
+          166.32461
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          316.89191,
+          157.30727
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          310.87989,
+          176.54426
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          319.29672,
+          171.13386
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          313.2847,
+          184.96045
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          318.09432,
+          178.94889
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          312.08229,
+          166.32461
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          276.55311,
+          172.53179
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          282.56513,
+          175.53757
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          288.57716,
+          172.53179
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          288.57716,
+          178.54335
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          280.16032,
+          187.56069
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          283.16633,
+          181.54913
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          288.57716,
+          184.55491
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          285.57114,
+          190.56647
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          277.15431,
+          181.54913
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          191.18237,
+          51.69942
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          185.17034,
+          48.69364
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          48.09619,
+          88.36994
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          48.09619,
+          79.3526
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          40.88176,
+          85.36416
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          465.93186,
+          263.30636
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          466.53307,
+          256.69364
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          465.33066,
+          250.08093
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          459.91984,
+          257.2948
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          488.17635,
+          302.98266
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          489.37876,
+          289.75723
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          491.18237,
+          296.36994
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          176.79158,
+          97.79091
+        ],
+        "type": "rocksTallOre",
+        "diameter": 8.79158317
+      },
+      {
+        "id": "id",
+        "point": [
+          182.79158,
+          102.79091
+        ],
+        "type": "rocksTallOre",
+        "diameter": 8.79158317
+      },
+      {
+        "id": "id",
+        "point": [
+          176.79158,
+          111.79091
+        ],
+        "type": "rocksTallOre",
+        "diameter": 8.79158317
+      },
+      {
+        "id": "id",
+        "point": [
+          167.79158,
+          126.79091
+        ],
+        "type": "rocksTallOre",
+        "diameter": 8.79158317
+      },
+      {
+        "id": "id",
+        "point": [
+          179.5,
+          140.4995
+        ],
+        "type": "rocksTallOre",
+        "diameter": 6.5
+      },
+      {
+        "id": "id",
+        "point": [
+          186.5,
+          146.4995
+        ],
+        "type": "rocksTallOre",
+        "diameter": 6.5
+      },
+      {
+        "id": "id",
+        "point": [
+          197,
+          126.99846
+        ],
+        "type": "rocksTallOre",
+        "diameter": 20
+      },
+      {
+        "id": "id",
+        "point": [
+          183,
+          126.99877
+        ],
+        "type": "rocksTallOre",
+        "diameter": 16
+      },
+      {
+        "id": "id",
+        "point": [
+          194.79158,
+          106.79091
+        ],
+        "type": "rocksTallOre",
+        "diameter": 8.79158317
+      },
+      {
+        "id": "id",
+        "point": [
+          193,
+          99.58235
+        ],
+        "type": "rocksTallOre",
+        "diameter": 7
+      },
+      {
+        "id": "id",
+        "point": [
+          184.06316,
+          132.9864
+        ],
+        "type": "rocksTallOre",
+        "diameter": 6.0631608
+      },
+      {
+        "id": "id",
+        "point": [
+          188.06316,
+          135.9864
+        ],
+        "type": "rocksTallOre",
+        "diameter": 6.0631608
+      },
+      {
+        "id": "id",
+        "point": [
+          184.06316,
+          141.9864
+        ],
+        "type": "rocksTallOre",
+        "diameter": 6.0631608
+      },
+      {
+        "id": "id",
+        "point": [
+          178.06316,
+          152.9864
+        ],
+        "type": "rocksTallOre",
+        "diameter": 6.0631608
+      },
+      {
+        "id": "id",
+        "point": [
+          186.48276,
+          162.42601
+        ],
+        "type": "rocksTallOre",
+        "diameter": 4.48275862
+      },
+      {
+        "id": "id",
+        "point": [
+          191.48276,
+          166.42601
+        ],
+        "type": "rocksTallOre",
+        "diameter": 4.48275862
+      },
+      {
+        "id": "id",
+        "point": [
+          197.7931,
+          152.61848
+        ],
+        "type": "rocksTallOre",
+        "diameter": 13.7931034
+      },
+      {
+        "id": "id",
+        "point": [
+          189.03448,
+          152.89478
+        ],
+        "type": "rocksTallOre",
+        "diameter": 11.0344828
+      },
+      {
+        "id": "id",
+        "point": [
+          197.06316,
+          138.9864
+        ],
+        "type": "rocksTallOre",
+        "diameter": 6.0631608
+      },
+      {
+        "id": "id",
+        "point": [
+          195.82759,
+          133.76647
+        ],
+        "type": "rocksTallOre",
+        "diameter": 4.82758621
       }
     ]
   }
