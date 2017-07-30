@@ -26,12 +26,11 @@ WORKDIR $APP_HOME
 RUN glide --debug install
 
 # Build mq-cli
-WORKDIR $APP_HOME/bytearena/cmd/mq-cli
+WORKDIR $APP_HOME/cmd/mq-cli
 RUN go build
-RUN cp -f $APP_HOME/bytearena/cmd/mq-cli/mq-cli /usr/bin
+RUN cp -f $APP_HOME/cmd/mq-cli/mq-cli /usr/bin
 
 WORKDIR $APP_HOME/cmd/arena-server
-
 RUN go build
 RUN cp -f $APP_HOME/cmd/arena-server/arena-server /usr/bin
 
