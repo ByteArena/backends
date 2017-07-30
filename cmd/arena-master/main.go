@@ -23,7 +23,7 @@ func main() {
 	server := arenamaster.NewServer(brokerclient)
 
 	if env == "prod" {
-		StartHealthCheck(brokerclient)
+		go StartHealthCheck(brokerclient)
 	}
 
 	// handling signals
