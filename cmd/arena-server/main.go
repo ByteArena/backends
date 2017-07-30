@@ -27,6 +27,7 @@ type messageArenaLaunch struct {
 }
 
 func main() {
+	env := os.Getenv("ENV")
 
 	rand.Seed(time.Now().UnixNano())
 	arenaServerUUID := uuid.NewV4()
@@ -71,7 +72,9 @@ func main() {
 		notify.PostTimeout("arena:launch", payload, time.Millisecond)
 	})
 
-	StartHealthCheck(brokerclient, graphqlclient)
+	if env == "prod" {
+		StartHealthCheck(brokerclient, graphqlclient)
+	}
 
 	go func() {
 		for {
