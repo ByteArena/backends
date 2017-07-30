@@ -55,6 +55,19 @@ func (server *Server) Start() ListeningChanStruct {
 		onArenaHandshake(server.state, message.Payload)
 	})
 
+	server.brokerclient.Subscribe("arena", "stop", func(msg mq.BrokerMessage) {
+
+		var message types.MQMessage
+		err := json.Unmarshal(msg.Data, &message)
+		if err != nil {
+			log.Println(err)
+			log.Println("ERROR:agent Invalid MQMessage " + string(msg.Data))
+			return
+		}
+
+		onArenaStop(server.state, message.Payload)
+	})
+
 	server.listeningChan = make(ListeningChanStruct)
 
 	return server.listeningChan

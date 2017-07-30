@@ -1,9 +1,11 @@
 #!/bin/bash
+ID=$(cat /proc/sys/kernel/random/uuid)
 
-# function teardown {
-#     echo teardown
-# }
+function teardown {
+    /usr/bin/mq-cli -mqhost="${MQHOST}" --publish "arena:stop" --data "{\"id\": \"${ID}\"}"
+    echo teardown
+}
 
-# trap teardown EXIT
+trap teardown EXIT
 
-/usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}"
+/usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}" --id "$ID"
