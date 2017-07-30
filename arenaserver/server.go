@@ -110,9 +110,17 @@ func (server *Server) spawnAgents() {
 }
 
 func (server *Server) RegisterAgent(agentimage string) {
+	arenamap := server.arena.GetMapContainer()
+	agentSpawnPointIndex := len(server.agents)
+
+	if agentSpawnPointIndex >= len(arenamap.Data.Starts) {
+		log.Panicln("Agent cannot spawn, no starting point left")
+	}
+
+	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
 
 	agent := agent.MakeNetAgentImp()
-	agentstate := state.MakeAgentState()
+	agentstate := state.MakeAgentState(agentSpawningPos)
 
 	server.setAgent(agent)
 	server.state.SetAgentState(agent.GetId(), agentstate)
