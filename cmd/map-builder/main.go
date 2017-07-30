@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bytearena/bytearena/common/utils/number"
+
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	poly2tri "github.com/netgusto/poly2tri-go"
@@ -16,7 +18,7 @@ import (
 
 func main() {
 	source := flag.String("in", "", "Input svg file; required")
-	pxperunit := flag.Float64("pxperunit", 10.0, "Number of svg px per map unit; default 10.0")
+	pxperunit := flag.Float64("pxperunit", 1.0, "Number of svg px per map unit; default 1.0 (1u = 1px)")
 	flag.Parse()
 
 	if *source == "" {
@@ -93,6 +95,8 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 			{
 				if node.GetFill() == obstaclecolor {
 					svgcustomobstacles = append(svgcustomobstacles, node)
+				} else if node.GetFill() == groundcolor {
+					svggrounds = append(svggrounds, node)
 				}
 			}
 		}
@@ -105,24 +109,40 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 	grounds := make([]mapcontainer.MapGround, 0)
 
 	for _, svgground := range svggrounds {
-		svgpath := svgground.(*SVGPath)
-		pathtransform := svgpath.GetFullTransform()
-		pathoperations := ParseSVGPath(svgpath.GetPath())
 
-		// Split path into subpathes
-		// Principle: M => new subpath
 		subpathes := make([][]PathOperation, 0)
 		subpath := make([]PathOperation, 0)
-		for i, op := range pathoperations {
-			if op.Operation == "M" && i > 0 {
-				subpathes = append(subpathes, subpath)
-				subpath = make([]PathOperation, 0)
-			}
+		pathtransform := svgground.GetFullTransform()
 
-			subpath = append(subpath, op)
+		switch typedsvgground := svgground.(type) {
+		case *SVGPath:
+			{
+				svgpath := typedsvgground
+				pathoperations := ParseSVGPath(svgpath.GetPath())
+
+				// Split path into subpathes
+				// Principle: M => new subpath
+				for i, op := range pathoperations {
+					if op.Operation == "M" && i > 0 {
+						subpathes = append(subpathes, subpath)
+						subpath = make([]PathOperation, 0)
+					}
+
+					subpath = append(subpath, op)
+				}
+				break
+			}
+		case *SVGPolygon:
+			{
+				svgpolygon := typedsvgground
+				subpath = ParseSVGPolygonPoints(svgpolygon.points)
+				break
+			}
 		}
 
-		subpathes = append(subpathes, subpath)
+		if len(subpath) > 0 {
+			subpathes = append(subpathes, subpath)
+		}
 
 		// Normalize coords for each subpath
 		// Z => expand
@@ -148,7 +168,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 		}
 
 		// Make polygons
-		ground := mapcontainer.MapGround{Id: svgpath.GetId(), Outline: make([]mapcontainer.MapPolygon, 0)}
+		ground := mapcontainer.MapGround{Id: svgground.GetId(), Outline: make([]mapcontainer.MapPolygon, 0)}
 		for _, subpath := range subpathes {
 			points := make([]mapcontainer.MapPoint, 0)
 			for _, op := range subpath {
@@ -163,6 +183,10 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 		}
 
 		// Make meshes from polygons
+
+		if len(ground.Outline) == 0 {
+			continue
+		}
 
 		contour := make([]*poly2tri.Point, 0)
 
@@ -199,7 +223,88 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 		// }
 		// fmt.Println("</svg>")
 
-		ground.Mesh = triangles
+		// Transform triangles to array of floats ([][][]float64 => []float64)
+		positions := make([][][]float64, 0)
+		for _, triangle := range triangles {
+			positions = append(positions, [][]float64{
+				[]float64{triangle[0][0], 0, triangle[0][1]},
+				[]float64{triangle[1][0], 0, triangle[1][1]},
+				[]float64{triangle[2][0], 0, triangle[2][1]},
+			})
+		}
+
+		// connect the triangle dots ... counter clockwise
+		indices := make([]int, 0)
+
+		for i := 0; i < len(positions); i++ {
+			offset := i * 3
+			indices = append(indices, offset+0, offset+1, offset+2)
+		}
+
+		// flatten positions to vertices array [][][]float64 to []float64
+		vertices := make([]float64, 0)
+		for i := 0; i < len(positions); i++ {
+			for j := 0; j < len(positions[i]); j++ {
+				for k := 0; k < len(positions[i][j]); k++ {
+					vertices = append(vertices, positions[i][j][k])
+				}
+			}
+		}
+
+		// on recherche les min et max X, Y des coordonnées du mesh
+
+		type AccType struct {
+			x float64
+			y float64
+		}
+
+		meshminmax := func(op int, acc AccType, value float64, i int) AccType {
+
+			if i == 0 || i%3 == 0 {
+				// x
+				if op < 1 {
+					if value < acc.x {
+						acc.x = value
+					}
+				} else if value > acc.x {
+					acc.x = value
+				}
+			} else if i == 2 || (i-2)%3 == 0 {
+				// y
+				if op < 1 {
+					if value < acc.y {
+						acc.y = value
+					}
+				} else if value > acc.y {
+					acc.y = value
+				}
+			}
+
+			return acc
+		}
+
+		min := AccType{}
+		max := AccType{}
+
+		for i, vertexcoord := range vertices {
+			min = meshminmax(-1, min, vertexcoord, i)
+			max = meshminmax(+1, max, vertexcoord, i)
+		}
+
+		uvs := make([]float64, 0)
+		for i, vertexcoord := range vertices {
+			if i == 0 || i%3 == 0 {
+				// x
+				uvs = append(uvs, number.Map(vertexcoord, min.x, max.x, 0, 1))
+			} else if i == 2 || (i-2)%3 == 0 {
+				// y
+				uvs = append(uvs, number.Map(vertexcoord, min.y, max.y, 0, 1))
+			}
+		}
+
+		ground.Mesh.Vertices = vertices
+		ground.Mesh.Uvs = uvs
+		ground.Mesh.Indices = indices
 
 		grounds = append(grounds, ground)
 	}

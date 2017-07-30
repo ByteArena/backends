@@ -59,7 +59,11 @@ func MakeMapGround(id string, polygons []MapPolygon) MapGround {
 	}
 }
 
-type Mesh [][][]float64
+type Mesh struct {
+	Vertices []float64 `json:"vertices"`
+	Indices  []int     `json:"indices"`
+	Uvs      []float64 `json:"uvs"`
+}
 
 type MapPolygon struct {
 	Points []MapPoint

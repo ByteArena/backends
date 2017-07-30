@@ -372,12 +372,24 @@ func (n *SVGEllipse) GetRadius() (float64, float64) {
 
 type SVGPolygon struct {
 	*SVGBasicNode
+	points string
 }
 
 func NewSVGPolygon(parent SVGNode) *SVGPolygon {
 	return &SVGPolygon{
 		SVGBasicNode: NewSVGBasicNode(parent),
 	}
+}
+
+func (n *SVGPolygon) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
+
+	for _, attr := range start.Attr {
+		if attr.Name.Local == "points" {
+			n.points = attr.Value
+		}
+	}
+
+	return n.SVGBasicNode.UnmarshalXML(decoder, start)
 }
 
 func SVGDebug(node SVGNode, depth int) string {

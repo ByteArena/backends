@@ -76,8 +76,8 @@ func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.
 				a := polygon.Points[i]
 				b := polygon.Points[i+1]
 				obstacles = append(obstacles, state.MakeObstacle(
-					vector.MakeVector2(a.X*50, a.Y*50),
-					vector.MakeVector2(b.X*50, b.Y*50),
+					vector.MakeVector2(a.X, a.Y),
+					vector.MakeVector2(b.X, b.Y),
 				))
 			}
 		}

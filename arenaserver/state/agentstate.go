@@ -2,7 +2,6 @@ package state
 
 import (
 	"math"
-	"math/rand"
 
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/number"
@@ -54,18 +53,18 @@ func MakeAgentState(start mapcontainer.MapStart) AgentState {
 	initialx := start.Point.X
 	initialy := start.Point.Y
 
-	r := 6 + rand.Float64()*6.0
+	r := 0.1
 
 	return AgentState{
 		Position: vector.MakeVector2(initialx, initialy),
 		//Velocity:           vector.MakeVector2(0.00001, 1),
-		MaxSpeed:           20.0 / 3,
+		MaxSpeed:           0.5,
 		MaxSteeringForce:   1.0,
 		MaxAngularVelocity: number.DegreeToRadian(6), // en radians/tick; Pi = 180°
 		Radius:             r,
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
-		VisionRadius:       400,
+		VisionRadius:       40,
 		VisionAngle:        number.DegreeToRadian(180),
 	}
 }

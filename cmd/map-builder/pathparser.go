@@ -28,6 +28,24 @@ func ParseSVGPath(path string) []PathOperation {
 	return ops
 }
 
+func ParseSVGPolygonPoints(points string) []PathOperation {
+
+	ops := make([]PathOperation, 0)
+	parsed := parseNumbers(points)
+	for i := 0; i < len(parsed); i += 2 {
+		ops = append(ops, PathOperation{
+			Operation: "L",
+			Coords:    []float64{parsed[i], parsed[i+1]},
+		})
+	}
+
+	ops = append(ops, PathOperation{
+		Operation: "Z",
+	})
+
+	return ops
+}
+
 func parseNumbers(value string) []float64 {
 	res := make([]float64, 0)
 	reg := regexp.MustCompile(`(?i)-?[0-9]*\.?[0-9]+(?:e[-+]?\d+)?`) // ig
