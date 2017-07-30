@@ -55,7 +55,7 @@ func (server *Server) Start() ListeningChanStruct {
 		onArenaHandshake(server.state, message.Payload)
 	})
 
-	server.brokerclient.Subscribe("arena", "stop", func(msg mq.BrokerMessage) {
+	server.brokerclient.Subscribe("arena", "stoped", func(msg mq.BrokerMessage) {
 
 		var message types.MQMessage
 		err := json.Unmarshal(msg.Data, &message)

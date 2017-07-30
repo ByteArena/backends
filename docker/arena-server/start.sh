@@ -2,7 +2,7 @@
 ID=$(cat /proc/sys/kernel/random/uuid)
 
 function teardown {
-    /usr/bin/mq-cli -mqhost="${MQHOST}" --publish "arena:stop" --data "{\"id\": \"${ID}\"}"
+    /usr/bin/mq-cli -mqhost="${MQHOST}" --publish "arena:stoped" --data "{\"id\": \"${ID}\"}"
     echo teardown
 }
 
