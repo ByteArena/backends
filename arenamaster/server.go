@@ -26,31 +26,33 @@ func NewServer(mq *mq.Client) *Server {
 	}
 }
 
-func (server *Server) onMessage(msg mq.BrokerMessage, cb onLogic) {
-	var message types.MQMessage
-	err := json.Unmarshal(msg.Data, &message)
-	if err != nil {
-		log.Println(err)
-		log.Println("ERROR:agent Invalid MQMessage " + string(msg.Data))
-		return
-	}
-
-	onLogicResponseCallable := cb(server.state, message.Payload)
-
-	if onLogicResponseCallable != nil {
-		onLogicResponseCallable(server.brokerclient)
-	}
-}
-
 func (server *Server) Start() ListeningChanStruct {
 	log.Println("Listening")
 
 	server.brokerclient.Subscribe("arena", "launch", func(msg mq.BrokerMessage) {
-		server.onMessage(msg, onArenaLaunch)
+
+		var message types.MQMessage
+		err := json.Unmarshal(msg.Data, &message)
+		if err != nil {
+			log.Println(err)
+			log.Println("ERROR:agent Invalid MQMessage " + string(msg.Data))
+			return
+		}
+
+		onArenaLaunch(server.state, message.Payload, server.brokerclient)
 	})
 
 	server.brokerclient.Subscribe("arena", "handshake", func(msg mq.BrokerMessage) {
-		server.onMessage(msg, onArenaHandshake)
+
+		var message types.MQMessage
+		err := json.Unmarshal(msg.Data, &message)
+		if err != nil {
+			log.Println(err)
+			log.Println("ERROR:agent Invalid MQMessage " + string(msg.Data))
+			return
+		}
+
+		onArenaHandshake(server.state, message.Payload)
 	})
 
 	server.listeningChan = make(ListeningChanStruct)

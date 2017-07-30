@@ -7,10 +7,7 @@ import (
 	"github.com/bytearena/bytearena/common/types"
 )
 
-type onLogicResponseCallable func(*mq.Client)
-type onLogic func(state *State, payload *types.MQPayload) onLogicResponseCallable
-
-func onArenaHandshake(state *State, payload *types.MQPayload) onLogicResponseCallable {
+func onArenaHandshake(state *State, payload *types.MQPayload) {
 	id, ok := (*payload)["id"].(string)
 
 	if ok {
@@ -20,28 +17,22 @@ func onArenaHandshake(state *State, payload *types.MQPayload) onLogicResponseCal
 
 		log.Println(id + " joined the pool")
 	}
-
-	return nil
 }
 
-func onArenaLaunch(state *State, payload *types.MQPayload) onLogicResponseCallable {
+func onArenaLaunch(state *State, payload *types.MQPayload, client *mq.Client) {
 	log.Println(state.arenas)
+
 	if len(state.arenas) > 0 {
 		arena := state.arenas[0]
-
 		state.arenas = state.arenas[1:]
 
-		return func(client *mq.Client) {
+		if id, ok := (*payload)["id"].(string); ok {
 
-			if id, ok := (*payload)["id"].(string); ok {
-				client.Publish("arena", arena.id+".launch", types.MQPayload{
-					"id": id,
-				})
-			}
+			client.Publish("arena", arena.id+".launch", types.MQPayload{
+				"id": id,
+			})
 		}
 	}
 
 	log.Println("No arena available")
-
-	return nil
 }
