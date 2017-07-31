@@ -18,7 +18,7 @@ RUN apt-get -y install docker-ce
 RUN curl https://glide.sh/get | sh
 
 RUN mkdir /etc/docker
-RUN echo "{ \"storage-driver\": \"overlay\", \"insecure-registries\": [\"$REGISTRY_ADDR\"] }" | sudo tee /etc/docker/daemon.json
+RUN echo "{ \"insecure-registries\": [\"$REGISTRY_ADDR\"] }" | sudo tee /etc/docker/daemon.json
 
 COPY ./ $APP_HOME
 
