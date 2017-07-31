@@ -10,4 +10,6 @@ function teardown {
 
 trap teardown EXIT
 
-/usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}" --id "$ID" --host "${HOST}"
+service docker start
+
+/usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}" --id "$ID"
