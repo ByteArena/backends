@@ -1,4 +1,6 @@
 #!/bin/bash
+set -x
+
 ID=$(cat /proc/sys/kernel/random/uuid)
 
 function teardown {
