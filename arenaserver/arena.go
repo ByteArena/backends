@@ -1,7 +1,10 @@
 package arenaserver
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"log"
+	"os"
 
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
@@ -18,10 +21,28 @@ type ArenaInstance interface {
 
 type ArenaInstanceGql struct {
 	gqlarenainstance graphqltype.ArenaInstanceType
+	mapContainer     *mapcontainer.MapContainer
 }
 
 func NewArenaInstanceGql(arenainstance graphqltype.ArenaInstanceType) *ArenaInstanceGql {
+
+	filepath := "../../maps/trainer-map.json"
+	jsonsource, err := os.Open(filepath)
+	if err != nil {
+		log.Panicln("Error opening file:", err)
+	}
+
+	defer jsonsource.Close()
+
+	bjsonmap, _ := ioutil.ReadAll(jsonsource)
+
+	var mapContainer mapcontainer.MapContainer
+	if err := json.Unmarshal(bjsonmap, &mapContainer); err != nil {
+		log.Panicln("Could not load map JSON")
+	}
+
 	return &ArenaInstanceGql{
+		mapContainer:     &mapContainer,
 		gqlarenainstance: arenainstance,
 	}
 }
@@ -63,5 +84,5 @@ func (a *ArenaInstanceGql) GetContestants() []Contestant {
 // }
 
 func (a *ArenaInstanceGql) GetMapContainer() *mapcontainer.MapContainer {
-	return nil // TODO: implement this for graphql !
+	return a.mapContainer
 }
