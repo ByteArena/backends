@@ -10,7 +10,7 @@ function teardown {
 
 trap teardown EXIT
 
-service docker start
+service docker start && sleep 5
 
 # Make sure docker is running
 docker ps
