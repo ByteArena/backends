@@ -11,23 +11,20 @@ import (
 	"github.com/bytearena/bytearena/arenamaster"
 )
 
-func GetConfig() (mqHost string, err error) {
-	mqHostEnv := os.Getenv("MQ")
-	utils.Assert(mqHostEnv != "", "MQ must be set")
-
-	return mqHostEnv, nil
-}
-
 func main() {
-	mqHost, err := GetConfig()
-	utils.Check(err, "ERROR: could not get config")
+	env := os.Getenv("ENV")
+	mqHost := os.Getenv("MQ")
+
+	utils.Assert(mqHost != "", "MQ must be set")
 
 	brokerclient, err := mq.NewClient(mqHost)
 	utils.Check(err, "ERROR: could not connect to messagebroker at "+string(mqHost))
 
 	server := arenamaster.NewServer(brokerclient)
 
-	StartHealthCheck(brokerclient)
+	if env == "prod" {
+		go StartHealthCheck(brokerclient)
+	}
 
 	// handling signals
 	hassigtermed := make(chan os.Signal, 2)

@@ -18,16 +18,19 @@ RUN apt-get -y install docker-ce
 RUN curl https://glide.sh/get | sh
 
 RUN mkdir /etc/docker
-RUN echo "{ \"insecure-registries\" : [\"$REGISTRY_ADDR\"] }" | sudo tee /etc/docker/daemon.json
+RUN echo "{ \"insecure-registries\": [\"$REGISTRY_ADDR\"] }" | sudo tee /etc/docker/daemon.json
 
 COPY ./ $APP_HOME
 
 WORKDIR $APP_HOME
-# RUN glide --debug install
-RUN go get ./...
+RUN glide --debug install
+
+# Build mq-cli
+WORKDIR $APP_HOME/cmd/mq-cli
+RUN go build
+RUN cp -f $APP_HOME/cmd/mq-cli/mq-cli /usr/bin
 
 WORKDIR $APP_HOME/cmd/arena-server
-
 RUN go build
 RUN cp -f $APP_HOME/cmd/arena-server/arena-server /usr/bin
 

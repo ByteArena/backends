@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/bytearena/bytearena/common/healthcheck"
+	"github.com/bytearena/bytearena/common/mq"
 )
 
 func PingRegistry(host string) (error, bool) {
@@ -16,8 +17,18 @@ func PingRegistry(host string) (error, bool) {
 	return nil, true
 }
 
-func StartHealthCheck(registryHost string) {
+func StartHealthCheck(brokerclient *mq.Client, registryHost string) {
 	healthCheckServer := healthcheck.NewHealthCheckServer()
+
+	healthCheckServer.Register("mq", func() (err error, ok bool) {
+		pingErr := brokerclient.Ping()
+
+		if pingErr != nil {
+			return pingErr, false
+		} else {
+			return nil, true
+		}
+	})
 
 	// FIXME(sven): doesn't work be cause the registryHost passed in the env
 	// is used by the docker client which runs on the host.

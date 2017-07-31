@@ -26,8 +26,12 @@ RUN echo "}" >> /etc/dotgit.conf
 COPY ./ $APP_HOME
 
 WORKDIR $APP_HOME/bytearena/
-# RUN glide --debug install
-RUN go get ./...
+RUN glide --debug install
+
+# Build mq-cli
+WORKDIR $APP_HOME/bytearena/cmd/mq-cli
+RUN go build
+RUN cp -f $APP_HOME/bytearena/cmd/mq-cli/mq-cli /usr/bin
 
 # Build dotgit-ssh
 WORKDIR $APP_HOME/bytearena/cmd/dotgit-ssh

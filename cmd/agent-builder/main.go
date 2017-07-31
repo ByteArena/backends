@@ -2,42 +2,19 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
 
-	"github.com/gorilla/websocket"
 	"github.com/ttacon/chalk"
 
+	"github.com/bytearena/bytearena/common/mq"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 )
-
-var CHANNEL = "agent"
-var TOPIC = "repo.pushed"
-
-type onMessageStruct struct {
-	Timestamp string          `json:"timestamp"`
-	Data      json.RawMessage `json:"data"`
-	Topic     string          `json:"topic"`
-	Channel   string          `json:"channel"`
-}
-
-func throwIfError(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func buildAndDeploy(username string, repo string, cloneurl string, registryHost string) {
-	imageName := username + "/" + repo
-
-	dir := cloneRepo(cloneurl, imageName)
-	buildImage(dir, imageName)
-	deployImage(imageName, "latest", registryHost, 5000)
-}
 
 func main() {
 
@@ -50,62 +27,76 @@ func main() {
 	gitHost := os.Getenv("GIT_HOST")
 	utils.Assert(gitHost != "", "Error: missing GIT_HOST env param")
 
-	StartHealthCheck(registryHost)
+	brokerclient, err := mq.NewClient(mqHost)
+	utils.Check(err, "ERROR: could not connect to messagebroker at "+string(mqHost))
 
-	listen(mqHost, gitHost, registryHost)
-}
-
-func listen(host string, gitHost string, registryHost string) {
-	dialer := websocket.DefaultDialer
-
-	conn, _, err := dialer.Dial("ws://"+host, http.Header{})
-
-	utils.Check(err, "Error: cannot connect to host "+host)
-
-	err = conn.WriteJSON(struct {
-		Action  string `json:"action"`
-		Channel string `json:"channel"`
-		Topic   string `json:"topic"`
-	}{
-		"sub",
-		CHANNEL,
-		TOPIC,
+	brokerclient.Subscribe("agent", "repo.pushed", func(msg mq.BrokerMessage) {
+		onRepoPushedMessage(msg, registryHost)
 	})
 
-	utils.Check(err, "Error: cannot subscribe to message broker")
+	StartHealthCheck(brokerclient, registryHost)
+}
 
-	for {
-		_, rawData, err := conn.ReadMessage()
-		utils.Check(err, "Received invalid message")
+func onRepoPushedMessage(msg mq.BrokerMessage, registryHost string) {
+	var message types.MQMessage
+	err := json.Unmarshal(msg.Data, &message)
+	if err != nil {
+		log.Println(err)
+		log.Println("ERROR:agent Invalid MQMessage " + string(msg.Data))
+		return
+	}
 
-		var message onMessageStruct
+	if message.Payload == nil {
+		log.Println("ERROR:agent Invalid Payload in MQMessage")
+		return
+	}
 
-		err = json.Unmarshal(rawData, &message)
-		utils.Check(err, "Received invalid message")
+	payload := (*message.Payload)
 
-		utils.Assert(
-			message.Channel == CHANNEL && message.Topic == TOPIC,
-			"unexpected message type, got "+message.Channel+":"+message.Topic,
-		)
+	username, ok := payload["username"].(string)
+	if !ok {
+		log.Println("ERROR: missing username in MQMessage")
+		return
+	}
 
-		var payload struct {
-			Username string `json:"username"`
-			Repo     string `json:"repo"`
-			CloneURL string `json:"cloneurl"`
+	repo, ok := payload["repo"].(string)
+	if !ok {
+		log.Println("ERROR: missing repo in MQMessage")
+		return
+	}
+
+	cloneurl, ok := payload["cloneurl"].(string)
+	if !ok {
+		log.Println("ERROR: missing cloneurl in MQMessage")
+		return
+	}
+
+	buildAndDeploy(username, repo, cloneurl, registryHost)
+}
+
+func buildAndDeploy(username string, repo string, cloneurl string, registryHost string) {
+	imageName := username + "/" + repo
+
+	utils.Debug("agent-builder", "build and deploy image: "+imageName)
+
+	err, dir := cloneRepo(cloneurl, imageName)
+
+	if err == nil {
+		err = buildImage(dir, imageName)
+
+		if err == nil {
+			deployImage(imageName, "latest", registryHost, 5000)
+		} else {
+			utils.Debug("error", err.Error())
 		}
 
-		err = json.Unmarshal(message.Data, &payload)
-		utils.Check(err, "Received invalid payload")
-
-		buildAndDeploy(payload.Username, payload.Repo, payload.CloneURL, registryHost)
-
-		log.Println("Build successful")
+	} else {
+		utils.Debug("error", err.Error())
 	}
 }
 
-func buildImage(absBuildDir string, name string) {
-
-	log.Println(fmt.Sprintf("%sBuilding agent%s", chalk.Blue, chalk.Reset))
+func buildImage(absBuildDir string, name string) error {
+	utils.Debug("agent-builder", "Building agent")
 
 	dockerbin, err := exec.LookPath("docker")
 	utils.Check(err, "Error: docker command not found in path")
@@ -118,13 +109,18 @@ func buildImage(absBuildDir string, name string) {
 	cmd.Env = nil
 
 	stdoutStderr, err := cmd.CombinedOutput()
-	utils.Check(err, "Error running command: "+string(stdoutStderr))
+
+	if err != nil {
+		return errors.New("Error running command: " + string(stdoutStderr))
+	}
+
 	log.Println(fmt.Sprintf("%s%s%s", chalk.Blue, stdoutStderr, chalk.Reset))
+
+	return nil
 }
 
 func deployImage(name string, imageVersion string, registryhost string, registryport int) {
-
-	log.Println(fmt.Sprintf("%sDeploying to docker registry%s", chalk.Yellow, chalk.Reset))
+	utils.Debug("agent-builder", "Deploying to docker registry")
 
 	dockerbin, err := exec.LookPath("docker")
 	utils.Check(err, "Error: docker command not found in path")
@@ -154,14 +150,14 @@ func deployImage(name string, imageVersion string, registryhost string, registry
 	log.Println(fmt.Sprintf("%s%s%s", chalk.Yellow, stdoutStderr, chalk.Reset))
 }
 
-func cloneRepo(url string, hash string) string {
+func cloneRepo(url string, hash string) (error, string) {
 
 	gitbin, err := exec.LookPath("git")
-	utils.Check(err, "Error: git not found in $PATH !")
+	utils.Check(err, "Error: git not found in $PATH")
 
 	dir := "/tmp/" + hash
 	os.RemoveAll(dir)
-	log.Println(fmt.Sprintf("%sCloning %s into %s%s", chalk.Yellow, url, dir, chalk.Reset))
+	utils.Debug("agent-builder", "Cloning "+url+" into "+dir)
 
 	cmd := exec.Command(
 		gitbin,
@@ -174,13 +170,15 @@ func cloneRepo(url string, hash string) string {
 
 	sshbin, err := exec.LookPath("ssh")
 	if err != nil {
-		log.Fatal("Error: ssh not found in $PATH !")
+		log.Fatal("Error: ssh not found in $PATH")
 	}
 	cmd.Env = []string{fmt.Sprintf("GIT_SSH_COMMAND=\"%s\" -i \"%s\" -o \"StrictHostKeyChecking=no\"", sshbin, privatekey)}
 
 	stdoutStderr, err := cmd.CombinedOutput()
-	utils.Check(err, "Error running command: "+string(stdoutStderr))
-	log.Println(fmt.Sprintf("%s%s%s", chalk.Yellow, stdoutStderr, chalk.Reset))
 
-	return dir
+	if err != nil {
+		return errors.New("Error running command: " + string(stdoutStderr)), ""
+	}
+
+	return nil, dir
 }
