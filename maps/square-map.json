@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "readme": "Byte Arena Training Map",
+    "kind": "deathmatch",
+    "theme": "desert",
+    "maxcontestants": 2,
+    "date": "2017-07-30T16:23:00+02:00",
+    "repository": "https://github.com/bytearena/maps"
+  },
+  "data": {
+    "grounds": [
+      {
+        "id": "Path-2",
+        "outline": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              100,
+              0
+            ],
+            [
+              100,
+              100
+            ],
+            [
+              0,
+              100
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ],
+        "mesh": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              100,
+              0
+            ],
+            [
+              100,
+              100
+            ]
+          ],
+          [
+            [
+              100,
+              100
+            ],
+            [
+              0,
+              100
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      }
+    ],
+    "starts": [
+      {
+        "id": "id",
+        "point": [
+          49.74713,
+          49.72065
+        ]
+      }
+    ]
+  }
+}

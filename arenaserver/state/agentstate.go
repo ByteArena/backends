@@ -2,8 +2,8 @@ package state
 
 import (
 	"math"
-	"math/rand"
 
+	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/number"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
@@ -49,35 +49,36 @@ type AgentState struct {
 	VisionAngle  float64 // angle of FOV
 }
 
-func MakeAgentState() AgentState {
-	initialx := 100 + rand.Float64()*800
-	initialy := 100 + rand.Float64()*300
+func MakeAgentState(start mapcontainer.MapStart) AgentState {
+	initialx := start.Point.X
+	initialy := start.Point.Y
 
-	r := 6 + rand.Float64()*6.0
+	r := 0.1
 
 	return AgentState{
-		Position:           vector.MakeVector2(initialx, initialy),
-		Velocity:           vector.MakeVector2(0.00001, 1),
-		MaxSpeed:           20.0 / 3,
-		MaxSteeringForce:   1.0,
-		MaxAngularVelocity: number.DegreeToRadian(6), // en radians/tick; Pi = 180°
+		Position: vector.MakeVector2(initialx, initialy),
+		//Velocity:           vector.MakeVector2(0.00001, 1),
+		MaxSpeed:           1.0,
+		MaxSteeringForce:   1.5,
+		MaxAngularVelocity: number.DegreeToRadian(18), // en radians/tick; Pi = 180°
 		Radius:             r,
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
-		VisionRadius:       400,
+		VisionRadius:       40,
 		VisionAngle:        number.DegreeToRadian(180),
 	}
 }
 
 func (state AgentState) Update() AgentState {
-	newPosition := state.Position.Add(state.Velocity)
-	x, y := newPosition.Get()
-	if x < 0 || y < 0 || x > 1000 || y > 1000 {
-		// nothing
-	} else {
-		state.Position = state.Position.Add(state.Velocity)
-	}
+	//newPosition := state.Position.Add(state.Velocity)
+	//x, y := newPosition.Get()
+	// if x < 0 || y < 0 || x > 1000 || y > 1000 {
+	// 	// nothing
+	// } else {
+	// 	state.Position = state.Position.Add(state.Velocity)
+	// }
 
+	state.Position = state.Position.Add(state.Velocity)
 	state.Orientation = state.Velocity.Angle()
 	return state
 }

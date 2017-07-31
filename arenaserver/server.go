@@ -15,8 +15,10 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/comm"
 	"github.com/bytearena/bytearena/arenaserver/container"
+	"github.com/bytearena/bytearena/arenaserver/perception"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
+	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	uuid "github.com/satori/go.uuid"
@@ -47,9 +49,7 @@ type Server struct {
 	arena ArenaInstance
 }
 
-func NewServer(host string, port int, arena ArenaInstance) *Server {
-
-	orch := container.MakeContainerOrchestrator()
+func NewServer(host string, port int, orch container.ContainerOrchestrator, arena ArenaInstance) *Server {
 
 	gamehost := host
 
@@ -79,8 +79,6 @@ func NewServer(host string, port int, arena ArenaInstance) *Server {
 
 		arena: arena,
 	}
-
-	arena.Setup(s)
 
 	return s
 }
@@ -112,9 +110,17 @@ func (server *Server) spawnAgents() {
 }
 
 func (server *Server) RegisterAgent(agentimage string) {
+	arenamap := server.arena.GetMapContainer()
+	agentSpawnPointIndex := len(server.agents)
+
+	if agentSpawnPointIndex >= len(arenamap.Data.Starts) {
+		log.Panicln("Agent cannot spawn, no starting point left")
+	}
+
+	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
 
 	agent := agent.MakeNetAgentImp()
-	agentstate := state.MakeAgentState()
+	agentstate := state.MakeAgentState(agentSpawningPos)
 
 	server.setAgent(agent)
 	server.state.SetAgentState(agent.GetId(), agentstate)
@@ -122,9 +128,9 @@ func (server *Server) RegisterAgent(agentimage string) {
 	server.agentimages[agent.GetId()] = agentimage
 }
 
-func (server *Server) SetObstacle(obstacle state.Obstacle) {
-	server.state.SetObstacle(obstacle)
-}
+// func (server *Server) SetObstacle(obstacle state.Obstacle) {
+// 	server.state.SetObstacle(obstacle)
+// }
 
 func (server *Server) setAgent(agent agent.Agent) {
 	server.agentsmutex.Lock()
@@ -147,7 +153,7 @@ func (s *Server) GetTurn() utils.Tickturn {
 
 func (server *Server) Listen() chan interface{} {
 	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
-	server.commserver = comm.NewCommServer(serveraddress, 1024) // 1024: max size of message in bytes
+	server.commserver = comm.NewCommServer(serveraddress, 8192) // 8192: max size of message in bytes
 	log.Println("Server listening on port " + strconv.Itoa(server.port))
 
 	if server.GetNbExpectedagents() > 0 {
@@ -223,19 +229,21 @@ func (server *Server) DoTick() {
 	server.GetState().DebugIntersectsRejected = make([]vector.Vector2, 0)
 	server.GetState().DebugPoints = make([]vector.Vector2, 0)
 
+	arenamap := server.arena.GetMapContainer()
+
 	for _, ag := range server.agents {
-		go func(server *Server, ag agent.Agent, serverstate *state.ServerState) {
+		go func(server *Server, ag agent.Agent, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
 
 			if debug {
 				fmt.Print(chalk.Cyan)
 				log.Println("REFRESHING perception for " + ag.String())
 			}
 
-			agentstate := serverstate.GetAgentState(ag.GetId()) // TODO: retirer ceci; utile uniquement pour le prototypage de l'attracteur agent
+			p := perception.ComputeAgentPerception(arenamap, serverstate, ag)
 
-			ag.SetPerception(ag.GetPerception(serverstate), server, agentstate)
+			ag.SetPerception(p, server)
 
-		}(server, ag, server.GetState())
+		}(server, ag, server.GetState(), arenamap)
 	}
 
 	if dolog {
@@ -289,6 +297,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 		}
 	case "Mutation":
 		{
+			//break
 			var mutations protocol.MessageMutationsImp
 			err = json.Unmarshal(msg.GetPayload(), &mutations)
 			utils.Check(err, "Failed to unmarshal JSON agent mutation payload for agent "+ag.String()+"; "+string(msg.GetPayload()))

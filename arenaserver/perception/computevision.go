@@ -1,15 +1,19 @@
-package agent
+package perception
 
 import (
 	"log"
 	"math"
 
+	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/state"
+	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
-func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentstate state.AgentState) []state.PerceptionVisionItem {
+func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.Agent) []state.PerceptionVisionItem {
+
+	agentstate := serverstate.GetAgentState(agent.GetId())
 
 	vision := make([]state.PerceptionVisionItem, 0)
 
@@ -63,8 +67,23 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 	// Vision: les obstacles
 	///////////////////////////////////////////////////////////////////////////
 
-	serverstate.Obstaclesmutex.Lock()
-	for _, obstacle := range serverstate.Obstacles {
+	// TODO: keep this obstacle collection in cache between runs !
+	obstacles := make([]state.Obstacle, 0)
+
+	for _, ground := range arenaMap.Data.Grounds {
+		for _, polygon := range ground.Outline {
+			for i := 0; i < len(polygon.Points)-1; i++ {
+				a := polygon.Points[i]
+				b := polygon.Points[i+1]
+				obstacles = append(obstacles, state.MakeObstacle(
+					vector.MakeVector2(a.X, a.Y),
+					vector.MakeVector2(b.X, b.Y),
+				))
+			}
+		}
+	}
+
+	for _, obstacle := range obstacles /*serverstate.Obstacles*/ {
 
 		edges := make([]vector.Vector2, 0)
 		rejectededges := make([]vector.Vector2, 0)
@@ -200,7 +219,6 @@ func (agent AgentImp) computeAgentVision(serverstate *state.ServerState, agentst
 			serverstate.DebugIntersectsRejected = append(serverstate.DebugIntersectsRejected, edge)
 		}
 	}
-	serverstate.Obstaclesmutex.Unlock()
 
 	return vision
 }

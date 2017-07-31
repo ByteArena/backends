@@ -15,6 +15,7 @@ import (
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
 
+	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/types"
@@ -90,7 +91,7 @@ func main() {
 						arena, err := apiqueries.FetchArenaInstanceById(graphqlclient, arenaSubmitted.Id)
 						utils.Check(err, "Could not fetch arenainstance "+arenaSubmitted.Id)
 
-						srv := arenaserver.NewServer(*host, *port, arena)
+						srv := arenaserver.NewServer(*host, *port, container.MakeRemoteContainerOrchestrator(), arena)
 
 						for _, contestant := range arena.GetContestants() {
 							srv.RegisterAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)

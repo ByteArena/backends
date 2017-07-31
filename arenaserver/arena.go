@@ -1,29 +1,48 @@
 package arenaserver
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"log"
+	"os"
 
-	"github.com/bytearena/bytearena/arenaserver/state"
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/bytearena/common/types/mapcontainer"
 )
 
 type ArenaInstance interface {
-	Setup(srv *Server)
+	//Setup(srv *Server)
 	GetId() string
 	GetName() string
 	GetTps() int
-	GetSurface() types.PixelSurface
 	GetContestants() []Contestant
+	GetMapContainer() *mapcontainer.MapContainer
 }
 
 type ArenaInstanceGql struct {
 	gqlarenainstance graphqltype.ArenaInstanceType
+	mapContainer     *mapcontainer.MapContainer
 }
 
 func NewArenaInstanceGql(arenainstance graphqltype.ArenaInstanceType) *ArenaInstanceGql {
+
+	filepath := "../../maps/trainer-map.json"
+	jsonsource, err := os.Open(filepath)
+	if err != nil {
+		log.Panicln("Error opening file:", err)
+	}
+
+	defer jsonsource.Close()
+
+	bjsonmap, _ := ioutil.ReadAll(jsonsource)
+
+	var mapContainer mapcontainer.MapContainer
+	if err := json.Unmarshal(bjsonmap, &mapContainer); err != nil {
+		log.Panicln("Could not load map JSON")
+	}
+
 	return &ArenaInstanceGql{
+		mapContainer:     &mapContainer,
 		gqlarenainstance: arenainstance,
 	}
 }
@@ -38,12 +57,6 @@ func (a *ArenaInstanceGql) GetName() string {
 
 func (a *ArenaInstanceGql) GetTps() int {
 	return a.gqlarenainstance.Tps
-}
-func (a *ArenaInstanceGql) GetSurface() types.PixelSurface {
-	return types.PixelSurface{
-		Width:  types.PixelUnit(a.gqlarenainstance.Arena.Surface.Width),
-		Height: types.PixelUnit(a.gqlarenainstance.Arena.Surface.Height),
-	}
 }
 
 func (a *ArenaInstanceGql) GetContestants() []Contestant {
@@ -61,11 +74,15 @@ func (a *ArenaInstanceGql) GetContestants() []Contestant {
 	return res
 }
 
-func (a *ArenaInstanceGql) Setup(srv *Server) {
-	for _, obstacle := range a.gqlarenainstance.Arena.Obstacles {
-		srv.SetObstacle(state.MakeObstacle(
-			vector.MakeVector2(obstacle.A.X, obstacle.A.Y),
-			vector.MakeVector2(obstacle.B.X, obstacle.B.Y),
-		))
-	}
+// func (a *ArenaInstanceGql) Setup(srv *Server) {
+// 	for _, obstacle := range a.gqlarenainstance.Arena.Obstacles {
+// 		srv.SetObstacle(state.MakeObstacle(
+// 			vector.MakeVector2(obstacle.A.X, obstacle.A.Y),
+// 			vector.MakeVector2(obstacle.B.X, obstacle.B.Y),
+// 		))
+// 	}
+// }
+
+func (a *ArenaInstanceGql) GetMapContainer() *mapcontainer.MapContainer {
+	return a.mapContainer
 }

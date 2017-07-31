@@ -7,21 +7,17 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
 	notify "github.com/bitly/go-notify"
-	uuid "github.com/satori/go.uuid"
 
 	"github.com/bytearena/bytearena/arenaserver"
-	"github.com/bytearena/bytearena/arenaserver/state"
+	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/arenatrainer"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/protocol"
-	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/bytearena/vizserver"
 )
 
@@ -69,7 +65,7 @@ func main() {
 	brokerclient, err := arenatrainer.NewMemoryMessageClient()
 	utils.Check(err, "ERROR: Could not connect to messagebroker")
 
-	srv := arenaserver.NewServer(*host, *port, arena)
+	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(), arena)
 
 	for _, contestant := range arena.GetContestants() {
 		var image string
@@ -94,7 +90,7 @@ func main() {
 	go protocol.StreamState(srv, brokerclient)
 
 	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
-		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond)
+		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond) // string because received as string from MQ, and no need to manipulate it on our side
 	})
 
 	go func(arenainstance arenaserver.ArenaInstance) {
@@ -113,88 +109,4 @@ func main() {
 
 	<-srv.Start()
 	srv.TearDown()
-}
-
-type MockArenaInstance struct {
-	tps         int
-	contestants []arenaserver.Contestant
-}
-
-func NewMockArenaInstance(tps int) *MockArenaInstance {
-	return &MockArenaInstance{
-		tps:         tps,
-		contestants: make([]arenaserver.Contestant, 0),
-	}
-}
-
-func (ins *MockArenaInstance) Setup(srv *arenaserver.Server) {
-	srv.SetObstacle(state.Obstacle{
-		Id: uuid.NewV4(),
-		A:  vector.MakeVector2(0, 0),
-		B:  vector.MakeVector2(1000, 0),
-	})
-
-	srv.SetObstacle(state.Obstacle{
-		Id: uuid.NewV4(),
-		A:  vector.MakeVector2(1000, 0),
-		B:  vector.MakeVector2(1000, 1000),
-	})
-
-	srv.SetObstacle(state.Obstacle{
-		Id: uuid.NewV4(),
-		A:  vector.MakeVector2(1000, 1000),
-		B:  vector.MakeVector2(0, 1000),
-	})
-
-	srv.SetObstacle(state.Obstacle{
-		Id: uuid.NewV4(),
-		A:  vector.MakeVector2(0, 1000),
-		B:  vector.MakeVector2(0, 0),
-	})
-}
-
-func (ins *MockArenaInstance) GetId() string {
-	return "1"
-}
-
-func (ins *MockArenaInstance) GetName() string {
-	return "Trainer instance"
-}
-
-func (ins *MockArenaInstance) GetTps() int {
-	return ins.tps
-}
-
-func (ins *MockArenaInstance) GetSurface() types.PixelSurface {
-	return types.PixelSurface{
-		Width:  1000,
-		Height: 1000,
-	}
-}
-
-func (ins *MockArenaInstance) AddContestant(agentimage string) {
-
-	parts := strings.Split(agentimage, "/")
-	var registry string
-	var imagename string
-
-	if len(parts) == 3 {
-		registry = parts[0]
-		imagename = strings.Join(parts[1:], "/")
-	} else {
-		registry = ""
-		imagename = agentimage
-	}
-
-	ins.contestants = append(ins.contestants, arenaserver.Contestant{
-		Id:            strconv.Itoa(len(ins.contestants) + 1),
-		Username:      "trainer-user",
-		AgentName:     "Trainee " + agentimage,
-		AgentRegistry: registry,
-		AgentImage:    imagename,
-	})
-}
-
-func (ins *MockArenaInstance) GetContestants() []arenaserver.Contestant {
-	return ins.contestants
 }

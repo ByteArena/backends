@@ -1,5 +1,5 @@
-hash: 6e3990911bd4873b943a5c99a8f97e0f5026864a33da3669ebd5c9abeb4c339e
-updated: 2017-07-05T00:05:42.385599513+02:00
+hash: 9608144f5c5f5403aff086fa330530e313fba9e1447e9323c7f24d004e1b2ef2
+updated: 2017-07-16T18:40:00.804945582+02:00
 imports:
 - name: github.com/bitly/go-notify
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
@@ -56,6 +56,8 @@ imports:
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/Microsoft/go-winio
   version: f533f7a102197536779ea3a8cb881d639e21ec5a
+- name: github.com/netgusto/poly2tri-go
+  version: d102ad91854fea433a859be7b7de879439911aeb
 - name: github.com/opencontainers/go-digest
   version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
 - name: github.com/opencontainers/image-spec

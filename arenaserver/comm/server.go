@@ -53,7 +53,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 		// Unmarshal message (unwrapping in an AgentMessage structure)
 		var msg protocol.MessageWrapperImp
 		err = json.Unmarshal(buf[0:n], &msg)
-		utils.Check(err, "Failed to unmarshal incoming JSON in CommServer::Listen()")
+		utils.Check(err, "Failed to unmarshal incoming JSON in CommServer::Listen();"+string(buf[0:n]))
 
 		msg.EmitterAddr = addr
 

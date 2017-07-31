@@ -24,12 +24,26 @@ type ContainerOrchestrator struct {
 	containers   []AgentContainer
 }
 
-func MakeContainerOrchestrator() ContainerOrchestrator {
+func MakeRemoteContainerOrchestrator() ContainerOrchestrator {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
 	utils.Check(err, "Failed to initialize docker client environment")
 
 	registryAuth := registryLogin(ctx, cli)
+
+	return ContainerOrchestrator{
+		ctx:          ctx,
+		cli:          cli,
+		registryAuth: registryAuth,
+	}
+}
+
+func MakeLocalContainerOrchestrator() ContainerOrchestrator {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+	utils.Check(err, "Failed to initialize docker client environment")
+
+	registryAuth := ""
 
 	return ContainerOrchestrator{
 		ctx:          ctx,
