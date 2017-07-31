@@ -12,4 +12,7 @@ trap teardown EXIT
 
 service docker start
 
+# Make sure docker is running
+docker ps
+
 /usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}" --id "$ID"
