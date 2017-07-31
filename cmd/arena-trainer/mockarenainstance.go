@@ -20,7 +20,7 @@ type MockArenaInstance struct {
 
 func NewMockArenaInstance(tps int) *MockArenaInstance {
 
-	filepath := "./trainer-map.json"
+	filepath := "../../maps/trainer-map.json"
 	jsonsource, err := os.Open(filepath)
 	if err != nil {
 		log.Panicln("Error opening file:", err)
