@@ -2,7 +2,6 @@ package comm
 
 import (
 	"encoding/json"
-	"log"
 	"net"
 
 	"github.com/bytearena/bytearena/arenaserver/protocol"
@@ -57,8 +56,6 @@ func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 		utils.Check(err, "Failed to unmarshal incoming JSON in CommServer::Listen()")
 
 		msg.EmitterAddr = addr
-
-		log.Println("go msg", msg)
 
 		go dispatcher.DispatchAgentMessage(msg)
 	}
