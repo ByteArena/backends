@@ -15,6 +15,7 @@ import (
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
 
+	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/types"
