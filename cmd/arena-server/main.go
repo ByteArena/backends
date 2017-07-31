@@ -76,7 +76,7 @@ func main() {
 	})
 
 	if env == "prod" {
-		StartHealthCheck(brokerclient, graphqlclient)
+		go StartHealthCheck(brokerclient, graphqlclient)
 	}
 
 	go func() {
