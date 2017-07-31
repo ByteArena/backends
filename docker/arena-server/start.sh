@@ -1,9 +1,18 @@
 #!/bin/bash
+set -x
 
-# function teardown {
-#     echo teardown
-# }
+ID=$(cat /proc/sys/kernel/random/uuid)
 
-# trap teardown EXIT
+function teardown {
+    /usr/bin/mq-cli -mqhost="${MQHOST}" --publish "arena:stoped" --data "{\"id\": \"${ID}\"}"
+    echo teardown
+}
 
-/usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}"
+trap teardown EXIT
+
+service docker start && sleep 5
+
+# Make sure docker is running
+docker ps
+
+/usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}" --id "$ID"

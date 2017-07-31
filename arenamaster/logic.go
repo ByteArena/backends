@@ -1,47 +1,67 @@
 package arenamaster
 
 import (
-	"log"
+	"strconv"
 
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/common/utils"
 )
 
-type onLogicResponseCallable func(*mq.Client)
-type onLogic func(state *State, payload *types.MQPayload) onLogicResponseCallable
+func getMasterStatus(state *State) string {
+	return "(" + strconv.Itoa(len(state.idleArenas)) + " arena(s) idle, " + strconv.Itoa(len(state.runningArenas)) + " arena(s) running)"
+}
 
-func onArenaHandshake(state *State, payload *types.MQPayload) onLogicResponseCallable {
+func onArenaHandshake(state *State, payload *types.MQPayload) {
 	id, ok := (*payload)["id"].(string)
 
 	if ok {
-		state.arenas = append(state.arenas, ArenaState{
+		state.idleArenas[id] = ArenaState{
 			id: id,
-		})
+		}
 
-		log.Println(id + " joined the pool")
+		utils.Debug("master", id+" joined "+getMasterStatus(state))
 	}
-
-	return nil
 }
 
-func onArenaLaunch(state *State, payload *types.MQPayload) onLogicResponseCallable {
-	log.Println(state.arenas)
-	if len(state.arenas) > 0 {
-		arena := state.arenas[0]
+func onArenaLaunch(state *State, payload *types.MQPayload, client *mq.Client) {
 
-		state.arenas = state.arenas[1:]
+	if len(state.idleArenas) > 0 {
 
-		return func(client *mq.Client) {
+		var arena ArenaState
 
-			if id, ok := (*payload)["id"].(string); ok {
-				client.Publish("arena", arena.id+".launch", types.MQPayload{
-					"id": id,
-				})
-			}
+		for _, value := range state.idleArenas {
+			arena = value
+			break
+		}
+
+		delete(state.idleArenas, arena.id)
+		state.runningArenas[arena.id] = arena
+
+		if id, ok := (*payload)["id"].(string); ok {
+
+			client.Publish("arena", arena.id+".launch", types.MQPayload{
+				"id": id,
+			})
+
+			utils.Debug("master", "Launched arena "+arena.id+" "+getMasterStatus(state))
+		}
+	} else {
+		utils.Debug("master", "No arena available")
+	}
+}
+
+func onArenaStop(state *State, payload *types.MQPayload) {
+
+	if id, ok := (*payload)["id"].(string); ok {
+		arena, ok := state.runningArenas[id]
+
+		if ok {
+			delete(state.runningArenas, arena.id)
+
+			utils.Debug("master", "Arena "+id+" stoped "+getMasterStatus(state))
+		} else {
+			utils.Debug("master", "Arena "+id+" is not running")
 		}
 	}
-
-	log.Println("No arena available")
-
-	return nil
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
-	uuid "github.com/satori/go.uuid"
 )
 
 type messageArenaLaunch struct {
@@ -30,15 +29,17 @@ func main() {
 	env := os.Getenv("ENV")
 
 	rand.Seed(time.Now().UnixNano())
-	arenaServerUUID := uuid.NewV4()
-	log.Println("Byte Arena Server v0.1 ID#" + arenaServerUUID.String())
 
 	host := flag.String("host", "", "IP serving the arena; required")
+	arenaServerUUID := flag.String("id", "", "ID of the arena; required")
 	port := flag.Int("port", 8080, "Port serving the arena")
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
 	apiurl := flag.String("apiurl", "http://bytearena.com/privateapi/graphql", "GQL API URL")
 
 	flag.Parse()
+
+	utils.Assert((*arenaServerUUID) != "", "id must be set")
+	log.Println("Byte Arena Server v0.1 ID#" + (*arenaServerUUID))
 
 	// Make GraphQL client
 	graphqlclient := graphql.MakeClient(*apiurl)
@@ -49,15 +50,17 @@ func main() {
 
 	brokerclient.Publish("arena", "handshake", types.NewMQMessage(
 		"arena-server",
-		"Arena Server "+arenaServerUUID.String()+" reporting for duty.",
+		"Arena Server "+(*arenaServerUUID)+" reporting for duty.",
 	).SetPayload(types.MQPayload{
-		"id": arenaServerUUID.String(),
+		"id": (*arenaServerUUID),
 	}))
 
 	streamArenaLaunched := make(chan interface{})
 	notify.Start("arena:launch", streamArenaLaunched)
 
-	brokerclient.Subscribe("arena", arenaServerUUID.String()+".launch", func(msg mq.BrokerMessage) {
+	brokerclient.Subscribe("arena", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
+
+		log.Println(string(msg.Data))
 
 		var payload messageArenaLaunch
 		err := json.Unmarshal(msg.Data, &payload)
@@ -73,7 +76,7 @@ func main() {
 	})
 
 	if env == "prod" {
-		StartHealthCheck(brokerclient, graphqlclient)
+		go StartHealthCheck(brokerclient, graphqlclient)
 	}
 
 	go func() {

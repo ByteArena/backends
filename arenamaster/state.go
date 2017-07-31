@@ -5,11 +5,13 @@ type ArenaState struct {
 }
 
 type State struct {
-	arenas []ArenaState
+	idleArenas    map[string]ArenaState
+	runningArenas map[string]ArenaState
 }
 
 func NewState() *State {
 	return &State{
-		arenas: make([]ArenaState, 0),
+		idleArenas:    make(map[string]ArenaState),
+		runningArenas: make(map[string]ArenaState),
 	}
 }
