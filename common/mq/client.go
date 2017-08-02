@@ -68,10 +68,11 @@ func handleUnexepectedClose(client *Client) {
 		hasConnected := client.connect()
 
 		if hasConnected {
-			utils.Debug("mq-client", "Reconnected; resubscribing to MQ events")
+			utils.Debug("mq-client", "Reconnected")
 			for _, subscriptionLane := range client.subscriptions.GetKeys() {
 				subscriptionCbk := client.subscriptions.Get(subscriptionLane)
 				parts := strings.Split(subscriptionLane, ":")
+				utils.Debug("mq-client", "Re-subscribing to "+subscriptionLane)
 				client.Subscribe(parts[0], parts[1], subscriptionCbk)
 			}
 			return nil
