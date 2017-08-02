@@ -15,7 +15,7 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface) {
 
 	buk := leakybucket.NewBucket(
 		srv.GetTicksPerSecond(),
-		srv.GetTicksPerSecond()*5, // keep 5 seconds of stream in buffer
+		5, // keep 5 seconds of stream in buffer
 		func(batch leakybucket.Batch, bucket *leakybucket.Bucket) {
 			frames := batch.GetFrames()
 			jsonbatch := make([]json.RawMessage, len(frames))
