@@ -36,6 +36,7 @@ func main() {
 	port := flag.Int("port", 8080, "Port serving the arena")
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
 	apiurl := flag.String("apiurl", "http://bytearena.com/privateapi/graphql", "GQL API URL")
+	timeout := flag.Int("timeout", 60, "Limit the time of the game")
 
 	flag.Parse()
 
@@ -106,6 +107,15 @@ func main() {
 						}()
 
 						go protocol.StreamState(srv, brokerclient)
+
+						// Limit the game in time
+						timeoutTimer := time.NewTimer(time.Duration(*timeout) * time.Minute)
+						go func() {
+							<-timeoutTimer.C
+
+							srv.Stop()
+							utils.Debug("timer", "Timeout, stop the arena")
+						}()
 
 						<-srv.Start()
 						srv.TearDown()
