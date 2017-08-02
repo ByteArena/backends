@@ -104,6 +104,7 @@ func main() {
 						go func() {
 							<-hassigtermed
 							srv.Stop()
+							notify.PostTimeout("arena:stopped", nil, time.Millisecond)
 						}()
 
 						go protocol.StreamState(srv, brokerclient)
@@ -114,6 +115,8 @@ func main() {
 							<-timeoutTimer.C
 
 							srv.Stop()
+							notify.PostTimeout("arena:stopped", nil, time.Millisecond)
+
 							utils.Debug("timer", "Timeout, stop the arena")
 						}()
 
