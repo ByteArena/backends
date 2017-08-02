@@ -247,6 +247,22 @@ func (n *SVGBasicNode) GetFullTransform() vector.Matrix2 {
 	return t
 }
 
+func GetSVGIDs(n SVGNode) SVGIDCollection {
+
+	var node SVGNode = n
+
+	res := make(SVGIDCollection, 0)
+	for node != nil {
+		if node.GetId() != "" {
+			res = append(res, node.GetId())
+		}
+
+		node = node.GetParent()
+	}
+
+	return res
+}
+
 type SVGRoot struct {
 	*SVGBasicNode
 }
@@ -259,6 +275,18 @@ func NewSVGRoot() *SVGRoot {
 
 type SVGGroup struct {
 	*SVGBasicNode
+}
+
+type SVGIDCollection []string
+
+func (c SVGIDCollection) Contains(search string) int {
+	for i, group := range c {
+		if strings.Contains(group, search) {
+			return i
+		}
+	}
+
+	return -1
 }
 
 func NewSVGGroup(parent SVGNode) *SVGGroup {

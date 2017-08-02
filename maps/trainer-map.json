@@ -4,7 +4,7 @@
     "kind": "deathmatch",
     "theme": "desert",
     "maxcontestants": 2,
-    "date": "2017-07-30T22:29:03+02:00",
+    "date": "2017-08-02T22:56:27+02:00",
     "repository": "https://github.com/bytearena/maps"
   },
   "data": {
@@ -1886,15 +1886,6 @@
         "id": "id",
         "point": [
           48.09619,
-          88.36994
-        ],
-        "type": "rocksTallOre",
-        "diameter": 3.00601202
-      },
-      {
-        "id": "id",
-        "point": [
-          48.09619,
           79.3526
         ],
         "type": "rocksTallOre",
@@ -1905,6 +1896,15 @@
         "point": [
           40.88176,
           85.36416
+        ],
+        "type": "rocksTallOre",
+        "diameter": 3.00601202
+      },
+      {
+        "id": "id",
+        "point": [
+          48.09619,
+          88.36994
         ],
         "type": "rocksTallOre",
         "diameter": 3.00601202
