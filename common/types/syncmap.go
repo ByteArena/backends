@@ -44,6 +44,19 @@ func (wmap *SyncMap) ToArrayGeneric() []interface{} {
 	return res
 }
 
+func (wmap *SyncMap) GetKeys() []string {
+	wmap.lock.RLock()
+	res := make([]string, wmap.Size())
+	i := 0
+	for key, _ := range wmap.data {
+		res[i] = key
+		i++
+	}
+	wmap.lock.RUnlock()
+
+	return res
+}
+
 func (wmap *SyncMap) Set(id string, item interface{}) error {
 	wmap.lock.Lock()
 	wmap.data[id] = item
