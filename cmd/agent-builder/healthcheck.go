@@ -30,6 +30,24 @@ func StartHealthCheck(brokerclient *mq.Client, registryHost string) {
 		}
 	})
 
+	healthCheckServer.Register("docker", func() (err error, ok bool) {
+		dockerBin, LookPatherr := exec.LookPath("docker")
+
+		if LookPatherr != nil {
+			return LookPatherr, false
+		}
+
+		command := exec.Command(dockerBin, "ps")
+
+		out, stderr := command.CombinedOutput()
+
+		if stderr != nil {
+			return errors.New(string(out)), false
+		} else {
+			return nil, true
+		}
+	})
+
 	// FIXME(sven): doesn't work be cause the registryHost passed in the env
 	// is used by the docker client which runs on the host.
 	// We pass localhost and it's only accessible from the host

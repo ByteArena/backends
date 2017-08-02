@@ -4,6 +4,9 @@ import (
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/healthcheck"
 	"github.com/bytearena/bytearena/common/mq"
+
+	"errors"
+	"os/exec"
 )
 
 func StartHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client) {
@@ -26,6 +29,24 @@ func StartHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client) {
 			return pingErr, status
 		} else {
 			return nil, status
+		}
+	})
+
+	healthCheckServer.Register("docker", func() (err error, ok bool) {
+		dockerBin, LookPatherr := exec.LookPath("docker")
+
+		if LookPatherr != nil {
+			return LookPatherr, false
+		}
+
+		command := exec.Command(dockerBin, "ps")
+
+		out, stderr := command.CombinedOutput()
+
+		if stderr != nil {
+			return errors.New(string(out)), false
+		} else {
+			return nil, true
 		}
 	})
 
