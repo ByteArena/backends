@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
-	"os"
+	"net/http"
 
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
+	"github.com/bytearena/bytearena/common/utils"
 )
 
 type ArenaInstance interface {
@@ -24,20 +25,35 @@ type ArenaInstanceGql struct {
 	mapContainer     *mapcontainer.MapContainer
 }
 
-func NewArenaInstanceGql(arenainstance graphqltype.ArenaInstanceType) *ArenaInstanceGql {
+func FetchUrl(url string) ([]byte, error) {
+	resp, err := http.Get(url)
 
-	filepath := "../../maps/trainer-map.json"
-	jsonsource, err := os.Open(filepath)
-	if err != nil {
-		log.Panicln("Error opening file:", err)
+	if err != nil && resp.StatusCode != 200 {
+		return nil, err
 	}
 
-	defer jsonsource.Close()
+	defer resp.Body.Close()
 
-	bjsonmap, _ := ioutil.ReadAll(jsonsource)
+	body, err := ioutil.ReadAll(resp.Body)
+
+	return body, nil
+}
+
+func NewArenaInstanceGql(arenainstance graphqltype.ArenaInstanceType) *ArenaInstanceGql {
+
+	// filepath := "../../maps/trainer-map.json"
+	// jsonsource, err := os.Open(filepath)
+	// if err != nil {
+	// 	log.Panicln("Error opening file:", err)
+	// }
+
+	// defer jsonsource.Close()
+
+	jsonsource, err := FetchUrl("http://bytearena.com/maps/deathmatch/desert/death-valley/map.json")
+	utils.Check(err, "Could not fetch map")
 
 	var mapContainer mapcontainer.MapContainer
-	if err := json.Unmarshal(bjsonmap, &mapContainer); err != nil {
+	if err := json.Unmarshal(jsonsource, &mapContainer); err != nil {
 		log.Panicln("Could not load map JSON")
 	}
 
