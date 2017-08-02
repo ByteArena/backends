@@ -115,9 +115,10 @@ func main() {
 							<-timeoutTimer.C
 
 							srv.Stop()
-							notify.PostTimeout("arena:stopped", nil, time.Millisecond)
-
 							utils.Debug("timer", "Timeout, stop the arena")
+
+							// Force stop the arena
+							os.Exit(0)
 						}()
 
 						<-srv.Start()
