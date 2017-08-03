@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"net/http"
+	"os/exec"
 
 	"github.com/bytearena/bytearena/common/healthcheck"
 	"github.com/bytearena/bytearena/common/mq"
