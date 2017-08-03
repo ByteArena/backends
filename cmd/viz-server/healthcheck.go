@@ -5,11 +5,10 @@ import (
 	"github.com/bytearena/bytearena/common/healthcheck"
 	"github.com/bytearena/bytearena/common/mq"
 
-	"errors"
-	"os/exec"
+	"net/http"
 )
 
-func NewHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client) *healthcheck.HealthCheckServer {
+func NewHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client, vizServerAddr string) *healthcheck.HealthCheckServer {
 	healthCheckServer := healthcheck.NewHealthCheckServer()
 
 	healthCheckServer.Register("mq", func() error {
@@ -32,19 +31,11 @@ func NewHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client) *heal
 		}
 	})
 
-	healthCheckServer.Register("docker", func() error {
-		dockerBin, LookPatherr := exec.LookPath("docker")
+	healthCheckServer.Register("viz-server", func() error {
+		resp, err := http.Get(vizServerAddr)
 
-		if LookPatherr != nil {
-			return LookPatherr
-		}
-
-		command := exec.Command(dockerBin, "ps")
-
-		out, stderr := command.CombinedOutput()
-
-		if stderr != nil {
-			return errors.New(string(out))
+		if err != nil && resp.StatusCode != 200 {
+			return err
 		} else {
 			return nil
 		}

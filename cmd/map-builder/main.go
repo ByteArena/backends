@@ -56,46 +56,43 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 		worldTransform = worldTransform.Scale(1/pxperunit, 1/pxperunit)
 	}
 
-	groundcolor := "#E3A478"
-	startcolor := "#D0011B"
-	obstaclecolor := "#8B572A"
-
 	svggrounds := make([]SVGNode, 0)
 	svgstarts := make([]SVGNode, 0)
 	svgobstacles := make([]SVGNode, 0)
 	svgcustomobstacles := make([]SVGNode, 0)
 
 	SVGVisit(svg, func(node SVGNode) {
+
+		groups := GetSVGIDs(node)
+
 		switch /*typednode :=*/ node.(type) {
 		case *SVGPath:
 			{
-				if node.GetFill() == groundcolor {
+				if groups.Contains("ba:ground") > -1 {
 					svggrounds = append(svggrounds, node)
 				}
 			}
 		case *SVGCircle:
 			{
-				fill := node.GetFill()
-				if fill == startcolor {
+				if groups.Contains("ba:start") > -1 {
 					svgstarts = append(svgstarts, node)
-				} else if fill == obstaclecolor {
+				} else if groups.Contains("ba:obstacle") > -1 {
 					svgobstacles = append(svgobstacles, node)
 				}
 			}
 		case *SVGEllipse:
 			{
-				fill := node.GetFill()
-				if fill == startcolor {
+				if groups.Contains("ba:start") > -1 {
 					svgstarts = append(svgstarts, node)
-				} else if fill == obstaclecolor {
+				} else if groups.Contains("ba:obstacle") > -1 {
 					svgobstacles = append(svgobstacles, node)
 				}
 			}
 		case *SVGPolygon:
 			{
-				if node.GetFill() == obstaclecolor {
+				if groups.Contains("ba:obstacle") > -1 {
 					svgcustomobstacles = append(svgcustomobstacles, node)
-				} else if node.GetFill() == groundcolor {
+				} else if groups.Contains("ba:ground") > -1 {
 					svggrounds = append(svggrounds, node)
 				}
 			}
@@ -227,9 +224,9 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 		positions := make([][][]float64, 0)
 		for _, triangle := range triangles {
 			positions = append(positions, [][]float64{
-				[]float64{triangle[0][0], 0, triangle[0][1]},
-				[]float64{triangle[1][0], 0, triangle[1][1]},
-				[]float64{triangle[2][0], 0, triangle[2][1]},
+				[]float64{triangle.Points[0].GetX(), 0, triangle.Points[0].GetY()},
+				[]float64{triangle.Points[1].GetX(), 0, triangle.Points[1].GetY()},
+				[]float64{triangle.Points[2].GetX(), 0, triangle.Points[2].GetY()},
 			})
 		}
 
@@ -325,7 +322,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					Transform(cx, cy)
 
 				starts = append(starts, mapcontainer.MapStart{
-					Id:    "id",
+					Id:    typednode.GetId(),
 					Point: mapcontainer.MapPoint{cxt, cyt},
 				})
 			}
@@ -338,7 +335,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					Transform(cx, cy)
 
 				starts = append(starts, mapcontainer.MapStart{
-					Id:    "id",
+					Id:    typednode.GetId(),
 					Point: mapcontainer.MapPoint{cxt, cyt},
 				})
 			}
@@ -361,9 +358,9 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					Transform(cx, cy)
 
 				objects = append(objects, mapcontainer.MapObject{
-					Id:       "id",
+					Id:       typednode.GetId(),
 					Point:    mapcontainer.MapPoint{cxt, cyt},
-					Diameter: typednode.r,
+					Diameter: typednode.r * 2,
 					Type:     "rocksTallOre",
 				})
 			}
@@ -376,9 +373,9 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					Transform(cx, cy)
 
 				objects = append(objects, mapcontainer.MapObject{
-					Id:       "id",
+					Id:       typednode.GetId(),
 					Point:    mapcontainer.MapPoint{cxt, cyt},
-					Diameter: typednode.rx,
+					Diameter: typednode.rx * 2,
 					Type:     "rocksTallOre",
 				})
 			}

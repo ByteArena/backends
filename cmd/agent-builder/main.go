@@ -11,12 +11,15 @@ import (
 
 	"github.com/ttacon/chalk"
 
+	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
 func main() {
+
+	env := os.Getenv("ENV")
 
 	mqHost := os.Getenv("MQ_HOST")
 	utils.Assert(mqHost != "", "Error: missing MQ_HOST env param")
@@ -34,7 +37,18 @@ func main() {
 		onRepoPushedMessage(msg, registryHost)
 	})
 
-	StartHealthCheck(brokerclient, registryHost)
+	// handling signals
+	if env == "prod" {
+		hc := NewHealthCheck(brokerclient, registryHost)
+		hc.Start()
+
+		<-common.SignalHandler()
+		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
+		hc.Stop()
+	} else {
+		// block
+		<-common.SignalHandler()
+	}
 }
 
 func onRepoPushedMessage(msg mq.BrokerMessage, registryHost string) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/bytearena/bytearena/common/utils"
@@ -66,12 +67,18 @@ func handleUnexepectedClose(client *Client) {
 		utils.Debug("mq-client", "Try to reconnect")
 		hasConnected := client.connect()
 
-		if hasConnected == true {
+		if hasConnected {
 			utils.Debug("mq-client", "Reconnected")
+			for _, subscriptionLane := range client.subscriptions.GetKeys() {
+				subscriptionCbk := client.subscriptions.Get(subscriptionLane)
+				parts := strings.Split(subscriptionLane, ":")
+				utils.Debug("mq-client", "Re-subscribing to "+subscriptionLane)
+				client.Subscribe(parts[0], parts[1], subscriptionCbk)
+			}
 			return nil
-		} else {
-			return errors.New("connection failed")
 		}
+
+		return errors.New("connection failed")
 	}
 
 	backoff.Retry(f, backoff.NewExponentialBackOff())

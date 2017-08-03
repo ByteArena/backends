@@ -20,6 +20,7 @@ type VizService struct {
 	addr          string
 	webclientpath string
 	fetchArenas   FetchArenasCbk
+	listener      *http.Server
 }
 
 func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk) *VizService {
@@ -30,7 +31,7 @@ func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk
 	}
 }
 
-func (viz *VizService) ListenAndServe() error {
+func (viz *VizService) Start() chan struct{} {
 
 	arenainstances, err := viz.fetchArenas()
 	utils.Check(err, "VizService: Could not fetch arenas")
@@ -63,5 +64,22 @@ func (viz *VizService) ListenAndServe() error {
 
 	log.Println("VIZ Listening on " + viz.addr)
 
-	return http.ListenAndServe(viz.addr, router)
+	viz.listener = &http.Server{
+		Addr:    viz.addr,
+		Handler: router,
+	}
+
+	block := make(chan struct{})
+
+	go func(block chan struct{}) {
+		err := viz.listener.ListenAndServe()
+		utils.Check(err, "Failed to listen on "+viz.addr)
+		close(block)
+	}(block)
+
+	return block
+}
+
+func (viz *VizService) Stop() {
+	viz.listener.Shutdown(nil)
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"log"
+	"os"
 	"runtime"
 	"strconv"
 	"time"
@@ -11,14 +12,17 @@ import (
 	notify "github.com/bitly/go-notify"
 
 	"github.com/bytearena/bytearena/arenaserver"
+	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
+	"github.com/bytearena/bytearena/common/healthcheck"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
 
 func main() {
+	env := os.Getenv("ENV")
 
 	// => Serveur HTTP
 	//		=> Service des assets statiques de la viz (js, modèles, textures)
@@ -60,7 +64,19 @@ func main() {
 		return arenainstances, nil
 	})
 
-	if err := vizservice.ListenAndServe(); err != nil {
-		log.Panicln("VIZ-SERVER cannot listen on requested port")
+	vizservice.Start()
+
+	var hc *healthcheck.HealthCheckServer
+	if env == "prod" {
+		hc = NewHealthCheck(mqclient, graphqlclient, serverAddr)
+		hc.Start()
+	}
+
+	<-common.SignalHandler()
+	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
+	vizservice.Stop()
+
+	if hc != nil {
+		hc.Stop()
 	}
 }

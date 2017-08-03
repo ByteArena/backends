@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"net/http"
+	"os/exec"
 
 	"github.com/bytearena/bytearena/common/healthcheck"
 	"github.com/bytearena/bytearena/common/mq"
@@ -17,16 +19,34 @@ func PingRegistry(host string) (error, bool) {
 	return nil, true
 }
 
-func StartHealthCheck(brokerclient *mq.Client, registryHost string) {
+func NewHealthCheck(brokerclient *mq.Client, registryHost string) *healthcheck.HealthCheckServer {
 	healthCheckServer := healthcheck.NewHealthCheckServer()
 
-	healthCheckServer.Register("mq", func() (err error, ok bool) {
+	healthCheckServer.Register("mq", func() error {
 		pingErr := brokerclient.Ping()
 
 		if pingErr != nil {
-			return pingErr, false
+			return pingErr
 		} else {
-			return nil, true
+			return nil
+		}
+	})
+
+	healthCheckServer.Register("docker", func() error {
+		dockerBin, LookPatherr := exec.LookPath("docker")
+
+		if LookPatherr != nil {
+			return LookPatherr
+		}
+
+		command := exec.Command(dockerBin, "ps")
+
+		out, stderr := command.CombinedOutput()
+
+		if stderr != nil {
+			return errors.New(string(out))
+		} else {
+			return nil
 		}
 	})
 
@@ -44,5 +64,5 @@ func StartHealthCheck(brokerclient *mq.Client, registryHost string) {
 	// 	}
 	// })
 
-	healthCheckServer.Listen()
+	return healthCheckServer
 }

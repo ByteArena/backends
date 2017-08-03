@@ -4,10 +4,7 @@ import (
 	"flag"
 	"log"
 	"math/rand"
-	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
 	"time"
 
 	notify "github.com/bitly/go-notify"
@@ -15,6 +12,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/arenatrainer"
+	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/utils"
@@ -56,18 +54,18 @@ func main() {
 		panic("Please, specify at least one agent image using --agent")
 	}
 
-	arena := NewMockArenaInstance(*tickspersec)
+	arenainstance := NewMockArenaInstance(*tickspersec)
 	for _, contestant := range agentimages {
-		arena.AddContestant(contestant)
+		arenainstance.AddContestant(contestant)
 	}
 
 	// Make message broker client
 	brokerclient, err := arenatrainer.NewMemoryMessageClient()
 	utils.Check(err, "ERROR: Could not connect to messagebroker")
 
-	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(), arena)
+	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(), arenainstance)
 
-	for _, contestant := range arena.GetContestants() {
+	for _, contestant := range arenainstance.GetContestants() {
 		var image string
 
 		if contestant.AgentRegistry == "" {
@@ -80,10 +78,9 @@ func main() {
 	}
 
 	// handling signals
-	hassigtermed := make(chan os.Signal, 2)
-	signal.Notify(hassigtermed, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-hassigtermed
+		<-common.SignalHandler()
+		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 		srv.Stop()
 	}()
 
@@ -93,20 +90,17 @@ func main() {
 		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond) // string because received as string from MQ, and no need to manipulate it on our side
 	})
 
-	go func(arenainstance arenaserver.ArenaInstance) {
-		webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
+	// TODO: refac webclient path / serving
+	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
+	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]arenaserver.ArenaInstance, error) {
+		res := make([]arenaserver.ArenaInstance, 1)
+		res[0] = arenainstance
+		return res, nil
+	})
 
-		vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]arenaserver.ArenaInstance, error) {
-			res := make([]arenaserver.ArenaInstance, 1)
-			res[0] = arenainstance
-			return res, nil
-		})
-
-		if err := vizservice.ListenAndServe(); err != nil {
-			log.Panicln("Could not start viz service")
-		}
-	}(arena)
+	vizservice.Start()
 
 	<-srv.Start()
 	srv.TearDown()
+	vizservice.Stop()
 }

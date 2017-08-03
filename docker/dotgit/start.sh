@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+
 echo "# Starting ssh service"
 service ssh start
 

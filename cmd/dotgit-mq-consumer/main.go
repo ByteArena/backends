@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	notify "github.com/bitly/go-notify"
 
+	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -79,10 +78,8 @@ func main() {
 	}()
 
 	// handling signals
-	hassigtermed := make(chan os.Signal, 2)
-	signal.Notify(hassigtermed, os.Interrupt, syscall.SIGTERM)
-
-	<-hassigtermed
+	<-common.SignalHandler()
+	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 }
 
 func initRepo(db protocol.Database, mqclient mq.ClientInterface, agentid string) {
