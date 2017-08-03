@@ -22,21 +22,21 @@ func PingRegistry(host string) (error, bool) {
 func NewHealthCheck(brokerclient *mq.Client, registryHost string) *healthcheck.HealthCheckServer {
 	healthCheckServer := healthcheck.NewHealthCheckServer()
 
-	healthCheckServer.Register("mq", func() (err error, ok bool) {
+	healthCheckServer.Register("mq", func() error {
 		pingErr := brokerclient.Ping()
 
 		if pingErr != nil {
-			return pingErr, false
+			return pingErr
 		} else {
-			return nil, true
+			return nil
 		}
 	})
 
-	healthCheckServer.Register("docker", func() (err error, ok bool) {
+	healthCheckServer.Register("docker", func() error {
 		dockerBin, LookPatherr := exec.LookPath("docker")
 
 		if LookPatherr != nil {
-			return LookPatherr, false
+			return LookPatherr
 		}
 
 		command := exec.Command(dockerBin, "ps")
@@ -44,9 +44,9 @@ func NewHealthCheck(brokerclient *mq.Client, registryHost string) *healthcheck.H
 		out, stderr := command.CombinedOutput()
 
 		if stderr != nil {
-			return errors.New(string(out)), false
+			return errors.New(string(out))
 		} else {
-			return nil, true
+			return nil
 		}
 	})
 

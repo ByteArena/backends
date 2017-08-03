@@ -12,31 +12,31 @@ import (
 func NewHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client) *healthcheck.HealthCheckServer {
 	healthCheckServer := healthcheck.NewHealthCheckServer()
 
-	healthCheckServer.Register("mq", func() (err error, ok bool) {
+	healthCheckServer.Register("mq", func() error {
 		pingErr := brokerclient.Ping()
 
 		if pingErr != nil {
-			return pingErr, false
+			return pingErr
 		} else {
-			return nil, true
+			return nil
 		}
 	})
 
-	healthCheckServer.Register("graphql", func() (err error, ok bool) {
-		pingErr, status := graphqlclient.Ping()
+	healthCheckServer.Register("graphql", func() error {
+		pingErr := graphqlclient.Ping()
 
 		if pingErr != nil {
-			return pingErr, status
+			return pingErr
 		} else {
-			return nil, status
+			return nil
 		}
 	})
 
-	healthCheckServer.Register("docker", func() (err error, ok bool) {
+	healthCheckServer.Register("docker", func() error {
 		dockerBin, LookPatherr := exec.LookPath("docker")
 
 		if LookPatherr != nil {
-			return LookPatherr, false
+			return LookPatherr
 		}
 
 		command := exec.Command(dockerBin, "ps")
@@ -44,9 +44,9 @@ func NewHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client) *heal
 		out, stderr := command.CombinedOutput()
 
 		if stderr != nil {
-			return errors.New(string(out)), false
+			return errors.New(string(out))
 		} else {
-			return nil, true
+			return nil
 		}
 	})
 
