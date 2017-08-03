@@ -127,6 +127,8 @@ func (client Client) Ping() error {
 		return err
 	}
 
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		return errors.New("HTTP error, status " + strconv.Itoa(resp.StatusCode))
 	}

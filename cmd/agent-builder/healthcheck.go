@@ -9,14 +9,20 @@ import (
 	"github.com/bytearena/bytearena/common/mq"
 )
 
-func PingRegistry(host string) (error, bool) {
-	req, err := http.Get("http://" + host + "/v2/")
+func PingRegistry(host string) error {
+	resp, err := http.Get("http://" + host + "/v2/")
 
-	if err != nil && req.StatusCode != 200 {
-		return err, false
+	if err != nil {
+		return err
 	}
 
-	return nil, true
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return errors.New("Cannot ping registry")
+	}
+
+	return nil
 }
 
 func NewHealthCheck(brokerclient *mq.Client, registryHost string) *healthcheck.HealthCheckServer {

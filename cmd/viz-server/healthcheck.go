@@ -40,6 +40,8 @@ func NewHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client, vizSe
 			return err
 		}
 
+		defer resp.Body.Close()
+
 		if resp.StatusCode != 200 {
 			return errors.New("HTTP error, status " + strconv.Itoa(resp.StatusCode))
 		}
