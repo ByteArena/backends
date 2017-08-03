@@ -8,13 +8,13 @@ import (
 func NewHealthCheck(brokerclient *mq.Client) *healthcheck.HealthCheckServer {
 	healthCheckServer := healthcheck.NewHealthCheckServer()
 
-	healthCheckServer.Register("mq", func() (err error, ok bool) {
+	healthCheckServer.Register("mq", func() error {
 		pingErr := brokerclient.Ping()
 
 		if pingErr != nil {
-			return pingErr, false
+			return pingErr
 		} else {
-			return nil, true
+			return nil
 		}
 	})
 

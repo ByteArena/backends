@@ -12,7 +12,4 @@ trap teardown EXIT
 
 service docker start && sleep 5
 
-# Make sure docker is running
-docker ps
-
-exec /usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}" --id "$ID"
+exec /usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}" --id "$ID" --timeout "${GAME_TIMEOUT}"

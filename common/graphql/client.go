@@ -120,12 +120,16 @@ func (client Client) RequestAsync(query *Query) <-chan Response {
 	return c
 }
 
-func (client Client) Ping() (error, bool) {
-	req, err := http.Get(client.url + "/schema")
+func (client Client) Ping() error {
+	resp, err := http.Get(client.url + "/schema")
 
-	if err != nil && req.StatusCode != 200 {
-		return err, false
+	if err != nil {
+		return err
 	}
 
-	return nil, true
+	if resp.StatusCode != 200 {
+		return errors.New("HTTP error, status " + strconv.Itoa(resp.StatusCode))
+	}
+
+	return nil
 }

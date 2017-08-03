@@ -24,7 +24,7 @@ type HealthCheckHttpResponse struct {
 	StatusCode int
 }
 
-type HealthCheckHandler func() (err error, ok bool)
+type HealthCheckHandler func() error
 
 func (server *HealthCheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res := HealthCheckHttpResponse{
@@ -33,12 +33,12 @@ func (server *HealthCheckServer) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	}
 
 	for name, checker := range server.Checkers {
-		err, checkerRes := checker()
+		err := checker()
 
 		if err == nil {
 
 			res.Checks = append(res.Checks, HealthChecks{
-				Status: checkerRes,
+				Status: true,
 				Name:   name,
 				Detail: "",
 			})
