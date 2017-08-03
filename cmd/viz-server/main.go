@@ -11,6 +11,7 @@ import (
 	notify "github.com/bitly/go-notify"
 
 	"github.com/bytearena/bytearena/arenaserver"
+	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
 	"github.com/bytearena/bytearena/common/mq"
@@ -60,7 +61,9 @@ func main() {
 		return arenainstances, nil
 	})
 
-	if err := vizservice.ListenAndServe(); err != nil {
-		log.Panicln("VIZ-SERVER cannot listen on requested port")
-	}
+	vizservice.Start()
+
+	<-common.SignalHandler()
+	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
+	vizservice.Stop()
 }

@@ -45,7 +45,6 @@ func main() {
 		<-common.SignalHandler()
 		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 		hc.Stop()
-		utils.Debug("sighandler", "SHUTDOWN DONE")
 	} else {
 		// block
 		<-common.SignalHandler()

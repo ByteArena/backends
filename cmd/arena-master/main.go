@@ -2,9 +2,10 @@ package main
 
 import (
 	"os"
-	"os/signal"
-	"syscall"
 
+	"github.com/bytearena/bytearena/common/healthcheck"
+
+	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/utils"
 
@@ -22,16 +23,23 @@ func main() {
 
 	server := arenamaster.NewServer(brokerclient)
 
+	// handling signals
+	var hc *healthcheck.HealthCheckServer
 	if env == "prod" {
-		go StartHealthCheck(brokerclient)
+		hc = NewHealthCheck(brokerclient)
+		hc.Start()
 	}
 
-	// handling signals
-	hassigtermed := make(chan os.Signal, 2)
-	signal.Notify(hassigtermed, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-hassigtermed
+
+		<-common.SignalHandler()
+		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
+
 		server.Stop()
+
+		if hc != nil {
+			hc.Stop()
+		}
 	}()
 
 	<-server.Start()

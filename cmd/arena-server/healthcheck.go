@@ -9,7 +9,7 @@ import (
 	"os/exec"
 )
 
-func StartHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client) {
+func NewHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client) *healthcheck.HealthCheckServer {
 	healthCheckServer := healthcheck.NewHealthCheckServer()
 
 	healthCheckServer.Register("mq", func() (err error, ok bool) {
@@ -50,5 +50,5 @@ func StartHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client) {
 		}
 	})
 
-	healthCheckServer.Start()
+	return healthCheckServer
 }

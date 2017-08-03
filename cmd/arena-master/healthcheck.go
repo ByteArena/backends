@@ -5,7 +5,7 @@ import (
 	"github.com/bytearena/bytearena/common/mq"
 )
 
-func StartHealthCheck(brokerclient *mq.Client) {
+func NewHealthCheck(brokerclient *mq.Client) *healthcheck.HealthCheckServer {
 	healthCheckServer := healthcheck.NewHealthCheckServer()
 
 	healthCheckServer.Register("mq", func() (err error, ok bool) {
@@ -18,5 +18,5 @@ func StartHealthCheck(brokerclient *mq.Client) {
 		}
 	})
 
-	healthCheckServer.Start()
+	return healthCheckServer
 }

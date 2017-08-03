@@ -6,14 +6,14 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/arenaserver"
+	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
+	"github.com/bytearena/bytearena/common/healthcheck"
 
 	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/common/mq"
@@ -76,8 +76,10 @@ func main() {
 		notify.PostTimeout("arena:launch", payload, time.Millisecond)
 	})
 
+	var hc *healthcheck.HealthCheckServer
 	if env == "prod" {
-		go StartHealthCheck(brokerclient, graphqlclient)
+		hc = NewHealthCheck(brokerclient, graphqlclient)
+		hc.Start()
 	}
 
 	go func() {
@@ -98,11 +100,13 @@ func main() {
 						}
 
 						// handling signals
-						hassigtermed := make(chan os.Signal, 2)
-						signal.Notify(hassigtermed, os.Interrupt, syscall.SIGTERM)
 						go func() {
-							<-hassigtermed
+							<-common.SignalHandler()
+							utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 							srv.Stop()
+							if hc != nil {
+								hc.Stop()
+							}
 						}()
 
 						go protocol.StreamState(srv, brokerclient)
