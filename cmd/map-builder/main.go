@@ -78,6 +78,8 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					svgstarts = append(svgstarts, node)
 				} else if groups.Contains("ba:obstacle") > -1 {
 					svgobstacles = append(svgobstacles, node)
+				} else if groups.Contains("ba:object") > -1 {
+					svgobstacles = append(svgobstacles, node)
 				}
 			}
 		case *SVGEllipse:
@@ -85,6 +87,8 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 				if groups.Contains("ba:start") > -1 {
 					svgstarts = append(svgstarts, node)
 				} else if groups.Contains("ba:obstacle") > -1 {
+					svgobstacles = append(svgobstacles, node)
+				} else if groups.Contains("ba:object") > -1 {
 					svgobstacles = append(svgobstacles, node)
 				}
 			}
@@ -347,37 +351,55 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 	/************************************/
 
 	objects := make([]mapcontainer.MapObject, 0)
+
+	circleProcessor := func(node SVGNode, cx float64, cy float64, radius float64) *mapcontainer.MapObject {
+
+		ids := GetSVGIDs(node)
+
+		if ids.Contains("ba:object") == -1 {
+			return nil
+		}
+
+		cxt, cyt := node.
+			GetFullTransform().
+			Mul(worldTransform).
+			Transform(cx, cy)
+
+		objtype := ""
+		if ids.Contains("ba:rock01") > -1 {
+			objtype = "rock01"
+		} else if ids.Contains("ba:crater01") > -1 {
+			objtype = "crater01"
+		} else {
+			return nil
+		}
+
+		return &mapcontainer.MapObject{
+			Id:       node.GetId(),
+			Point:    mapcontainer.MapPoint{X: cxt, Y: cyt},
+			Diameter: radius * 2,
+			Type:     objtype,
+		}
+	}
+
 	for _, svgobstacle := range svgobstacles {
+
 		switch typednode := svgobstacle.(type) {
 		case *SVGCircle:
 			{
 				cx, cy := typednode.GetCenter()
-				cxt, cyt := typednode.
-					GetFullTransform().
-					Mul(worldTransform).
-					Transform(cx, cy)
-
-				objects = append(objects, mapcontainer.MapObject{
-					Id:       typednode.GetId(),
-					Point:    mapcontainer.MapPoint{cxt, cyt},
-					Diameter: typednode.r * 2,
-					Type:     "rocksTallOre",
-				})
+				obj := circleProcessor(typednode, cx, cy, typednode.GetRadius())
+				if obj != nil {
+					objects = append(objects, *obj)
+				}
 			}
 		case *SVGEllipse:
 			{
 				cx, cy := typednode.GetCenter()
-				cxt, cyt := typednode.
-					GetFullTransform().
-					Mul(worldTransform).
-					Transform(cx, cy)
-
-				objects = append(objects, mapcontainer.MapObject{
-					Id:       typednode.GetId(),
-					Point:    mapcontainer.MapPoint{cxt, cyt},
-					Diameter: typednode.rx * 2,
-					Type:     "rocksTallOre",
-				})
+				obj := circleProcessor(typednode, cx, cy, typednode.rx)
+				if obj != nil {
+					objects = append(objects, *obj)
+				}
 			}
 		}
 	}

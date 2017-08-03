@@ -4,7 +4,7 @@
     "kind": "deathmatch",
     "theme": "desert",
     "maxcontestants": 2,
-    "date": "2017-08-03T08:13:44+02:00",
+    "date": "2017-08-03T16:13:40+02:00",
     "repository": "https://github.com/bytearena/maps"
   },
   "data": {
@@ -1469,508 +1469,22 @@
     "obstacles": [],
     "objects": [
       {
-        "id": "Oval-Copy-8",
+        "id": "Oval-Copy-11",
         "point": [
-          292.24261,
-          130.8564
+          21.00046,
+          75
         ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-38",
-        "point": [
-          297.05223,
-          121.23791
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-39",
-        "point": [
-          301.26065,
-          111.61941
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-40",
-        "point": [
-          283.22458,
-          128.45178
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-49",
-        "point": [
-          297.05223,
-          142.87952
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-48",
-        "point": [
-          301.86185,
-          133.26103
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-47",
-        "point": [
-          306.07027,
-          123.64253
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-46",
-        "point": [
-          288.0342,
-          140.4749
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-41",
-        "point": [
-          289.2366,
-          121.23791
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-42",
-        "point": [
-          291.04021,
-          112.82172
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-43",
-        "point": [
-          285.62939,
-          109.21478
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-44",
-        "point": [
-          292.24261,
-          106.209
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-56",
-        "point": [
-          293.01015,
-          152.1791
-        ],
-        "type": "rocksTallOre",
-        "diameter": 17.58316634
-      },
-      {
-        "id": "Oval-Copy-57",
-        "point": [
-          299.01015,
-          157.1791
-        ],
-        "type": "rocksTallOre",
-        "diameter": 17.58316634
-      },
-      {
-        "id": "Oval-Copy-45",
-        "point": [
-          292.24261,
-          98.39397
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-21",
-        "point": [
-          360.77969,
-          139.27259
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-36",
-        "point": [
-          360.77969,
-          146.48646
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-37",
-        "point": [
-          367.99412,
-          144.08184
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-31",
-        "point": [
-          362.5833,
-          132.65987
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-32",
-        "point": [
-          367.39291,
-          136.26681
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-33",
-        "point": [
-          377.01215,
-          128.45178
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-34",
-        "point": [
-          369.79772,
-          124.24368
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-35",
-        "point": [
-          377.61336,
-          121.2379
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-8",
-        "point": [
-          328.91596,
-          157.30727
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-22",
-        "point": [
-          322.90394,
-          176.54426
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-23",
-        "point": [
-          331.32077,
-          171.13386
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-25",
-        "point": [
-          325.30875,
-          184.96045
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-24",
-        "point": [
-          330.11837,
-          178.94889
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-21",
-        "point": [
-          324.10634,
-          166.32461
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-55",
-        "point": [
-          316.89191,
-          157.30727
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-54",
-        "point": [
-          310.87989,
-          176.54426
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-53",
-        "point": [
-          319.29672,
-          171.13386
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-52",
-        "point": [
-          313.2847,
-          184.96045
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-51",
-        "point": [
-          318.09432,
-          178.94889
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-50",
-        "point": [
-          312.08229,
-          166.32461
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-8",
-        "point": [
-          276.55311,
-          172.53179
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-13",
-        "point": [
-          282.56513,
-          175.53757
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-14",
-        "point": [
-          288.57716,
-          172.53179
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-15",
-        "point": [
-          288.57716,
-          178.54335
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-18",
-        "point": [
-          280.16032,
-          187.56069
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-17",
-        "point": [
-          283.16633,
-          181.54913
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-19",
-        "point": [
-          288.57716,
-          184.55491
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-20",
-        "point": [
-          285.57114,
-          190.56647
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-16",
-        "point": [
-          277.15431,
-          181.54913
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-8",
-        "point": [
-          191.18237,
-          51.69942
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-9",
-        "point": [
-          185.17034,
-          48.69364
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
+        "type": "crater01",
+        "diameter": 11.50092492
       },
       {
         "id": "Oval-Copy-11",
         "point": [
-          48.09619,
-          79.3526
+          118.5,
+          71.49988
         ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-10",
-        "point": [
-          40.88176,
-          85.36416
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-12",
-        "point": [
-          48.09619,
-          88.36994
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-26",
-        "point": [
-          465.93186,
-          263.30636
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-28",
-        "point": [
-          466.53307,
-          256.69364
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-29",
-        "point": [
-          465.33066,
-          250.08093
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-30",
-        "point": [
-          459.91984,
-          257.2948
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-21",
-        "point": [
-          488.17635,
-          302.98266
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-27",
-        "point": [
-          489.37876,
-          289.75723
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
-      },
-      {
-        "id": "Oval-Copy-26",
-        "point": [
-          491.18237,
-          296.36994
-        ],
-        "type": "rocksTallOre",
-        "diameter": 6.01202404
+        "type": "crater01",
+        "diameter": 2.5
       },
       {
         "id": "Oval-Copy-59",
@@ -1978,7 +1492,7 @@
           176.79158,
           97.79091
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 17.58316634
       },
       {
@@ -1987,7 +1501,7 @@
           182.79158,
           102.79091
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 17.58316634
       },
       {
@@ -1996,7 +1510,7 @@
           176.79158,
           111.79091
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 17.58316634
       },
       {
@@ -2005,7 +1519,7 @@
           167.79158,
           126.79091
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 17.58316634
       },
       {
@@ -2014,7 +1528,7 @@
           179.5,
           140.4995
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 13
       },
       {
@@ -2023,7 +1537,7 @@
           186.5,
           146.4995
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 13
       },
       {
@@ -2032,7 +1546,7 @@
           197,
           126.99846
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 40
       },
       {
@@ -2041,7 +1555,7 @@
           183,
           126.99877
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 32
       },
       {
@@ -2050,7 +1564,7 @@
           194.79158,
           106.79091
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 17.58316634
       },
       {
@@ -2059,7 +1573,7 @@
           193,
           99.58235
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 14
       },
       {
@@ -2068,7 +1582,7 @@
           184.06316,
           132.9864
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 12.1263216
       },
       {
@@ -2077,7 +1591,7 @@
           188.06316,
           135.9864
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 12.1263216
       },
       {
@@ -2086,7 +1600,7 @@
           184.06316,
           141.9864
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 12.1263216
       },
       {
@@ -2095,7 +1609,7 @@
           178.06316,
           152.9864
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 12.1263216
       },
       {
@@ -2104,7 +1618,7 @@
           186.48276,
           162.42601
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 8.96551724
       },
       {
@@ -2113,7 +1627,7 @@
           191.48276,
           166.42601
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 8.96551724
       },
       {
@@ -2122,7 +1636,7 @@
           197.7931,
           152.61848
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 27.5862068
       },
       {
@@ -2131,7 +1645,7 @@
           189.03448,
           152.89478
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 22.0689656
       },
       {
@@ -2140,17 +1654,521 @@
           197.06316,
           138.9864
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 12.1263216
       },
       {
         "id": "Oval-Copy-68",
         "point": [
-          195.82759,
+          196.82759,
           133.76647
         ],
-        "type": "rocksTallOre",
+        "type": "rock01",
         "diameter": 9.65517242
+      },
+      {
+        "id": "Oval-Copy-8",
+        "point": [
+          292.24261,
+          130.8564
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-38",
+        "point": [
+          297.05223,
+          121.23791
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-39",
+        "point": [
+          301.26065,
+          111.61941
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-40",
+        "point": [
+          283.22458,
+          128.45178
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-49",
+        "point": [
+          297.05223,
+          142.87952
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-48",
+        "point": [
+          301.86185,
+          133.26103
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-47",
+        "point": [
+          306.07027,
+          123.64253
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-46",
+        "point": [
+          288.0342,
+          140.4749
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-41",
+        "point": [
+          289.2366,
+          121.23791
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-42",
+        "point": [
+          291.04021,
+          112.82172
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-43",
+        "point": [
+          285.62939,
+          109.21478
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-44",
+        "point": [
+          292.24261,
+          106.209
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-56",
+        "point": [
+          293.01015,
+          152.1791
+        ],
+        "type": "rock01",
+        "diameter": 17.58316634
+      },
+      {
+        "id": "Oval-Copy-57",
+        "point": [
+          299.01015,
+          157.1791
+        ],
+        "type": "rock01",
+        "diameter": 17.58316634
+      },
+      {
+        "id": "Oval-Copy-45",
+        "point": [
+          292.24261,
+          98.39397
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-21",
+        "point": [
+          360.77969,
+          139.27259
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-36",
+        "point": [
+          360.77969,
+          146.48646
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-37",
+        "point": [
+          367.99412,
+          144.08184
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-31",
+        "point": [
+          362.5833,
+          132.65987
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-32",
+        "point": [
+          367.39291,
+          136.26681
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-33",
+        "point": [
+          377.01215,
+          128.45178
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-34",
+        "point": [
+          369.79772,
+          124.24368
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-35",
+        "point": [
+          377.61336,
+          121.2379
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-8",
+        "point": [
+          328.91596,
+          157.30727
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-22",
+        "point": [
+          322.90394,
+          176.54426
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-23",
+        "point": [
+          331.32077,
+          171.13386
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-25",
+        "point": [
+          325.30875,
+          184.96045
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-24",
+        "point": [
+          330.11837,
+          178.94889
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-21",
+        "point": [
+          324.10634,
+          166.32461
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-55",
+        "point": [
+          316.89191,
+          157.30727
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-54",
+        "point": [
+          310.87989,
+          176.54426
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-53",
+        "point": [
+          319.29672,
+          171.13386
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-52",
+        "point": [
+          313.2847,
+          184.96045
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-51",
+        "point": [
+          318.09432,
+          178.94889
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-50",
+        "point": [
+          312.08229,
+          166.32461
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-8",
+        "point": [
+          276.55311,
+          172.53179
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-13",
+        "point": [
+          282.56513,
+          175.53757
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-14",
+        "point": [
+          288.57716,
+          172.53179
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-15",
+        "point": [
+          288.57716,
+          178.54335
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-18",
+        "point": [
+          280.16032,
+          187.56069
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-17",
+        "point": [
+          283.16633,
+          181.54913
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-19",
+        "point": [
+          288.57716,
+          184.55491
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-20",
+        "point": [
+          285.57114,
+          190.56647
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-16",
+        "point": [
+          277.15431,
+          181.54913
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-8",
+        "point": [
+          191.18237,
+          51.69942
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-9",
+        "point": [
+          185.17034,
+          48.69364
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-11",
+        "point": [
+          48.09619,
+          79.3526
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-10",
+        "point": [
+          40.88176,
+          85.36416
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-12",
+        "point": [
+          48.09619,
+          88.36994
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-26",
+        "point": [
+          465.93186,
+          263.30636
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-28",
+        "point": [
+          466.53307,
+          256.69364
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-29",
+        "point": [
+          465.33066,
+          250.08093
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-30",
+        "point": [
+          459.91984,
+          257.2948
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-21",
+        "point": [
+          488.17635,
+          302.98266
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-27",
+        "point": [
+          489.37876,
+          289.75723
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
+      },
+      {
+        "id": "Oval-Copy-26",
+        "point": [
+          491.18237,
+          296.36994
+        ],
+        "type": "rock01",
+        "diameter": 6.01202404
       }
     ]
   }
