@@ -14,12 +14,14 @@ import (
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
+	"github.com/bytearena/bytearena/common/healthcheck"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
 
 func main() {
+	env := os.Getenv("ENV")
 
 	// => Serveur HTTP
 	//		=> Service des assets statiques de la viz (js, modèles, textures)
@@ -63,7 +65,17 @@ func main() {
 
 	vizservice.Start()
 
+	var hc *healthcheck.HealthCheckServer
+	if env == "prod" {
+		hc = NewHealthCheck(mqclient, graphqlclient, serverAddr)
+		hc.Start()
+	}
+
 	<-common.SignalHandler()
 	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 	vizservice.Stop()
+
+	if hc != nil {
+		hc.Stop()
+	}
 }
