@@ -322,7 +322,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					Transform(cx, cy)
 
 				starts = append(starts, mapcontainer.MapStart{
-					Id:    "id",
+					Id:    typednode.GetId(),
 					Point: mapcontainer.MapPoint{cxt, cyt},
 				})
 			}
@@ -335,7 +335,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					Transform(cx, cy)
 
 				starts = append(starts, mapcontainer.MapStart{
-					Id:    "id",
+					Id:    typednode.GetId(),
 					Point: mapcontainer.MapPoint{cxt, cyt},
 				})
 			}
@@ -358,9 +358,9 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					Transform(cx, cy)
 
 				objects = append(objects, mapcontainer.MapObject{
-					Id:       "id",
+					Id:       typednode.GetId(),
 					Point:    mapcontainer.MapPoint{cxt, cyt},
-					Diameter: typednode.r,
+					Diameter: typednode.r * 2,
 					Type:     "rocksTallOre",
 				})
 			}
@@ -373,9 +373,9 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					Transform(cx, cy)
 
 				objects = append(objects, mapcontainer.MapObject{
-					Id:       "id",
+					Id:       typednode.GetId(),
 					Point:    mapcontainer.MapPoint{cxt, cyt},
-					Diameter: typednode.rx,
+					Diameter: typednode.rx * 2,
 					Type:     "rocksTallOre",
 				})
 			}
