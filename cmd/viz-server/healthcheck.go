@@ -5,7 +5,9 @@ import (
 	"github.com/bytearena/bytearena/common/healthcheck"
 	"github.com/bytearena/bytearena/common/mq"
 
+	"errors"
 	"net/http"
+	"strconv"
 )
 
 func NewHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client, vizServerAddr string) *healthcheck.HealthCheckServer {
@@ -34,11 +36,15 @@ func NewHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client, vizSe
 	healthCheckServer.Register("viz-server", func() error {
 		resp, err := http.Get(vizServerAddr)
 
-		if err != nil && resp.StatusCode != 200 {
+		if err != nil {
 			return err
-		} else {
-			return nil
 		}
+
+		if resp.StatusCode != 200 {
+			return errors.New("HTTP error, status " + strconv.Itoa(resp.StatusCode))
+		}
+
+		return nil
 	})
 
 	return healthCheckServer
