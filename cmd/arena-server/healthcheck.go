@@ -50,5 +50,5 @@ func StartHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client) {
 		}
 	})
 
-	healthCheckServer.Listen()
+	healthCheckServer.Start()
 }

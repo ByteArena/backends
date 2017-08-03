@@ -10,6 +10,7 @@ import (
 type HealthCheckServer struct {
 	Checkers map[string]HealthCheckHandler
 	port     string
+	listener *http.Server
 }
 
 type HealthChecks struct {
@@ -25,7 +26,7 @@ type HealthCheckHttpResponse struct {
 
 type HealthCheckHandler func() (err error, ok bool)
 
-func (server *HealthCheckServer) httpHandler(w http.ResponseWriter, r *http.Request) {
+func (server *HealthCheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res := HealthCheckHttpResponse{
 		Checks:     make([]HealthChecks, 0),
 		StatusCode: 200,
@@ -67,11 +68,26 @@ func NewHealthCheckServer() *HealthCheckServer {
 	}
 }
 
-func (server *HealthCheckServer) Listen() {
-	http.HandleFunc("/health", server.httpHandler)
+func (server *HealthCheckServer) Start() chan struct{} {
 
-	err := http.ListenAndServe(":"+server.port, nil)
-	utils.Check(err, "Failed to listen on :"+server.port)
+	server.listener = &http.Server{
+		Addr:    ":" + server.port,
+		Handler: server,
+	}
+
+	block := make(chan struct{})
+
+	go func(block chan struct{}) {
+		err := server.listener.ListenAndServe()
+		utils.Check(err, "Failed to listen on :"+server.port)
+		close(block)
+	}(block)
+
+	return block
+}
+
+func (server *HealthCheckServer) Stop() {
+	server.listener.Shutdown(nil)
 }
 
 func (server *HealthCheckServer) Register(name string, handler HealthCheckHandler) {

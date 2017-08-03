@@ -18,5 +18,5 @@ func StartHealthCheck(brokerclient *mq.Client) {
 		}
 	})
 
-	healthCheckServer.Listen()
+	healthCheckServer.Start()
 }

@@ -19,7 +19,7 @@ func PingRegistry(host string) (error, bool) {
 	return nil, true
 }
 
-func StartHealthCheck(brokerclient *mq.Client, registryHost string) {
+func NewHealthCheck(brokerclient *mq.Client, registryHost string) *healthcheck.HealthCheckServer {
 	healthCheckServer := healthcheck.NewHealthCheckServer()
 
 	healthCheckServer.Register("mq", func() (err error, ok bool) {
@@ -64,5 +64,5 @@ func StartHealthCheck(brokerclient *mq.Client, registryHost string) {
 	// 	}
 	// })
 
-	healthCheckServer.Listen()
+	return healthCheckServer
 }
