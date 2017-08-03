@@ -15,4 +15,4 @@ service docker start && sleep 5
 # Make sure docker is running
 docker ps
 
-/usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}" --id "$ID"
+exec /usr/bin/arena-server --port "${PORT}" --mqhost "${MQHOST}" --apiurl "${APIURL}" --id "$ID"
