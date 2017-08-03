@@ -105,9 +105,6 @@ func main() {
 							<-common.SignalHandler()
 							utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 							srv.Stop()
-							if hc != nil {
-								hc.Stop()
-							}
 						}()
 
 						go protocol.StreamState(srv, brokerclient)
@@ -132,7 +129,11 @@ func main() {
 	}()
 
 	streamArenaStopped := make(chan interface{})
-	notify.Start("arena:stop", streamArenaStopped)
+	notify.Start("arena:stopped", streamArenaStopped)
 
 	<-streamArenaStopped
+
+	if hc != nil {
+		hc.Stop()
+	}
 }
