@@ -122,6 +122,7 @@ func (client Client) RequestAsync(query *Query) <-chan Response {
 
 func (client Client) Ping() error {
 	resp, err := http.Get(client.url + "/schema")
+	defer resp.Body.Close()
 
 	if err != nil {
 		return err
