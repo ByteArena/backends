@@ -6,10 +6,8 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
-	"os"
 	"strconv"
 
-	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -19,75 +17,12 @@ import (
 )
 
 type ContainerOrchestrator struct {
-	ctx          context.Context
-	cli          *client.Client
-	registryAuth string
-	containers   []AgentContainer
-	GetHost      func(orch *ContainerOrchestrator) (string, error)
-}
-
-func MakeRemoteContainerOrchestrator() ContainerOrchestrator {
-	ctx := context.Background()
-	cli, err := client.NewEnvClient()
-	utils.Check(err, "Failed to initialize docker client environment")
-
-	registryAuth := registryLogin(ctx, cli)
-
-	return ContainerOrchestrator{
-		ctx:          ctx,
-		cli:          cli,
-		registryAuth: registryAuth,
-		GetHost: func(orch *ContainerOrchestrator) (string, error) {
-
-			// Inspecting the present container (arena-server) to get it's IP in the "agents" network
-			res, err := orch.cli.ContainerInspect(
-				orch.ctx,
-				os.Getenv("HOSTNAME"), // $HOSTNAME is the container id
-			)
-
-			if err != nil {
-				return "", err
-			}
-
-			ipInAgentsNetwork := ""
-
-			for networkname, network := range res.NetworkSettings.Networks {
-				if networkname == "agents" {
-					ipInAgentsNetwork = network.IPAddress
-					break
-				}
-			}
-
-			if ipInAgentsNetwork == "" {
-				return "", errors.New("Could not determine IP of arena-server container in the 'agents' network.")
-			}
-
-			return ipInAgentsNetwork, nil
-		},
-	}
-}
-
-func MakeLocalContainerOrchestrator() ContainerOrchestrator {
-	ctx := context.Background()
-	cli, err := client.NewEnvClient()
-	utils.Check(err, "Failed to initialize docker client environment")
-
-	registryAuth := ""
-
-	return ContainerOrchestrator{
-		ctx:          ctx,
-		cli:          cli,
-		registryAuth: registryAuth,
-		GetHost: func(orch *ContainerOrchestrator) (string, error) {
-
-			res, err := orch.cli.NetworkInspect(orch.ctx, "bridge", types.NetworkInspectOptions{})
-			if err != nil {
-				return "", err
-			}
-
-			return res.IPAM.Config[0].Gateway, nil
-		},
-	}
+	ctx            context.Context
+	cli            *client.Client
+	registryAuth   string
+	containers     []AgentContainer
+	GetHost        func(orch *ContainerOrchestrator) (string, error)
+	StartContainer func(orch *ContainerOrchestrator, ctner AgentContainer) error
 }
 
 func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) error {
@@ -95,57 +30,7 @@ func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) err
 	log.Print(chalk.Yellow)
 	log.Print("Spawning agent "+ctner.AgentId.String()+" in its own container", chalk.Reset)
 
-	err := orch.cli.ContainerStart(
-		orch.ctx,
-		ctner.containerid.String(),
-		types.ContainerStartOptions{},
-	)
-
-	if err != nil {
-		return err
-	}
-
-	networks, err := orch.cli.NetworkList(
-		orch.ctx,
-		types.NetworkListOptions{},
-	)
-
-	networkID := ""
-	defaultID := ""
-
-	for _, network := range networks {
-		if network.Name == "agents" {
-			networkID = network.ID
-		} else if network.Name == "bridge" {
-			defaultID = network.ID
-		}
-	}
-
-	if networkID == "" {
-		log.Panicln("CANNOT FIND AGENTS NETWORK !!")
-	}
-
-	if defaultID == "" {
-		log.Panicln("CANNOT FIND DEFAULT NETWORK !!")
-	}
-
-	err = orch.cli.NetworkConnect(
-		orch.ctx,
-		networkID,
-		ctner.containerid.String(),
-		nil,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	return orch.cli.NetworkDisconnect(
-		orch.ctx,
-		defaultID,
-		ctner.containerid.String(),
-		true,
-	)
+	return orch.StartContainer(orch, ctner)
 }
 
 func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) error {
