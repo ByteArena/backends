@@ -102,9 +102,10 @@ func MakeRemoteContainerOrchestrator() ContainerOrchestrator {
 	registryAuth := registryLogin(ctx, cli)
 
 	return ContainerOrchestrator{
-		ctx:          ctx,
-		cli:          cli,
-		registryAuth: registryAuth,
-		GetHost:      getHostRomoteOrch,
+		ctx:            ctx,
+		cli:            cli,
+		registryAuth:   registryAuth,
+		GetHost:        getHostRomoteOrch,
+		StartContainer: startContainerRemoteOrch,
 	}
 }
