@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	notify "github.com/bitly/go-notify"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver/types"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -15,6 +17,11 @@ type wsincomingmessage struct {
 	messageType int
 	p           []byte
 	err         error
+}
+
+// Simplified version of the VizMessage struct
+type ArenaIdVizMessage struct {
+	ArenaId string
 }
 
 func Websocket(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Request) {
@@ -79,9 +86,17 @@ func Websocket(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Re
 				}
 			case vizmsg := <-vizmsgchan:
 				{
-					if json, ok := vizmsg.(string); ok {
+					vizmsgString, ok := vizmsg.(string)
+					utils.Assert(ok, "Failed to cast vizmessage into string")
+
+					var vizMessage []ArenaIdVizMessage
+					err := json.Unmarshal([]byte(vizmsgString), &vizMessage)
+					utils.Check(err, "Failed to decode vizmessage")
+
+					if arena.GetId() == vizMessage[0].ArenaId {
+
 						// TODO: better management of message type encapsulation
-						c.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", json)))
+						c.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", vizmsgString)))
 					}
 				}
 			}
