@@ -54,13 +54,13 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 	gamehost := host
 
 	if host == "" {
-		host, err := orch.GetHost()
-		utils.Check(err, "Could not determine host !")
+		host, err := orch.GetHost(&orch)
+		utils.Check(err, "Could not determine arena-server host/ip.")
 
 		gamehost = host
 	}
 
-	log.Println("Use host: " + host)
+	utils.Debug("orch", "Use host: "+host)
 
 	s := &Server{
 		host:                  gamehost,
