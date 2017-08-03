@@ -4,7 +4,7 @@
     "kind": "deathmatch",
     "theme": "desert",
     "maxcontestants": 2,
-    "date": "2017-08-03T16:13:40+02:00",
+    "date": "2017-08-03T18:11:13+02:00",
     "repository": "https://github.com/bytearena/maps"
   },
   "data": {
@@ -1473,6 +1473,96 @@
         "point": [
           21.00046,
           75
+        ],
+        "type": "crater01",
+        "diameter": 11.50092492
+      },
+      {
+        "id": "Oval-Copy-80",
+        "point": [
+          241.00046,
+          64
+        ],
+        "type": "crater01",
+        "diameter": 11.50092492
+      },
+      {
+        "id": "Oval-Copy-81",
+        "point": [
+          261.00046,
+          140
+        ],
+        "type": "crater01",
+        "diameter": 11.50092492
+      },
+      {
+        "id": "Oval-Copy-82",
+        "point": [
+          353.00046,
+          100
+        ],
+        "type": "crater01",
+        "diameter": 11.50092492
+      },
+      {
+        "id": "Oval-Copy-83",
+        "point": [
+          343.00046,
+          100
+        ],
+        "type": "crater01",
+        "diameter": 11.50092492
+      },
+      {
+        "id": "Oval-Copy-84",
+        "point": [
+          312.00046,
+          140
+        ],
+        "type": "crater01",
+        "diameter": 11.50092492
+      },
+      {
+        "id": "Oval-Copy-85",
+        "point": [
+          342.00046,
+          181
+        ],
+        "type": "crater01",
+        "diameter": 11.50092492
+      },
+      {
+        "id": "Oval-Copy-86",
+        "point": [
+          392.00046,
+          191
+        ],
+        "type": "crater01",
+        "diameter": 11.50092492
+      },
+      {
+        "id": "Oval-Copy-87",
+        "point": [
+          259.5,
+          58.49973
+        ],
+        "type": "crater01",
+        "diameter": 6.5
+      },
+      {
+        "id": "Oval-Copy-78",
+        "point": [
+          85.00046,
+          104
+        ],
+        "type": "crater01",
+        "diameter": 11.50092492
+      },
+      {
+        "id": "Oval-Copy-79",
+        "point": [
+          85.00046,
+          104
         ],
         "type": "crater01",
         "diameter": 11.50092492
