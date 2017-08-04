@@ -36,6 +36,8 @@ func getHostRomoteOrch(orch *ContainerOrchestrator) (string, error) {
 		return "", errors.New("Could not determine IP of arena-server container in the 'agents' network.")
 	}
 
+	ipInAgentsNetwork = "arena.net.bytearena.com"
+
 	return ipInAgentsNetwork, nil
 }
 
