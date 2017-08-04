@@ -10,7 +10,7 @@ import (
 
 func registryLogin(ctx context.Context, client *client.Client) string {
 	auth := types.AuthConfig{
-		ServerAddress: "registry.bytearena.com",
+		ServerAddress: "registry.net.bytearena.com",
 	}
 
 	_, err := client.RegistryLogin(ctx, auth)
