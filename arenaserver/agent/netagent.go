@@ -10,13 +10,13 @@ import (
 
 type NetAgent interface {
 	Agent
-	SetAddr(addr net.Addr) NetAgent
-	GetAddr() net.Addr
+	SetConn(conn net.Conn) NetAgent
+	GetConn() net.Conn
 }
 
 type NetAgentImp struct {
 	AgentImp
-	addr net.Addr
+	conn net.Conn
 }
 
 func MakeNetAgentImp() NetAgentImp {
@@ -29,17 +29,17 @@ func (agent NetAgentImp) String() string {
 	return "<NetAgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent NetAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator) {
+func (agent NetAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator) error {
 	perceptionjson, _ := json.Marshal(perception)
 	message := []byte("{\"Method\": \"tick\", \"Arguments\": [0," + string(perceptionjson) + "]}\n") // TODO: remove 0 (ex turn)
-	comm.NetSend(message, agent.GetAddr())
+	return comm.NetSend(message, agent.GetConn())
 }
 
-func (agent NetAgentImp) SetAddr(addr net.Addr) NetAgent {
-	agent.addr = addr
+func (agent NetAgentImp) SetConn(conn net.Conn) NetAgent {
+	agent.conn = conn
 	return agent
 }
 
-func (agent NetAgentImp) GetAddr() net.Addr {
-	return agent.addr
+func (agent NetAgentImp) GetConn() net.Conn {
+	return agent.conn
 }

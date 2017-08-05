@@ -9,7 +9,7 @@ import (
 type Agent interface {
 	GetId() uuid.UUID
 	String() string
-	SetPerception(perception state.Perception, comm protocol.AgentCommunicator) // abstract method
+	SetPerception(perception state.Perception, comm protocol.AgentCommunicator) error // abstract method
 }
 
 type AgentImp struct {
@@ -30,6 +30,7 @@ func (agent AgentImp) String() string {
 	return "<AgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent AgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator) {
+func (agent AgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator) error {
 	// I'm abstract, override me !
+	return nil
 }
