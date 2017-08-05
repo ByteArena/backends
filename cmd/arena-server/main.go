@@ -37,10 +37,13 @@ func main() {
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
 	apiurl := flag.String("apiurl", "http://bytearena.com/privateapi/graphql", "GQL API URL")
 	timeout := flag.Int("timeout", 60, "Limit the time of the game (in minutes)")
+	registryAddr := flag.String("registryAddr", "", "Docker registry address")
 
 	flag.Parse()
 
 	utils.Assert((*arenaServerUUID) != "", "id must be set")
+	utils.Assert((*registryAddr) != "", "Docker registry address must be set")
+
 	log.Println("Byte Arena Server v0.1 ID#" + (*arenaServerUUID))
 
 	// Make GraphQL client
@@ -94,7 +97,8 @@ func main() {
 						arena, err := apiqueries.FetchArenaInstanceById(graphqlclient, arenaSubmitted.Id)
 						utils.Check(err, "Could not fetch arenainstance "+arenaSubmitted.Id)
 
-						srv := arenaserver.NewServer(*host, *port, container.MakeRemoteContainerOrchestrator(), arena)
+						orch := container.MakeRemoteContainerOrchestrator(*registryAddr)
+						srv := arenaserver.NewServer(*host, *port, orch, arena)
 
 						for _, contestant := range arena.GetContestants() {
 							srv.RegisterAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)

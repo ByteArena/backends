@@ -8,9 +8,9 @@ import (
 	"github.com/docker/docker/client"
 )
 
-func registryLogin(ctx context.Context, client *client.Client) string {
+func registryLogin(address string, ctx context.Context, client *client.Client) string {
 	auth := types.AuthConfig{
-		ServerAddress: "registry.net.bytearena.com",
+		ServerAddress: address,
 	}
 
 	_, err := client.RegistryLogin(ctx, auth)
