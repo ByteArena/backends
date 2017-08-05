@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"time"
 
@@ -28,7 +29,7 @@ func NewCommServer(address string) *CommServer {
 }
 
 func (s *CommServer) Send(message []byte, conn net.Conn) error {
-	//s.conn.WriteTo(message, addr)
+
 	_, err := conn.Write(message)
 	if err != nil {
 		return err
@@ -47,6 +48,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 	s.listener = ln
 	defer s.listener.Close()
 	for {
+
 		conn, err := s.listener.Accept()
 		if err != nil {
 			return err
@@ -59,6 +61,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 				reader := bufio.NewReader(conn)
 				buf, err := reader.ReadBytes('\n')
 				if err != nil {
+					log.Panicln(err)
 					return
 				}
 

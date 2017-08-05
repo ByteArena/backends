@@ -8,6 +8,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -44,13 +45,16 @@ func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) error {
 
 func (orch *ContainerOrchestrator) LogsToStdOut(container AgentContainer) error {
 	go func(orch *ContainerOrchestrator, container AgentContainer) {
-		reader, _ := orch.cli.ContainerLogs(orch.ctx, container.containerid.String(), types.ContainerLogsOptions{
+		reader, err := orch.cli.ContainerLogs(orch.ctx, container.containerid.String(), types.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Follow:     true,
 			Details:    false,
 			Timestamps: false,
 		})
+
+		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.containerid.String())
+
 		defer reader.Close()
 
 		r := bufio.NewReader(reader)
