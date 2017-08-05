@@ -94,12 +94,12 @@ func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner AgentContainer)
 	)
 }
 
-func MakeRemoteContainerOrchestrator() ContainerOrchestrator {
+func MakeRemoteContainerOrchestrator(registryAddr string) ContainerOrchestrator {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
 	utils.Check(err, "Failed to initialize docker client environment")
 
-	registryAuth := registryLogin(ctx, cli)
+	registryAuth := registryLogin(registryAddr, ctx, cli)
 
 	return ContainerOrchestrator{
 		ctx:            ctx,
