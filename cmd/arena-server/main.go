@@ -38,11 +38,13 @@ func main() {
 	apiurl := flag.String("apiurl", "http://bytearena.com/privateapi/graphql", "GQL API URL")
 	timeout := flag.Int("timeout", 60, "Limit the time of the game (in minutes)")
 	registryAddr := flag.String("registryAddr", "", "Docker registry address")
+	arenaAddr := flag.String("arenaAddr", "", "Address of the arena")
 
 	flag.Parse()
 
 	utils.Assert((*arenaServerUUID) != "", "id must be set")
 	utils.Assert((*registryAddr) != "", "Docker registry address must be set")
+	utils.Assert((*arenaAddr) != "", "Arena address must be set")
 
 	log.Println("Byte Arena Server v0.1 ID#" + (*arenaServerUUID))
 
@@ -97,7 +99,7 @@ func main() {
 						arena, err := apiqueries.FetchArenaInstanceById(graphqlclient, arenaSubmitted.Id)
 						utils.Check(err, "Could not fetch arenainstance "+arenaSubmitted.Id)
 
-						orch := container.MakeRemoteContainerOrchestrator(*registryAddr)
+						orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
 						srv := arenaserver.NewServer(*host, *port, orch, arena)
 
 						for _, contestant := range arena.GetContestants() {
