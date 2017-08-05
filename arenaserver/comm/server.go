@@ -1,62 +1,81 @@
 package comm
 
 import (
+	"bufio"
 	"encoding/json"
+	"fmt"
 	"net"
+	"time"
 
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-// Client holds info about connection
-type CommClient struct {
-	udpaddr net.Addr
-	Server  *CommServer
-}
-
 type CommDispatcher interface {
 	DispatchAgentMessage(msg protocol.MessageWrapper)
 }
 
-// UDP server
 type CommServer struct {
 	address  string
-	conn     net.PacketConn
-	buffsize uint32
+	listener net.Listener
 }
 
 // Creates new tcp server instance
-func NewCommServer(address string, buffsize uint32) *CommServer {
+func NewCommServer(address string) *CommServer {
 	return &CommServer{
-		address:  address,
-		buffsize: buffsize,
+		address: address,
 	}
 }
 
-func (s *CommServer) Send(message []byte, addr net.Addr) {
-	s.conn.WriteTo(message, addr)
+func (s *CommServer) Send(message []byte, conn net.Conn) error {
+	//s.conn.WriteTo(message, addr)
+	_, err := conn.Write(message)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 
-	listener, err := net.ListenPacket("udp4", s.address)
-	utils.Check(err, "Cannot listen on "+s.address)
-
-	s.conn = listener
-
-	defer s.conn.Close()
-	for {
-		buf := make([]byte, s.buffsize)
-		n, addr, err := s.conn.ReadFrom(buf)
-		utils.Check(err, "Read from buffer failed in CommServer::Listen()")
-
-		// Unmarshal message (unwrapping in an AgentMessage structure)
-		var msg protocol.MessageWrapperImp
-		err = json.Unmarshal(buf[0:n], &msg)
-		utils.Check(err, "Failed to unmarshal incoming JSON in CommServer::Listen();"+string(buf[0:n]))
-
-		msg.EmitterAddr = addr
-
-		go dispatcher.DispatchAgentMessage(msg)
+	ln, err := net.Listen("tcp", s.address)
+	if err != nil {
+		return fmt.Errorf("Comm server could not listen on %s; %s", s.address, err.Error())
 	}
+
+	s.listener = ln
+	defer s.listener.Close()
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			return err
+		}
+
+		conn.SetReadDeadline(time.Now().Add(time.Second * 10))
+
+		go func() {
+			for {
+				reader := bufio.NewReader(conn)
+				buf, err := reader.ReadBytes('\n')
+				if err != nil {
+					return
+				}
+
+				// no more read deadline
+				conn.SetReadDeadline(time.Time{})
+
+				// Unmarshal message (unwrapping in an AgentMessage structure)
+				var msg protocol.MessageWrapperImp
+				err = json.Unmarshal(buf, &msg)
+				utils.Check(err, "Failed to unmarshal incoming JSON in CommServer::Listen();"+string(buf))
+
+				msg.EmitterConn = conn
+
+				go dispatcher.DispatchAgentMessage(msg)
+			}
+		}()
+	}
+
+	return nil
 }

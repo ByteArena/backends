@@ -153,7 +153,7 @@ func (s *Server) GetTurn() utils.Tickturn {
 
 func (server *Server) Listen() chan interface{} {
 	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
-	server.commserver = comm.NewCommServer(serveraddress, 8192) // 8192: max size of message in bytes
+	server.commserver = comm.NewCommServer(serveraddress)
 	log.Println("Server listening on port " + strconv.Itoa(server.port))
 
 	if server.GetNbExpectedagents() > 0 {
@@ -241,7 +241,11 @@ func (server *Server) DoTick() {
 
 			p := perception.ComputeAgentPerception(arenamap, serverstate, ag)
 
-			ag.SetPerception(p, server)
+			err := ag.SetPerception(p, server)
+			if err != nil {
+				fmt.Print(chalk.Red)
+				log.Println("ERROR: could not set perception on agent", ag.GetId().String(), chalk.Reset)
+			}
 
 		}(server, ag, server.GetState(), arenamap)
 	}
@@ -255,8 +259,8 @@ func (server *Server) DoTick() {
 
 /* <implementing protocol.AgentCommunicator> */
 
-func (server *Server) NetSend(message []byte, addr net.Addr) {
-	server.commserver.Send(message, addr)
+func (server *Server) NetSend(message []byte, conn net.Conn) error {
+	return server.commserver.Send(message, conn)
 }
 
 func (server *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
@@ -281,7 +285,8 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 			ag, ok := ag.(agent.NetAgent)
 			utils.Assert(ok, "Failed to cast agent to NetAgent during handshake for "+ag.String())
 
-			server.setAgent(ag.SetAddr(msg.GetEmitterAddr()))
+			ag = ag.SetConn(msg.GetEmitterConn())
+			server.setAgent(ag)
 
 			log.Println("Received handshake from agent " + ag.String() + "; agent said \"" + handshake.GetGreetings() + "\"")
 
