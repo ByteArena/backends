@@ -149,7 +149,7 @@ func (db *GraphqlDatabase) FindRepository(user protocol.User, reponame string) (
 	)
 
 	if err != nil {
-		return protocol.GitRepository{}, errors.New("There was an error fetching agent; " + err.Error())
+		return protocol.GitRepository{}, errors.New("There was an error fetching repository; " + err.Error())
 	}
 
 	return processFoundRepository(data)
@@ -163,7 +163,7 @@ func (db *GraphqlDatabase) FindRepositoryById(id string) (protocol.GitRepository
 	)
 
 	if err != nil {
-		return protocol.GitRepository{}, errors.New("There was an error fetching agent; " + err.Error())
+		return protocol.GitRepository{}, errors.New("There was an error fetching repository; " + err.Error())
 	}
 
 	return processFoundRepository(data)
@@ -179,7 +179,7 @@ func processFoundRepository(data json.RawMessage) (protocol.GitRepository, error
 	}
 
 	if len(apiresponse.Agents) == 0 {
-		return protocol.GitRepository{}, errors.New("Agent not found" + err.Error())
+		return protocol.GitRepository{}, errors.New("Agent not found")
 	}
 
 	apiagent := apiresponse.Agents[0]
