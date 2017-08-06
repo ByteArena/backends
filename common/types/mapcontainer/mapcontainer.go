@@ -92,8 +92,8 @@ type MapStart struct {
 }
 
 type MapObstacle struct {
-	Id    string   `json:"id"`
-	Point MapPoint `json:"point"`
+	Id      string     `json:"id"`
+	Polygon MapPolygon `json:"polygon"`
 }
 
 type MapObject struct {

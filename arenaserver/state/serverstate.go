@@ -30,6 +30,8 @@ type ServerState struct {
 
 	DebugPoints      []vector.Vector2
 	debugPointsMutex *sync.Mutex
+
+	MapMemoization *MapMemoization
 }
 
 /* ***************************************************************************/

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -58,8 +59,8 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 
 	svggrounds := make([]SVGNode, 0)
 	svgstarts := make([]SVGNode, 0)
+	svgobjects := make([]SVGNode, 0)
 	svgobstacles := make([]SVGNode, 0)
-	svgcustomobstacles := make([]SVGNode, 0)
 
 	SVGVisit(svg, func(node SVGNode) {
 
@@ -76,29 +77,39 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 			{
 				if groups.Contains("ba:start") > -1 {
 					svgstarts = append(svgstarts, node)
-				} else if groups.Contains("ba:obstacle") > -1 {
-					svgobstacles = append(svgobstacles, node)
-				} else if groups.Contains("ba:object") > -1 {
-					svgobstacles = append(svgobstacles, node)
+				} else {
+					if groups.Contains("ba:obstacle") > -1 {
+						svgobstacles = append(svgobstacles, node)
+					}
+
+					if groups.Contains("ba:object") > -1 {
+						svgobjects = append(svgobjects, node)
+					}
 				}
 			}
 		case *SVGEllipse:
 			{
 				if groups.Contains("ba:start") > -1 {
 					svgstarts = append(svgstarts, node)
-				} else if groups.Contains("ba:obstacle") > -1 {
-					svgobstacles = append(svgobstacles, node)
-				} else if groups.Contains("ba:object") > -1 {
-					svgobstacles = append(svgobstacles, node)
+				} else {
+					if groups.Contains("ba:obstacle") > -1 {
+						svgobstacles = append(svgobstacles, node)
+					}
+
+					if groups.Contains("ba:object") > -1 {
+						svgobjects = append(svgobjects, node)
+					}
 				}
 			}
 		case *SVGPolygon:
 			{
-				if groups.Contains("ba:obstacle") > -1 {
-					svgcustomobstacles = append(svgcustomobstacles, node)
-				} else if groups.Contains("ba:ground") > -1 {
+				if groups.Contains("ba:ground") > -1 {
 					svggrounds = append(svggrounds, node)
 				}
+
+				// if groups.Contains("ba:obstacle") > -1 {
+				// 	svgobstacles = append(svgobstacles, node)
+				// }
 			}
 		}
 	})
@@ -106,6 +117,117 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 	/************************************/
 	/* Processing grounds */
 	/************************************/
+
+	grounds := processGrounds(worldTransform, svggrounds)
+
+	/************************************/
+	/* Processing STARTS */
+	/************************************/
+
+	starts := processStarts(worldTransform, svgstarts)
+
+	/************************************/
+	/* Processing OBJECTS */
+	/************************************/
+
+	objects := processObjects(worldTransform, svgobjects)
+
+	/************************************/
+	/* Processing OBSTACLES */
+	/************************************/
+	// use processObjects to get a pre-processed collection of objects, that we will convert to obstacles
+	obstaclesObjects := processObjects(worldTransform, svgobstacles)
+	obstacles := make([]mapcontainer.MapObstacle, 0)
+
+	for _, obstacleObject := range obstaclesObjects {
+
+		switch obstacleObject.Type {
+		case "rock01", "crater01":
+			{
+				// temporary: draw a square around the center of the obstacle
+				//
+				// A---B
+				// | o |	// o: center
+				// D---C
+
+				center := obstacleObject.Point
+				diameter := obstacleObject.Diameter
+				halfDiameter := diameter / 2.0
+
+				pointA := mapcontainer.MapPoint{
+					X: center.X - halfDiameter,
+					Y: center.Y - halfDiameter,
+				}
+
+				pointB := mapcontainer.MapPoint{
+					X: center.X + halfDiameter,
+					Y: center.Y - halfDiameter,
+				}
+
+				pointC := mapcontainer.MapPoint{
+					X: center.X + halfDiameter,
+					Y: center.Y + halfDiameter,
+				}
+
+				pointD := mapcontainer.MapPoint{
+					X: center.X - halfDiameter,
+					Y: center.Y + halfDiameter,
+				}
+
+				polygon := mapcontainer.MapPolygon{
+					Points: []mapcontainer.MapPoint{
+						pointA,
+						pointB,
+						pointC,
+						pointD,
+						pointA,
+					},
+				}
+
+				obstacles = append(obstacles, mapcontainer.MapObstacle{
+					Id:      obstacleObject.Id,
+					Polygon: polygon,
+				})
+				break
+			}
+		default:
+			{
+				log.Panicln("Unsuported obstacle type", obstacleObject.Type)
+			}
+		}
+	}
+
+	/************************************/
+	/* TODO: Processing CUSTOMOBSTACLES */
+	/************************************/
+
+	builtmap := mapcontainer.MapContainer{}
+
+	builtmap.Meta.Readme = "Byte Arena Training Map"
+	builtmap.Meta.Kind = "deathmatch"
+	builtmap.Meta.Theme = "desert"
+	builtmap.Meta.MaxContestants = 2
+	builtmap.Meta.Date = time.Now().Format(time.RFC3339)
+	builtmap.Meta.Repository = "https://github.com/bytearena/maps"
+
+	builtmap.Data.Grounds = grounds
+	builtmap.Data.Starts = starts
+	builtmap.Data.Objects = objects
+	builtmap.Data.Obstacles = obstacles
+
+	return builtmap
+}
+
+func SVGVisit(node SVGNode, cbk func(node SVGNode)) {
+
+	children := node.GetChildren()
+	for _, child := range children {
+		SVGVisit(child, cbk)
+	}
+	cbk(node)
+}
+
+func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapcontainer.MapGround {
 
 	grounds := make([]mapcontainer.MapGround, 0)
 
@@ -177,7 +299,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					Mul(worldTransform).
 					Transform(op.Coords[0], op.Coords[1])
 
-				points = append(points, mapcontainer.MapPoint{x, y})
+				points = append(points, mapcontainer.MapPoint{X: x, Y: y})
 			}
 
 			ground.Outline = append(ground.Outline, mapcontainer.MapPolygon{Points: points})
@@ -310,9 +432,10 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 		grounds = append(grounds, ground)
 	}
 
-	/************************************/
-	/* Processing STARTS */
-	/************************************/
+	return grounds
+}
+
+func processStarts(worldTransform vector.Matrix2, svgstarts []SVGNode) []mapcontainer.MapStart {
 
 	starts := make([]mapcontainer.MapStart, 0)
 	for _, svgstart := range svgstarts {
@@ -327,7 +450,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 
 				starts = append(starts, mapcontainer.MapStart{
 					Id:    typednode.GetId(),
-					Point: mapcontainer.MapPoint{cxt, cyt},
+					Point: mapcontainer.MapPoint{X: cxt, Y: cyt},
 				})
 			}
 		case *SVGEllipse:
@@ -340,16 +463,16 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 
 				starts = append(starts, mapcontainer.MapStart{
 					Id:    typednode.GetId(),
-					Point: mapcontainer.MapPoint{cxt, cyt},
+					Point: mapcontainer.MapPoint{X: cxt, Y: cyt},
 				})
 			}
 		}
 	}
 
-	/************************************/
-	/* Processing OBJECTS */
-	/************************************/
+	return starts
+}
 
+func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapcontainer.MapObject {
 	objects := make([]mapcontainer.MapObject, 0)
 
 	circleProcessor := func(node SVGNode, cx float64, cy float64, radius float64) *mapcontainer.MapObject {
@@ -382,9 +505,9 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 		}
 	}
 
-	for _, svgobstacle := range svgobstacles {
+	for _, svgobject := range svgobjects {
 
-		switch typednode := svgobstacle.(type) {
+		switch typednode := svgobject.(type) {
 		case *SVGCircle:
 			{
 				cx, cy := typednode.GetCenter()
@@ -404,37 +527,5 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 		}
 	}
 
-	/************************************/
-	/* Processing OBSTACLES */
-	/************************************/
-	obstacles := make([]mapcontainer.MapObstacle, 0)
-
-	/************************************/
-	/* TODO: Processing CUSTOMOBSTACLES */
-	/************************************/
-
-	builtmap := mapcontainer.MapContainer{}
-
-	builtmap.Meta.Readme = "Byte Arena Training Map"
-	builtmap.Meta.Kind = "deathmatch"
-	builtmap.Meta.Theme = "desert"
-	builtmap.Meta.MaxContestants = 2
-	builtmap.Meta.Date = time.Now().Format(time.RFC3339)
-	builtmap.Meta.Repository = "https://github.com/bytearena/maps"
-
-	builtmap.Data.Grounds = grounds
-	builtmap.Data.Starts = starts
-	builtmap.Data.Objects = objects
-	builtmap.Data.Obstacles = obstacles
-
-	return builtmap
-}
-
-func SVGVisit(node SVGNode, cbk func(node SVGNode)) {
-
-	children := node.GetChildren()
-	for _, child := range children {
-		SVGVisit(child, cbk)
-	}
-	cbk(node)
+	return objects
 }
