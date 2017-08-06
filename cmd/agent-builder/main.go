@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"strconv"
 
 	"github.com/ttacon/chalk"
 
@@ -99,7 +98,7 @@ func buildAndDeploy(username string, repo string, cloneurl string, registryHost 
 		err = buildImage(dir, imageName)
 
 		if err == nil {
-			deployImage(imageName, "latest", registryHost, 5000)
+			deployImage(imageName, "latest", registryHost)
 		} else {
 			utils.Debug("error", err.Error())
 		}
@@ -133,13 +132,13 @@ func buildImage(absBuildDir string, name string) error {
 	return nil
 }
 
-func deployImage(name string, imageVersion string, registryhost string, registryport int) {
+func deployImage(name string, imageVersion string, registryhost string) {
 	utils.Debug("agent-builder", "Deploying to docker registry")
 
 	dockerbin, err := exec.LookPath("docker")
 	utils.Check(err, "Error: docker command not found in path")
 
-	imageurl := registryhost + ":" + strconv.Itoa(registryport) + "/" + name + ":" + imageVersion
+	imageurl := registryhost + "/" + name + ":" + imageVersion
 
 	// Tag
 	cmd := exec.Command(
