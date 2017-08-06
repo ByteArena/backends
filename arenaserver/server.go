@@ -60,8 +60,6 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 		gamehost = host
 	}
 
-	utils.Debug("orch", "Use host: "+host)
-
 	s := &Server{
 		host:                  gamehost,
 		port:                  port,
@@ -208,12 +206,7 @@ func (server *Server) DoTick() {
 	turn := server.GetTurn()
 	server.SetExpectedTurn(turn.Next())
 
-	var dolog bool
-	if debug {
-		dolog = true
-	} else {
-		dolog = (turn.GetSeq() % server.tickspersec) == 0
-	}
+	dolog := (turn.GetSeq() % server.tickspersec) == 0
 
 	if dolog {
 		fmt.Print(chalk.Yellow)
@@ -233,11 +226,6 @@ func (server *Server) DoTick() {
 
 	for _, ag := range server.agents {
 		go func(server *Server, ag agent.Agent, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
-
-			if debug {
-				fmt.Print(chalk.Cyan)
-				log.Println("REFRESHING perception for " + ag.String())
-			}
 
 			p := perception.ComputeAgentPerception(arenamap, serverstate, ag)
 
@@ -270,20 +258,26 @@ func (server *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
 
 /* </implementing protocol.AgentCommunicator> */
 
-func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
+func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 
 	ag, err := server.DoFindAgent(msg.GetAgentId().String())
-	utils.Check(err, "agentid does not match any known agent in received agent message !")
+	if err != nil {
+		return errors.New("DispatchAgentMessage: agentid does not match any known agent in received agent message !;" + msg.GetAgentId().String())
+	}
 
 	switch msg.GetType() {
 	case "Handshake":
 		{
 			var handshake protocol.MessageHandshakeImp
 			err = json.Unmarshal(msg.GetPayload(), &handshake)
-			utils.Check(err, "Failed to unmarshal JSON agent handshake payload")
+			if err != nil {
+				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent handshake payload for agent " + msg.GetAgentId().String() + "; " + string(msg.GetPayload()))
+			}
 
 			ag, ok := ag.(agent.NetAgent)
-			utils.Assert(ok, "Failed to cast agent to NetAgent during handshake for "+ag.String())
+			if !ok {
+				return errors.New("DispatchAgentMessage: Failed to cast agent to NetAgent during handshake for " + ag.String())
+			}
 
 			ag = ag.SetConn(msg.GetEmitterConn())
 			server.setAgent(ag)
@@ -305,12 +299,11 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 			//break
 			var mutations protocol.MessageMutationsImp
 			err = json.Unmarshal(msg.GetPayload(), &mutations)
-			utils.Check(err, "Failed to unmarshal JSON agent mutation payload for agent "+ag.String()+"; "+string(msg.GetPayload()))
+			if err != nil {
+				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent mutation payload for agent " + ag.String() + "; " + string(msg.GetPayload()))
+			}
 
 			turn := server.GetTurn()
-			if debug {
-				log.Println("GOT MUTATION FROM ", msg.GetAgentId(), "TURN", turn)
-			}
 
 			mutationbatch := protocol.StateMutationBatch{
 				AgentId:   ag.GetId(),
@@ -327,8 +320,11 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) {
 		{
 			log.Print(chalk.Red)
 			log.Println("Unknown message type", msg)
+			return errors.New("DispatchAgentMessage: Unknown message type" + msg.GetType())
 		}
 	}
+
+	return nil
 }
 
 func (server *Server) monitoring() {
@@ -392,7 +388,6 @@ func (server *Server) startTicking() {
 }
 
 func (server *Server) Start() chan interface{} {
-	log.Println("START !")
 	server.spawnAgents()
 	block := server.Listen()
 	return block

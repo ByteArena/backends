@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"time"
 
@@ -13,7 +12,7 @@ import (
 )
 
 type CommDispatcher interface {
-	DispatchAgentMessage(msg protocol.MessageWrapper)
+	DispatchAgentMessage(msg protocol.MessageWrapper) error
 }
 
 type CommServer struct {
@@ -40,7 +39,7 @@ func (s *CommServer) Send(message []byte, conn net.Conn) error {
 
 func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 
-	ln, err := net.Listen("tcp", s.address)
+	ln, err := net.Listen("tcp4", s.address)
 	if err != nil {
 		return fmt.Errorf("Comm server could not listen on %s; %s", s.address, err.Error())
 	}
@@ -57,11 +56,13 @@ func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 		conn.SetReadDeadline(time.Now().Add(time.Second * 10))
 
 		go func() {
+			defer conn.Close()
 			for {
 				reader := bufio.NewReader(conn)
 				buf, err := reader.ReadBytes('\n')
 				if err != nil {
-					log.Panicln(err)
+					// Avoid crashes when agent crashes Issue #108
+					utils.Debug("commserver", "Connexion closed unexpectedly; "+err.Error())
 					return
 				}
 
@@ -71,11 +72,19 @@ func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 				// Unmarshal message (unwrapping in an AgentMessage structure)
 				var msg protocol.MessageWrapperImp
 				err = json.Unmarshal(buf, &msg)
-				utils.Check(err, "Failed to unmarshal incoming JSON in CommServer::Listen();"+string(buf))
+				if err != nil {
+					utils.Debug("commserver", "Failed to unmarshal incoming JSON in CommServer::Listen(); "+string(buf)+";"+err.Error())
+					return
+				}
 
 				msg.EmitterConn = conn
 
-				go dispatcher.DispatchAgentMessage(msg)
+				go func() {
+					err := dispatcher.DispatchAgentMessage(msg)
+					if err != nil {
+						utils.Debug("commserver", "Failed to dispatch agent message; "+err.Error())
+					}
+				}()
 			}
 		}()
 	}

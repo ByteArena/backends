@@ -2,6 +2,8 @@ package healthcheck
 
 import (
 	"encoding/json"
+	"log"
+	"net"
 	"net/http"
 
 	"github.com/bytearena/bytearena/common/utils"
@@ -70,15 +72,19 @@ func NewHealthCheckServer() *HealthCheckServer {
 
 func (server *HealthCheckServer) Start() chan struct{} {
 
+	listener, err := net.Listen("tcp4", ":"+server.port)
+	if err != nil {
+		log.Panicln(err)
+	}
+
 	server.listener = &http.Server{
-		Addr:    ":" + server.port,
 		Handler: server,
 	}
 
 	block := make(chan struct{})
 
 	go func(block chan struct{}) {
-		err := server.listener.ListenAndServe()
+		err := server.listener.Serve(listener)
 		utils.Check(err, "Failed to listen on :"+server.port)
 		close(block)
 	}(block)

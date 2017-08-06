@@ -1,6 +1,7 @@
 package vizserver
 
 import (
+	"net"
 	"net/http"
 	"os"
 
@@ -64,15 +65,19 @@ func (viz *VizService) Start() chan struct{} {
 
 	log.Println("VIZ Listening on " + viz.addr)
 
+	listener, err := net.Listen("tcp4", viz.addr)
+	if err != nil {
+		utils.Check(err, err.Error())
+	}
+
 	viz.listener = &http.Server{
-		Addr:    viz.addr,
 		Handler: router,
 	}
 
 	block := make(chan struct{})
 
 	go func(block chan struct{}) {
-		err := viz.listener.ListenAndServe()
+		err := viz.listener.Serve(listener)
 		utils.Check(err, "Failed to listen on "+viz.addr)
 		close(block)
 	}(block)
