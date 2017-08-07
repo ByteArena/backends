@@ -15,6 +15,7 @@ import (
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/protocol"
+	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
@@ -38,6 +39,7 @@ func main() {
 	tickspersec := flag.Int("tps", 10, "Number of ticks per second")
 	host := flag.String("host", "", "IP serving the trainer; required")
 	port := flag.Int("port", 8080, "Port serving the trainer")
+	recordFile := flag.String("record-file", "", "Destination file for recording the game")
 
 	var agentimages arrayFlags
 	flag.Var(&agentimages, "agent", "Agent image in docker; example netgusto/meatgrinder")
@@ -90,13 +92,18 @@ func main() {
 		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond) // string because received as string from MQ, and no need to manipulate it on our side
 	})
 
+	var recorder recording.Recorder = recording.MakeEmptyRecorder()
+	if *recordFile != "" {
+		recorder = recording.MakeSingleArenaRecorder(*recordFile)
+	}
+
 	// TODO: refac webclient path / serving
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
 	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]arenaserver.ArenaInstance, error) {
 		res := make([]arenaserver.ArenaInstance, 1)
 		res[0] = arenainstance
 		return res, nil
-	})
+	}, recorder)
 
 	vizservice.Start()
 

@@ -17,6 +17,7 @@ import (
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
 	"github.com/bytearena/bytearena/common/healthcheck"
 	"github.com/bytearena/bytearena/common/mq"
+	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
@@ -37,6 +38,7 @@ func main() {
 	port := flag.Int("port", 8081, "Port of the viz server")
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
 	apiurl := flag.String("apiurl", "http://graphql.net.bytearena.com", "GQL API URL")
+	recordDirectory := flag.String("record-dir", "", "Record files destination")
 
 	flag.Parse()
 
@@ -55,6 +57,11 @@ func main() {
 	serverAddr := ":" + strconv.Itoa(*port)
 	log.Println("VIZ-SERVER listening on " + serverAddr)
 
+	var recorder recording.Recorder = recording.MakeEmptyRecorder()
+	if *recordDirectory != "" {
+		recorder = recording.MakeSingleArenaRecorder(*recordDirectory)
+	}
+
 	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]arenaserver.ArenaInstance, error) {
 		arenainstances, err := apiqueries.FetchArenaInstances(graphqlclient)
 		if err != nil {
@@ -62,7 +69,7 @@ func main() {
 		}
 
 		return arenainstances, nil
-	})
+	}, recorder)
 
 	vizservice.Start()
 

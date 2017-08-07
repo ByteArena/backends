@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	notify "github.com/bitly/go-notify"
+	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver/types"
 	"github.com/gorilla/mux"
@@ -24,10 +25,13 @@ type ArenaIdVizMessage struct {
 	ArenaId string
 }
 
-func Websocket(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Request) {
+func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w http.ResponseWriter, r *http.Request) {
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		arena := arenas.Get(vars["id"])
+
+		defer recorder.Close()
 
 		if arena == nil {
 			w.Write([]byte("ARENA NOT FOUND !"))
@@ -91,12 +95,18 @@ func Websocket(arenas *types.VizArenaMap) func(w http.ResponseWriter, r *http.Re
 
 					var vizMessage []ArenaIdVizMessage
 					err := json.Unmarshal([]byte(vizmsgString), &vizMessage)
-					utils.Check(err, "Failed to decode vizmessage")
 
-					if arena.GetId() == vizMessage[0].ArenaId {
+					if err != nil {
+						log.Println("Failed to decode vizmessage:", err)
+					} else {
 
-						// TODO: better management of message type encapsulation
-						c.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", vizmsgString)))
+						recorder.Record(vizMessage[0].ArenaId, vizmsgString)
+
+						if arena.GetId() == vizMessage[0].ArenaId {
+
+							// TODO: better management of message type encapsulation
+							c.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", vizmsgString)))
+						}
 					}
 				}
 			}
