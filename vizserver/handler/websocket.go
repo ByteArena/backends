@@ -31,8 +31,6 @@ func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w ht
 		vars := mux.Vars(r)
 		arena := arenas.Get(vars["id"])
 
-		defer recorder.Close()
-
 		if arena == nil {
 			w.Write([]byte("ARENA NOT FOUND !"))
 			return
