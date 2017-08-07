@@ -59,7 +59,7 @@ func main() {
 
 	var recorder recording.Recorder = recording.MakeEmptyRecorder()
 	if *recordDirectory != "" {
-		recorder = recording.MakeSingleArenaRecorder(*recordDirectory)
+		recorder = recording.MakeMultiArenaRecorder(*recordDirectory)
 	}
 
 	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]arenaserver.ArenaInstance, error) {
