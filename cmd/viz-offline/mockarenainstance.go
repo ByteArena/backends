@@ -43,7 +43,7 @@ func NewMockArenaInstance(tps int) *MockArenaInstance {
 }
 
 func (ins *MockArenaInstance) GetId() string {
-	return "1"
+	return "2"
 }
 
 func (ins *MockArenaInstance) GetName() string {

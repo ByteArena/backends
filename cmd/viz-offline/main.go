@@ -13,6 +13,7 @@ import (
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common"
+	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
@@ -81,6 +82,7 @@ func sendMessageToViz(msg string, debug bool) {
 
 func NewVizService(port int) *vizserver.VizService {
 
+	recorder := recording.MakeEmptyRecorder()
 	arenainstance := NewMockArenaInstance(10)
 
 	// TODO: refac webclient path / serving
@@ -89,7 +91,7 @@ func NewVizService(port int) *vizserver.VizService {
 		res := make([]arenaserver.ArenaInstance, 1)
 		res[0] = arenainstance
 		return res, nil
-	}, nil)
+	}, recorder)
 
 	return vizservice
 }
