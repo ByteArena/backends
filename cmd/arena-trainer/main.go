@@ -88,14 +88,17 @@ func main() {
 
 	go protocol.StreamState(srv, brokerclient)
 
-	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
-		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond) // string because received as string from MQ, and no need to manipulate it on our side
-	})
-
 	var recorder recording.Recorder = recording.MakeEmptyRecorder()
 	if *recordFile != "" {
 		recorder = recording.MakeSingleArenaRecorder(*recordFile)
 	}
+
+	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
+		arenaId := arenainstance.GetId()
+
+		recorder.Record(arenaId, string(msg.Data))
+		notify.PostTimeout("viz:message"+arenaId, string(msg.Data), time.Millisecond)
+	})
 
 	// TODO: refac webclient path / serving
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"

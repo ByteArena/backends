@@ -27,18 +27,21 @@ func main() {
 
 	utils.Assert(*filename != "", "file must be set")
 
-	vizserver := NewVizService(*port)
+	arenainstance := NewMockArenaInstance(10)
+
+	vizserver := NewVizService(*port, arenainstance)
 
 	vizserver.Start()
-	go read(*filename, *debug)
+	go read(*filename, *debug, arenainstance)
 
 	<-common.SignalHandler()
 	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 	vizserver.Stop()
 }
 
-func read(filename string, debug bool) {
+func read(filename string, debug bool, arenainstance *MockArenaInstance) {
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0755)
+	arenaId := arenainstance.GetId()
 
 	utils.CheckWithFunc(err, func() string {
 		return "File open failed: " + err.Error()
@@ -58,7 +61,7 @@ func read(filename string, debug bool) {
 		}
 
 		if !isPrefix {
-			sendMessageToViz(string(line), debug)
+			sendMessageToViz(string(line), debug, arenaId)
 		} else {
 			buf := append([]byte(nil), line...)
 			for isPrefix && err == nil {
@@ -66,24 +69,23 @@ func read(filename string, debug bool) {
 				buf = append(buf, line...)
 			}
 
-			sendMessageToViz(string(buf), debug)
+			sendMessageToViz(string(buf), debug, arenaId)
 		}
 	}
 }
 
-func sendMessageToViz(msg string, debug bool) {
+func sendMessageToViz(msg string, debug bool, arenaId string) {
 	if debug {
 		log.Println("read buffer of length: ", len(msg))
 	}
 
-	notify.PostTimeout("viz:message", msg, time.Millisecond)
+	notify.PostTimeout("viz:message"+arenaId, msg, time.Millisecond)
 	<-time.NewTimer(1 * time.Second).C
 }
 
-func NewVizService(port int) *vizserver.VizService {
+func NewVizService(port int, arenainstance *MockArenaInstance) *vizserver.VizService {
 
 	recorder := recording.MakeEmptyRecorder()
-	arenainstance := NewMockArenaInstance(10)
 
 	// TODO: refac webclient path / serving
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"

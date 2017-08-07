@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -77,13 +76,14 @@ func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w ht
 
 		// Listen to viz messages coming from arenaserver
 		vizmsgchan := make(chan interface{})
-		notify.Start("viz:message", vizmsgchan)
+
+		notify.Start("viz:message"+arena.GetId(), vizmsgchan)
 
 		for {
 			select {
 			case <-clientclosedsocket:
 				{
-					log.Println("<-clientclosedsocket")
+					utils.Debug("ws", "disconnected")
 					return
 				}
 			case vizmsg := <-vizmsgchan:
@@ -91,27 +91,11 @@ func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w ht
 					vizmsgString, ok := vizmsg.(string)
 					utils.Assert(ok, "Failed to cast vizmessage into string")
 
-					var vizMessage []ArenaIdVizMessage
-					err := json.Unmarshal([]byte(vizmsgString), &vizMessage)
+					data := fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", vizmsgString)
 
-					if err != nil {
-						log.Println("Failed to decode vizmessage:", err)
-					} else {
-
-						recorder.Record(vizMessage[0].ArenaId, vizmsgString)
-
-						if arena.GetId() == vizMessage[0].ArenaId {
-
-							// TODO: better management of message type encapsulation
-							c.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", vizmsgString)))
-						}
-					}
+					c.WriteMessage(websocket.TextMessage, []byte(data))
 				}
 			}
 		}
-
-		/////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////
 	}
 }

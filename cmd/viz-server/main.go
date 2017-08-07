@@ -1,11 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"log"
 	"os"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -21,6 +21,11 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
+
+// Simplified version of the VizMessage struct
+type ArenaIdVizMessage struct {
+	ArenaId string
+}
 
 func main() {
 	env := os.Getenv("ENV")
@@ -46,19 +51,30 @@ func main() {
 	mqclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: could not connect to messagebroker")
 
+	var recorder recording.Recorder = recording.MakeEmptyRecorder()
+	if *recordDirectory != "" {
+		recorder = recording.MakeMultiArenaRecorder(*recordDirectory)
+	}
+
 	mqclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
-		log.Println("RECEIVED viz:message from MESSAGEBROKER; goroutines: " + strconv.Itoa(runtime.NumGoroutine()))
-		notify.PostTimeout("viz:message", string(msg.Data), time.Millisecond)
+		var vizMessage []ArenaIdVizMessage
+		err := json.Unmarshal([]byte(msg.Data), &vizMessage)
+
+		utils.CheckWithFunc(err, func() string {
+			return "Failed to decode vizmessage: " + err.Error()
+		})
+
+		arenaId := vizMessage[0].ArenaId
+
+		recorder.Record(arenaId, string(msg.Data))
+
+		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena "+arenaId)
+		notify.PostTimeout("viz:message"+arenaId, string(msg.Data), time.Millisecond)
 	})
 
 	// Make GraphQL client
 	graphqlclient := graphql.MakeClient(*apiurl)
 	serverAddr := ":" + strconv.Itoa(*port)
-
-	var recorder recording.Recorder = recording.MakeEmptyRecorder()
-	if *recordDirectory != "" {
-		recorder = recording.MakeMultiArenaRecorder(*recordDirectory)
-	}
 
 	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]arenaserver.ArenaInstance, error) {
 		arenainstances, err := apiqueries.FetchArenaInstances(graphqlclient)
