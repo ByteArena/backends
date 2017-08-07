@@ -53,9 +53,7 @@ func main() {
 
 	// Make GraphQL client
 	graphqlclient := graphql.MakeClient(*apiurl)
-
 	serverAddr := ":" + strconv.Itoa(*port)
-	log.Println("VIZ-SERVER listening on " + serverAddr)
 
 	var recorder recording.Recorder = recording.MakeEmptyRecorder()
 	if *recordDirectory != "" {

@@ -19,6 +19,8 @@ func createFileIfNotExists(path string) {
 		var file, err = os.Create(path)
 		utils.Check(err, "Could not create file")
 
+		utils.Debug("recorder", "created record file "+path)
+
 		defer file.Close()
 	}
 
