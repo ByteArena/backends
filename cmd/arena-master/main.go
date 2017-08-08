@@ -31,7 +31,7 @@ func main() {
 	// handling signals
 	var hc *healthcheck.HealthCheckServer
 	if env == "prod" {
-		hc = NewHealthCheck(brokerclient)
+		hc = NewHealthCheck(brokerclient, graphqlclient)
 		hc.Start()
 	}
 
