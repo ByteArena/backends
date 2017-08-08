@@ -2,7 +2,6 @@ package recording
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -12,8 +11,9 @@ import (
 )
 
 type SingleArenaRecorder struct {
-	filename   string
-	recordFile *os.File
+	filename           string
+	recordFile         *os.File
+	recordMetadataFile *os.File
 }
 
 func MakeSingleArenaRecorder(filename string) Recorder {
@@ -40,20 +40,19 @@ func (r *SingleArenaRecorder) Stop() {
 }
 
 func (r *SingleArenaRecorder) Close(UUID string) {
+	files := make([]ArchiveFile, 0)
 
-	files := make([]ArchiveFile, 2)
-
-	// files = append(files, ArchiveFile{
-	// 	Name: "RecordMetadata",
-	// 	Fd: r.MapContainer,
-	// })
+	files = append(files, ArchiveFile{
+		Name: "RecordMetadata",
+		Fd:   r.recordMetadataFile,
+	})
 
 	files = append(files, ArchiveFile{
 		Name: "Record",
 		Fd:   r.recordFile,
 	})
 
-	err, _ := MakeArchive(r.filename+".zip", files)
+	err, _ := MakeArchive(r.filename, files)
 	utils.CheckWithFunc(err, func() string {
 		return "could not create record archive: " + err.Error()
 	})
@@ -63,10 +62,11 @@ func (r *SingleArenaRecorder) Close(UUID string) {
 	utils.Debug("SingleArenaRecorder", "write record archive")
 }
 
-func (r SingleArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontainer.MapContainer) error {
+func (r *SingleArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontainer.MapContainer) error {
 	filename := os.TempDir() + "/" + r.filename + ".meta"
 
-	createFileIfNotExists(filename)
+	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0644)
+	utils.Check(err, "Could not open RecordMetadata temporary file")
 
 	metadata := RecordMetadata{
 		MapContainer: mapcontainer,
@@ -76,10 +76,11 @@ func (r SingleArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontai
 	data, err := json.Marshal(metadata)
 	utils.Check(err, "could not marshall RecordMetadata")
 
-	err = ioutil.WriteFile(filename, data, 0644)
-	utils.Check(err, "could not write RecordMetadata file")
+	_, err = file.Write(data)
 
 	utils.Debug("SingleArenaRecorder", "wrote record metadata for game "+UUID)
+
+	r.recordMetadataFile = file
 
 	return nil
 }
