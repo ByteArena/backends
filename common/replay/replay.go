@@ -1,23 +1,37 @@
 package replay
 
 import (
+	"archive/zip"
 	"bufio"
 	"io"
-	"os"
+	"io/ioutil"
 
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-type OnMessageFunc func(string, bool, string)
+type OnEventFunc func(string, bool, string)
 
-func Read(filename string, debug bool, UUID string, onMessage OnMessageFunc) {
-	file, err := os.OpenFile(filename, os.O_RDONLY, 0755)
+type rawRecordHandles struct {
+	recordMetadata io.ReadCloser
+	record         io.ReadCloser
+}
 
-	utils.CheckWithFunc(err, func() string {
-		return "File open failed: " + err.Error()
-	})
+func Read(filename string, debug bool, UUID string, onMessage OnEventFunc, onMap OnEventFunc) {
+	err, rawRecordHandles := unzip(filename)
+	utils.Check(err, "Could not decode archive")
 
-	reader := bufio.NewReader(file)
+	go func() {
+		reader := bufio.NewReader(rawRecordHandles.recordMetadata)
+		metadata, err := ioutil.ReadAll(reader)
+
+		utils.Check(err, "Could not read metadata")
+
+		onMap(string(metadata), debug, UUID)
+
+		defer rawRecordHandles.recordMetadata.Close()
+	}()
+
+	reader := bufio.NewReader(rawRecordHandles.record)
 
 	for {
 		line, isPrefix, readErr := reader.ReadLine()
@@ -42,4 +56,30 @@ func Read(filename string, debug bool, UUID string, onMessage OnMessageFunc) {
 			onMessage(string(buf), debug, UUID)
 		}
 	}
+}
+
+func unzip(filename string) (error, *rawRecordHandles) {
+	rawRecordHandles := &rawRecordHandles{}
+
+	reader, err := zip.OpenReader(filename)
+
+	if err != nil {
+		return err, nil
+	}
+
+	for _, file := range reader.File {
+		fd, err := file.Open()
+
+		if err != nil {
+			return err, nil
+		}
+
+		if file.Name == "Record" {
+			rawRecordHandles.record = fd
+		} else if file.Name == "RecordMetadata" {
+			rawRecordHandles.recordMetadata = fd
+		}
+	}
+
+	return nil, rawRecordHandles
 }
