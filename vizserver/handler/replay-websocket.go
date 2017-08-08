@@ -68,7 +68,7 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 
 		// Listen to viz messages coming from arenaserver
 		vizmsgchan := make(chan interface{})
-		notify.Start("viz:message_replay"+UUID, vizmsgchan)
+		notify.Start("viz:message_replay:"+UUID, vizmsgchan)
 
 		go startStreaming(recordFile, UUID)
 
@@ -106,7 +106,7 @@ func startStreaming(filename string, UUID string) {
 	debug := false
 
 	replay.Read(filename, debug, UUID, func(line string, debug bool, UUID string) {
-		notify.PostTimeout("viz:message_replay"+UUID, line, time.Millisecond)
+		notify.PostTimeout("viz:message_replay:"+UUID, line, time.Millisecond)
 		<-time.NewTimer(1 * time.Second).C
 	})
 }
