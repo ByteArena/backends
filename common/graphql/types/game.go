@@ -11,3 +11,13 @@ type GameType struct {
 	RunStatus     int              `json:"runStatus"`
 	RunError      string           `json:"runError"`
 }
+
+var GameRunStatus = struct {
+	Pending  int
+	Running  int
+	Finished int
+}{
+	Pending:  0,
+	Running:  1,
+	Finished: 2,
+}
