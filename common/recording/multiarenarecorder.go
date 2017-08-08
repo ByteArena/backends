@@ -3,6 +3,7 @@ package recording
 import (
 	"os"
 
+	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
@@ -19,7 +20,7 @@ func MakeMultiArenaRecorder(directory string) Recorder {
 	}
 }
 
-func (r MutliArenaRecorder) Close() {
+func (r MutliArenaRecorder) Stop() {
 
 	for _, handle := range r.fileHandles {
 		handle.Close()
@@ -48,6 +49,42 @@ func (r MutliArenaRecorder) Record(UUID string, msg string) error {
 	return err
 }
 
+func (r MutliArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontainer.MapContainer) error {
+	return nil
+}
+
+func (r MutliArenaRecorder) Close(UUID string) {
+	handle, ok := r.fileHandles[UUID]
+
+	// TODO(sven): bundle the zip here
+	if ok {
+		handle.Close()
+	}
+}
+
 func (r MutliArenaRecorder) GetDirectory() string {
 	return r.directory
 }
+
+// func (r SingleArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontainer.MapContainer) error {
+// 	filename := r.filename + ".meta"
+
+// 	createFileIfNotExists(filename)
+
+// 	metadata := RecordMetadata{
+// 		MapContainer: mapcontainer,
+// 		Date:         time.Now().Format(time.RFC3339),
+// 	}
+
+// 	data, err := json.Marshal(metadata)
+// 	utils.Check(err, "could not marshall RecordMetadata")
+
+// 	err = ioutil.WriteFile(filename, data, 0644)
+// 	utils.Check(err, "could not write RecordMetadata file")
+
+// 	utils.Debug("SingleArenaRecorder", "wrote record metadata for game "+UUID)
+
+// 	r.recordMetadataData = string(data)
+
+// 	return nil
+// }

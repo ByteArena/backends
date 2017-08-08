@@ -99,6 +99,8 @@ func main() {
 	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 	vizservice.Stop()
 
+	recorder.Stop()
+
 	if hc != nil {
 		hc.Stop()
 	}
