@@ -64,7 +64,7 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 						"id": id,
 						"game": graphql.Variables{
 							"runStatus":     gqltypes.GameRunStatus.Running,
-							"launchedAt":    (time.Time{}).Format(time.RFC822Z),
+							"launchedAt":    time.Now().Format(time.RFC822Z),
 							"arenaServerId": astate.id,
 						},
 					}),
@@ -98,7 +98,7 @@ func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 						"id": id,
 						"game": graphql.Variables{
 							"runStatus": gqltypes.GameRunStatus.Finished,
-							"endedAt":   (time.Time{}).Format(time.RFC822Z),
+							"endedAt":   time.Now().Format(time.RFC822Z),
 						},
 					}),
 				)
