@@ -11,7 +11,7 @@ import (
 	"github.com/bytearena/bytearena/leakybucket"
 )
 
-func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface) {
+func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface, UUID string) {
 
 	buk := leakybucket.NewBucket(
 		srv.GetTicksPerSecond(),
@@ -35,6 +35,7 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface) {
 				msg := transformServerStateToVizMessage(
 					srv.GetArena(),
 					serverstate,
+					UUID,
 				)
 
 				json, err := json.Marshal(msg)
@@ -50,10 +51,11 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface) {
 
 }
 
-func transformServerStateToVizMessage(arenainstance arenaserver.ArenaInstance, state state.ServerState) types.VizMessage {
+func transformServerStateToVizMessage(arenainstance arenaserver.ArenaInstance, state state.ServerState, UUID string) types.VizMessage {
 
 	msg := types.VizMessage{
 		ArenaId: arenainstance.GetId(),
+		UUID:    UUID,
 	}
 
 	state.Projectilesmutex.Lock()

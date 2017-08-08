@@ -86,7 +86,7 @@ func main() {
 		srv.Stop()
 	}()
 
-	go protocol.StreamState(srv, brokerclient)
+	go protocol.StreamState(srv, brokerclient, "trainer")
 
 	var recorder recording.Recorder = recording.MakeEmptyRecorder()
 	if *recordFile != "" {

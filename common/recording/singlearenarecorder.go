@@ -25,7 +25,7 @@ func (r SingleArenaRecorder) Close() {
 	r.fileHandle.Close()
 }
 
-func (r SingleArenaRecorder) Record(arenaId string, msg string) error {
+func (r SingleArenaRecorder) Record(UUID string, msg string) error {
 	_, err := r.fileHandle.WriteString(msg + "\n")
 
 	return err

@@ -35,12 +35,12 @@ func createFileHandle(filename string) *os.File {
 	return f
 }
 
-func (r MutliArenaRecorder) Record(arenaId string, msg string) error {
-	handle, ok := r.fileHandles[arenaId]
+func (r MutliArenaRecorder) Record(UUID string, msg string) error {
+	handle, ok := r.fileHandles[UUID]
 
 	if !ok {
-		handle = createFileHandle(r.directory + "/record-" + arenaId + ".bin")
-		r.fileHandles[arenaId] = handle
+		handle = createFileHandle(r.directory + "/record-" + UUID + ".bin")
+		r.fileHandles[UUID] = handle
 	}
 
 	_, err := handle.WriteString(msg + "\n")

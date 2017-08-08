@@ -7,7 +7,7 @@ import (
 )
 
 type Recorder interface {
-	Record(arenaId string, msg string) error
+	Record(UUID string, msg string) error
 	Close()
 }
 

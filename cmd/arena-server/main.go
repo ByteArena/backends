@@ -113,7 +113,7 @@ func main() {
 							srv.Stop()
 						}()
 
-						go protocol.StreamState(srv, brokerclient)
+						go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
 
 						// Limit the game in time
 						timeoutTimer := time.NewTimer(time.Duration(*timeout) * time.Minute)

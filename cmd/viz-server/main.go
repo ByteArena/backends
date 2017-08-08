@@ -25,6 +25,7 @@ import (
 // Simplified version of the VizMessage struct
 type ArenaIdVizMessage struct {
 	ArenaId string
+	UUID    string
 }
 
 func main() {
@@ -65,8 +66,9 @@ func main() {
 		})
 
 		arenaId := vizMessage[0].ArenaId
+		UUID := vizMessage[0].UUID
 
-		recorder.Record(arenaId, string(msg.Data))
+		recorder.Record(UUID, string(msg.Data))
 
 		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena "+arenaId)
 		notify.PostTimeout("viz:message"+arenaId, string(msg.Data), time.Millisecond)
