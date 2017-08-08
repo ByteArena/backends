@@ -11,7 +11,7 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-type ArenaInstance interface {
+type Game interface {
 	//Setup(srv *Server)
 	GetId() string
 	GetName() string
@@ -20,9 +20,9 @@ type ArenaInstance interface {
 	GetMapContainer() *mapcontainer.MapContainer
 }
 
-type ArenaInstanceGql struct {
-	gqlarenainstance graphqltype.ArenaInstanceType
-	mapContainer     *mapcontainer.MapContainer
+type GameGql struct {
+	gqlgame      graphqltype.GameType
+	mapContainer *mapcontainer.MapContainer
 }
 
 func FetchUrl(url string) ([]byte, error) {
@@ -39,7 +39,7 @@ func FetchUrl(url string) ([]byte, error) {
 	return body, nil
 }
 
-func NewArenaInstanceGql(arenainstance graphqltype.ArenaInstanceType) *ArenaInstanceGql {
+func NewGameGql(game graphqltype.GameType) *GameGql {
 
 	// filepath := "../../maps/trainer-map.json"
 	// jsonsource, err := os.Open(filepath)
@@ -57,28 +57,28 @@ func NewArenaInstanceGql(arenainstance graphqltype.ArenaInstanceType) *ArenaInst
 		log.Panicln("Could not load map JSON")
 	}
 
-	return &ArenaInstanceGql{
-		mapContainer:     &mapContainer,
-		gqlarenainstance: arenainstance,
+	return &GameGql{
+		mapContainer: &mapContainer,
+		gqlgame:      game,
 	}
 }
 
-func (a *ArenaInstanceGql) GetId() string {
-	return a.gqlarenainstance.Id
+func (a *GameGql) GetId() string {
+	return a.gqlgame.Id
 }
 
-func (a *ArenaInstanceGql) GetName() string {
-	return a.gqlarenainstance.Arena.Name
+func (a *GameGql) GetName() string {
+	return a.gqlgame.Arena.Name
 }
 
-func (a *ArenaInstanceGql) GetTps() int {
-	return a.gqlarenainstance.Tps
+func (a *GameGql) GetTps() int {
+	return a.gqlgame.Tps
 }
 
-func (a *ArenaInstanceGql) GetContestants() []Contestant {
-	log.Println(a.gqlarenainstance.Contestants)
-	res := make([]Contestant, len(a.gqlarenainstance.Contestants))
-	for index, contestant := range a.gqlarenainstance.Contestants {
+func (a *GameGql) GetContestants() []Contestant {
+	log.Println(a.gqlgame.Contestants)
+	res := make([]Contestant, len(a.gqlgame.Contestants))
+	for index, contestant := range a.gqlgame.Contestants {
 		res[index] = Contestant{
 			Username:      contestant.Agent.Owner.Username,
 			AgentName:     contestant.Agent.Name,
@@ -90,8 +90,8 @@ func (a *ArenaInstanceGql) GetContestants() []Contestant {
 	return res
 }
 
-// func (a *ArenaInstanceGql) Setup(srv *Server) {
-// 	for _, obstacle := range a.gqlarenainstance.Arena.Obstacles {
+// func (a *GameGql) Setup(srv *Server) {
+// 	for _, obstacle := range a.gqlgame.Arena.Obstacles {
 // 		srv.SetObstacle(state.MakeObstacle(
 // 			vector.MakeVector2(obstacle.A.X, obstacle.A.Y),
 // 			vector.MakeVector2(obstacle.B.X, obstacle.B.Y),
@@ -99,6 +99,6 @@ func (a *ArenaInstanceGql) GetContestants() []Contestant {
 // 	}
 // }
 
-func (a *ArenaInstanceGql) GetMapContainer() *mapcontainer.MapContainer {
+func (a *GameGql) GetMapContainer() *mapcontainer.MapContainer {
 	return a.mapContainer
 }

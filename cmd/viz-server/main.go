@@ -78,14 +78,14 @@ func main() {
 	graphqlclient := graphql.MakeClient(*apiurl)
 	serverAddr := ":" + strconv.Itoa(*port)
 
-	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]arenaserver.ArenaInstance, error) {
-		arenainstances, err := apiqueries.FetchArenaInstances(graphqlclient)
+	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]arenaserver.Game, error) {
+		games, err := apiqueries.FetchGames(graphqlclient)
 		if err != nil {
-			return nil, errors.New("Could not fetch arena instances from GraphQL server")
+			return nil, errors.New("Could not fetch games from GraphQL server")
 		}
 
-		return arenainstances, nil
-	}, recorder)
+		return games, nil
+	})
 
 	vizservice.Start()
 

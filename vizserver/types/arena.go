@@ -7,27 +7,27 @@ import (
 )
 
 type VizArena struct {
-	arenainstance arenaserver.ArenaInstance
-	pool          *WatcherMap
+	game arenaserver.Game
+	pool *WatcherMap
 }
 
-func NewVizArena(arenainstance arenaserver.ArenaInstance) *VizArena {
+func NewVizArena(game arenaserver.Game) *VizArena {
 	return &VizArena{
-		pool:          NewWatcherMap(),
-		arenainstance: arenainstance,
+		pool: NewWatcherMap(),
+		game: game,
 	}
 }
 
 func (arena *VizArena) GetId() string {
-	return arena.arenainstance.GetId()
+	return arena.game.GetId()
 }
 
 func (arena *VizArena) GetName() string {
-	return arena.arenainstance.GetName()
+	return arena.game.GetName()
 }
 
 func (arena *VizArena) GetTps() int {
-	return arena.arenainstance.GetTps()
+	return arena.game.GetTps()
 }
 
 type VizInitMessageData struct {
@@ -45,7 +45,7 @@ func (arena *VizArena) SetWatcher(watcher *Watcher) {
 	initMsg := VizInitMessage{
 		Type: "init",
 		Data: VizInitMessageData{
-			Map: arena.arenainstance.GetMapContainer(),
+			Map: arena.game.GetMapContainer(),
 		},
 	}
 

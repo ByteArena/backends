@@ -1,6 +1,6 @@
 package types
 
-type ArenaInstanceType struct {
+type GameType struct {
 	Id          string           `json:"id"`
 	Tps         int              `json:"tps"`
 	Startedat   string           `json:"startedat"`

@@ -58,9 +58,9 @@ func MakeAgentState(start mapcontainer.MapStart) AgentState {
 	return AgentState{
 		Position: vector.MakeVector2(initialx, initialy),
 		//Velocity:           vector.MakeVector2(0.00001, 1),
-		MaxSpeed:           1.0,
-		MaxSteeringForce:   1.5,
-		MaxAngularVelocity: number.DegreeToRadian(18), // en radians/tick; Pi = 180°
+		MaxSpeed:           0.5,
+		MaxSteeringForce:   0.05,
+		MaxAngularVelocity: number.DegreeToRadian(9), // en radians/tick; Pi = 180°
 		Radius:             r,
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",

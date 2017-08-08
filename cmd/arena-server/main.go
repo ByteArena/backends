@@ -95,9 +95,9 @@ func main() {
 				{
 					if arenaSubmitted, ok := payload.(messageArenaLaunch); ok {
 
-						// Fetch arena **instance** from GraphQL
-						arena, err := apiqueries.FetchArenaInstanceById(graphqlclient, arenaSubmitted.Id)
-						utils.Check(err, "Could not fetch arenainstance "+arenaSubmitted.Id)
+						// Fetch game from GraphQL
+						arena, err := apiqueries.FetchGameById(graphqlclient, arenaSubmitted.Id)
+						utils.Check(err, "Could not fetch game "+arenaSubmitted.Id)
 
 						orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
 						srv := arenaserver.NewServer(*host, *port, orch, arena)
