@@ -71,7 +71,7 @@ func main() {
 		recorder.Record(UUID, string(msg.Data))
 
 		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena "+arenaId)
-		notify.PostTimeout("viz:message"+arenaId, string(msg.Data), time.Millisecond)
+		notify.PostTimeout("viz:message:"+arenaId, string(msg.Data), time.Millisecond)
 	})
 
 	// Make GraphQL client

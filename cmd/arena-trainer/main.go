@@ -94,10 +94,10 @@ func main() {
 	}
 
 	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
-		arenaId := arenainstance.GetId()
+		gameId := game.GetId()
 
-		recorder.Record(arenaId, string(msg.Data))
-		notify.PostTimeout("viz:message"+arenaId, string(msg.Data), time.Millisecond)
+		recorder.Record(gameId, string(msg.Data))
+		notify.PostTimeout("viz:message:"+gameId, string(msg.Data), time.Millisecond)
 	})
 
 	// TODO: refac webclient path / serving

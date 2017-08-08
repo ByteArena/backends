@@ -12,13 +12,13 @@ import (
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 )
 
-type MockArenaInstance struct {
+type MockGame struct {
 	tps          int
 	contestants  []arenaserver.Contestant
 	mapContainer *mapcontainer.MapContainer
 }
 
-func NewMockArenaInstance(tps int) *MockArenaInstance {
+func NewMockGame(tps int) *MockGame {
 
 	filepath := "../../maps/trainer-map.json"
 	jsonsource, err := os.Open(filepath)
@@ -35,26 +35,26 @@ func NewMockArenaInstance(tps int) *MockArenaInstance {
 		log.Panicln("Could not load map JSON")
 	}
 
-	return &MockArenaInstance{
+	return &MockGame{
 		tps:          tps,
 		contestants:  make([]arenaserver.Contestant, 0),
 		mapContainer: &mapContainer,
 	}
 }
 
-func (ins *MockArenaInstance) GetId() string {
+func (ins *MockGame) GetId() string {
 	return "2"
 }
 
-func (ins *MockArenaInstance) GetName() string {
-	return "Trainer instance"
+func (ins *MockGame) GetName() string {
+	return "Trainer game"
 }
 
-func (ins *MockArenaInstance) GetTps() int {
+func (ins *MockGame) GetTps() int {
 	return ins.tps
 }
 
-func (ins *MockArenaInstance) AddContestant(agentimage string) {
+func (ins *MockGame) AddContestant(agentimage string) {
 
 	parts := strings.Split(agentimage, "/")
 	var registry string
@@ -77,30 +77,10 @@ func (ins *MockArenaInstance) AddContestant(agentimage string) {
 	})
 }
 
-func (ins *MockArenaInstance) GetContestants() []arenaserver.Contestant {
+func (ins *MockGame) GetContestants() []arenaserver.Contestant {
 	return ins.contestants
 }
 
-func (ins *MockArenaInstance) GetMapContainer() *mapcontainer.MapContainer {
+func (ins *MockGame) GetMapContainer() *mapcontainer.MapContainer {
 	return ins.mapContainer
 }
-
-/*
-func (ins *MockArenaInstance) Setup(srv *arenaserver.Server) {
-
-	mapcontainer := ins.GetMapContainer()
-	for _, ground := range mapcontainer.Data.Grounds {
-		for _, polygon := range ground.Outline {
-			for i := 0; i < len(polygon.Points)-1; i++ {
-				a := polygon.Points[i]
-				b := polygon.Points[i+1]
-				srv.SetObstacle(state.Obstacle{
-					Id: uuid.NewV4(),
-					A:  vector.MakeVector2(a.X*50, a.Y*50),
-					B:  vector.MakeVector2(b.X*50, b.Y*50),
-				})
-			}
-		}
-	}
-}
-*/

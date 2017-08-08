@@ -77,7 +77,7 @@ func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w ht
 		// Listen to viz messages coming from arenaserver
 		vizmsgchan := make(chan interface{})
 
-		notify.Start("viz:message"+arena.GetId(), vizmsgchan)
+		notify.Start("viz:message:"+arena.GetId(), vizmsgchan)
 
 		for {
 			select {
