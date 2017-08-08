@@ -2,36 +2,33 @@ package handler
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	notify "github.com/bitly/go-notify"
+
 	"github.com/bytearena/bytearena/common/recording"
+	"github.com/bytearena/bytearena/common/replay"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/vizserver/types"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
 
-type wsincomingmessage struct {
-	messageType int
-	p           []byte
-	err         error
-}
-
-// Simplified version of the VizMessage struct
-type ArenaIdVizMessage struct {
-	ArenaId string
-}
-
-func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w http.ResponseWriter, r *http.Request) {
+func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		arena := arenas.Get(vars["id"])
+		UUID := vars["recordId"]
 
-		if arena == nil {
-			w.Write([]byte("ARENA NOT FOUND !"))
+		recordFile := recorder.GetDirectory() + "/record-" + UUID + ".bin"
+
+		_, err := os.Stat(recordFile)
+
+		if os.IsNotExist(err) {
+			w.Write([]byte("Record not found"))
 			return
 		}
 
@@ -47,12 +44,7 @@ func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w ht
 			return
 		}
 
-		watcher := types.NewWatcher(c)
-		arena.SetWatcher(watcher)
-
 		defer func(c *websocket.Conn) {
-			arena.RemoveWatcher(watcher.GetId())
-			log.Println(arena.GetNumberWatchers())
 			c.Close()
 			log.Println("Closing !!!")
 		}(c)
@@ -76,8 +68,18 @@ func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w ht
 
 		// Listen to viz messages coming from arenaserver
 		vizmsgchan := make(chan interface{})
+		notify.Start("viz:message_replay"+UUID, vizmsgchan)
 
-		notify.Start("viz:message"+arena.GetId(), vizmsgchan)
+		go startStreaming(recordFile, UUID)
+
+		// Init map
+		resp, err := http.Get("http://bytearena.com/maps/deathmatch/desert/death-valley/map.json")
+		defer resp.Body.Close()
+
+		body, err := ioutil.ReadAll(resp.Body)
+
+		initMessage := "{\"type\":\"init\",\"data\": {\"map\":" + string(body) + "}}"
+		c.WriteMessage(websocket.TextMessage, []byte(initMessage))
 
 		for {
 			select {
@@ -98,4 +100,13 @@ func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w ht
 			}
 		}
 	}
+}
+
+func startStreaming(filename string, UUID string) {
+	debug := false
+
+	replay.Read(filename, debug, UUID, func(line string, debug bool, UUID string) {
+		notify.PostTimeout("viz:message_replay"+UUID, line, time.Millisecond)
+		<-time.NewTimer(1 * time.Second).C
+	})
 }

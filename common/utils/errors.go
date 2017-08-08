@@ -22,3 +22,11 @@ func Assert(ok bool, msg string) {
 		log.Panic()
 	}
 }
+
+func CheckWithFunc(err error, fn func() string) {
+	if err != nil {
+		msg := fn()
+
+		Check(err, msg)
+	}
+}

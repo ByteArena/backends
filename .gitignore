@@ -4,3 +4,4 @@ data
 .secrets
 !.secrets/.gitkeep
 vendor
+cmd/replay/replay

@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/bytearena/bytearena/arenaserver"
+	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	apphandler "github.com/bytearena/bytearena/vizserver/handler"
 	"github.com/bytearena/bytearena/vizserver/types"
@@ -22,13 +23,15 @@ type VizService struct {
 	webclientpath string
 	fetchArenas   FetchArenasCbk
 	listener      *http.Server
+	recorder      recording.Recorder
 }
 
-func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk) *VizService {
+func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk, recorder recording.Recorder) *VizService {
 	return &VizService{
 		addr:          addr,
 		webclientpath: webclientpath,
 		fetchArenas:   fetchArenas,
+		recorder:      recorder,
 	}
 }
 
@@ -51,12 +54,20 @@ func (viz *VizService) Start() chan struct{} {
 		http.HandlerFunc(apphandler.Home(vizarenas)),
 	)).Methods("GET")
 
+	router.Handle("/record/{recordId:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
+		http.HandlerFunc(apphandler.Replay(viz.recorder, viz.webclientpath)),
+	)).Methods("GET")
+
+	router.Handle("/record/{recordId:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
+		http.HandlerFunc(apphandler.ReplayWebsocket(viz.recorder, viz.webclientpath)),
+	)).Methods("GET")
+
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
 		http.HandlerFunc(apphandler.Arena(vizarenas, viz.webclientpath)),
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Websocket(vizarenas)),
+		http.HandlerFunc(apphandler.Websocket(vizarenas, viz.recorder)),
 	)).Methods("GET")
 
 	// Les assets de la viz (js, modèles, textures)

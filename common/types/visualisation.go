@@ -7,6 +7,7 @@ import (
 
 type VizMessage struct {
 	ArenaId                 string
+	UUID                    string
 	Agents                  []VizAgentMessage
 	Projectiles             []VizProjectileMessage
 	Obstacles               []VizObstacleMessage
