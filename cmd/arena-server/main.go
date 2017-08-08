@@ -55,7 +55,7 @@ func main() {
 	brokerclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: Could not connect to messagebroker on "+*mqhost)
 
-	brokerclient.Publish("arena", "handshake", types.NewMQMessage(
+	brokerclient.Publish("game", "handshake", types.NewMQMessage(
 		"arena-server",
 		"Arena Server "+(*arenaServerUUID)+" reporting for duty.",
 	).SetPayload(types.MQPayload{
@@ -63,9 +63,9 @@ func main() {
 	}))
 
 	streamArenaLaunched := make(chan interface{})
-	notify.Start("arena:launch", streamArenaLaunched)
+	notify.Start("game:launch", streamArenaLaunched)
 
-	brokerclient.Subscribe("arena", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
+	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
 
 		log.Println(string(msg.Data))
 
@@ -73,13 +73,13 @@ func main() {
 		err := json.Unmarshal(msg.Data, &payload)
 		if err != nil {
 			log.Println(err)
-			log.Println("ERROR:arena:launch Invalid payload " + string(msg.Data))
+			log.Println("ERROR:game:launch Invalid payload " + string(msg.Data))
 			return
 		}
 
-		log.Println("INFO:arena:launch Received from MESSAGEBROKER", payload)
+		log.Println("INFO:game:launch Received from MESSAGEBROKER", payload)
 
-		notify.PostTimeout("arena:launch", payload, time.Millisecond)
+		notify.PostTimeout("game:launch", payload, time.Millisecond)
 	})
 
 	var hc *healthcheck.HealthCheckServer
@@ -127,7 +127,7 @@ func main() {
 						<-srv.Start()
 						srv.TearDown()
 
-						notify.PostTimeout("arena:stopped", nil, time.Millisecond)
+						notify.PostTimeout("game:stopped", nil, time.Millisecond)
 					}
 				}
 			}
@@ -135,7 +135,7 @@ func main() {
 	}()
 
 	streamArenaStopped := make(chan interface{})
-	notify.Start("arena:stopped", streamArenaStopped)
+	notify.Start("game:stopped", streamArenaStopped)
 
 	<-streamArenaStopped
 
