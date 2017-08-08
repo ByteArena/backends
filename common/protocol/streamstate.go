@@ -55,7 +55,7 @@ func transformServerStateToVizMessage(game arenaserver.Game, state state.ServerS
 
 	msg := types.VizMessage{
 		ArenaId: game.GetId(),
-    UUID:    UUID,
+		UUID:    UUID,
 	}
 
 	state.Projectilesmutex.Lock()

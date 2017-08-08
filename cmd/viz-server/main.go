@@ -85,7 +85,7 @@ func main() {
 		}
 
 		return games, nil
-	})
+	}, recorder)
 
 	vizservice.Start()
 
