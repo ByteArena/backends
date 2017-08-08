@@ -12,7 +12,7 @@ func getMasterStatus(state *State) string {
 	return "(" + strconv.Itoa(len(state.idleArenas)) + " arena(s) idle, " + strconv.Itoa(len(state.runningArenas)) + " arena(s) running)"
 }
 
-func onArenaHandshake(state *State, payload *types.MQPayload) {
+func onGameHandshake(state *State, payload *types.MQPayload) {
 	id, ok := (*payload)["id"].(string)
 
 	if ok {
@@ -24,34 +24,34 @@ func onArenaHandshake(state *State, payload *types.MQPayload) {
 	}
 }
 
-func onArenaLaunch(state *State, payload *types.MQPayload, client *mq.Client) {
+func onGameLaunch(state *State, payload *types.MQPayload, client *mq.Client) {
 
 	if len(state.idleArenas) > 0 {
 
-		var arena ArenaState
+		var astate ArenaState
 
 		for _, value := range state.idleArenas {
-			arena = value
+			astate = value
 			break
 		}
 
-		delete(state.idleArenas, arena.id)
-		state.runningArenas[arena.id] = arena
+		delete(state.idleArenas, astate.id)
+		state.runningArenas[astate.id] = astate
 
 		if id, ok := (*payload)["id"].(string); ok {
 
-			client.Publish("arena", arena.id+".launch", types.MQPayload{
+			client.Publish("game", astate.id+".launch", types.MQPayload{
 				"id": id,
 			})
 
-			utils.Debug("master", "Launched arena "+arena.id+" "+getMasterStatus(state))
+			utils.Debug("master", "Launched game "+astate.id+" "+getMasterStatus(state))
 		}
 	} else {
-		utils.Debug("master", "No arena available")
+		utils.Debug("master", "No game available")
 	}
 }
 
-func onArenaStop(state *State, payload *types.MQPayload) {
+func onGameStop(state *State, payload *types.MQPayload) {
 
 	if id, ok := (*payload)["id"].(string); ok {
 		arena, ok := state.runningArenas[id]

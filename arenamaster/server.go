@@ -29,7 +29,7 @@ func NewServer(mq *mq.Client) *Server {
 func (server *Server) Start() ListeningChanStruct {
 	log.Println("Listening")
 
-	server.brokerclient.Subscribe("arena", "launch", func(msg mq.BrokerMessage) {
+	server.brokerclient.Subscribe("game", "launch", func(msg mq.BrokerMessage) {
 
 		var message types.MQMessage
 		err := json.Unmarshal(msg.Data, &message)
@@ -39,10 +39,10 @@ func (server *Server) Start() ListeningChanStruct {
 			return
 		}
 
-		onArenaLaunch(server.state, message.Payload, server.brokerclient)
+		onGameLaunch(server.state, message.Payload, server.brokerclient)
 	})
 
-	server.brokerclient.Subscribe("arena", "handshake", func(msg mq.BrokerMessage) {
+	server.brokerclient.Subscribe("game", "handshake", func(msg mq.BrokerMessage) {
 
 		var message types.MQMessage
 		err := json.Unmarshal(msg.Data, &message)
@@ -52,10 +52,10 @@ func (server *Server) Start() ListeningChanStruct {
 			return
 		}
 
-		onArenaHandshake(server.state, message.Payload)
+		onGameHandshake(server.state, message.Payload)
 	})
 
-	server.brokerclient.Subscribe("arena", "stoped", func(msg mq.BrokerMessage) {
+	server.brokerclient.Subscribe("game", "stoped", func(msg mq.BrokerMessage) {
 
 		var message types.MQMessage
 		err := json.Unmarshal(msg.Data, &message)
@@ -65,7 +65,7 @@ func (server *Server) Start() ListeningChanStruct {
 			return
 		}
 
-		onArenaStop(server.state, message.Payload)
+		onGameStop(server.state, message.Payload)
 	})
 
 	server.listeningChan = make(ListeningChanStruct)
