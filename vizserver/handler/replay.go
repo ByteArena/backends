@@ -36,7 +36,7 @@ func Replay(recorder recording.Recorder, basepath string) func(w http.ResponseWr
 			Rand  int64
 			Tps   int
 		}{
-			WsURL: "ws://" + r.Host + "/replay/" + id + "/ws",
+			WsURL: "ws://" + r.Host + "/record/" + id + "/ws",
 			Rand:  time.Now().Unix(),
 			Tps:   10, // FIXME(sven): get metadata from record
 		})
