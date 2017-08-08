@@ -50,10 +50,10 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface) {
 
 }
 
-func transformServerStateToVizMessage(arenainstance arenaserver.ArenaInstance, state state.ServerState) types.VizMessage {
+func transformServerStateToVizMessage(game arenaserver.Game, state state.ServerState) types.VizMessage {
 
 	msg := types.VizMessage{
-		ArenaId: arenainstance.GetId(),
+		ArenaId: game.GetId(),
 	}
 
 	state.Projectilesmutex.Lock()

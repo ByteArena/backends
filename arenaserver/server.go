@@ -46,10 +46,10 @@ type Server struct {
 
 	agentimages map[uuid.UUID]string
 
-	arena ArenaInstance
+	arena Game
 }
 
-func NewServer(host string, port int, orch container.ContainerOrchestrator, arena ArenaInstance) *Server {
+func NewServer(host string, port int, orch container.ContainerOrchestrator, arena Game) *Server {
 
 	gamehost := host
 
@@ -445,6 +445,6 @@ func (server *Server) SubscribeStateObservation() chan state.ServerState {
 	return ch
 }
 
-func (server *Server) GetArena() ArenaInstance {
+func (server *Server) GetArena() Game {
 	return server.arena
 }
