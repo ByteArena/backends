@@ -15,7 +15,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type FetchArenasCbk func() ([]arenaserver.ArenaInstance, error)
+type FetchArenasCbk func() ([]arenaserver.Game, error)
 
 type VizService struct {
 	addr          string
@@ -34,14 +34,14 @@ func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk
 
 func (viz *VizService) Start() chan struct{} {
 
-	arenainstances, err := viz.fetchArenas()
+	games, err := viz.fetchArenas()
 	utils.Check(err, "VizService: Could not fetch arenas")
 
 	vizarenas := types.NewVizArenaMap()
-	for _, arenainstance := range arenainstances {
+	for _, game := range games {
 		vizarenas.Set(
-			arenainstance.GetId(),
-			types.NewVizArena(arenainstance),
+			game.GetId(),
+			types.NewVizArena(game),
 		)
 	}
 

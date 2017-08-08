@@ -54,18 +54,18 @@ func main() {
 		panic("Please, specify at least one agent image using --agent")
 	}
 
-	arenainstance := NewMockArenaInstance(*tickspersec)
+	game := NewMockGame(*tickspersec)
 	for _, contestant := range agentimages {
-		arenainstance.AddContestant(contestant)
+		game.AddContestant(contestant)
 	}
 
 	// Make message broker client
 	brokerclient, err := arenatrainer.NewMemoryMessageClient()
 	utils.Check(err, "ERROR: Could not connect to messagebroker")
 
-	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(), arenainstance)
+	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(), game)
 
-	for _, contestant := range arenainstance.GetContestants() {
+	for _, contestant := range game.GetContestants() {
 		var image string
 
 		if contestant.AgentRegistry == "" {
@@ -92,9 +92,9 @@ func main() {
 
 	// TODO: refac webclient path / serving
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
-	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]arenaserver.ArenaInstance, error) {
-		res := make([]arenaserver.ArenaInstance, 1)
-		res[0] = arenainstance
+	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]arenaserver.Game, error) {
+		res := make([]arenaserver.Game, 1)
+		res[0] = game
 		return res, nil
 	})
 
