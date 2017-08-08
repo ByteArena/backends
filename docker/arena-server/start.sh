@@ -4,7 +4,7 @@ set -x
 ID=$(cat /proc/sys/kernel/random/uuid)
 
 function teardown {
-    /usr/bin/mq-cli -mqhost="${MQHOST}" --publish "game:stoped" --data "{\"id\": \"${ID}\"}"
+    /usr/bin/mq-cli -mqhost="${MQHOST}" --publish "game:stopped" --data "{\"id\": \"${ID}\"}"
     echo teardown
 }
 

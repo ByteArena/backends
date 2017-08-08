@@ -55,7 +55,7 @@ func (server *Server) Start() ListeningChanStruct {
 		onGameHandshake(server.state, message.Payload)
 	})
 
-	server.brokerclient.Subscribe("game", "stoped", func(msg mq.BrokerMessage) {
+	server.brokerclient.Subscribe("game", "stopped", func(msg mq.BrokerMessage) {
 
 		var message types.MQMessage
 		err := json.Unmarshal(msg.Data, &message)

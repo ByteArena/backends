@@ -59,7 +59,7 @@ func onGameStop(state *State, payload *types.MQPayload) {
 		if ok {
 			delete(state.runningArenas, arena.id)
 
-			utils.Debug("master", "Arena "+id+" stoped "+getMasterStatus(state))
+			utils.Debug("master", "Arena "+id+" stopped "+getMasterStatus(state))
 		} else {
 			utils.Debug("master", "Arena "+id+" is not running")
 		}
