@@ -2,7 +2,6 @@ package recording
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"time"
 
@@ -17,7 +16,7 @@ type SingleArenaRecorder struct {
 }
 
 func MakeSingleArenaRecorder(filename string) Recorder {
-	f, err := os.OpenFile(os.TempDir()+"/"+filename, os.O_RDWR|os.O_CREATE, 0600)
+	f, err := os.Create("Record")
 	utils.Check(err, "Could not open file")
 
 	return &SingleArenaRecorder{
@@ -27,16 +26,6 @@ func MakeSingleArenaRecorder(filename string) Recorder {
 }
 
 func (r *SingleArenaRecorder) Stop() {
-
-	err := os.Remove(os.TempDir() + "/" + r.filename + ".meta")
-	if err != nil {
-		log.Println("Could not remove record temporary meta file: " + err.Error())
-	}
-
-	err = os.Remove(os.TempDir() + "/" + r.filename)
-	if err != nil {
-		log.Println("Could not remove record temporary file: " + err.Error())
-	}
 }
 
 func (r *SingleArenaRecorder) Close(UUID string) {
@@ -58,14 +47,13 @@ func (r *SingleArenaRecorder) Close(UUID string) {
 	})
 
 	r.recordFile.Close()
+	r.recordMetadataFile.Close()
 
 	utils.Debug("SingleArenaRecorder", "write record archive")
 }
 
 func (r *SingleArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontainer.MapContainer) error {
-	filename := os.TempDir() + "/" + r.filename + ".meta"
-
-	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0644)
+	file, err := os.Create("RecordMetadata")
 	utils.Check(err, "Could not open RecordMetadata temporary file")
 
 	metadata := RecordMetadata{
