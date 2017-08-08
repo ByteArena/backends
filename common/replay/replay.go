@@ -14,6 +14,7 @@ type OnEventFunc func(string, bool, string)
 type rawRecordHandles struct {
 	recordMetadata io.ReadCloser
 	record         io.ReadCloser
+	zip            *zip.ReadCloser
 }
 
 func Read(filename string, debug bool, UUID string, onMessage OnEventFunc, onMap OnEventFunc) {
@@ -41,6 +42,8 @@ func Read(filename string, debug bool, UUID string, onMessage OnEventFunc, onMap
 		}
 
 		if readErr == io.EOF {
+			rawRecordHandles.zip.Close()
+			rawRecordHandles.record.Close()
 			return
 		}
 
@@ -66,6 +69,8 @@ func unzip(filename string) (error, *rawRecordHandles) {
 	if err != nil {
 		return err, nil
 	}
+
+	rawRecordHandles.zip = reader
 
 	for _, file := range reader.File {
 		fd, err := file.Open()
