@@ -54,6 +54,14 @@ func (viz *VizService) Start() chan struct{} {
 		http.HandlerFunc(apphandler.Home(vizarenas)),
 	)).Methods("GET")
 
+	router.Handle("/replay/{recordId:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
+		http.HandlerFunc(apphandler.Replay(viz.recorder, viz.webclientpath)),
+	)).Methods("GET")
+
+	router.Handle("/replay/{recordId:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
+		http.HandlerFunc(apphandler.ReplayWebsocket(viz.recorder, viz.webclientpath)),
+	)).Methods("GET")
+
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
 		http.HandlerFunc(apphandler.Arena(vizarenas, viz.webclientpath)),
 	)).Methods("GET")

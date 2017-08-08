@@ -47,3 +47,7 @@ func (r MutliArenaRecorder) Record(UUID string, msg string) error {
 
 	return err
 }
+
+func (r MutliArenaRecorder) GetDirectory() string {
+	return r.directory
+}

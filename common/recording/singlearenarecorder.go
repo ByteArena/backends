@@ -30,3 +30,7 @@ func (r SingleArenaRecorder) Record(UUID string, msg string) error {
 
 	return err
 }
+
+func (r SingleArenaRecorder) GetDirectory() string {
+	return ""
+}

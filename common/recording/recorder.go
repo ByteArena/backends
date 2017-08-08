@@ -9,6 +9,9 @@ import (
 type Recorder interface {
 	Record(UUID string, msg string) error
 	Close()
+
+	// Only used for MutliArenaRecorder
+	GetDirectory() string
 }
 
 func createFileIfNotExists(path string) {

@@ -12,3 +12,7 @@ func (r EmptyRecorder) Record(arenaId string, msg string) error {
 
 func (r EmptyRecorder) Close() {
 }
+
+func (r EmptyRecorder) GetDirectory() string {
+	return ""
+}
