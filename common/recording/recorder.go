@@ -2,6 +2,8 @@ package recording
 
 import (
 	"archive/zip"
+	"io"
+	"log"
 	"os"
 
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
@@ -25,7 +27,7 @@ type Recorder interface {
 
 type ArchiveFile struct {
 	Name string
-	Body string
+	Fd   *os.File
 }
 
 func createFileIfNotExists(path string) {
@@ -44,32 +46,40 @@ func createFileIfNotExists(path string) {
 }
 
 func MakeArchive(filename string, files []ArchiveFile) (error, *os.File) {
-	createFileIfNotExists(filename)
-
-	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0600)
+	archiveFd, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	utils.Check(err, "Could not open file")
 
-	defer f.Close()
+	defer archiveFd.Close()
 
-	w := zip.NewWriter(f)
+	archiveWriter := zip.NewWriter(archiveFd)
 
 	for _, file := range files {
-		f, err := w.Create(file.Name)
+		header := &zip.FileHeader{
+			Name:   file.Name,
+			Method: zip.Deflate,
+		}
+
+		writer, err := archiveWriter.CreateHeader(header)
+
 		if err != nil {
 			return err, nil
 		}
-		_, err = f.Write([]byte(file.Body))
+
+		file.Fd.Seek(0, 0)
+		_, err = io.Copy(writer, file.Fd)
+
 		if err != nil {
+			log.Println("copy failed")
 			return err, nil
 		}
 	}
 
-	err = w.Close()
+	err = archiveWriter.Close()
 	if err != nil {
 		return err, nil
 	}
 
-	f.Sync()
+	archiveFd.Sync()
 
-	return nil, f
+	return nil, archiveFd
 }
