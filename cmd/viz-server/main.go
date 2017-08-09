@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"log"
 	"os"
@@ -26,6 +25,12 @@ import (
 type ArenaIdVizMessage struct {
 	ArenaId string
 	UUID    string
+}
+
+type GameStoppedMessage struct {
+	Payload struct {
+		Id string `json:"id"`
+	} `json:"payload"`
 }
 
 func main() {
@@ -57,6 +62,24 @@ func main() {
 		recorder = recording.MakeMultiArenaRecorder(*recordDirectory)
 	}
 
+	// Make GraphQL client
+	graphqlclient := graphql.MakeClient(*apiurl)
+	serverAddr := ":" + strconv.Itoa(*port)
+
+	games, err := apiqueries.FetchGames(graphqlclient)
+	if err != nil {
+		panic("Could not fetch games from GraphQL server")
+	}
+
+	gamesById := make(map[string]arenaserver.Game, 0)
+	for _, game := range games {
+		gamesById[game.GetId()] = game
+	}
+
+	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]arenaserver.Game, error) {
+		return games, nil
+	}, recorder)
+
 	mqclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
 		var vizMessage []ArenaIdVizMessage
 		err := json.Unmarshal([]byte(msg.Data), &vizMessage)
@@ -67,25 +90,28 @@ func main() {
 
 		arenaId := vizMessage[0].ArenaId
 		UUID := vizMessage[0].UUID
+		game, ok := gamesById[arenaId]
 
-		recorder.Record(UUID, string(msg.Data))
+		if ok {
+			recorder.RecordMetadata(UUID, game.GetMapContainer())
+			recorder.Record(UUID, string(msg.Data))
+		}
 
-		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena "+arenaId)
+		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena "+UUID)
 		notify.PostTimeout("viz:message:"+arenaId, string(msg.Data), time.Millisecond)
 	})
 
-	// Make GraphQL client
-	graphqlclient := graphql.MakeClient(*apiurl)
-	serverAddr := ":" + strconv.Itoa(*port)
+	mqclient.Subscribe("game", "stopped", func(msg mq.BrokerMessage) {
+		var message GameStoppedMessage
+		err := json.Unmarshal(msg.Data, &message)
 
-	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]arenaserver.Game, error) {
-		games, err := apiqueries.FetchGames(graphqlclient)
-		if err != nil {
-			return nil, errors.New("Could not fetch games from GraphQL server")
-		}
+		utils.CheckWithFunc(err, func() string {
+			return "Failed to decode vizmessage: " + err.Error()
+		})
 
-		return games, nil
-	}, recorder)
+		UUID := message.Payload.Id
+		recorder.Close(UUID)
+	})
 
 	vizservice.Start()
 
