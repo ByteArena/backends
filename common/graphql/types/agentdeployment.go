@@ -11,3 +11,13 @@ type AgentDeploymentType struct {
 	BuildError     bool   `json:"buildError"`
 	BuildLogId     string `json:"buildLogId"`
 }
+
+var AgentDeployBuildStatus = struct {
+	Pending  int
+	Building int
+	Finished int
+}{
+	Pending:  0,
+	Building: 1,
+	Finished: 2,
+}
