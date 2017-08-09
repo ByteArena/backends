@@ -3,6 +3,7 @@ package replay
 import (
 	"archive/zip"
 	"bufio"
+	"errors"
 	"io"
 	"io/ioutil"
 
@@ -67,7 +68,7 @@ func unzip(filename string) (error, *rawRecordHandles) {
 	reader, err := zip.OpenReader(filename)
 
 	if err != nil {
-		return err, nil
+		return errors.New("could not open zip file (" + err.Error() + ")"), nil
 	}
 
 	rawRecordHandles.zip = reader

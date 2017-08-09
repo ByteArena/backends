@@ -69,7 +69,7 @@ func (r *SingleArenaRecorder) Close(UUID string) {
 func (r *SingleArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontainer.MapContainer) error {
 	filename := r.tempBaseFilename + ".meta"
 
-	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0644)
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
 	utils.Check(err, "Could not open RecordMetadata temporary file")
 
 	metadata := RecordMetadata{
@@ -82,6 +82,9 @@ func (r *SingleArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapconta
 
 	_, err = file.Write(data)
 
+	err = file.Sync()
+	utils.Check(err, "could not flush Record to disk")
+
 	utils.Debug("SingleArenaRecorder", "wrote record metadata for game "+UUID)
 
 	r.recordMetadataFile = file
@@ -91,6 +94,10 @@ func (r *SingleArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapconta
 
 func (r *SingleArenaRecorder) Record(UUID string, msg string) error {
 	_, err := r.recordFile.WriteString(msg + "\n")
+	utils.Check(err, "could write record entry")
+
+	err = r.recordFile.Sync()
+	utils.Check(err, "could not flush Record to disk")
 
 	return err
 }

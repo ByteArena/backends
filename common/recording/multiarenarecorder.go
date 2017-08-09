@@ -39,6 +39,11 @@ func (r *MutliArenaRecorder) Record(UUID string, msg string) error {
 	}
 
 	_, err := handle.WriteString(msg + "\n")
+	utils.Check(err, "could write record entry")
+
+	err = handle.Sync()
+
+	utils.Check(err, "could not flush Record to disk")
 
 	return err
 }
@@ -65,6 +70,9 @@ func (r *MutliArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontai
 
 		_, err = file.Write(data)
 		utils.Check(err, "could not write RecordMetadata file")
+
+		err = file.Sync()
+		utils.Check(err, "could not flush RecordMetadata to disk")
 
 		utils.Debug("MutliArenaRecorder", "wrote record metadata for game "+UUID)
 
