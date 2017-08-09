@@ -90,12 +90,12 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 
 					c.WriteMessage(websocket.TextMessage, []byte(data))
 				}
-			case vizmap := <-vizmsgchan:
+			case vizmap := <-vizmapmsgchan:
 				{
 					vizmapString, ok := vizmap.(string)
 					utils.Assert(ok, "Failed to cast vizmessage into string")
 
-					initMessage := "{\"type\":\"init\",\"data\": {\"map\":" + vizmapString + "}}"
+					initMessage := "{\"type\":\"init\",\"data\": " + vizmapString + "}"
 					c.WriteMessage(websocket.TextMessage, []byte(initMessage))
 				}
 			}
