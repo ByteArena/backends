@@ -12,8 +12,8 @@ import (
 )
 
 const updateGameStateMutation = `
-mutation ($id: String!, $game: GameInputUpdate!) {
-	updateGame(id: $id, game: $game) {
+mutation ($id: String, $arenaServerId: String, $game: GameInputUpdate!) {
+	updateGame(id: $id, arenaServerId: $arenaServerId, game: $game) {
 		id
 		runStatus
 	}
@@ -84,18 +84,18 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 
 func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 
-	if id, ok := (*payload)["id"].(string); ok {
-		arena, ok := state.runningArenas[id]
+	if arenaServerId, ok := (*payload)["arenaserverid"].(string); ok {
+		arena, ok := state.runningArenas[arenaServerId]
 
 		if ok {
 			delete(state.runningArenas, arena.id)
 
-			utils.Debug("master", "Arena "+id+" stopped "+getMasterStatus(state))
+			utils.Debug("master", "Arena running on server "+arenaServerId+" stopped "+getMasterStatus(state))
 
 			go func() {
 				_, err := gql.RequestSync(
 					graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{
-						"id": id,
+						"arenaServerId": arenaServerId,
 						"game": graphql.Variables{
 							"runStatus": gqltypes.GameRunStatus.Finished,
 							"endedAt":   time.Now().Format(time.RFC822Z),
@@ -104,14 +104,14 @@ func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 				)
 
 				if err != nil {
-					utils.Debug("master", "ERROR: could not set game state to finished for Game "+id)
+					utils.Debug("master", "ERROR: could not set game state to finished for Game running on arena server "+arenaServerId)
 				} else {
-					utils.Debug("master", "Game state set to finished for Game "+id)
+					utils.Debug("master", "Game state set to finished for Game running on arena server "+arenaServerId)
 				}
 			}()
 
 		} else {
-			utils.Debug("master", "Arena "+id+" is not running")
+			utils.Debug("master", "Arena server "+arenaServerId+" is not running an arena")
 		}
 	}
 }
