@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
@@ -55,9 +56,10 @@ func MakeArchive(filename string, files []ArchiveFile) (error, *os.File) {
 
 	for _, file := range files {
 		header := &zip.FileHeader{
-			Name:   file.Name,
-			Method: zip.Deflate,
+			Name: file.Name,
 		}
+
+		header.SetModTime(time.Now())
 
 		writer, err := archiveWriter.CreateHeader(header)
 
