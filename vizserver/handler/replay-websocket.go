@@ -22,7 +22,7 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 		vars := mux.Vars(r)
 		UUID := vars["recordId"]
 
-		recordFile := recorder.GetDirectory() + "/" + id
+		recordFile := recorder.GetDirectory() + "/" + UUID
 
 		_, err := os.Stat(recordFile)
 
