@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 )
@@ -16,13 +17,15 @@ type ListeningChanStruct chan struct{}
 type Server struct {
 	listeningChan ListeningChanStruct
 	brokerclient  *mq.Client
+	graphqlclient *graphql.Client
 	state         *State
 }
 
-func NewServer(mq *mq.Client) *Server {
+func NewServer(mq *mq.Client, gql *graphql.Client) *Server {
 	return &Server{
-		brokerclient: mq,
-		state:        NewState(),
+		brokerclient:  mq,
+		graphqlclient: gql,
+		state:         NewState(),
 	}
 }
 
@@ -39,7 +42,7 @@ func (server *Server) Start() ListeningChanStruct {
 			return
 		}
 
-		onGameLaunch(server.state, message.Payload, server.brokerclient)
+		onGameLaunch(server.state, message.Payload, server.brokerclient, server.graphqlclient)
 	})
 
 	server.brokerclient.Subscribe("game", "handshake", func(msg mq.BrokerMessage) {
@@ -55,7 +58,7 @@ func (server *Server) Start() ListeningChanStruct {
 		onGameHandshake(server.state, message.Payload)
 	})
 
-	server.brokerclient.Subscribe("game", "stoped", func(msg mq.BrokerMessage) {
+	server.brokerclient.Subscribe("game", "stopped", func(msg mq.BrokerMessage) {
 
 		var message types.MQMessage
 		err := json.Unmarshal(msg.Data, &message)
@@ -65,7 +68,7 @@ func (server *Server) Start() ListeningChanStruct {
 			return
 		}
 
-		onGameStop(server.state, message.Payload)
+		onGameStop(server.state, message.Payload, server.graphqlclient)
 	})
 
 	server.listeningChan = make(ListeningChanStruct)

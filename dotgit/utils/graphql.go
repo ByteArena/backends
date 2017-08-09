@@ -23,7 +23,7 @@ func GqlUserToUser(gqluser graphqltype.UserType) protocol.User {
 func GqlAgentToRepo(gqlagent graphqltype.AgentType) protocol.GitRepository {
 
 	intid, _ := strconv.Atoi(gqlagent.Id)
-	owner := GqlUserToUser(gqlagent.Owner)
+	owner := GqlUserToUser(*gqlagent.Owner)
 
 	return protocol.GitRepository{
 		ID:       uint(intid),
@@ -36,7 +36,7 @@ func GqlAgentToRepo(gqlagent graphqltype.AgentType) protocol.GitRepository {
 }
 
 func GqlPubKeyToPubKey(gqlpubkey graphqltype.SSHPublicKeyType) protocol.GitPublicKey {
-	owner := GqlUserToUser(gqlpubkey.Owner)
+	owner := GqlUserToUser(*gqlpubkey.Owner)
 
 	return protocol.GitPublicKey{
 		OwnerID:     int(owner.ID),

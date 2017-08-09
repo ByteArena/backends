@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/healthcheck"
 
 	"github.com/bytearena/bytearena/common"
@@ -15,18 +16,22 @@ import (
 func main() {
 	env := os.Getenv("ENV")
 	mqHost := os.Getenv("MQ")
+	apiUrl := os.Getenv("APIURL")
 
 	utils.Assert(mqHost != "", "MQ must be set")
+	utils.Assert(apiUrl != "", "APIURL must be set")
 
 	brokerclient, err := mq.NewClient(mqHost)
 	utils.Check(err, "ERROR: could not connect to messagebroker at "+string(mqHost))
 
-	server := arenamaster.NewServer(brokerclient)
+	graphqlclient := graphql.NewClient(apiUrl)
+
+	server := arenamaster.NewServer(brokerclient, graphqlclient)
 
 	// handling signals
 	var hc *healthcheck.HealthCheckServer
 	if env == "prod" {
-		hc = NewHealthCheck(brokerclient)
+		hc = NewHealthCheck(brokerclient, graphqlclient)
 		hc.Start()
 	}
 

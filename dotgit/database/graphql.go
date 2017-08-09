@@ -18,70 +18,70 @@ fragment userFields on User {
 	name
 	username
 	email
-	universalreader
-	universalwriter
+	universalReader
+	universalWriter
 }
 `
 
 const fetchUserQuery = fragmentUser + `
-	query($username: String) {
-		users(username: $username) {
-			...userFields
-		}
+query ($username: String) {
+	users(username: $username) {
+		...userFields
 	}
+}
 `
 
 const fetchRepoQuery = fragmentUser + `
-	query($username: String, $reponame: String, $id: String) {
-		agents(username: $username, name: $reponame, id: $id) {
-			id
+query ($username: String, $reponame: String, $id: String) {
+	agents(username: $username, name: $reponame, id: $id) {
+		id
+		name
+		gitRepository {
+			cloneURL
+			username
 			name
-			gitrepository {
-				cloneurl
-				username
-				name
-				ref
-			}
-			image {
-				name
-				tag
-				registry
-			}
-			owner {
-				...userFields
-			}
+			ref
+		}
+		image {
+			name
+			tag
+			registry
+		}
+		owner {
+			...userFields
 		}
 	}
+}
 `
 
 const fetchSSHPublicKeyQuery = fragmentUser + `
-	query($username: String, $fingerprint: String) {
-		sshpublickeys(username: $username, fingerprint: $fingerprint) {
-			owner {
-				...userFields
-			}
-			name
-			type
-			key
-			fingerprint
-			comment
+query ($username: String, $fingerprint: String) {
+	sshpublickeys(username: $username, fingerprint: $fingerprint) {
+		owner {
+			...userFields
 		}
+		name
+		type
+		key
+		fingerprint
+		comment
 	}
+}
 `
 
 const createSSHPublicKeyMutation = fragmentUser + `
-	mutation($key: SSHPublicKeyInputCreate!) {
-		createSSHPublicKey(key: $key) {
-			owner {
-				...userFields
-			}
-			name
-			type
-			key
-			fingerprint
-			comment
+mutation ($key: SSHPublicKeyInputCreate!) {
+	createSSHPublicKey(key: $key) {
+		owner {
+			...userFields
 		}
+		name
+		type
+		key
+		fingerprint
+		comment
 	}
+}
 `
 
 type GraphqlDatabase struct {
