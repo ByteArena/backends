@@ -11,8 +11,6 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-type OnEventFunc func(string, bool, string)
-
 type rawRecordHandles struct {
 	recordMetadata io.ReadCloser
 	record         io.ReadCloser
@@ -24,26 +22,49 @@ type ReplayMessage struct {
 	UUID string
 }
 
-func Read(filename string, debug bool, UUID string, onMap OnEventFunc) chan *ReplayMessage {
-	streaming := make(chan *ReplayMessage)
+type Replayer struct {
+	stopChannel      chan bool
+	debug            bool
+	UUID             string
+	filename         string
+	streamingChannel chan *ReplayMessage
+	rawRecordHandles rawRecordHandles
+}
+
+func NewReplayer(filename string, debug bool, UUID string) *Replayer {
 
 	err, rawRecordHandles := unzip(filename)
 	utils.Check(err, "Could not decode archive")
 
-	log.Println("opened archived")
+	return &Replayer{
+		streamingChannel: make(chan *ReplayMessage),
+		debug:            debug,
+		UUID:             UUID,
+		filename:         filename,
+		rawRecordHandles: *rawRecordHandles,
+	}
+}
+
+func (r *Replayer) ReadMap() chan string {
+	mapChannel := make(chan string)
 
 	go func() {
-		reader := bufio.NewReader(rawRecordHandles.recordMetadata)
+
+		reader := bufio.NewReader(r.rawRecordHandles.recordMetadata)
 		metadata, err := ioutil.ReadAll(reader)
 
 		utils.Check(err, "Could not read metadata")
 
-		onMap(string(metadata), debug, UUID)
+		mapChannel <- string(metadata)
 
-		defer rawRecordHandles.recordMetadata.Close()
+		defer r.rawRecordHandles.recordMetadata.Close()
 	}()
 
-	reader := bufio.NewReader(rawRecordHandles.record)
+	return mapChannel
+}
+
+func (r *Replayer) Read() chan *ReplayMessage {
+	reader := bufio.NewReader(r.rawRecordHandles.record)
 
 	go func() {
 		for {
@@ -54,32 +75,40 @@ func Read(filename string, debug bool, UUID string, onMap OnEventFunc) chan *Rep
 			}
 
 			if readErr == io.EOF {
-				rawRecordHandles.zip.Close()
-				rawRecordHandles.record.Close()
-				streaming <- nil
+				r.rawRecordHandles.zip.Close()
+				r.rawRecordHandles.record.Close()
+				r.streamingChannel <- nil
 			}
 
 			if !isPrefix {
-				streaming <- &ReplayMessage{
+				r.streamingChannel <- &ReplayMessage{
 					Line: string(line),
-					UUID: UUID,
+					UUID: r.UUID,
 				}
+
 			} else {
 				buf := append([]byte(nil), line...)
-				for isPrefix && err == nil {
-					line, isPrefix, err = reader.ReadLine()
+
+				for isPrefix && readErr == nil {
+					line, isPrefix, readErr = reader.ReadLine()
 					buf = append(buf, line...)
 				}
 
-				streaming <- &ReplayMessage{
+				r.streamingChannel <- &ReplayMessage{
 					Line: string(buf),
-					UUID: UUID,
+					UUID: r.UUID,
 				}
+
 			}
 		}
 	}()
 
-	return streaming
+	return r.streamingChannel
+}
+
+func (r *Replayer) Stop() {
+	log.Println("stop replayer")
+	r.stopChannel <- true
 }
 
 func unzip(filename string) (error, *rawRecordHandles) {

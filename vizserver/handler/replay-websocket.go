@@ -7,8 +7,6 @@ import (
 	"os"
 	"time"
 
-	notify "github.com/bitly/go-notify"
-
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/replay"
 	"github.com/bytearena/bytearena/common/utils"
@@ -43,16 +41,17 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 			return
 		}
 
+		clientclosedsocket := make(chan bool)
+
 		defer func(c *websocket.Conn) {
 			c.Close()
-			log.Println("Closing !!!")
+			clientclosedsocket <- true
 		}(c)
 
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////
 
-		clientclosedsocket := make(chan bool)
 		c.SetCloseHandler(func(code int, text string) error {
 			clientclosedsocket <- true
 			return nil
@@ -65,19 +64,20 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 			ch <- wsincomingmessage{messageType, p, err}
 		}(c, incomingmsg)
 
-		vizmapmsgchan := make(chan interface{})
-		notify.Start("viz:map:"+UUID, vizmapmsgchan)
-
 		debug := false
 
-		vizmsgchan := replay.Read(recordFile, debug, UUID, onReplayMap)
+		replayer := replay.NewReplayer(recordFile, debug, UUID)
+
+		vizmapmsgchan := replayer.ReadMap()
+		vizmsgchan := replayer.Read()
 
 		for {
 			select {
 			case <-clientclosedsocket:
 				{
 					utils.Debug("ws", "disconnected")
-					return
+					replayer.Stop()
+					break
 				}
 			case vizmsg := <-vizmsgchan:
 				{
@@ -93,17 +93,10 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 				}
 			case vizmap := <-vizmapmsgchan:
 				{
-					vizmapString, ok := vizmap.(string)
-					utils.Assert(ok, "Failed to cast vizmessage into string")
-
-					initMessage := "{\"type\":\"init\",\"data\": " + vizmapString + "}"
+					initMessage := "{\"type\":\"init\",\"data\": " + vizmap + "}"
 					c.WriteMessage(websocket.TextMessage, []byte(initMessage))
 				}
 			}
 		}
 	}
-}
-
-func onReplayMap(body string, debug bool, UUID string) {
-	notify.PostTimeout("viz:map:"+UUID, body, time.Millisecond)
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/recording"
-	"github.com/bytearena/bytearena/common/replay"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
@@ -19,7 +18,6 @@ import (
 func main() {
 	filename := flag.String("file", "", "Filename")
 	port := flag.Int("viz-port", 8080, "Specifiy the port of the visualization server")
-	debug := flag.Bool("debug", false, "Enable debug mode")
 
 	flag.Parse()
 
@@ -31,30 +29,7 @@ func main() {
 
 	vizserver.Start()
 
-	hasTerminated := common.SignalHandler()
-	replayMessageChan := replay.Read(*filename, *debug, game.GetId(), sendMapToViz)
-
-	stopChannel := make(chan bool)
-	go func() {
-
-		for {
-			select {
-			case <-hasTerminated:
-				stopChannel <- true
-
-			case replayMsg := <-replayMessageChan:
-				// End of the record
-				if replayMsg == nil {
-					return
-				}
-
-				notify.PostTimeout("viz:message:"+replayMsg.UUID, replayMsg.Line, time.Millisecond)
-				<-time.NewTimer(1 * time.Second).C
-			}
-		}
-	}()
-
-	<-stopChannel
+	<-common.SignalHandler()
 
 	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 	vizserver.Stop()
