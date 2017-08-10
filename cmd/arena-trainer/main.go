@@ -93,6 +93,8 @@ func main() {
 		recorder = recording.MakeSingleArenaRecorder(*recordFile)
 	}
 
+	recorder.RecordMetadata(game.GetId(), game.GetMapContainer())
+
 	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
 		gameId := game.GetId()
 
@@ -112,5 +114,9 @@ func main() {
 
 	<-srv.Start()
 	srv.TearDown()
+
+	recorder.Close(game.GetId())
+	recorder.Stop()
+
 	vizservice.Stop()
 }

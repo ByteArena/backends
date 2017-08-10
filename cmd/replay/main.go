@@ -30,11 +30,19 @@ func main() {
 	vizserver := NewVizService(*port, game)
 
 	vizserver.Start()
-	go replay.Read(*filename, *debug, game.GetId(), sendMessageToViz)
+	go replay.Read(*filename, *debug, game.GetId(), sendMessageToViz, sendMapToViz)
 
 	<-common.SignalHandler()
 	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 	vizserver.Stop()
+}
+
+func sendMapToViz(msg string, debug bool, UUID string) {
+	if debug {
+		log.Println("read buffer of length: ", len(msg))
+	}
+
+	notify.PostTimeout("viz:map:"+UUID, msg, time.Millisecond)
 }
 
 func sendMessageToViz(msg string, debug bool, UUID string) {

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -23,7 +22,7 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 		vars := mux.Vars(r)
 		UUID := vars["recordId"]
 
-		recordFile := recorder.GetDirectory() + "/record-" + UUID + ".bin"
+		recordFile := recorder.GetDirectory() + "/" + UUID
 
 		_, err := os.Stat(recordFile)
 
@@ -70,16 +69,10 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 		vizmsgchan := make(chan interface{})
 		notify.Start("viz:message_replay:"+UUID, vizmsgchan)
 
+		vizmapmsgchan := make(chan interface{})
+		notify.Start("viz:map:"+UUID, vizmapmsgchan)
+
 		go startStreaming(recordFile, UUID)
-
-		// Init map
-		resp, err := http.Get("http://bytearena.com/maps/deathmatch/desert/death-valley/map.json")
-		defer resp.Body.Close()
-
-		body, err := ioutil.ReadAll(resp.Body)
-
-		initMessage := "{\"type\":\"init\",\"data\": {\"map\":" + string(body) + "}}"
-		c.WriteMessage(websocket.TextMessage, []byte(initMessage))
 
 		for {
 			select {
@@ -97,6 +90,14 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 
 					c.WriteMessage(websocket.TextMessage, []byte(data))
 				}
+			case vizmap := <-vizmapmsgchan:
+				{
+					vizmapString, ok := vizmap.(string)
+					utils.Assert(ok, "Failed to cast vizmessage into string")
+
+					initMessage := "{\"type\":\"init\",\"data\": " + vizmapString + "}"
+					c.WriteMessage(websocket.TextMessage, []byte(initMessage))
+				}
 			}
 		}
 	}
@@ -105,8 +106,14 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 func startStreaming(filename string, UUID string) {
 	debug := false
 
-	replay.Read(filename, debug, UUID, func(line string, debug bool, UUID string) {
-		notify.PostTimeout("viz:message_replay:"+UUID, line, time.Millisecond)
-		<-time.NewTimer(1 * time.Second).C
-	})
+	replay.Read(filename, debug, UUID, onReplayMessage, onReplayMap)
+}
+
+func onReplayMessage(line string, debug bool, UUID string) {
+	notify.PostTimeout("viz:message_replay:"+UUID, line, time.Millisecond)
+	<-time.NewTimer(1 * time.Second).C
+}
+
+func onReplayMap(body string, debug bool, UUID string) {
+	notify.PostTimeout("viz:map:"+UUID, body, time.Millisecond)
 }

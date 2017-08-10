@@ -15,4 +15,3 @@ do
    cd "$i" && go build $BUILDFLAGS && cd ..
    echo ""
 done
-

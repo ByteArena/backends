@@ -17,7 +17,7 @@ func Replay(recorder recording.Recorder, basepath string) func(w http.ResponseWr
 		vars := mux.Vars(r)
 		id := vars["recordId"]
 
-		_, err := os.Stat(recorder.GetDirectory() + "/record-" + id + ".bin")
+		_, err := os.Stat(recorder.GetDirectory() + "/" + id)
 
 		if os.IsNotExist(err) {
 			w.Write([]byte("Record not found"))
