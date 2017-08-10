@@ -11,34 +11,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-func getHostRomoteOrch(orch *ContainerOrchestrator) (string, error) {
-
-	// Inspecting the present container (arena-server) to get it's IP in the "agents" network
-	res, err := orch.cli.ContainerInspect(
-		orch.ctx,
-		os.Getenv("HOSTNAME"), // $HOSTNAME is the container id
-	)
-
-	if err != nil {
-		return "", err
-	}
-
-	ipInAgentsNetwork := ""
-
-	for networkname, network := range res.NetworkSettings.Networks {
-		if networkname == "agents" {
-			ipInAgentsNetwork = network.IPAddress
-			break
-		}
-	}
-
-	if ipInAgentsNetwork == "" {
-		return "", errors.New("Could not determine IP of arena-server container in the 'agents' network")
-	}
-
-	return ipInAgentsNetwork, nil
-}
-
 func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner AgentContainer) error {
 
 	err := orch.cli.ContainerStart(
@@ -105,7 +77,6 @@ func MakeRemoteContainerOrchestrator(arenaAddr string, registryAddr string) Cont
 		ctx:          ctx,
 		cli:          cli,
 		registryAuth: registryAuth,
-		// GetHost:        getHostRomoteOrch,
 		GetHost: func(orch *ContainerOrchestrator) (string, error) {
 			return arenaAddr, nil
 		},
