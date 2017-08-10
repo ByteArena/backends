@@ -13,7 +13,12 @@ type Config struct {
 	DatabaseURI         string
 	GitRepositoriesPath string
 	MqHost              string
-	DockerHost          string
+
+	DockerHost             string
+	DockerBuildMemoryLimit string
+	DockerBuildNetwork     string
+	DockerBuildNoCache     string
+	DockerBuildCpuPeriod   string
 }
 
 func (conf Config) GetDatabaseURI() string {

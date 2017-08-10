@@ -3,7 +3,12 @@ FROM golang:1.8-stretch
 ARG DATABASE_URI
 ARG GIT_REPOSITORIES_PATH
 ARG MQ_HOST
+
 ARG DOCKER_HOST
+ARG DOCKER_BUILD_MEMORY_LIMIT
+ARG DOCKER_BUILD_NETWORK
+ARG DOCKER_BUILD_NO_CACHE
+ARG DOCKER_BUILD_CPU_PERIOD
 
 ENV APP_HOME $GOPATH/src/github.com/bytearena
 
@@ -22,6 +27,10 @@ RUN echo "{" >> /etc/dotgit.conf
 RUN echo "\"DatabaseURI\":\"$DATABASE_URI\"," >> /etc/dotgit.conf
 RUN echo "\"GitRepositoriesPath\":\"$GIT_REPOSITORIES_PATH\"," >> /etc/dotgit.conf
 RUN echo "\"DockerHost\":\"$DOCKER_HOST\"," >> /etc/dotgit.conf
+RUN echo "\"DockerBuildMemoryLimit\":\"$DOCKER_BUILD_MEMORY_LIMIT\"," >> /etc/dotgit.conf
+RUN echo "\"DockerBuildNetwork\":\"$DOCKER_BUILD_NETWORK\"," >> /etc/dotgit.conf
+RUN echo "\"DockerBuildNoCache\":\"$DOCKER_BUILD_NO_CACHE\"," >> /etc/dotgit.conf
+RUN echo "\"DockerBuildCpuPeriod\":\"$DOCKER_BUILD_CPU_PERIOD\"," >> /etc/dotgit.conf
 RUN echo "\"MqHost\":\"$MQ_HOST\"" >> /etc/dotgit.conf
 RUN echo "}" >> /etc/dotgit.conf
 

@@ -163,8 +163,13 @@ func processGitOperation(user protocol.User, repo protocol.GitRepository, gitOpe
 		"GIT_CLONE_URL="+repo.CloneURL,
 		"GIT_OPERATION="+gitOperation,
 		"MQ_HOST="+cnf.GetMqHost(),
-		"DOCKER_HOST="+cnf.GetDockerHost(),
 		"API_URL="+cnf.GetDatabaseURI(),
+
+		"DOCKER_HOST="+cnf.GetDockerHost(),
+		"DOCKER_BUILD_MEMORY_LIMIT="+cnf.DockerBuildMemoryLimit,
+		"DOCKER_BUILD_NETWORK="+cnf.DockerBuildNetwork,
+		"DOCKER_BUILD_NO_CACHE"+cnf.DockerBuildNoCache,
+		"DOCKER_BUILD_CPU_PERIOD"+cnf.DockerBuildCpuPeriod,
 	)
 
 	err = cmd.Run()

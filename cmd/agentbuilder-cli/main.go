@@ -110,9 +110,18 @@ func buildImage(absBuildDir string, name string) {
 		msgOut("Error: docker command not found in path")
 	}
 
+	dockerBuildMemoryLimit := os.Getenv("DOCKER_BUILD_MEMORY_LIMIT")
+	dockerBuildNetwork := os.Getenv("DOCKER_BUILD_NETWORK")
+	dockerBuildNoCache := os.Getenv("DOCKER_BUILD_NO_CACHE")
+	dockerBuildCpuPeriod := os.Getenv("DOCKER_BUILD_CPU_PERIOD")
+
 	cmd := exec.Command(
-		dockerbin, "build", "-t",
-		name,
+		dockerbin, "build",
+		"-t", name,
+		"--memory", dockerBuildMemoryLimit,
+		"--network", dockerBuildNetwork,
+		"--no-cache", dockerBuildNoCache,
+		"--cpu-period", dockerBuildCpuPeriod,
 		absBuildDir,
 	)
 	cmd.Env = nil
