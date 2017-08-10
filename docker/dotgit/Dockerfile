@@ -39,6 +39,11 @@ RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/dotgit-ssh/dotgit-ssh /usr/bin
 RUN touch /var/log/dotgit-ssh.log && chown git:git /var/log/dotgit-ssh.log
 
+# Build agentbuilder-cli
+WORKDIR $APP_HOME/bytearena/cmd/agentbuilder-cli
+RUN go build
+RUN cp -f $APP_HOME/bytearena/cmd/agentbuilder-cli/agentbuilder-cli /usr/bin
+
 # Build dotgit-keystore
 WORKDIR $APP_HOME/bytearena/cmd/dotgit-keystore
 RUN go build
