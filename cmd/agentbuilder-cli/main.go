@@ -73,7 +73,7 @@ func buildAndDeploy(cloneurl, registryHost, imageName string) {
 
 	utils.Debug("agentbuilder-cli", "build and deploy image: "+imageName)
 
-	err, dir := cloneRepo(cloneurl, imageName)
+	err, dir := cloneRepo(cloneurl, fmt.Sprintf("%s-%d", imageName, time.Now().UnixNano()))
 
 	if err == nil {
 		err = buildImage(dir, imageName)
