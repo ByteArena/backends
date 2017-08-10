@@ -71,7 +71,7 @@ func pingRegistry(host string) error {
 
 func buildAndDeploy(cloneurl, registryHost, imageName string) {
 
-	utils.Debug("agent-builder", "build and deploy image: "+imageName)
+	utils.Debug("agentbuilder-cli", "build and deploy image: "+imageName)
 
 	err, dir := cloneRepo(cloneurl, imageName)
 
@@ -90,7 +90,7 @@ func buildAndDeploy(cloneurl, registryHost, imageName string) {
 }
 
 func buildImage(absBuildDir string, name string) error {
-	utils.Debug("agent-builder", "Building agent")
+	utils.Debug("agentbuilder-cli", "Building agent")
 
 	dockerbin, err := exec.LookPath("docker")
 	utils.Check(err, "Error: docker command not found in path")
@@ -114,7 +114,7 @@ func buildImage(absBuildDir string, name string) error {
 }
 
 func deployImage(name string, imageVersion string, registryhost string) {
-	utils.Debug("agent-builder", "Deploying to docker registry")
+	utils.Debug("agentbuilder-cli", "Deploying to docker registry")
 
 	dockerbin, err := exec.LookPath("docker")
 	utils.Check(err, "Error: docker command not found in path")
@@ -151,7 +151,7 @@ func cloneRepo(url string, hash string) (error, string) {
 
 	dir := "/tmp/" + hash
 	os.RemoveAll(dir)
-	utils.Debug("agent-builder", "Cloning "+url+" into "+dir)
+	utils.Debug("agentbuilder-cli", "Cloning "+url+" into "+dir)
 
 	cmd := exec.Command(
 		gitbin,
@@ -160,13 +160,11 @@ func cloneRepo(url string, hash string) (error, string) {
 		dir,
 	)
 
-	privatekey := "/root/git_admin_key_private"
-
 	sshbin, err := exec.LookPath("ssh")
 	if err != nil {
 		log.Fatal("Error: ssh not found in $PATH")
 	}
-	cmd.Env = []string{fmt.Sprintf("GIT_SSH_COMMAND=\"%s\" -i \"%s\" -o \"StrictHostKeyChecking=no\"", sshbin, privatekey)}
+	cmd.Env = []string{fmt.Sprintf("GIT_SSH_COMMAND=\"%s\" -o \"StrictHostKeyChecking=no\"", sshbin)}
 
 	stdoutStderr, err := cmd.CombinedOutput()
 
