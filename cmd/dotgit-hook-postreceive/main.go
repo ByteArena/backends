@@ -34,6 +34,7 @@ func main() {
 
 	envGitRepoID := os.Getenv("GIT_REPO_ID")
 	envGitRepoName := os.Getenv("GIT_REPO_NAME")
+	envGitUsername := os.Getenv("GIT_REPO_OWNER")
 	envGitRepoPath := os.Getenv("GIT_REPO_PATH")
 	envAPIURL := os.Getenv("API_URL")
 
@@ -139,7 +140,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = build(message, envGitRepoPath, envGitRepoName)
+	err = build(message, envGitRepoPath, envGitUsername+"/"+envGitRepoName)
 	if err != nil {
 		fmt.Println("Error: could not build agent; " + err.Error())
 		updateDeployment(deploymentID, gqltypes.AgentDeployBuildStatus.Finished, true)
