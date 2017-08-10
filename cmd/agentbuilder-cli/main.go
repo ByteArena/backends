@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -14,7 +13,7 @@ import (
 )
 
 func msgOut(msg string) {
-	log.Println("🛑 " + msg)
+	fmt.Println("🛑  " + msg)
 	os.Exit(1)
 }
 
