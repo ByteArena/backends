@@ -7,8 +7,6 @@ import (
 	"os"
 	"time"
 
-	notify "github.com/bitly/go-notify"
-
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/replay"
 	"github.com/bytearena/bytearena/common/utils"
@@ -43,16 +41,17 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 			return
 		}
 
+		clientclosedsocket := make(chan bool)
+
 		defer func(c *websocket.Conn) {
 			c.Close()
-			log.Println("Closing !!!")
+			clientclosedsocket <- true
 		}(c)
 
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////
 
-		clientclosedsocket := make(chan bool)
 		c.SetCloseHandler(func(code int, text string) error {
 			clientclosedsocket <- true
 			return nil
@@ -65,55 +64,39 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 			ch <- wsincomingmessage{messageType, p, err}
 		}(c, incomingmsg)
 
-		// Listen to viz messages coming from arenaserver
-		vizmsgchan := make(chan interface{})
-		notify.Start("viz:message_replay:"+UUID, vizmsgchan)
+		debug := false
 
-		vizmapmsgchan := make(chan interface{})
-		notify.Start("viz:map:"+UUID, vizmapmsgchan)
+		replayer := replay.NewReplayer(recordFile, debug, UUID)
 
-		go startStreaming(recordFile, UUID)
+		vizmapmsgchan := replayer.ReadMap()
+		vizmsgchan := replayer.Read()
 
 		for {
 			select {
 			case <-clientclosedsocket:
 				{
 					utils.Debug("ws", "disconnected")
-					return
+					replayer.Stop()
+					break
 				}
 			case vizmsg := <-vizmsgchan:
 				{
-					vizmsgString, ok := vizmsg.(string)
-					utils.Assert(ok, "Failed to cast vizmessage into string")
+					// End of the record
+					if vizmsg == nil {
+						return
+					}
 
-					data := fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", vizmsgString)
+					data := fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", vizmsg.Line)
 
 					c.WriteMessage(websocket.TextMessage, []byte(data))
+					<-time.NewTimer(1 * time.Second).C
 				}
 			case vizmap := <-vizmapmsgchan:
 				{
-					vizmapString, ok := vizmap.(string)
-					utils.Assert(ok, "Failed to cast vizmessage into string")
-
-					initMessage := "{\"type\":\"init\",\"data\": " + vizmapString + "}"
+					initMessage := "{\"type\":\"init\",\"data\": " + vizmap + "}"
 					c.WriteMessage(websocket.TextMessage, []byte(initMessage))
 				}
 			}
 		}
 	}
-}
-
-func startStreaming(filename string, UUID string) {
-	debug := false
-
-	replay.Read(filename, debug, UUID, onReplayMessage, onReplayMap)
-}
-
-func onReplayMessage(line string, debug bool, UUID string) {
-	notify.PostTimeout("viz:message_replay:"+UUID, line, time.Millisecond)
-	<-time.NewTimer(1 * time.Second).C
-}
-
-func onReplayMap(body string, debug bool, UUID string) {
-	notify.PostTimeout("viz:map:"+UUID, body, time.Millisecond)
 }

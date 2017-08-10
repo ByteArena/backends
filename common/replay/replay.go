@@ -6,11 +6,10 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"log"
 
 	"github.com/bytearena/bytearena/common/utils"
 )
-
-type OnEventFunc func(string, bool, string)
 
 type rawRecordHandles struct {
 	recordMetadata io.ReadCloser
@@ -18,48 +17,98 @@ type rawRecordHandles struct {
 	zip            *zip.ReadCloser
 }
 
-func Read(filename string, debug bool, UUID string, onMessage OnEventFunc, onMap OnEventFunc) {
+type ReplayMessage struct {
+	Line string
+	UUID string
+}
+
+type Replayer struct {
+	stopChannel      chan bool
+	debug            bool
+	UUID             string
+	filename         string
+	streamingChannel chan *ReplayMessage
+	rawRecordHandles rawRecordHandles
+}
+
+func NewReplayer(filename string, debug bool, UUID string) *Replayer {
+
 	err, rawRecordHandles := unzip(filename)
 	utils.Check(err, "Could not decode archive")
 
+	return &Replayer{
+		streamingChannel: make(chan *ReplayMessage),
+		debug:            debug,
+		UUID:             UUID,
+		filename:         filename,
+		rawRecordHandles: *rawRecordHandles,
+	}
+}
+
+func (r *Replayer) ReadMap() chan string {
+	mapChannel := make(chan string)
+
 	go func() {
-		reader := bufio.NewReader(rawRecordHandles.recordMetadata)
+
+		reader := bufio.NewReader(r.rawRecordHandles.recordMetadata)
 		metadata, err := ioutil.ReadAll(reader)
 
 		utils.Check(err, "Could not read metadata")
 
-		onMap(string(metadata), debug, UUID)
+		mapChannel <- string(metadata)
 
-		defer rawRecordHandles.recordMetadata.Close()
+		defer r.rawRecordHandles.recordMetadata.Close()
 	}()
 
-	reader := bufio.NewReader(rawRecordHandles.record)
+	return mapChannel
+}
 
-	for {
-		line, isPrefix, readErr := reader.ReadLine()
+func (r *Replayer) Read() chan *ReplayMessage {
+	reader := bufio.NewReader(r.rawRecordHandles.record)
 
-		if len(line) == 0 {
-			continue
-		}
+	go func() {
+		for {
+			line, isPrefix, readErr := reader.ReadLine()
 
-		if readErr == io.EOF {
-			rawRecordHandles.zip.Close()
-			rawRecordHandles.record.Close()
-			return
-		}
-
-		if !isPrefix {
-			onMessage(string(line), debug, UUID)
-		} else {
-			buf := append([]byte(nil), line...)
-			for isPrefix && err == nil {
-				line, isPrefix, err = reader.ReadLine()
-				buf = append(buf, line...)
+			if len(line) == 0 {
+				continue
 			}
 
-			onMessage(string(buf), debug, UUID)
+			if readErr == io.EOF {
+				r.rawRecordHandles.zip.Close()
+				r.rawRecordHandles.record.Close()
+				r.streamingChannel <- nil
+			}
+
+			if !isPrefix {
+				r.streamingChannel <- &ReplayMessage{
+					Line: string(line),
+					UUID: r.UUID,
+				}
+
+			} else {
+				buf := append([]byte(nil), line...)
+
+				for isPrefix && readErr == nil {
+					line, isPrefix, readErr = reader.ReadLine()
+					buf = append(buf, line...)
+				}
+
+				r.streamingChannel <- &ReplayMessage{
+					Line: string(buf),
+					UUID: r.UUID,
+				}
+
+			}
 		}
-	}
+	}()
+
+	return r.streamingChannel
+}
+
+func (r *Replayer) Stop() {
+	log.Println("stop replayer")
+	r.stopChannel <- true
 }
 
 func unzip(filename string) (error, *rawRecordHandles) {

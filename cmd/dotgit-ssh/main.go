@@ -3,30 +3,32 @@ package main
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
-	"time"
 
-	"github.com/bytearena/bytearena/common/graphql"
-	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/dotgit/config"
 	"github.com/bytearena/bytearena/dotgit/database"
 	"github.com/bytearena/bytearena/dotgit/protocol"
 	"github.com/bytearena/bytearena/dotgit/utils"
 )
 
-const createDeploymentMutation = `
-mutation($agentDeployment: AgentDeploymentInputCreate!) {
-	createAgentDeployment(agentDeployment: $agentDeployment) {
-		id
+func msgOut(msg string) {
+	log.Println(msg)
+	os.Exit(1)
+}
+
+func errorCheck(err error, msg string) {
+	if err == nil {
+		return
 	}
-  }
-`
+
+	msgOut(msg + "; " + err.Error()) // logfile
+}
 
 func main() {
 
@@ -44,91 +46,53 @@ func main() {
 	var db protocol.Database = database.NewGraphQLDatabase()
 
 	err = db.Connect(cnf.GetDatabaseURI())
-	if err != nil {
-		fmt.Println("Cannot connect to database", err)
-		log.Println("Cannot connect to database", err)
-		os.Exit(1)
-	}
-
-	gql := graphql.MakeClient(cnf.GetDatabaseURI())
+	errorCheck(err, "Cannot connect to database")
 
 	if len(os.Args) != 2 {
-		fmt.Println("Error: fixed git username missing or invalid in call to ", os.Args[0])
-		log.Println("Error: fixed git username missing or invalid in call to ", os.Args[0])
-		os.Exit(1)
+		msgOut("Error: fixed git username missing or invalid")
 	}
 
 	sshKeyFixedUsername := os.Args[1]
 	originalGitCommand := os.Getenv("SSH_ORIGINAL_COMMAND")
 
 	sshKeyFixedUser, err := db.FindUserByUsername(sshKeyFixedUsername)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: cannot find user")
 
 	gitOperation, gitRepoPath, err := parseGitCommand(originalGitCommand)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: cannot parse git command")
 
 	gitRepoUsername, gitRepoName, err := parseRepositoryName(gitRepoPath)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: cannot parse repository name")
 
 	repoUser, err := db.FindUserByUsername(gitRepoUsername)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: cannot determine username associated to repository")
 
 	repo, err := db.FindRepository(repoUser, gitRepoName)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: cannot find corresponding repository")
 
 	switch gitOperation {
 	case "receive-pack":
 		{
 			if !hasWritePermission(sshKeyFixedUser, repo) {
-				fmt.Println("Write denied to required repository.")
-				log.Println("Write denied to required repository.")
-				os.Exit(1)
+				msgOut("Error: Write denied to required repository.")
 			}
 			break
 		}
 	case "upload-pack":
 		{
 			if !hasReadPermission(sshKeyFixedUser, repo) {
-				fmt.Println("Read denied to required repository.")
-				log.Println("Read denied to required repository.")
-				os.Exit(1)
+				msgOut("Error: Read denied to required repository.")
 			}
 			break
 		}
 	default:
 		{
-			fmt.Println("Invalid git operation; should be either git-receive-pack or git-upload-pack.")
-			log.Println("Invalid git operation; should be either git-receive-pack or git-upload-pack.")
-			os.Exit(1)
+			msgOut("Error: Invalid git operation; should be either git-receive-pack or git-upload-pack.")
 		}
 	}
 
-	err = processGitOperation(gql, repoUser, repo, gitOperation)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	err = processGitOperation(repoUser, repo, gitOperation)
+	errorCheck(err, "Error: Cannot process git operation.")
 }
 
 func hasWritePermission(user protocol.User, repo protocol.GitRepository) bool {
@@ -168,7 +132,7 @@ func parseRepositoryName(repopath string) (username string, reponame string, err
 	return parts[0], parts[1], nil
 }
 
-func processGitOperation(gql graphql.Client, user protocol.User, repo protocol.GitRepository, gitOperation string) error {
+func processGitOperation(user protocol.User, repo protocol.GitRepository, gitOperation string) error {
 
 	cnf := config.GetConfig()
 
@@ -192,53 +156,28 @@ func processGitOperation(gql graphql.Client, user protocol.User, repo protocol.G
 	cmd.Env = append(
 		os.Environ(),
 		"GIT_USER="+user.Username,
+		"GIT_REPO_ID="+strconv.Itoa(int(repo.ID)),
 		"GIT_REPO_OWNER="+repo.Owner.Username,
 		"GIT_REPO_NAME="+repo.Name,
 		"GIT_REPO_PATH="+repoAbsPath,
 		"GIT_CLONE_URL="+repo.CloneURL,
 		"GIT_OPERATION="+gitOperation,
 		"MQ_HOST="+cnf.GetMqHost(),
+		"API_URL="+cnf.GetDatabaseURI(),
+
+		"DOCKER_HOST="+cnf.GetDockerHost(),
+		"DOCKER_BUILD_MEMORY_LIMIT="+cnf.DockerBuildMemoryLimit,
+		"DOCKER_BUILD_NETWORK="+cnf.DockerBuildNetwork,
+		"DOCKER_BUILD_NO_CACHE"+cnf.DockerBuildNoCache,
+		"DOCKER_BUILD_CPU_PERIOD"+cnf.DockerBuildCpuPeriod,
 	)
 
 	err = cmd.Run()
 	if err != nil {
-		return errors.New("Error: failed to call git;" + repoAbsPath + "; " + stderr.String())
+		return errors.New("Error: error during git operation; " + stderr.String())
 	}
 
-	// Deploy successful; updating graphql
-
-	// Fetch last commit SHA1 and message
-	cmd2 := exec.Command(
-		gitbin,
-		"-C", repoAbsPath,
-		"log", "-1",
-		"--pretty=format:%H|%s",
-	)
-	stdoutStderr, err := cmd2.CombinedOutput()
-	if err != nil {
-		return errors.New("Error: failed to get informations about latest git commit;" + repoAbsPath + "; " + string(stdoutStderr))
-	}
-
-	// On parse le résultat pour obtenir le SHA1 et le message de commit
-	parts := strings.SplitN(string(stdoutStderr), "|", 2)
-	if len(parts) < 2 {
-		return errors.New("Error: failed to parse informations about latest git commit;" + repoAbsPath + "; " + string(stdoutStderr))
-	}
-
-	sha1 := parts[0]
-	message := parts[1]
-
-	_, err = gql.RequestSync(
-		graphql.NewQuery(createDeploymentMutation).SetVariables(graphql.Variables{
-			"agentDeployment": graphql.Variables{
-				"agentId":       repo.ID,
-				"pushedAt":      time.Now().Format(time.RFC822Z),
-				"commitSHA1":    sha1,
-				"commitMessage": message,
-				"buildStatus":   gqltypes.GameRunStatus.Pending,
-			},
-		}),
-	)
+	// Git operation successful (+ post-receive hook that built the agent)
 
 	return nil
 }

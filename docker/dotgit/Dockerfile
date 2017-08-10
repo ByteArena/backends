@@ -4,6 +4,12 @@ ARG DATABASE_URI
 ARG GIT_REPOSITORIES_PATH
 ARG MQ_HOST
 
+ARG DOCKER_HOST
+ARG DOCKER_BUILD_MEMORY_LIMIT
+ARG DOCKER_BUILD_NETWORK
+ARG DOCKER_BUILD_NO_CACHE
+ARG DOCKER_BUILD_CPU_PERIOD
+
 ENV APP_HOME $GOPATH/src/github.com/bytearena
 
 RUN apt-get -y update
@@ -20,6 +26,11 @@ RUN touch /etc/dotgit.conf
 RUN echo "{" >> /etc/dotgit.conf
 RUN echo "\"DatabaseURI\":\"$DATABASE_URI\"," >> /etc/dotgit.conf
 RUN echo "\"GitRepositoriesPath\":\"$GIT_REPOSITORIES_PATH\"," >> /etc/dotgit.conf
+RUN echo "\"DockerHost\":\"$DOCKER_HOST\"," >> /etc/dotgit.conf
+RUN echo "\"DockerBuildMemoryLimit\":\"$DOCKER_BUILD_MEMORY_LIMIT\"," >> /etc/dotgit.conf
+RUN echo "\"DockerBuildNetwork\":\"$DOCKER_BUILD_NETWORK\"," >> /etc/dotgit.conf
+RUN echo "\"DockerBuildNoCache\":\"$DOCKER_BUILD_NO_CACHE\"," >> /etc/dotgit.conf
+RUN echo "\"DockerBuildCpuPeriod\":\"$DOCKER_BUILD_CPU_PERIOD\"," >> /etc/dotgit.conf
 RUN echo "\"MqHost\":\"$MQ_HOST\"" >> /etc/dotgit.conf
 RUN echo "}" >> /etc/dotgit.conf
 
@@ -38,6 +49,18 @@ WORKDIR $APP_HOME/bytearena/cmd/dotgit-ssh
 RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/dotgit-ssh/dotgit-ssh /usr/bin
 RUN touch /var/log/dotgit-ssh.log && chown git:git /var/log/dotgit-ssh.log
+
+# Build dotgit-hook-postreceive
+RUN mkdir -p /home/git/git-scripts
+WORKDIR $APP_HOME/bytearena/cmd/dotgit-hook-postreceive
+RUN go build
+RUN cp -f $APP_HOME/bytearena/cmd/dotgit-hook-postreceive/dotgit-hook-postreceive /home/git/git-scripts/post-receive
+RUN chown -Rf git:git /home/git/git-scripts
+
+# Build agentbuilder-cli
+WORKDIR $APP_HOME/bytearena/cmd/agentbuilder-cli
+RUN go build
+RUN cp -f $APP_HOME/bytearena/cmd/agentbuilder-cli/agentbuilder-cli /usr/bin
 
 # Build dotgit-keystore
 WORKDIR $APP_HOME/bytearena/cmd/dotgit-keystore
@@ -78,7 +101,6 @@ RUN echo "HostKey /opt/ssh/ssh_host_ecdsa_key"
 RUN echo "HostKey /opt/ssh/ssh_host_ed25519_key"
 
 COPY ./bytearena/docker/dotgit/template /home/git/template
-COPY ./bytearena/docker/dotgit/git-scripts /home/git/git-scripts
 
 # Permissions on /home/git
 RUN mkdir -p /home/git/repositories
@@ -87,5 +109,15 @@ RUN chown -R git:git /home/git
 # Startup script
 COPY ./bytearena/docker/dotgit/start.sh $APP_HOME
 WORKDIR $APP_HOME
+
+# Installing docker cli (useful for agent-builder)
+
+RUN apt-get --allow-unauthenticated -y install apt-transport-https ca-certificates curl software-properties-common
+RUN apt-get -y install gnupg2
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
+RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+
+RUN apt-get -y update
+RUN apt-get -y install docker-ce
 
 CMD ["bash", "start.sh"]
