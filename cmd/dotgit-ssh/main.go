@@ -198,6 +198,7 @@ func processGitOperation(gql graphql.Client, user protocol.User, repo protocol.G
 		"GIT_CLONE_URL="+repo.CloneURL,
 		"GIT_OPERATION="+gitOperation,
 		"MQ_HOST="+cnf.GetMqHost(),
+		"DOCKER_HOST="+cnf.GetDockerHost(),
 	)
 
 	err = cmd.Run()

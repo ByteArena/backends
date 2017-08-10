@@ -13,6 +13,7 @@ type Config struct {
 	DatabaseURI         string
 	GitRepositoriesPath string
 	MqHost              string
+	DockerHost          string
 }
 
 func (conf Config) GetDatabaseURI() string {
@@ -25,6 +26,10 @@ func (conf Config) GetGitRepositoriesPath() string {
 
 func (conf Config) GetMqHost() string {
 	return conf.MqHost
+}
+
+func (conf Config) GetDockerHost() string {
+	return conf.DockerHost
 }
 
 func loadConfig(configpath string) (*Config, error) {
@@ -52,6 +57,10 @@ func loadConfig(configpath string) (*Config, error) {
 
 	if strings.TrimSpace(config.GetMqHost()) == "" {
 		return nil, errors.New("MqHost is missing in config file: " + configpath)
+	}
+
+	if strings.TrimSpace(config.GetDockerHost()) == "" {
+		return nil, errors.New("DockerHost is missing in config file: " + configpath)
 	}
 
 	return &config, nil
