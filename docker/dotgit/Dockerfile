@@ -40,6 +40,11 @@ RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/dotgit-ssh/dotgit-ssh /usr/bin
 RUN touch /var/log/dotgit-ssh.log && chown git:git /var/log/dotgit-ssh.log
 
+# Build dotgit-hook-postreceive
+WORKDIR $APP_HOME/bytearena/cmd/dotgit-hook-postreceive
+RUN go build
+RUN cp -f $APP_HOME/bytearena/cmd/dotgit-hook-postreceive/dotgit-hook-postreceive /usr/bin
+
 # Build agentbuilder-cli
 WORKDIR $APP_HOME/bytearena/cmd/agentbuilder-cli
 RUN go build
