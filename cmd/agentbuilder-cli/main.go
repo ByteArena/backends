@@ -5,25 +5,40 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
 	"time"
 
 	"github.com/bytearena/bytearena/common"
-	"github.com/bytearena/bytearena/common/utils"
 )
 
-func main() {
+func msgOut(msg string) {
+	log.Println("🛑 " + msg)
+	os.Exit(1)
+}
 
-	rand.Seed(time.Now().UnixNano())
+func welcomeBanner() {
+	fmt.Println("=== ")
+	fmt.Println("=== 🤖  Welcome on Byte Arena Builder Bot !")
+	fmt.Println("=== ")
+	fmt.Println("")
+}
+
+func successBanner() {
+	fmt.Println("")
+	fmt.Println("=== ")
+	fmt.Println("=== ✅  Your agent is deployed. Let'em know who's the best !")
+	fmt.Println("=== ")
+	fmt.Println("")
+}
+
+func main() {
 
 	// handling signals
 	go func() {
 		<-common.SignalHandler()
-		log.Println("RECEIVED SHUTDOWN SIGNAL; closing.")
-		os.Exit(1)
+		msgOut("RECEIVED SHUTDOWN SIGNAL; closing.")
 	}()
 
 	repoURL := flag.String("repourl", "", "URL of the git repository to build")
@@ -33,27 +48,23 @@ func main() {
 	flag.Parse()
 
 	if *repoURL == "" {
-		log.Println("RECEIVED SHUTDOWN SIGNAL; closing.")
-		os.Exit(1)
+		msgOut("RECEIVED SHUTDOWN SIGNAL; closing.")
 	}
 
 	if *registryHost == "" {
-		log.Println("Docker registry Host is mandatory; you can specify it using the `--registry` flag.")
-		os.Exit(1)
+		msgOut("Docker registry Host is mandatory; you can specify it using the `--registry` flag.")
 	}
 
 	if *imageName == "" {
-		log.Println("Docker image name is mandatory; you can specify it using the `--imagename` flag.")
-		os.Exit(1)
+		msgOut("Docker image name is mandatory; you can specify it using the `--imagename` flag.")
 	}
 
 	if err := pingRegistry(*registryHost); err != nil {
-		log.Println("Docker registry is unreachable; tried " + *registryHost)
-		os.Exit(1)
+		msgOut("Docker registry is unreachable; tried " + *registryHost)
 	}
 
 	if err := buildAndDeploy(*repoURL, *registryHost, *imageName); err != nil {
-		log.Println("Could not build/deploy agent; " + err.Error())
+		msgOut("Could not build/deploy agent; " + err.Error())
 		os.Exit(1)
 	}
 }
@@ -76,33 +87,28 @@ func pingRegistry(host string) error {
 
 func buildAndDeploy(cloneurl, registryHost, imageName string) error {
 
-	utils.Debug("agentbuilder-cli", "build and deploy image: "+imageName)
+	//utils.Debug("agentbuilder-cli", "build and deploy image: "+imageName)
 
-	err, dir := cloneRepo(cloneurl, fmt.Sprintf("%s-%d", imageName, time.Now().UnixNano()))
+	welcomeBanner()
 
-	if err == nil {
-		err = buildImage(dir, imageName)
+	dir := cloneRepo(cloneurl, fmt.Sprintf("%s-%d", imageName, time.Now().UnixNano()))
 
-		if err == nil {
-			deployImage(imageName, "latest", registryHost)
-		} else {
-			utils.Debug("error", err.Error())
-			return err
-		}
+	buildImage(dir, imageName)
 
-	} else {
-		utils.Debug("error", err.Error())
-		return err
-	}
+	deployImage(imageName, "latest", registryHost)
+
+	successBanner()
 
 	return nil
 }
 
-func buildImage(absBuildDir string, name string) error {
-	utils.Debug("agentbuilder-cli", "Building agent")
+func buildImage(absBuildDir string, name string) {
+	//utils.Debug("agentbuilder-cli", "Building agent")
 
 	dockerbin, err := exec.LookPath("docker")
-	utils.Check(err, "Error: docker command not found in path")
+	if err != nil {
+		msgOut("Error: docker command not found in path")
+	}
 
 	cmd := exec.Command(
 		dockerbin, "build", "-t",
@@ -112,27 +118,23 @@ func buildImage(absBuildDir string, name string) error {
 	cmd.Env = nil
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
-		log.Println("Error: could not build image; " + err.Error())
-		os.Exit(1)
+		msgOut("Error: could not start building process")
 	}
 
 	if err := cmd.Wait(); err != nil {
-		log.Println("Error: could not build image; " + err.Error())
-		os.Exit(1)
+		msgOut("Error: could not build image.\n\n" + err.Error())
 	}
-
-	return nil
 }
 
 func deployImage(name string, imageVersion string, registryhost string) {
-	utils.Debug("agentbuilder-cli", "Deploying to docker registry")
+	//utils.Debug("agentbuilder-cli", "Deploying to docker registry")
 
 	dockerbin, err := exec.LookPath("docker")
 	if err != nil {
-		log.Println("Error: docker command not found in path" + err.Error())
-		os.Exit(1)
+		msgOut("Error: docker command not found in path")
 	}
 
 	imageurl := registryhost + "/" + name + ":" + imageVersion
@@ -144,17 +146,16 @@ func deployImage(name string, imageVersion string, registryhost string) {
 		imageurl,
 	)
 	cmd.Env = nil
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
+	// cmd.Stdin = os.Stdin
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
-		log.Println("Error: could not tag image; " + err.Error())
-		os.Exit(1)
+		msgOut("Error: could not tag image")
 	}
 
 	if err := cmd.Wait(); err != nil {
-		log.Println("Error: could not tag image; " + err.Error())
-		os.Exit(1)
+		msgOut("Error: could not tag image")
 	}
 
 	// Push to remote registry
@@ -163,31 +164,29 @@ func deployImage(name string, imageVersion string, registryhost string) {
 		imageurl,
 	)
 	cmd2.Env = nil
-	cmd2.Stdin = os.Stdin
-	cmd2.Stdout = os.Stdout
+	// cmd2.Stdin = os.Stdin
+	// cmd2.Stdout = os.Stdout
+	// cmd2.Stderr = os.Stderr
 
 	if err := cmd2.Start(); err != nil {
-		log.Println("Error: could not push image to registry; " + err.Error())
-		os.Exit(1)
+		msgOut("Error: could not push image to registry")
 	}
 
 	if err := cmd2.Wait(); err != nil {
-		log.Println("Error: could not push image to registry; " + err.Error())
-		os.Exit(1)
+		msgOut("Error: could not push image to registry")
 	}
 }
 
-func cloneRepo(url string, hash string) (error, string) {
+func cloneRepo(url string, hash string) string {
 
 	gitbin, err := exec.LookPath("git")
 	if err != nil {
-		log.Println("Error: git not found in $PATH")
-		os.Exit(1)
+		msgOut("Error: git not found in $PATH")
 	}
 
 	dir := "/tmp/" + hash
 	os.RemoveAll(dir)
-	utils.Debug("agentbuilder-cli", "Cloning "+url+" into "+dir)
+	//utils.Debug("agentbuilder-cli", "Cloning "+url+" into "+dir)
 
 	cmd := exec.Command(
 		gitbin,
@@ -198,15 +197,14 @@ func cloneRepo(url string, hash string) (error, string) {
 
 	sshbin, err := exec.LookPath("ssh")
 	if err != nil {
-		log.Println("Error: ssh not found in $PATH")
-		os.Exit(1)
+		msgOut("Error: ssh not found in $PATH")
 	}
 	cmd.Env = []string{fmt.Sprintf("GIT_SSH_COMMAND=\"%s\" -o \"StrictHostKeyChecking=no\"", sshbin)}
 
-	stdoutStderr, err := cmd.CombinedOutput()
+	_, err = cmd.CombinedOutput()
 	if err != nil {
-		return errors.New("Error running command: " + string(stdoutStderr)), ""
+		msgOut("Error: could not clone repository")
 	}
 
-	return nil, dir
+	return dir
 }

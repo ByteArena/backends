@@ -151,8 +151,6 @@ func main() {
 		fmt.Println("Error: Could not set agent deployment ID=" + deploymentID + " to 'Finished'")
 		os.Exit(1)
 	}
-
-	fmt.Println("Agent successfully built!")
 }
 
 func build(message, repourl, imagename string) error {
