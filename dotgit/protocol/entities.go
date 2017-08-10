@@ -1,12 +1,12 @@
 package protocol
 
 type User struct {
-	ID              uint   `json:"-"`
+	ID              uint   `json:"id"`
 	Username        string `json:"username"`
 	Name            string `json:"name"`
 	Email           string `json:"email"`
-	UniversalReader bool   `json:"-"`
-	UniversalWriter bool   `json:"-"`
+	UniversalReader bool   `json:"universalReader"`
+	UniversalWriter bool   `json:"universalWriter"`
 }
 
 func (user User) String() string {
@@ -14,16 +14,12 @@ func (user User) String() string {
 }
 
 type GitRepository struct {
-	ID       uint   `json:"-"`
+	ID       uint   `json:"id"`
 	CloneURL string `json:"cloneurl"`
 	Ref      string `json:"ref"`
 	Name     string `json:"name"`
 	Owner    User   `json:"-"`
 	OwnerID  int    `json:"-"`
-}
-
-func (repo GitRepository) String() string {
-	return "<GitRepository(" + repo.CloneURL + ")>"
 }
 
 type GitPublicKey struct {

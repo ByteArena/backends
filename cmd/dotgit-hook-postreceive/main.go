@@ -92,7 +92,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	newSha1 := parts[1]
+	newSha1 := parts[0]
 	message := parts[1]
 
 	createJSON, err := gql.RequestSync(
@@ -168,6 +168,7 @@ func build(message, repourl, imagename string) error {
 		"--repourl", repourl,
 		"--imagename", imagename,
 	)
+	cmd2.Env = os.Environ()
 
 	//cmd2.Stdin = os.Stdin
 	cmd2.Stdout = os.Stdout
@@ -181,7 +182,7 @@ func build(message, repourl, imagename string) error {
 
 	err = cmd2.Wait()
 	if err != nil {
-		return errors.New("Error: failed to build agent; " + err.Error())
+		return errors.New("Error: failed to build agent; " + err.Error() + " " + stderr.String())
 	}
 
 	return nil

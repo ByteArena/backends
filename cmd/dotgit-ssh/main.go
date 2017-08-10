@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/bytearena/bytearena/dotgit/config"
@@ -179,7 +180,7 @@ func processGitOperation(user protocol.User, repo protocol.GitRepository, gitOpe
 	cmd.Env = append(
 		os.Environ(),
 		"GIT_USER="+user.Username,
-		"GIT_REPO_ID="+string(repo.Owner.ID),
+		"GIT_REPO_ID="+strconv.Itoa(int(repo.ID)),
 		"GIT_REPO_OWNER="+repo.Owner.Username,
 		"GIT_REPO_NAME="+repo.Name,
 		"GIT_REPO_PATH="+repoAbsPath,
