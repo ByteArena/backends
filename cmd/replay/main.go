@@ -11,7 +11,6 @@ import (
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/recording"
-	"github.com/bytearena/bytearena/common/replay"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
@@ -19,7 +18,6 @@ import (
 func main() {
 	filename := flag.String("file", "", "Filename")
 	port := flag.Int("viz-port", 8080, "Specifiy the port of the visualization server")
-	debug := flag.Bool("debug", false, "Enable debug mode")
 
 	flag.Parse()
 
@@ -30,9 +28,9 @@ func main() {
 	vizserver := NewVizService(*port, game)
 
 	vizserver.Start()
-	go replay.Read(*filename, *debug, game.GetId(), sendMessageToViz, sendMapToViz)
 
 	<-common.SignalHandler()
+
 	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 	vizserver.Stop()
 }
@@ -43,15 +41,6 @@ func sendMapToViz(msg string, debug bool, UUID string) {
 	}
 
 	notify.PostTimeout("viz:map:"+UUID, msg, time.Millisecond)
-}
-
-func sendMessageToViz(msg string, debug bool, UUID string) {
-	if debug {
-		log.Println("read buffer of length: ", len(msg))
-	}
-
-	notify.PostTimeout("viz:message:"+UUID, msg, time.Millisecond)
-	<-time.NewTimer(1 * time.Second).C
 }
 
 func NewVizService(port int, game *MockGame) *vizserver.VizService {
