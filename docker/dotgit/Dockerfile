@@ -93,4 +93,14 @@ RUN chown -R git:git /home/git
 COPY ./bytearena/docker/dotgit/start.sh $APP_HOME
 WORKDIR $APP_HOME
 
+# Installing docker cli (useful for agent-builder)
+
+RUN apt-get --allow-unauthenticated -y install apt-transport-https ca-certificates curl software-properties-common
+RUN apt-get -y install gnupg2
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
+RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+
+RUN apt-get -y update
+RUN apt-get -y install docker-ce
+
 CMD ["bash", "start.sh"]

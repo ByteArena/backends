@@ -1,8 +1,7 @@
 #!/bin/sh
 
-set -x # echo on
-
-env | grep GIT
+#set -x # echo on
+#env | grep GIT
 
 # Available variables :
 # $GIT_USER         : the dotgit user (in db) authentified by the SSH public key; usually the same as owner, but can be different when an administrative account operates on repos
@@ -12,8 +11,18 @@ env | grep GIT
 # $GIT_CLONE_URL    : clone url for repo
 # $GIT_OPERATION    : the current git operation (one of "receive-pack", "upload-pack")
 
-/usr/bin/mq-cli \
-    -mqhost="$MQ_HOST" \
-    --publish agent:repo.pushed \
-    --data "{\"username\":\"$GIT_REPO_OWNER\",\"repo\":\"$GIT_REPO_NAME\",\"cloneurl\":\"$GIT_CLONE_URL\"}"
+/usr/bin/agentbuilder-cli \
+    --repourl "$GIT_REPO_PATH" \
+    --imagename "$GIT_REPO_NAME"
 
+exit_status=$?
+if [ $exit_status -ne 0 ]; then
+    echo "ERROR: your agent could not be built properly."
+else
+    /usr/bin/mq-cli \
+        --mqhost="$MQ_HOST" \
+        --publish agent:repo.pushed \
+        --data "{\"username\":\"$GIT_REPO_OWNER\",\"repo\":\"$GIT_REPO_NAME\",\"cloneurl\":\"$GIT_CLONE_URL\"}"
+fi
+
+exit $exit_status
