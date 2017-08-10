@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -17,6 +16,19 @@ import (
 	"github.com/bytearena/bytearena/dotgit/protocol"
 	"github.com/bytearena/bytearena/dotgit/utils"
 )
+
+func msgOut(msg string) {
+	log.Println(msg)
+	os.Exit(1)
+}
+
+func errorCheck(err error, msg string) {
+	if err == nil {
+		return
+	}
+
+	msgOut(msg + "; " + err.Error()) // logfile
+}
 
 func main() {
 
@@ -34,89 +46,53 @@ func main() {
 	var db protocol.Database = database.NewGraphQLDatabase()
 
 	err = db.Connect(cnf.GetDatabaseURI())
-	if err != nil {
-		fmt.Println("Cannot connect to database", err)
-		log.Println("Cannot connect to database", err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Cannot connect to database")
 
 	if len(os.Args) != 2 {
-		fmt.Println("Error: fixed git username missing or invalid in call to ", os.Args[0])
-		log.Println("Error: fixed git username missing or invalid in call to ", os.Args[0])
-		os.Exit(1)
+		msgOut("Error: fixed git username missing or invalid")
 	}
 
 	sshKeyFixedUsername := os.Args[1]
 	originalGitCommand := os.Getenv("SSH_ORIGINAL_COMMAND")
 
 	sshKeyFixedUser, err := db.FindUserByUsername(sshKeyFixedUsername)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: cannot find user")
 
 	gitOperation, gitRepoPath, err := parseGitCommand(originalGitCommand)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: cannot parse git command")
 
 	gitRepoUsername, gitRepoName, err := parseRepositoryName(gitRepoPath)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: cannot parse repository name")
 
 	repoUser, err := db.FindUserByUsername(gitRepoUsername)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: cannot determine username associated to repository")
 
 	repo, err := db.FindRepository(repoUser, gitRepoName)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: cannot find corresponding repository")
 
 	switch gitOperation {
 	case "receive-pack":
 		{
 			if !hasWritePermission(sshKeyFixedUser, repo) {
-				fmt.Println("Write denied to required repository.")
-				log.Println("Write denied to required repository.")
-				os.Exit(1)
+				msgOut("Error: Write denied to required repository.")
 			}
 			break
 		}
 	case "upload-pack":
 		{
 			if !hasReadPermission(sshKeyFixedUser, repo) {
-				fmt.Println("Read denied to required repository.")
-				log.Println("Read denied to required repository.")
-				os.Exit(1)
+				msgOut("Error: Read denied to required repository.")
 			}
 			break
 		}
 	default:
 		{
-			fmt.Println("Invalid git operation; should be either git-receive-pack or git-upload-pack.")
-			log.Println("Invalid git operation; should be either git-receive-pack or git-upload-pack.")
-			os.Exit(1)
+			msgOut("Error: Invalid git operation; should be either git-receive-pack or git-upload-pack.")
 		}
 	}
 
 	err = processGitOperation(repoUser, repo, gitOperation)
-	if err != nil {
-		fmt.Println(err)
-		log.Println(err)
-		os.Exit(1)
-	}
+	errorCheck(err, "Error: Cannot process git operation.")
 }
 
 func hasWritePermission(user protocol.User, repo protocol.GitRepository) bool {
