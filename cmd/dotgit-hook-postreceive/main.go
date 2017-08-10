@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -32,11 +31,6 @@ mutation($id: String!, $agentDeployment: AgentDeploymentInputUpdate!) {
 `
 
 func main() {
-
-	if len(os.Args) < 3 {
-		fmt.Println("Error: should be called like this: " + os.Args[0] + " oldsha1 newsha1")
-		os.Exit(1)
-	}
 
 	envGitRepoID := os.Getenv("GIT_REPO_ID")
 	envGitRepoName := os.Getenv("GIT_REPO_NAME")
@@ -72,10 +66,6 @@ func main() {
 
 	gql := graphql.MakeClient(envAPIURL)
 
-	argsWithoutProg := os.Args[1:]
-	//oldSha1 := argsWithoutProg[0]
-	newSha1 := argsWithoutProg[1]
-
 	gitbin, err := exec.LookPath("git")
 	if err != nil {
 		fmt.Println("Error: git not found in $PATH")
@@ -87,7 +77,6 @@ func main() {
 		gitbin,
 		"-C", envGitRepoPath,
 		"log", "-1",
-		newSha1,
 		"--pretty=format:%H|%s",
 	)
 	stdoutStderr, err := cmd.CombinedOutput()
@@ -103,6 +92,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	newSha1 := parts[1]
 	message := parts[1]
 
 	createJSON, err := gql.RequestSync(
@@ -120,8 +110,6 @@ func main() {
 		fmt.Println("Error: Could not create pending agent deployment; " + err.Error())
 		os.Exit(1)
 	}
-
-	log.Println(string(createJSON))
 
 	var createResponse struct {
 		CreateAgentDeployment struct {
