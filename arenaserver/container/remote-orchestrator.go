@@ -122,6 +122,7 @@ func remoteLogsToSyslog(orch *ContainerOrchestrator, container AgentContainer) e
 		_, err = io.Copy(handle, reader)
 
 		handle.Sync()
+		handle.Close()
 
 	}(orch, container)
 
