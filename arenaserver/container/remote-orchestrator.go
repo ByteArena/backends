@@ -117,7 +117,7 @@ func remoteLogsToSyslog(orch *ContainerOrchestrator, container AgentContainer) e
 		filename := logDir + "/" + container.AgentId.String() + ".log"
 		utils.Debug("agent-logs", "created file "+filename)
 
-		handle, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0600)
+		handle, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0777)
 
 		_, err = io.Copy(handle, reader)
 
