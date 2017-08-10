@@ -5,6 +5,6 @@ type UserType struct {
 	Name            string `json:"name"`
 	Username        string `json:"username"`
 	Email           string `json:"email"`
-	UniversalReader bool   `json:"universalreader"`
-	UniversalWriter bool   `json:"universalwriter"`
+	UniversalReader bool   `json:"universalReader"`
+	UniversalWriter bool   `json:"universalWriter"`
 }

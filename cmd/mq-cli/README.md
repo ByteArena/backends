@@ -13,6 +13,6 @@ With data:
 #### Arena-master > launch a game
 
 ```sh
-./mq-cli -mqhost=l:1234 --publish arena:launch --data '{"id": "5"}'
+./mq-cli -mqhost=l:1234 --publish game:launch --data '{"id": "5"}'
 ```
 

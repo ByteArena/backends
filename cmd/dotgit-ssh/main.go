@@ -10,12 +10,23 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/bytearena/bytearena/common/graphql"
+	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/dotgit/config"
 	"github.com/bytearena/bytearena/dotgit/database"
 	"github.com/bytearena/bytearena/dotgit/protocol"
 	"github.com/bytearena/bytearena/dotgit/utils"
 )
+
+const createDeploymentMutation = `
+mutation($agentDeployment: AgentDeploymentInputCreate!) {
+	createAgentDeployment(agentDeployment: $agentDeployment) {
+		id
+	}
+  }
+`
 
 func main() {
 
@@ -38,6 +49,8 @@ func main() {
 		log.Println("Cannot connect to database", err)
 		os.Exit(1)
 	}
+
+	gql := graphql.MakeClient(cnf.GetDatabaseURI())
 
 	if len(os.Args) != 2 {
 		fmt.Println("Error: fixed git username missing or invalid in call to ", os.Args[0])
@@ -110,7 +123,7 @@ func main() {
 		}
 	}
 
-	err = processGitOperation(repoUser, repo, gitOperation)
+	err = processGitOperation(gql, repoUser, repo, gitOperation)
 	if err != nil {
 		fmt.Println(err)
 		log.Println(err)
@@ -155,7 +168,7 @@ func parseRepositoryName(repopath string) (username string, reponame string, err
 	return parts[0], parts[1], nil
 }
 
-func processGitOperation(user protocol.User, repo protocol.GitRepository, gitOperation string) error {
+func processGitOperation(gql graphql.Client, user protocol.User, repo protocol.GitRepository, gitOperation string) error {
 
 	cnf := config.GetConfig()
 
@@ -191,6 +204,41 @@ func processGitOperation(user protocol.User, repo protocol.GitRepository, gitOpe
 	if err != nil {
 		return errors.New("Error: failed to call git;" + repoAbsPath + "; " + stderr.String())
 	}
+
+	// Deploy successful; updating graphql
+
+	// Fetch last commit SHA1 and message
+	cmd2 := exec.Command(
+		gitbin,
+		"-C", repoAbsPath,
+		"log", "-1",
+		"--pretty=format:%H|%s",
+	)
+	stdoutStderr, err := cmd2.CombinedOutput()
+	if err != nil {
+		return errors.New("Error: failed to get informations about latest git commit;" + repoAbsPath + "; " + string(stdoutStderr))
+	}
+
+	// On parse le résultat pour obtenir le SHA1 et le message de commit
+	parts := strings.SplitN(string(stdoutStderr), "|", 2)
+	if len(parts) < 2 {
+		return errors.New("Error: failed to parse informations about latest git commit;" + repoAbsPath + "; " + string(stdoutStderr))
+	}
+
+	sha1 := parts[0]
+	message := parts[1]
+
+	_, err = gql.RequestSync(
+		graphql.NewQuery(createDeploymentMutation).SetVariables(graphql.Variables{
+			"agentDeployment": graphql.Variables{
+				"agentId":       repo.ID,
+				"pushedAt":      time.Now().Format(time.RFC822Z),
+				"commitSHA1":    sha1,
+				"commitMessage": message,
+				"buildStatus":   gqltypes.GameRunStatus.Pending,
+			},
+		}),
+	)
 
 	return nil
 }

@@ -93,11 +93,13 @@ func main() {
 		recorder = recording.MakeSingleArenaRecorder(*recordFile)
 	}
 
-	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
-		arenaId := arenainstance.GetId()
+	recorder.RecordMetadata(game.GetId(), game.GetMapContainer())
 
-		recorder.Record(arenaId, string(msg.Data))
-		notify.PostTimeout("viz:message"+arenaId, string(msg.Data), time.Millisecond)
+	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
+		gameId := game.GetId()
+
+		recorder.Record(gameId, string(msg.Data))
+		notify.PostTimeout("viz:message:"+gameId, string(msg.Data), time.Millisecond)
 	})
 
 	// TODO: refac webclient path / serving
@@ -112,5 +114,9 @@ func main() {
 
 	<-srv.Start()
 	srv.TearDown()
+
+	recorder.Close(game.GetId())
+	recorder.Stop()
+
 	vizservice.Stop()
 }

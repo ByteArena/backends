@@ -15,19 +15,14 @@ const gameQuery = `
 query ($gameid: String = null) {
 	games(id: $gameid) {
 		id
-		startedat
-		endedat
+		launchedAt
+		endedAt
 		tps
 		arena {
 			id
 			name
 			kind
-			maxcontestants
-			surface { width, height }
-			obstacles {
-				a { x, y }
-				b { x, y }
-			}
+			maxContestants
 		}
 		contestants {
 			id

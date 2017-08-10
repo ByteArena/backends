@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"flag"
-	"io"
 	"log"
-	"os"
 	"strconv"
 	"time"
 
@@ -14,6 +11,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/recording"
+	"github.com/bytearena/bytearena/common/replay"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
 )
@@ -27,16 +25,24 @@ func main() {
 
 	utils.Assert(*filename != "", "file must be set")
 
-	arenainstance := NewMockArenaInstance(10)
+	game := NewMockGame(10)
 
-	vizserver := NewVizService(*port, arenainstance)
+	vizserver := NewVizService(*port, game)
 
 	vizserver.Start()
-	go replay.Read(*filename, *debug, arenainstance.GetId(), sendMessageToViz)
+	go replay.Read(*filename, *debug, game.GetId(), sendMessageToViz, sendMapToViz)
 
 	<-common.SignalHandler()
 	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 	vizserver.Stop()
+}
+
+func sendMapToViz(msg string, debug bool, UUID string) {
+	if debug {
+		log.Println("read buffer of length: ", len(msg))
+	}
+
+	notify.PostTimeout("viz:map:"+UUID, msg, time.Millisecond)
 }
 
 func sendMessageToViz(msg string, debug bool, UUID string) {
@@ -44,19 +50,19 @@ func sendMessageToViz(msg string, debug bool, UUID string) {
 		log.Println("read buffer of length: ", len(msg))
 	}
 
-	notify.PostTimeout("viz:message"+UUID, msg, time.Millisecond)
+	notify.PostTimeout("viz:message:"+UUID, msg, time.Millisecond)
 	<-time.NewTimer(1 * time.Second).C
 }
 
-func NewVizService(port int, arenainstance *MockArenaInstance) *vizserver.VizService {
+func NewVizService(port int, game *MockGame) *vizserver.VizService {
 
 	recorder := recording.MakeEmptyRecorder()
 
 	// TODO: refac webclient path / serving
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
-	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(port), webclientpath, func() ([]arenaserver.ArenaInstance, error) {
-		res := make([]arenaserver.ArenaInstance, 1)
-		res[0] = arenainstance
+	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(port), webclientpath, func() ([]arenaserver.Game, error) {
+		res := make([]arenaserver.Game, 1)
+		res[0] = game
 		return res, nil
 	}, recorder)
 

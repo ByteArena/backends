@@ -1,94 +1,75 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
+	"math/rand"
+	"net/http"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/ttacon/chalk"
 
 	"github.com/bytearena/bytearena/common"
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
 func main() {
 
-	env := os.Getenv("ENV")
-
-	mqHost := os.Getenv("MQ_HOST")
-	utils.Assert(mqHost != "", "Error: missing MQ_HOST env param")
-
-	registryHost := os.Getenv("REGISTRY_HOST")
-	utils.Assert(registryHost != "", "Error: missing REGISTRY_HOST env param")
-
-	gitHost := os.Getenv("GIT_HOST")
-	utils.Assert(gitHost != "", "Error: missing GIT_HOST env param")
-
-	brokerclient, err := mq.NewClient(mqHost)
-	utils.Check(err, "ERROR: could not connect to messagebroker at "+string(mqHost))
-
-	brokerclient.Subscribe("agent", "repo.pushed", func(msg mq.BrokerMessage) {
-		onRepoPushedMessage(msg, registryHost)
-	})
+	rand.Seed(time.Now().UnixNano())
 
 	// handling signals
-	if env == "prod" {
-		hc := NewHealthCheck(brokerclient, registryHost)
-		hc.Start()
+	go func() {
+		<-common.SignalHandler()
+		log.Println("RECEIVED SHUTDOWN SIGNAL; closing.")
+		os.Exit(1)
+	}()
 
-		<-common.SignalHandler()
-		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
-		hc.Stop()
-	} else {
-		// block
-		<-common.SignalHandler()
+	repoURL := flag.String("repourl", "", "URL of the git repository to build")
+	registryHost := flag.String("registry", "registry.net.bytearena.com", "Base URL of the docker registry where to push image")
+	imageName := flag.String("imagename", "", "Name of the image on the docker registry; example johndoe/happybot")
+
+	flag.Parse()
+
+	if *repoURL == "" {
+		panic("Git repo URL is mandatory; you can specify it using the `--repourl` flag.")
 	}
+
+	if *registryHost == "" {
+		panic("Docker registry Host is mandatory; you can specify it using the `--registry` flag.")
+	}
+
+	if *imageName == "" {
+		panic("Docker image name is mandatory; you can specify it using the `--imagename` flag.")
+	}
+
+	if err := pingRegistry(*registryHost); err != nil {
+		panic("Docker registry is unreachable; tried " + *registryHost)
+	}
+
+	buildAndDeploy(*repoURL, *registryHost, *imageName)
 }
 
-func onRepoPushedMessage(msg mq.BrokerMessage, registryHost string) {
-	var message types.MQMessage
-	err := json.Unmarshal(msg.Data, &message)
+func pingRegistry(host string) error {
+	resp, err := http.Get("http://" + host + "/v2/")
+
 	if err != nil {
-		log.Println(err)
-		log.Println("ERROR:agent Invalid MQMessage " + string(msg.Data))
-		return
+		return err
 	}
 
-	if message.Payload == nil {
-		log.Println("ERROR:agent Invalid Payload in MQMessage")
-		return
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return errors.New("Cannot ping registry")
 	}
 
-	payload := (*message.Payload)
-
-	username, ok := payload["username"].(string)
-	if !ok {
-		log.Println("ERROR: missing username in MQMessage")
-		return
-	}
-
-	repo, ok := payload["repo"].(string)
-	if !ok {
-		log.Println("ERROR: missing repo in MQMessage")
-		return
-	}
-
-	cloneurl, ok := payload["cloneurl"].(string)
-	if !ok {
-		log.Println("ERROR: missing cloneurl in MQMessage")
-		return
-	}
-
-	buildAndDeploy(username, repo, cloneurl, registryHost)
+	return nil
 }
 
-func buildAndDeploy(username string, repo string, cloneurl string, registryHost string) {
-	imageName := username + "/" + repo
+func buildAndDeploy(cloneurl, registryHost, imageName string) {
 
 	utils.Debug("agent-builder", "build and deploy image: "+imageName)
 
