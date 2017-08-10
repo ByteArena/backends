@@ -34,7 +34,7 @@ func main() {
 
 	envGitRepoID := os.Getenv("GIT_REPO_ID")
 	envGitRepoName := os.Getenv("GIT_REPO_NAME")
-	envGitUsername := os.Getenv("GIT_REPO_OWNER")
+	envGitRepoOwner := os.Getenv("GIT_REPO_OWNER")
 	envGitRepoPath := os.Getenv("GIT_REPO_PATH")
 	envAPIURL := os.Getenv("API_URL")
 
@@ -50,6 +50,11 @@ func main() {
 
 	if envGitRepoPath == "" {
 		fmt.Println("Error: $GIT_REPO_PATH is missing")
+		os.Exit(1)
+	}
+
+	if envGitRepoOwner == "" {
+		fmt.Println("Error: $GIT_REPO_OWNER is missing")
 		os.Exit(1)
 	}
 
@@ -140,7 +145,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = build(message, envGitRepoPath, envGitUsername+"/"+envGitRepoName)
+	err = build(message, envGitRepoPath, envGitRepoOwner+"/"+envGitRepoName)
 	if err != nil {
 		fmt.Println("Error: could not build agent; " + err.Error())
 		updateDeployment(deploymentID, gqltypes.AgentDeployBuildStatus.Finished, true)
