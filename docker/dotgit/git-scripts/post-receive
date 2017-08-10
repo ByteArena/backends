@@ -17,8 +17,9 @@
 
 exit_status=$?
 if [ $exit_status -ne 0 ]; then
-    echo "ERROR: your agent could not be built properly."
+    echo "FAIL: your agent could not be built properly."
 else
+    echo "SUCCESS: your agent has been succesfuly built."
     /usr/bin/mq-cli \
         --mqhost="$MQ_HOST" \
         --publish agent:repo.pushed \
