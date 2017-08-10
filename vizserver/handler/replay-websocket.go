@@ -65,14 +65,12 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 			ch <- wsincomingmessage{messageType, p, err}
 		}(c, incomingmsg)
 
-		// Listen to viz messages coming from arenaserver
-		vizmsgchan := make(chan interface{})
-		notify.Start("viz:message_replay:"+UUID, vizmsgchan)
-
 		vizmapmsgchan := make(chan interface{})
 		notify.Start("viz:map:"+UUID, vizmapmsgchan)
 
-		go startStreaming(recordFile, UUID)
+		debug := false
+
+		vizmsgchan := replay.Read(recordFile, debug, UUID, onReplayMap)
 
 		for {
 			select {
@@ -83,12 +81,15 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 				}
 			case vizmsg := <-vizmsgchan:
 				{
-					vizmsgString, ok := vizmsg.(string)
-					utils.Assert(ok, "Failed to cast vizmessage into string")
+					// End of the record
+					if vizmsg == nil {
+						return
+					}
 
-					data := fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", vizmsgString)
+					data := fmt.Sprintf("{\"type\":\"framebatch\", \"data\": %s}", vizmsg.Line)
 
 					c.WriteMessage(websocket.TextMessage, []byte(data))
+					<-time.NewTimer(1 * time.Second).C
 				}
 			case vizmap := <-vizmapmsgchan:
 				{
@@ -101,17 +102,6 @@ func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.R
 			}
 		}
 	}
-}
-
-func startStreaming(filename string, UUID string) {
-	debug := false
-
-	replay.Read(filename, debug, UUID, onReplayMessage, onReplayMap)
-}
-
-func onReplayMessage(line string, debug bool, UUID string) {
-	notify.PostTimeout("viz:message_replay:"+UUID, line, time.Millisecond)
-	<-time.NewTimer(1 * time.Second).C
 }
 
 func onReplayMap(body string, debug bool, UUID string) {

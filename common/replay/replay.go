@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"log"
 
 	"github.com/bytearena/bytearena/common/utils"
 )
@@ -18,9 +19,18 @@ type rawRecordHandles struct {
 	zip            *zip.ReadCloser
 }
 
-func Read(filename string, debug bool, UUID string, onMessage OnEventFunc, onMap OnEventFunc) {
+type ReplayMessage struct {
+	Line string
+	UUID string
+}
+
+func Read(filename string, debug bool, UUID string, onMap OnEventFunc) chan *ReplayMessage {
+	streaming := make(chan *ReplayMessage)
+
 	err, rawRecordHandles := unzip(filename)
 	utils.Check(err, "Could not decode archive")
+
+	log.Println("opened archived")
 
 	go func() {
 		reader := bufio.NewReader(rawRecordHandles.recordMetadata)
@@ -35,31 +45,41 @@ func Read(filename string, debug bool, UUID string, onMessage OnEventFunc, onMap
 
 	reader := bufio.NewReader(rawRecordHandles.record)
 
-	for {
-		line, isPrefix, readErr := reader.ReadLine()
+	go func() {
+		for {
+			line, isPrefix, readErr := reader.ReadLine()
 
-		if len(line) == 0 {
-			continue
-		}
-
-		if readErr == io.EOF {
-			rawRecordHandles.zip.Close()
-			rawRecordHandles.record.Close()
-			return
-		}
-
-		if !isPrefix {
-			onMessage(string(line), debug, UUID)
-		} else {
-			buf := append([]byte(nil), line...)
-			for isPrefix && err == nil {
-				line, isPrefix, err = reader.ReadLine()
-				buf = append(buf, line...)
+			if len(line) == 0 {
+				continue
 			}
 
-			onMessage(string(buf), debug, UUID)
+			if readErr == io.EOF {
+				rawRecordHandles.zip.Close()
+				rawRecordHandles.record.Close()
+				streaming <- nil
+			}
+
+			if !isPrefix {
+				streaming <- &ReplayMessage{
+					Line: string(line),
+					UUID: UUID,
+				}
+			} else {
+				buf := append([]byte(nil), line...)
+				for isPrefix && err == nil {
+					line, isPrefix, err = reader.ReadLine()
+					buf = append(buf, line...)
+				}
+
+				streaming <- &ReplayMessage{
+					Line: string(buf),
+					UUID: UUID,
+				}
+			}
 		}
-	}
+	}()
+
+	return streaming
 }
 
 func unzip(filename string) (error, *rawRecordHandles) {

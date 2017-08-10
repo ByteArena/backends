@@ -30,9 +30,32 @@ func main() {
 	vizserver := NewVizService(*port, game)
 
 	vizserver.Start()
-	go replay.Read(*filename, *debug, game.GetId(), sendMessageToViz, sendMapToViz)
 
-	<-common.SignalHandler()
+	hasTerminated := common.SignalHandler()
+	replayMessageChan := replay.Read(*filename, *debug, game.GetId(), sendMapToViz)
+
+	stopChannel := make(chan bool)
+	go func() {
+
+		for {
+			select {
+			case <-hasTerminated:
+				stopChannel <- true
+
+			case replayMsg := <-replayMessageChan:
+				// End of the record
+				if replayMsg == nil {
+					return
+				}
+
+				notify.PostTimeout("viz:message:"+replayMsg.UUID, replayMsg.Line, time.Millisecond)
+				<-time.NewTimer(1 * time.Second).C
+			}
+		}
+	}()
+
+	<-stopChannel
+
 	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 	vizserver.Stop()
 }
@@ -43,15 +66,6 @@ func sendMapToViz(msg string, debug bool, UUID string) {
 	}
 
 	notify.PostTimeout("viz:map:"+UUID, msg, time.Millisecond)
-}
-
-func sendMessageToViz(msg string, debug bool, UUID string) {
-	if debug {
-		log.Println("read buffer of length: ", len(msg))
-	}
-
-	notify.PostTimeout("viz:message:"+UUID, msg, time.Millisecond)
-	<-time.NewTimer(1 * time.Second).C
 }
 
 func NewVizService(port int, game *MockGame) *vizserver.VizService {
