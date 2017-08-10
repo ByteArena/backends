@@ -3,6 +3,7 @@ package container
 import (
 	"context"
 	"errors"
+	"io"
 	"log"
 	"os"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
+
+var logDir = "/var/log/agents"
 
 func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner AgentContainer) error {
 
@@ -58,12 +61,24 @@ func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner AgentContainer)
 		return err
 	}
 
-	return orch.cli.NetworkDisconnect(
+	err = orch.cli.NetworkDisconnect(
 		orch.ctx,
 		defaultID,
 		ctner.containerid.String(),
 		true,
 	)
+
+	if err != nil {
+		return err
+	}
+
+	err = remoteLogsToSyslog(orch, ctner)
+
+	if err != nil {
+		return errors.New("Failed to follow docker container logs for " + ctner.containerid.String())
+	}
+
+	return nil
 }
 
 func MakeRemoteContainerOrchestrator(arenaAddr string, registryAddr string) ContainerOrchestrator {
@@ -82,4 +97,33 @@ func MakeRemoteContainerOrchestrator(arenaAddr string, registryAddr string) Cont
 		},
 		StartContainer: startContainerRemoteOrch,
 	}
+}
+
+func remoteLogsToSyslog(orch *ContainerOrchestrator, container AgentContainer) error {
+	go func(orch *ContainerOrchestrator, container AgentContainer) {
+		reader, err := orch.cli.ContainerLogs(orch.ctx, container.containerid.String(), types.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     true,
+			Details:    false,
+			Timestamps: false,
+		})
+
+		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.containerid.String())
+
+		defer reader.Close()
+
+		// Create log file
+		filename := logDir + "/" + container.AgentId.String() + ".log"
+		utils.Debug("agent-logs", "created file "+filename)
+
+		handle, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0600)
+
+		_, err = io.Copy(handle, reader)
+
+		handle.Sync()
+
+	}(orch, container)
+
+	return nil
 }

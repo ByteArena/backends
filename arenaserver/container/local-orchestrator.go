@@ -1,11 +1,15 @@
 package container
 
 import (
+	"bufio"
 	"context"
+	"errors"
+	"log"
 
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/ttacon/chalk"
 )
 
 func getHostLocalOrch(orch *ContainerOrchestrator) (string, error) {
@@ -20,11 +24,23 @@ func getHostLocalOrch(orch *ContainerOrchestrator) (string, error) {
 
 func startContainerLocalOrch(orch *ContainerOrchestrator, ctner AgentContainer) error {
 
-	return orch.cli.ContainerStart(
+	err := orch.cli.ContainerStart(
 		orch.ctx,
 		ctner.containerid.String(),
 		types.ContainerStartOptions{},
 	)
+
+	if err != nil {
+		return err
+	}
+
+	err = localLogsToStdOut(orch, ctner)
+
+	if err != nil {
+		return errors.New("Failed to follow docker container logs for " + ctner.containerid.String())
+	}
+
+	return nil
 }
 
 func MakeLocalContainerOrchestrator() ContainerOrchestrator {
@@ -41,4 +57,30 @@ func MakeLocalContainerOrchestrator() ContainerOrchestrator {
 		GetHost:        getHostLocalOrch,
 		StartContainer: startContainerLocalOrch,
 	}
+}
+
+func localLogsToStdOut(orch *ContainerOrchestrator, container AgentContainer) error {
+	go func(orch *ContainerOrchestrator, container AgentContainer) {
+		reader, err := orch.cli.ContainerLogs(orch.ctx, container.containerid.String(), types.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     true,
+			Details:    false,
+			Timestamps: false,
+		})
+
+		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.containerid.String())
+
+		defer reader.Close()
+
+		r := bufio.NewReader(reader)
+		scanner := bufio.NewScanner(r)
+		for scanner.Scan() {
+			text := scanner.Text()
+			log.Println(chalk.Green, container.AgentId, chalk.Reset, text)
+		}
+
+	}(orch, container)
+
+	return nil
 }
