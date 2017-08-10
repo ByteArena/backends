@@ -41,6 +41,7 @@ RUN cp -f $APP_HOME/bytearena/cmd/dotgit-ssh/dotgit-ssh /usr/bin
 RUN touch /var/log/dotgit-ssh.log && chown git:git /var/log/dotgit-ssh.log
 
 # Build dotgit-hook-postreceive
+RUN mkdir -p /home/git/git-scripts
 WORKDIR $APP_HOME/bytearena/cmd/dotgit-hook-postreceive
 RUN go build
 RUN cp -f $APP_HOME/bytearena/cmd/dotgit-hook-postreceive/dotgit-hook-postreceive /home/git/git-scripts/post-receive
@@ -90,7 +91,6 @@ RUN echo "HostKey /opt/ssh/ssh_host_ecdsa_key"
 RUN echo "HostKey /opt/ssh/ssh_host_ed25519_key"
 
 COPY ./bytearena/docker/dotgit/template /home/git/template
-COPY ./bytearena/docker/dotgit/git-scripts /home/git/git-scripts
 
 # Permissions on /home/git
 RUN mkdir -p /home/git/repositories
