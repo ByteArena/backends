@@ -113,11 +113,15 @@ func (client *Client) waitAndListen() {
 
 /* <mq.MessageBrokerClientInterface> */
 func (client *Client) Subscribe(channel string, topic string, onmessage SubscriptionCallback) error {
+	client.mu.Lock()
+
 	err := client.conn.WriteJSON(brokerAction{
 		Action:  "sub",
 		Channel: channel,
 		Topic:   topic,
 	})
+
+	client.mu.Unlock()
 
 	if err != nil {
 		return errors.New("Error: cannot subscribe to message broker (" + channel + ", " + topic + ")")
@@ -129,12 +133,16 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 }
 
 func (client *Client) Publish(channel string, topic string, payload interface{}) error {
+	client.mu.Lock()
+
 	err := client.conn.WriteJSON(brokerAction{
 		Action:  "pub",
 		Channel: channel,
 		Topic:   topic,
 		Data:    payload,
 	})
+
+	client.mu.Unlock()
 
 	if err != nil {
 		return errors.New("Error: cannot publish to message broker (" + channel + ", " + topic + ")")

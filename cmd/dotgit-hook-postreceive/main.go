@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -30,7 +30,24 @@ mutation($id: String!, $agentDeployment: AgentDeploymentInputUpdate!) {
 }
 `
 
+func privateMsg(msg string) {
+	log.Println(msg)
+}
+
+func publicMsg(msg string) {
+	log.Println(msg)
+	fmt.Println(msg)
+}
+
 func main() {
+
+	f, err := os.OpenFile("/var/log/dotgit-hook-postreceive.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalln("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
 
 	envGitRepoID := os.Getenv("GIT_REPO_ID")
 	envGitRepoName := os.Getenv("GIT_REPO_NAME")
@@ -38,28 +55,37 @@ func main() {
 	envGitRepoPath := os.Getenv("GIT_REPO_PATH")
 	envAPIURL := os.Getenv("API_URL")
 
+	log.Println(
+		"Starting dotgit-hook-postreceive", os.Args,
+		"GIT_REPO_ID="+envGitRepoID,
+		"GIT_REPO_NAME="+envGitRepoName,
+		"GIT_REPO_OWNER="+envGitRepoOwner,
+		"GIT_REPO_PATH="+envGitRepoPath,
+		"API_URL="+envAPIURL,
+	)
+
 	if envGitRepoID == "" {
-		fmt.Println("Error: $GIT_REPO_ID is missing")
+		privateMsg("Error: $GIT_REPO_ID is missing")
 		os.Exit(1)
 	}
 
 	if envGitRepoName == "" {
-		fmt.Println("Error: $GIT_REPO_NAME is missing")
+		privateMsg("Error: $GIT_REPO_NAME is missing")
 		os.Exit(1)
 	}
 
 	if envGitRepoPath == "" {
-		fmt.Println("Error: $GIT_REPO_PATH is missing")
+		privateMsg("Error: $GIT_REPO_PATH is missing")
 		os.Exit(1)
 	}
 
 	if envGitRepoOwner == "" {
-		fmt.Println("Error: $GIT_REPO_OWNER is missing")
+		privateMsg("Error: $GIT_REPO_OWNER is missing")
 		os.Exit(1)
 	}
 
 	if envAPIURL == "" {
-		fmt.Println("Error: $API_URL is missing")
+		privateMsg("Error: $API_URL is missing")
 		os.Exit(1)
 	}
 
@@ -74,7 +100,7 @@ func main() {
 
 	gitbin, err := exec.LookPath("git")
 	if err != nil {
-		fmt.Println("Error: git not found in $PATH")
+		privateMsg("Error: git not found in $PATH")
 		os.Exit(1)
 	}
 
@@ -87,14 +113,14 @@ func main() {
 	)
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Error: failed to get informations about latest git commit")
+		privateMsg("Error: failed to get informations about latest git commit")
 		os.Exit(1)
 	}
 
 	// On parse le résultat pour obtenir le SHA1 et le message de commit
 	parts := strings.SplitN(string(stdoutStderr), "|", 2)
 	if len(parts) < 2 {
-		fmt.Println("Error: failed to parse informations about latest git commit")
+		privateMsg("Error: failed to parse informations about latest git commit")
 		os.Exit(1)
 	}
 
@@ -113,7 +139,7 @@ func main() {
 		}),
 	)
 	if err != nil {
-		fmt.Println("Error: Could not create pending agent deployment; " + err.Error())
+		privateMsg("Error: Could not create pending agent deployment; " + err.Error())
 		os.Exit(1)
 	}
 
@@ -141,20 +167,20 @@ func main() {
 
 	err = updateDeployment(deploymentID, gqltypes.AgentDeployBuildStatus.Building, false)
 	if err != nil {
-		fmt.Println("Error: Could not set agent deployment ID=" + deploymentID + " to 'Building'; " + err.Error())
+		privateMsg("Error: Could not set agent deployment ID=" + deploymentID + " to 'Building'; " + err.Error())
 		os.Exit(1)
 	}
 
 	err = build(message, envGitRepoPath, envGitRepoOwner+"/"+envGitRepoName)
 	if err != nil {
-		fmt.Println("Error: could not build agent; " + err.Error())
+		privateMsg("Error: could not build agent; " + err.Error())
 		updateDeployment(deploymentID, gqltypes.AgentDeployBuildStatus.Finished, true)
 		os.Exit(1)
 	}
 
 	err = updateDeployment(deploymentID, gqltypes.AgentDeployBuildStatus.Finished, false)
 	if err != nil {
-		fmt.Println("Error: Could not set agent deployment ID=" + deploymentID + " to 'Finished'")
+		privateMsg("Error: Could not set agent deployment ID=" + deploymentID + " to 'Finished'")
 		os.Exit(1)
 	}
 }
@@ -176,8 +202,7 @@ func build(message, repourl, imagename string) error {
 
 	//cmd2.Stdin = os.Stdin
 	cmd2.Stdout = os.Stdout
-	stderr := &bytes.Buffer{}
-	cmd2.Stderr = stderr
+	cmd2.Stderr = os.Stderr
 
 	err = cmd2.Start()
 	if err != nil {
@@ -186,7 +211,7 @@ func build(message, repourl, imagename string) error {
 
 	err = cmd2.Wait()
 	if err != nil {
-		return errors.New("Error: failed to build agent; " + err.Error() + " " + stderr.String())
+		return errors.New("Error: failed to build agent; " + err.Error())
 	}
 
 	return nil
