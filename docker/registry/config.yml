@@ -9,6 +9,9 @@ storage:
     rootdirectory: /var/lib/registry
 http:
   addr: :5000
+  tls:
+    certificate: /etc/docker/registry.net.bytearena.com.crt
+    key: /etc/docker/registry.net.bytearena.com.key
   headers:
     X-Content-Type-Options: [nosniff]
 health:
