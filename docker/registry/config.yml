@@ -10,8 +10,8 @@ storage:
 http:
   addr: :5000
   tls:
-    certificate: /etc/docker/registry.net.bytearena.com.crt
-    key: /etc/docker/registry.net.bytearena.com.key
+    certificate: "/etc/docker/registry.net.bytearena.com:5000.crt"
+    key: "/etc/docker/registry.net.bytearena.com:5000.key"
   headers:
     X-Content-Type-Options: [nosniff]
 health:
