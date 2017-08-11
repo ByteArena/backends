@@ -3,7 +3,6 @@ package container
 import (
 	"context"
 	"log"
-	"os"
 
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
