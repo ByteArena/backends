@@ -126,7 +126,7 @@ func assertAgentCodeIsLegit(absBuildDir string) {
 	}
 
 	if dockerfileStat.Size() > int64(maxDockerfileSizeInByte) {
-		msgOut("Error: Your agent's Dockerfile is bigger than the limit of " + strconv.Itoa(maxDockerfileSizeInByte) + ".")
+		msgOut("Error: Your agent's Dockerfile is bigger than the limit of " + strconv.Itoa(maxDockerfileSizeInByte) + " bytes.")
 	}
 
 	dockerfilePointer, err := os.OpenFile(dockerfilePath, os.O_RDONLY, 0666)
