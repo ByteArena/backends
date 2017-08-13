@@ -1,14 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/bytearena/bytearena/agentbuilder"
 	"github.com/bytearena/bytearena/common"
 )
 
@@ -101,8 +105,56 @@ func buildAndDeploy(cloneurl, registryHost, imageName string) error {
 	return nil
 }
 
-func buildImage(absBuildDir string, name string) {
+func assertAgentCodeIsLegit(absBuildDir string) {
+
+	maxDockerfileSizeInByte := 8192
+	agentImageNamespace := "bytearena-agent/"
+
 	//utils.Debug("agentbuilder-cli", "Building agent")
+
+	dockerfilePath := absBuildDir + "/Dockerfile"
+
+	// on vérifie que le chemin contient bien un Dockerfile
+	dockerfileStat, err := os.Stat(dockerfilePath)
+
+	if os.IsNotExist(err) {
+		msgOut("Error: Your agent code does not contain the required Dockerfile.")
+	}
+
+	if !dockerfileStat.Mode().IsRegular() {
+		msgOut("Error: Your agent's Dockerfile is not a valid file.")
+	}
+
+	if dockerfileStat.Size() > int64(maxDockerfileSizeInByte) {
+		msgOut("Error: Your agent's Dockerfile is bigger than the limit of " + strconv.Itoa(maxDockerfileSizeInByte) + ".")
+	}
+
+	dockerfilePointer, err := os.OpenFile(dockerfilePath, os.O_RDONLY, 0666)
+	if err != nil {
+		msgOut("Error: Could not read your agent's Dockerfile.")
+	}
+	defer dockerfilePointer.Close()
+
+	dockerfileContent := make([]byte, maxDockerfileSizeInByte)
+	size, err := dockerfilePointer.Read(dockerfileContent)
+	if err != nil {
+		msgOut("Error: Could not read your agent's Dockerfile.")
+	}
+
+	dockerfileContent = dockerfileContent[:size]
+
+	// on vérifie que le Dockerfile ne contient que des FROM légitimes
+	froms, err := agentbuilder.DockerfileParserGetFroms(bytes.NewReader(dockerfileContent))
+	for _, from := range froms {
+		if strings.HasPrefix(from, agentImageNamespace) {
+			msgOut("Error: Your agent Dockerfile cannot extend images from the namespace " + agentImageNamespace)
+		}
+	}
+}
+
+func buildImage(absBuildDir string, name string) {
+
+	assertAgentCodeIsLegit(absBuildDir)
 
 	dockerbin, err := exec.LookPath("docker")
 	if err != nil {
