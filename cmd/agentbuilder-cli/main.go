@@ -145,6 +145,9 @@ func assertAgentCodeIsLegit(absBuildDir string) {
 
 	// on vérifie que le Dockerfile ne contient que des FROM légitimes
 	froms, err := agentbuilder.DockerfileParserGetFroms(bytes.NewReader(dockerfileContent))
+	if err != nil {
+		msgOut("Error: Your agent's Dockerfile cannot be parsed.")
+	}
 	for _, from := range froms {
 		if strings.HasPrefix(from, agentImageNamespace) {
 			msgOut("Error: Your agent Dockerfile cannot extend images from the namespace " + agentImageNamespace)
