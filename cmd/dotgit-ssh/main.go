@@ -168,8 +168,8 @@ func processGitOperation(user protocol.User, repo protocol.GitRepository, gitOpe
 		"DOCKER_HOST="+cnf.GetDockerHost(),
 		"DOCKER_BUILD_MEMORY_LIMIT="+cnf.DockerBuildMemoryLimit,
 		"DOCKER_BUILD_NETWORK="+cnf.DockerBuildNetwork,
-		"DOCKER_BUILD_NO_CACHE"+cnf.DockerBuildNoCache,
-		"DOCKER_BUILD_CPU_PERIOD"+cnf.DockerBuildCpuPeriod,
+		"DOCKER_BUILD_NO_CACHE="+cnf.DockerBuildNoCache,
+		"DOCKER_BUILD_CPU_PERIOD="+cnf.DockerBuildCpuPeriod,
 	)
 
 	err = cmd.Run()
