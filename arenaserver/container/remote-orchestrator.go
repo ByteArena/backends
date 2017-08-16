@@ -2,9 +2,10 @@ package container
 
 import (
 	"context"
-	"os"
+	"errors"
 	"io"
-  
+	"os"
+
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -14,11 +15,23 @@ var logDir = "/var/log/agents"
 
 func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner AgentContainer) error {
 
-	return orch.cli.ContainerStart(
+	err := orch.cli.ContainerStart(
 		orch.ctx,
 		ctner.containerid.String(),
 		types.ContainerStartOptions{},
 	)
+
+	if err != nil {
+		return err
+	}
+
+	err = remoteLogsToSyslog(orch, ctner)
+
+	if err != nil {
+		return errors.New("Failed to follow docker container logs for " + ctner.containerid.String())
+	}
+
+	return nil
 }
 
 func MakeRemoteContainerOrchestrator(arenaAddr string, registryAddr string) ContainerOrchestrator {
