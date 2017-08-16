@@ -110,18 +110,29 @@ func buildImage(absBuildDir string, name string) {
 	}
 
 	dockerBuildMemoryLimit := os.Getenv("DOCKER_BUILD_MEMORY_LIMIT")
+	dockerBuildSwapLimit := os.Getenv("DOCKER_BUILD_SWAP_LIMIT")
 	dockerBuildNetwork := os.Getenv("DOCKER_BUILD_NETWORK")
 	dockerBuildNoCache := os.Getenv("DOCKER_BUILD_NO_CACHE")
 	dockerBuildCpuPeriod := os.Getenv("DOCKER_BUILD_CPU_PERIOD")
 
-	cmd := exec.Command(
-		dockerbin, "build",
+	dockargs := []string{
+		"build",
 		"-t", name,
 		"--memory", dockerBuildMemoryLimit,
+		"--memory-swap", dockerBuildSwapLimit,
 		"--network", dockerBuildNetwork,
-		"--no-cache", dockerBuildNoCache,
 		"--cpu-period", dockerBuildCpuPeriod,
-		absBuildDir,
+	}
+
+	if dockerBuildNoCache == "true" {
+		dockargs = append(dockargs, "--no-cache")
+	}
+
+	dockargs = append(dockargs, absBuildDir)
+
+	cmd := exec.Command(
+		dockerbin,
+		dockargs...,
 	)
 	cmd.Env = nil
 	cmd.Stdin = os.Stdin

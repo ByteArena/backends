@@ -24,6 +24,7 @@ type VizService struct {
 	fetchArenas   FetchArenasCbk
 	listener      *http.Server
 	recorder      recording.Recorder
+	pathToAssets  string
 }
 
 func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk, recorder recording.Recorder) *VizService {
@@ -33,6 +34,10 @@ func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk
 		fetchArenas:   fetchArenas,
 		recorder:      recorder,
 	}
+}
+
+func (viz *VizService) SetPathToAssets(path string) {
+	viz.pathToAssets = path
 }
 
 func (viz *VizService) Start() chan struct{} {
@@ -50,6 +55,16 @@ func (viz *VizService) Start() chan struct{} {
 
 	logger := os.Stdout
 	router := mux.NewRouter()
+
+	// Les assets de la viz (js, modèles, textures)
+	router.PathPrefix("/lib/").Handler(http.StripPrefix("/lib/", http.FileServer(http.Dir(viz.webclientpath+"/lib/"))))
+	cdnBaseURL := "http://bytearena.com/assets/bytearena"
+
+	if viz.pathToAssets != "" {
+		router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(viz.pathToAssets))))
+		cdnBaseURL = "http://localhost:8081/assets"
+	}
+
 	router.Handle("/", handlers.CombinedLoggingHandler(logger,
 		http.HandlerFunc(apphandler.Home(vizarenas)),
 	)).Methods("GET")
@@ -63,16 +78,12 @@ func (viz *VizService) Start() chan struct{} {
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Arena(vizarenas, viz.webclientpath)),
+		http.HandlerFunc(apphandler.Arena(vizarenas, viz.webclientpath, cdnBaseURL)),
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
 		http.HandlerFunc(apphandler.Websocket(vizarenas, viz.recorder)),
 	)).Methods("GET")
-
-	// Les assets de la viz (js, modèles, textures)
-	router.PathPrefix("/lib/").Handler(http.FileServer(http.Dir(viz.webclientpath)))
-	router.PathPrefix("/res/").Handler(http.FileServer(http.Dir(viz.webclientpath)))
 
 	log.Println("VIZ Listening on " + viz.addr)
 

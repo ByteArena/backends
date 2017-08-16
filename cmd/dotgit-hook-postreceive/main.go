@@ -41,7 +41,7 @@ func publicMsg(msg string) {
 
 func main() {
 
-	f, err := os.OpenFile("/var/log/dotgit-hook-postreceive.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile("/var/log/dotgit-hook-postreceive.log", os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalln("error opening file: %v", err)
 	}

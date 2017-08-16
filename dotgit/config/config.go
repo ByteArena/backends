@@ -16,6 +16,7 @@ type Config struct {
 
 	DockerHost             string
 	DockerBuildMemoryLimit string
+	DockerBuildSwapLimit   string
 	DockerBuildNetwork     string
 	DockerBuildNoCache     string
 	DockerBuildCpuPeriod   string
