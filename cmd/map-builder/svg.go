@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"log"
 	"regexp"
@@ -287,6 +288,33 @@ func (c SVGIDCollection) Contains(search string) int {
 	}
 
 	return -1
+}
+
+type SVGIDFunction struct {
+	Function string
+	Args     json.RawMessage
+	Original string
+}
+
+func (c SVGIDCollection) GetFunctions() []SVGIDFunction {
+	funcs := make([]SVGIDFunction, 0)
+	r := regexp.MustCompile("^ba:([a-zA-Z]+)\\((.*?)\\)$")
+	for _, group := range c {
+		parts := strings.Split(group, "-")
+		for _, part := range parts {
+			if r.MatchString(part) {
+				matches := r.FindStringSubmatch(part)
+
+				funcs = append(funcs, SVGIDFunction{
+					Function: matches[1],
+					Args:     json.RawMessage("[" + matches[2] + "]"),
+					Original: part,
+				})
+			}
+		}
+	}
+
+	return funcs
 }
 
 func NewSVGGroup(parent SVGNode) *SVGGroup {

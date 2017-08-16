@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -18,6 +20,9 @@ import (
 )
 
 func main() {
+
+	rand.Seed(time.Now().UnixNano())
+
 	source := flag.String("in", "", "Input svg file; required")
 	pxperunit := flag.Float64("pxperunit", 1.0, "Number of svg px per map unit; default 1.0 (1u = 1px)")
 	flag.Parse()
@@ -142,7 +147,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 	for _, obstacleObject := range obstaclesObjects {
 
 		switch obstacleObject.Type {
-		case "rock01", "crater01":
+		case "rocks01", "rocks02", "rocksRand", "alienBones", "satellite01", "satellite02", "crater01", "crater02", "craterRand", "station01", "station02", "stationRand":
 			{
 				// temporary: draw a square around the center of the obstacle
 				//
@@ -472,6 +477,14 @@ func processStarts(worldTransform vector.Matrix2, svgstarts []SVGNode) []mapcont
 	return starts
 }
 
+func signum(f float64) int {
+	if f < 0 {
+		return -1
+	}
+
+	return 1
+}
+
 func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapcontainer.MapObject {
 	objects := make([]mapcontainer.MapObject, 0)
 
@@ -489,10 +502,51 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapco
 			Transform(cx, cy)
 
 		objtype := ""
-		if ids.Contains("ba:rock01") > -1 {
-			objtype = "rock01"
+		if ids.Contains("ba:rocks01") > -1 {
+			objtype = "rocks01"
+		} else if ids.Contains("ba:rocks02") > -1 {
+			objtype = "rocks02"
+		} else if ids.Contains("ba:alienBones") > -1 {
+			objtype = "alienBones"
+		} else if ids.Contains("ba:satellite01") > -1 {
+			objtype = "satellite01"
+		} else if ids.Contains("ba:satellite02") > -1 {
+			objtype = "satellite02"
+		} else if ids.Contains("ba:satelliteRand") > -1 {
+			if rand.Float64() > 0.5 {
+				objtype = "satellite02"
+			} else {
+				objtype = "satellite01"
+			}
 		} else if ids.Contains("ba:crater01") > -1 {
 			objtype = "crater01"
+		} else if ids.Contains("ba:crater02") > -1 {
+			objtype = "crater01"
+		} else if ids.Contains("ba:craterRand") > -1 {
+			if rand.Float64() > 0.5 {
+				objtype = "crater02"
+			} else {
+				objtype = "crater01"
+			}
+
+		} else if ids.Contains("ba:rocksRand") > -1 {
+			if rand.Float64() > 0.5 {
+				objtype = "rocks02"
+			} else {
+				objtype = "rocks01"
+			}
+
+		} else if ids.Contains("ba:station01") > -1 {
+			objtype = "station01"
+		} else if ids.Contains("ba:station02") > -1 {
+			objtype = "station02"
+		} else if ids.Contains("ba:stationRand") > -1 {
+			if rand.Float64() > 0.5 {
+				objtype = "station02"
+			} else {
+				objtype = "station01"
+			}
+
 		} else {
 			return nil
 		}
@@ -505,6 +559,56 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapco
 		}
 	}
 
+	applyFunctions := func(functions []SVGIDFunction, obj *mapcontainer.MapObject) *mapcontainer.MapObject {
+
+		for _, f := range functions {
+			switch f.Function {
+			case "randomizeScale":
+				{
+					args := make([]float64, 2)
+					err := json.Unmarshal(f.Args, &args)
+					if err != nil {
+						panic(err)
+					}
+
+					obj.Diameter = number.Map(rand.Float64(), 0, 1, args[0], args[1])
+				}
+			case "randomizePosition":
+				{
+					maxdeviation := make([]float64, 1)
+					err := json.Unmarshal(f.Args, &maxdeviation)
+					if err != nil {
+						panic(err)
+					}
+
+					devx := number.Map(rand.Float64(), 0, 1, 0, maxdeviation[0]) * float64(signum(rand.Float64()-rand.Float64()))
+					devy := number.Map(rand.Float64(), 0, 1, 0, maxdeviation[0]) * float64(signum(rand.Float64()-rand.Float64()))
+
+					obj.Point.X += devx
+					obj.Point.Y += devy
+				}
+			// case "setHeight":
+			// 	{
+			// 		height := make([]float64, 1)
+			// 		err := json.Unmarshal(f.Args, &height)
+			// 		if err != nil {
+			// 			panic(err)
+			// 		}
+
+			// 		obj.Height = height
+			// 	}
+			case "randomizeOrientation":
+				{
+					maxangle := math.Pi * 2
+					angle := number.Map(rand.Float64(), 0, 1, 0, maxangle) * float64(signum(rand.Float64()-rand.Float64()))
+					obj.Orientation = angle
+				}
+			}
+		}
+
+		return obj
+	}
+
 	for _, svgobject := range svgobjects {
 
 		switch typednode := svgobject.(type) {
@@ -512,6 +616,8 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapco
 			{
 				cx, cy := typednode.GetCenter()
 				obj := circleProcessor(typednode, cx, cy, typednode.GetRadius())
+				obj = applyFunctions(GetSVGIDs(typednode).GetFunctions(), obj)
+
 				if obj != nil {
 					objects = append(objects, *obj)
 				}
@@ -520,6 +626,8 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapco
 			{
 				cx, cy := typednode.GetCenter()
 				obj := circleProcessor(typednode, cx, cy, typednode.rx)
+				obj = applyFunctions(GetSVGIDs(typednode).GetFunctions(), obj)
+
 				if obj != nil {
 					objects = append(objects, *obj)
 				}

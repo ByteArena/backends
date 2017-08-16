@@ -97,10 +97,11 @@ type MapObstacle struct {
 }
 
 type MapObject struct {
-	Id       string   `json:"id"`
-	Point    MapPoint `json:"point"`
-	Type     string   `json:"type"`
-	Diameter float64  `json:"diameter"`
+	Id          string   `json:"id"`
+	Point       MapPoint `json:"point"`
+	Type        string   `json:"type"`
+	Diameter    float64  `json:"diameter"`
+	Orientation float64  `json:"orientation"`
 }
 
 /*
