@@ -107,7 +107,7 @@ func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.
 	for _, obstacle := range serverstate.MapMemoization.Obstacles {
 
 		edges := make([]vector.Vector2, 0)
-		rejectededges := make([]vector.Vector2, 0)
+		//rejectededges := make([]vector.Vector2, 0)
 
 		relvecA := obstacle.A.Sub(absoluteposition)
 		relvecB := obstacle.B.Sub(absoluteposition)
@@ -230,14 +230,6 @@ func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.
 
 		} else if len(edges) > 0 {
 			log.Println("NOPE !", edges) // problems with FOV > 180
-		}
-
-		for _, edge := range edges {
-			serverstate.DebugIntersects = append(serverstate.DebugIntersects, edge)
-		}
-
-		for _, edge := range rejectededges {
-			serverstate.DebugIntersectsRejected = append(serverstate.DebugIntersectsRejected, edge)
 		}
 	}
 

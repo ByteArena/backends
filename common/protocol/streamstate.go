@@ -86,8 +86,6 @@ func transformServerStateToVizMessage(game arenaserver.Game, state state.ServerS
 	}
 	state.Agentsmutex.Unlock()
 
-	msg.DebugIntersects = state.DebugIntersects
-	msg.DebugIntersectsRejected = state.DebugIntersectsRejected
 	msg.DebugPoints = state.DebugPoints
 
 	return msg

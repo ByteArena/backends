@@ -19,9 +19,6 @@ type ServerState struct {
 	Projectiles      map[uuid.UUID](ProjectileState)
 	Projectilesmutex *sync.Mutex
 
-	//Obstacles      []Obstacle
-	//Obstaclesmutex *sync.Mutex
-
 	pendingmutations []protocol.StateMutationBatch
 	mutationsmutex   *sync.Mutex
 
@@ -47,20 +44,11 @@ func NewServerState() *ServerState {
 		Projectiles:      make(map[uuid.UUID](ProjectileState)),
 		Projectilesmutex: &sync.Mutex{},
 
-		//Obstacles:      make([]Obstacle, 0),
-		//Obstaclesmutex: &sync.Mutex{},
-
 		pendingmutations: make([]protocol.StateMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
 
-		DebugIntersects:         make([]vector.Vector2, 0),
-		DebugIntersectsRejected: make([]vector.Vector2, 0),
-
 		DebugPoints:      make([]vector.Vector2, 0),
 		debugPointsMutex: &sync.Mutex{},
-
-		//DebugSegments: []vector.Vector2,
-		//debugSegmentsMutex: &sync.Mutex{},
 	}
 }
 
@@ -77,12 +65,6 @@ func (serverstate *ServerState) SetAgentState(agentid uuid.UUID, agentstate Agen
 	serverstate.Agents[agentid] = agentstate
 	serverstate.Agentsmutex.Unlock()
 }
-
-// func (serverstate *ServerState) SetObstacle(obstacle Obstacle) {
-// 	serverstate.Obstaclesmutex.Lock()
-// 	serverstate.Obstacles = append(serverstate.Obstacles, obstacle)
-// 	serverstate.Obstaclesmutex.Unlock()
-// }
 
 func (serverstate *ServerState) PushMutationBatch(batch protocol.StateMutationBatch) {
 	serverstate.mutationsmutex.Lock()
