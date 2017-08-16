@@ -98,9 +98,6 @@ func (server *Server) spawnAgents() {
 			err = server.containerorchestrator.StartAgentContainer(container)
 			utils.Check(err, "Failed to start docker container for "+agent.String())
 
-			err = server.containerorchestrator.LogsToStdOut(container)
-			utils.Check(err, "Failed to follow docker container logs for "+agent.String())
-
 			err = server.containerorchestrator.Wait(container)
 			utils.Check(err, "Failed to wait docker container completion for "+agent.String())
 		}(ag, agentstate, agentimage)
