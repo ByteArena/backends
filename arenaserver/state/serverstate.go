@@ -106,8 +106,6 @@ func (serverstate *ServerState) ProcessMutations() {
 		newstate := agentstate.clone()
 		serverstate.Agentsmutex.Unlock()
 
-		//log.Println("Processing mutations on " + batch.Turn.String() + " for agent " + batch.AgentId.String())
-
 		for _, mutation := range batch.Mutations {
 			switch mutation.GetMethod() {
 			case "steer":

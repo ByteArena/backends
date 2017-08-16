@@ -3,7 +3,6 @@ package protocol
 import "encoding/json"
 
 type MessageMutations interface {
-	//GetTickTurnSeq() int
 	GetMutations() []MessageMutation
 }
 
@@ -13,7 +12,6 @@ type MessageMutation interface {
 }
 
 type MessageMutationsImp struct {
-	//Turn      int
 	Mutations []MessageMutationImp
 }
 

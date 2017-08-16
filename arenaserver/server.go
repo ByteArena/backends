@@ -133,7 +133,7 @@ func (server *Server) setAgent(agent agent.Agent) {
 	server.agentsmutex.Unlock()
 }
 
-func (s *Server) SetExpectedTurn(turn utils.Tickturn) {
+func (s *Server) SetTurn(turn utils.Tickturn) {
 	s.currentturnmutex.Lock()
 	s.currentturn = turn
 	s.currentturnmutex.Unlock()
@@ -201,7 +201,7 @@ func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
 func (server *Server) DoTick() {
 
 	turn := server.GetTurn()
-	server.SetExpectedTurn(turn.Next())
+	server.SetTurn(turn.Next())
 
 	dolog := (turn.GetSeq() % server.tickspersec) == 0
 
@@ -300,16 +300,12 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent mutation payload for agent " + ag.String() + "; " + string(msg.GetPayload()))
 			}
 
-			turn := server.GetTurn()
-
 			mutationbatch := protocol.StateMutationBatch{
 				AgentId:   ag.GetId(),
 				Mutations: mutations.GetMutations(),
 			}
 
 			server.PushMutationBatch(mutationbatch)
-
-			notify.PostTimeout("agent:"+ag.GetId().String()+":tickedturn:"+strconv.Itoa(turn.GetSeq()), nil, time.Microsecond*100)
 
 			break
 		}
