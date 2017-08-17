@@ -10,9 +10,7 @@ type VizMessage struct {
 	UUID        string
 	Agents      []VizAgentMessage
 	Projectiles []VizProjectileMessage
-	Obstacles   []VizObstacleMessage
 	DebugPoints []vector.Vector2
-	Meshes      []VizMeshMessage
 }
 
 type VizAgentMessage struct {
@@ -37,7 +35,4 @@ type VizObstacleMessage struct {
 	Id uuid.UUID
 	A  vector.Vector2
 	B  vector.Vector2
-}
-
-type VizMeshMessage struct {
 }
