@@ -6,15 +6,13 @@ import (
 )
 
 type VizMessage struct {
-	ArenaId                 string
-	UUID                    string
-	Agents                  []VizAgentMessage
-	Projectiles             []VizProjectileMessage
-	Obstacles               []VizObstacleMessage
-	DebugIntersects         []vector.Vector2
-	DebugIntersectsRejected []vector.Vector2
-	DebugPoints             []vector.Vector2
-	Meshes                  []VizMeshMessage
+	ArenaId     string
+	UUID        string
+	Agents      []VizAgentMessage
+	Projectiles []VizProjectileMessage
+	Obstacles   []VizObstacleMessage
+	DebugPoints []vector.Vector2
+	Meshes      []VizMeshMessage
 }
 
 type VizAgentMessage struct {

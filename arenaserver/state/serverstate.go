@@ -22,9 +22,6 @@ type ServerState struct {
 	pendingmutations []protocol.StateMutationBatch
 	mutationsmutex   *sync.Mutex
 
-	DebugIntersects         []vector.Vector2
-	DebugIntersectsRejected []vector.Vector2
-
 	DebugPoints      []vector.Vector2
 	debugPointsMutex *sync.Mutex
 
