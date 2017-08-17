@@ -3,6 +3,7 @@ package state
 import (
 	"math"
 
+	"github.com/bytearena/bytearena/arenaserver/projectile"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/number"
 	"github.com/bytearena/bytearena/common/utils/trigo"
@@ -34,6 +35,7 @@ import (
 // or by simulating moment of inertia.
 
 type AgentState struct {
+	AgentId            uuid.UUID
 	Radius             float64
 	Mass               float64
 	Position           vector.Vector2
@@ -48,17 +50,32 @@ type AgentState struct {
 
 	VisionRadius float64 // radius of vision circle
 	VisionAngle  float64 // angle of FOV
+
+	MaxLife float64 // Const
+	Life    float64 // Current life level; when <=0, boom
+
+	MaxShield           float64 // Const
+	Shield              float64 // Current shield level
+	ShieldReplenishRate float64 // Const; Shield regained every tick
+
+	MaxShootEnergy           float64 // Const; When shooting, energy decreases
+	ShootEnergy              float64 // Current energy level
+	ShootEnergyReplenishRate float64 // Const; Energy regained every tick
+	ShootEnergyCost          float64 // Const; Energy consumed by a shot
+	ShootCooldown            int     // Const; number of ticks to wait between every shot
+	LastShot                 int     // Number of ticks since last shot
 }
 
-func MakeAgentState(start mapcontainer.MapStart) AgentState {
+func MakeAgentState(agentId uuid.UUID, start mapcontainer.MapStart) AgentState {
 	initialx := start.Point.X
 	initialy := start.Point.Y
 
 	r := 0.1
 
 	return AgentState{
-		Position: vector.MakeVector2(initialx, initialy),
-		//Velocity:           vector.MakeVector2(0.00001, 1),
+		AgentId:            agentId,
+		Position:           vector.MakeVector2(initialx, initialy),
+		Velocity:           vector.MakeNullVector2(),
 		MaxSpeed:           0.5,
 		MaxSteeringForce:   0.08,
 		DragForce:          0.03,
@@ -68,6 +85,20 @@ func MakeAgentState(start mapcontainer.MapStart) AgentState {
 		Tag:                "agent",
 		VisionRadius:       40,
 		VisionAngle:        number.DegreeToRadian(180),
+
+		MaxLife: 1000, // Const
+		Life:    1000, // Current life level
+
+		MaxShield:           1000, // Const
+		Shield:              1000, // Current shield level
+		ShieldReplenishRate: 10,   // Const; Shield regained every tick
+
+		MaxShootEnergy:           200, // Const; When shooting, energy decreases
+		ShootEnergy:              200, // Current energy level
+		ShootEnergyReplenishRate: 5,   // Const; Energy regained every tick
+		ShootCooldown:            5,   // Const; number of ticks to wait between every shot
+		ShootEnergyCost:          80,  // Const
+		LastShot:                 0,   // Number of ticks since last shot; 0 => cannot shoot immediately, must wait for first cooldown
 	}
 }
 
@@ -80,7 +111,9 @@ func (state AgentState) Update() AgentState {
 	// 	state.Position = state.Position.Add(state.Velocity)
 	// }
 
-	// Apply drag
+	//
+	// Apply drag to velocity
+	//
 	if state.DragForce > state.Velocity.Mag() {
 		state.Velocity = vector.MakeNullVector2()
 	} else {
@@ -88,6 +121,27 @@ func (state AgentState) Update() AgentState {
 		state.Position = state.Position.Add(state.Velocity)
 		state.Orientation = state.Velocity.Angle()
 	}
+
+	//
+	// Levels replenishment
+	//
+
+	// Shield
+	state.Shield += state.ShieldReplenishRate
+	if state.Shield > state.MaxShield {
+		state.Shield = state.MaxShield
+	}
+
+	// Energy
+	state.ShootEnergy += state.ShootEnergyReplenishRate
+	if state.ShootEnergy > state.MaxShootEnergy {
+		state.ShootEnergy = state.MaxShootEnergy
+	}
+
+	//
+	// Shoot cooldown
+	//
+	state.LastShot++
 
 	return state
 }
@@ -103,7 +157,7 @@ func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
 			steering = steering.SetMag(prevmag - state.MaxSteeringForce)
 		}
 	}
-	abssteering := state.localAngleToAbsoluteAngleVec(steering, &state.MaxAngularVelocity)
+	abssteering := localAngleToAbsoluteAngleVec(state.Orientation, steering, &state.MaxAngularVelocity)
 	state.Velocity = abssteering.Limit(state.MaxSpeed)
 
 	return state
@@ -111,28 +165,41 @@ func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
 
 func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Vector2) AgentState {
 
-	// on passe le vecteur de visée d'un angle relatif à un angle absolu
-	absaiming := state.localAngleToAbsoluteAngleVec(aiming, nil)
+	//
+	// Levels consumption
+	//
 
-	projectile := ProjectileState{
-		Position: state.Position.Clone(),
-		Velocity: state.Position.Add(absaiming), // adding the agent position to "absolutize" the target vector
-		From:     state,
-		Ttl:      1,
+	if state.LastShot <= state.ShootCooldown {
+		// invalid shot, cooldown not over
+		return state
 	}
 
-	projectileid := uuid.NewV4()
+	if state.ShootEnergy < state.ShootEnergyCost {
+		// TODO: puiser dans le shield ?
+		return state
+	}
+
+	state.LastShot = 0
+	state.ShootEnergy -= state.ShootEnergyCost
+
+	projectile := projectile.NewBallisticProjectile()
+	projectile.AgentEmitterId = state.AgentId
+	projectile.Position = state.Position
+	projectile.Speed = 2.5
+
+	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
+	absaiming := localAngleToAbsoluteAngleVec(state.Orientation, aiming, nil)    // TODO: replace nil here by an actual angle constraint
+	projectile.Velocity = state.Position.Add(absaiming).SetMag(projectile.Speed) // adding the agent position to "absolutize" the target vector
 
 	serverstate.Projectilesmutex.Lock()
-	serverstate.Projectiles[projectileid] = projectile
+	serverstate.Projectiles = append(serverstate.Projectiles, projectile)
 	serverstate.Projectilesmutex.Unlock()
 
 	return state
 }
 
-func (state AgentState) localAngleToAbsoluteAngleVec(vec vector.Vector2, maxangleconstraint *float64) vector.Vector2 {
+func localAngleToAbsoluteAngleVec(abscurrentagentangle float64, vec vector.Vector2, maxangleconstraint *float64) vector.Vector2 {
 
-	abscurrentagentangle := state.Orientation
 	absvecangle := vec.Angle()
 
 	relvecangle := absvecangle

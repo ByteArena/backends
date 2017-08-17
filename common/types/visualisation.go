@@ -25,9 +25,9 @@ type VizAgentMessage struct {
 }
 
 type VizProjectileMessage struct {
+	Id       uuid.UUID
 	Position vector.Vector2
-	Radius   float64
-	From     VizAgentMessage
+	Velocity vector.Vector2
 	Kind     string
 }
 

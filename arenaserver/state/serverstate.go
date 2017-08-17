@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/bytearena/bytearena/arenaserver/projectile"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
@@ -16,7 +17,7 @@ type ServerState struct {
 	Agents      map[uuid.UUID](AgentState)
 	Agentsmutex *sync.Mutex
 
-	Projectiles      map[uuid.UUID](ProjectileState)
+	Projectiles      []*projectile.BallisticProjectile
 	Projectilesmutex *sync.Mutex
 
 	pendingmutations []protocol.StateMutationBatch
@@ -38,7 +39,7 @@ func NewServerState() *ServerState {
 		Agents:      make(map[uuid.UUID](AgentState)),
 		Agentsmutex: &sync.Mutex{},
 
-		Projectiles:      make(map[uuid.UUID](ProjectileState)),
+		Projectiles:      make([]*projectile.BallisticProjectile, 0),
 		Projectilesmutex: &sync.Mutex{},
 
 		pendingmutations: make([]protocol.StateMutationBatch, 0),

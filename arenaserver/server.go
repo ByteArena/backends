@@ -115,7 +115,7 @@ func (server *Server) RegisterAgent(agentimage string) {
 	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
 
 	agent := agent.MakeNetAgentImp()
-	agentstate := state.MakeAgentState(agentSpawningPos)
+	agentstate := state.MakeAgentState(agent.GetId(), agentSpawningPos)
 
 	server.setAgent(agent)
 	server.state.SetAgentState(agent.GetId(), agentstate)
@@ -212,7 +212,7 @@ func (server *Server) DoTick() {
 
 	// on met à jour l'état du serveur
 	// TODO: bon moment ?
-	server.DoUpdate()
+	server.Update()
 
 	// Refreshing perception for every agent
 	server.GetState().DebugPoints = make([]vector.Vector2, 0)
@@ -394,25 +394,36 @@ func (server *Server) ProcessMutations() {
 	server.state.ProcessMutations()
 }
 
-func (server *Server) DoUpdate() {
+func (server *Server) Update() {
+
 	server.DebugNbUpdates++
 
+	///////////////////////////////////////////////////////////////////////////
 	// Updates physiques, liées au temps qui passe
-	// Avant de récuperer les mutations de chaque tour, et même avant deconstituer la perception de chaque agent
+	// Avant de récuperer les mutations de chaque tour, et même avant de constituer la perception de chaque agent
+	///////////////////////////////////////////////////////////////////////////
+
+	//
+	// Updating projectiles
+	//
 
 	server.state.Projectilesmutex.Lock()
-	for k, state := range server.state.Projectiles {
-
-		if state.Ttl <= 0 {
-			delete(server.state.Projectiles, k)
+	for i, projectile := range server.state.Projectiles {
+		if projectile.TTL <= 0 {
+			// has been set to 0 during the previous tick; pruning now (0 TTL projectiles might still have a collision later in this method)
+			// Remove projectile from projectiles array
+			server.state.Projectiles[i] = server.state.Projectiles[len(server.state.Projectiles)-1]
+			server.state.Projectiles = server.state.Projectiles[:len(server.state.Projectiles)-1]
 		} else {
-			state.Ttl--
-			server.state.Projectiles[k] = state
+			projectile.Update()
 		}
 	}
 	server.state.Projectilesmutex.Unlock()
 
-	// update agents
+	//
+	// Updating agents
+	//
+
 	for _, agent := range server.agents {
 		server.state.SetAgentState(
 			agent.GetId(),
@@ -420,7 +431,22 @@ func (server *Server) DoUpdate() {
 		)
 	}
 
-	// update visualisations
+	///////////////////////////////////////////////////////////////////////////
+	// Collision checks
+	///////////////////////////////////////////////////////////////////////////
+
+	// TODO: check for collisions:
+	// * agent / agent
+	// * agent / obstacle
+	// * agent / projectile
+	// * projectile / projectile
+	// * projectile / obstacle
+
+	///////////////////////////////////////////////////////////////////////////
+	// Pushing updated state to viz
+	// TODO: is this the right place ?
+	///////////////////////////////////////////////////////////////////////////
+
 	serverCloned := *server.state
 
 	for _, subscriber := range server.stateobservers {
