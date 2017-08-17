@@ -103,37 +103,3 @@ type MapObject struct {
 	Diameter    float64  `json:"diameter"`
 	Orientation float64  `json:"orientation"`
 }
-
-/*
-{
-    "meta": {
-        "readme": "Byte Arena Training Map",
-        "kind": "deathmatch",
-        "theme": "desert",
-        "maxcontestants": 2,
-        "date": "1234-01-01 00:00:00Z",
-        "repository": "http://github.com/bytearena/maps/"
-    },
-    "data": {
-        "grounds": [
-            {
-                "id": "theground",
-                "outline": [
-                    [[0, 0], [0, 100], [100, 100], [100, 0], [0, 0]],
-                    [[20, 20], [20, 80], [80, 80], [80, 0], [0, 0]]
-				],
-				"mesh": [
-					[[0, 0], [0, 100], [100, 100]],
-					[[0, 0], [0, 100], [100, 100]],
-					[[0, 0], [0, 100], [100, 100]]
-				]
-            }
-        ],
-        "starts": [
-            { "id": "one", "point": [[10, 10]] },
-            { "id": "two", "point": [[20, 20]] },
-            { "id": "three", "point": [[30, 30]] }
-        ]
-    }
-}
-*/
