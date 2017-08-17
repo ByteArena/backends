@@ -21,6 +21,7 @@ func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *st
 	p.Specs.MaxAngularVelocity = agentstate.MaxAngularVelocity
 	p.Specs.VisionRadius = agentstate.VisionRadius
 	p.Specs.VisionAngle = agentstate.VisionAngle
+	p.Specs.DragForce = agentstate.DragForce
 
 	p.External.Vision = ComputeAgentVision(arenaMap, serverstate, agent)
 

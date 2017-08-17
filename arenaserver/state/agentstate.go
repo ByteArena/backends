@@ -42,6 +42,7 @@ type AgentState struct {
 	MaxSteeringForce   float64 // maximum magnitude the steering force applied to current velocity
 	MaxSpeed           float64 // maximum magnitude of the agent velocity
 	MaxAngularVelocity float64
+	DragForce          float64 // drag opposed to the vehicle velocity at every tick turn
 
 	Tag string // attractor
 
@@ -59,7 +60,8 @@ func MakeAgentState(start mapcontainer.MapStart) AgentState {
 		Position: vector.MakeVector2(initialx, initialy),
 		//Velocity:           vector.MakeVector2(0.00001, 1),
 		MaxSpeed:           0.5,
-		MaxSteeringForce:   0.05,
+		MaxSteeringForce:   0.08,
+		DragForce:          0.03,
 		MaxAngularVelocity: number.DegreeToRadian(9), // en radians/tick; Pi = 180°
 		Radius:             r,
 		Mass:               math.Pi * r * r,
@@ -78,8 +80,15 @@ func (state AgentState) Update() AgentState {
 	// 	state.Position = state.Position.Add(state.Velocity)
 	// }
 
-	state.Position = state.Position.Add(state.Velocity)
-	state.Orientation = state.Velocity.Angle()
+	// Apply drag
+	if state.DragForce > state.Velocity.Mag() {
+		state.Velocity = vector.MakeNullVector2()
+	} else {
+		state.Velocity = state.Velocity.Sub(state.Velocity.Clone().SetMag(state.DragForce))
+		state.Position = state.Position.Add(state.Velocity)
+		state.Orientation = state.Velocity.Angle()
+	}
+
 	return state
 }
 

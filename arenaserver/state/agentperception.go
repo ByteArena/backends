@@ -11,6 +11,7 @@ type PerceptionSpecs struct {
 	MaxAngularVelocity float64
 	VisionRadius       float64
 	VisionAngle        float64
+	DragForce          float64
 }
 
 type PerceptionVisionItem struct {
