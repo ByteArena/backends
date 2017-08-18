@@ -1,6 +1,7 @@
 package state
 
 import (
+	"log"
 	"math"
 
 	"github.com/bytearena/bytearena/arenaserver/projectile"
@@ -185,11 +186,11 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 	projectile := projectile.NewBallisticProjectile()
 	projectile.AgentEmitterId = state.AgentId
 	projectile.Position = state.Position
-	projectile.Speed = 2.5
 
 	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
-	absaiming := localAngleToAbsoluteAngleVec(state.Orientation, aiming, nil)    // TODO: replace nil here by an actual angle constraint
-	projectile.Velocity = state.Position.Add(absaiming).SetMag(projectile.Speed) // adding the agent position to "absolutize" the target vector
+	absaiming := localAngleToAbsoluteAngleVec(state.Orientation, aiming, nil) // TODO: replace nil here by an actual angle constraint
+	projectile.Velocity = absaiming.SetMag(projectile.Speed)                  // adding the agent position to "absolutize" the target vector
+	log.Println(projectile.Velocity, aiming)
 
 	serverstate.Projectilesmutex.Lock()
 	serverstate.Projectiles = append(serverstate.Projectiles, projectile)
@@ -200,12 +201,8 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 
 func localAngleToAbsoluteAngleVec(abscurrentagentangle float64, vec vector.Vector2, maxangleconstraint *float64) vector.Vector2 {
 
-	absvecangle := vec.Angle()
-
-	relvecangle := absvecangle
-
 	// On passe de 0° / 360° à -180° / +180°
-	relvecangle = trigo.FullCircleAngleToSignedHalfCircleAngle(absvecangle)
+	relvecangle := trigo.FullCircleAngleToSignedHalfCircleAngle(vec.Angle())
 
 	// On contraint la vélocité angulaire à un maximum
 	if maxangleconstraint != nil {

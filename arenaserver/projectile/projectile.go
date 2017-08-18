@@ -16,8 +16,9 @@ type BallisticProjectile struct {
 
 func NewBallisticProjectile() *BallisticProjectile {
 	return &BallisticProjectile{
-		Id:  uuid.NewV4(), // random uuid
-		TTL: 50,
+		Id:    uuid.NewV4(), // random uuid
+		TTL:   50,
+		Speed: 0.1,
 	}
 }
 
