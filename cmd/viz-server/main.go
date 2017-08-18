@@ -117,7 +117,7 @@ func main() {
 
 	var hc *healthcheck.HealthCheckServer
 	if env == "prod" {
-		hc = NewHealthCheck(mqclient, graphqlclient, "https://"+serverAddr)
+		hc = NewHealthCheck(mqclient, graphqlclient, "http://"+serverAddr)
 		hc.Start()
 	}
 
