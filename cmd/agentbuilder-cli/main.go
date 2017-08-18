@@ -69,7 +69,7 @@ func main() {
 }
 
 func pingRegistry(host string) error {
-	resp, err := http.Get("http://" + host + "/v2/")
+	resp, err := http.Get("https://" + host + "/v2/")
 
 	if err != nil {
 		return err

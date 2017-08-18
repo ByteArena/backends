@@ -49,7 +49,7 @@ func NewGameGql(game graphqltype.GameType) *GameGql {
 
 	// defer jsonsource.Close()
 
-	jsonsource, err := FetchUrl("http://bytearena.com/assets/bytearena/maps/deathmatch/desert/death-valley/map.json")
+	jsonsource, err := FetchUrl("https://bytearena.com/assets/bytearena/maps/deathmatch/desert/death-valley/map.json")
 	utils.Check(err, "Could not fetch map")
 
 	var mapContainer mapcontainer.MapContainer
