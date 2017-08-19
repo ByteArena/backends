@@ -58,7 +58,7 @@ func (viz *VizService) Start() chan struct{} {
 
 	// Les assets de la viz (js, modèles, textures)
 	router.PathPrefix("/lib/").Handler(http.StripPrefix("/lib/", http.FileServer(http.Dir(viz.webclientpath+"/lib/"))))
-	cdnBaseURL := "http://bytearena.com/assets/bytearena"
+	cdnBaseURL := "https://bytearena.com/assets/bytearena"
 
 	if viz.pathToAssets != "" {
 		router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(viz.pathToAssets))))
