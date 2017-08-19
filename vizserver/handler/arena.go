@@ -35,7 +35,7 @@ func Arena(arenas *types.VizArenaMap, basepath string, CDNBaseURL string) func(w
 			Rand       int64
 			Tps        int
 		}{
-			WsURL:      "ws://" + r.Host + "/arena/" + arena.GetId() + "/ws",
+			WsURL:      "wss://" + r.Host + "/arena/" + arena.GetId() + "/ws",
 			CDNBaseURL: CDNBaseURL,
 			Rand:       time.Now().Unix(),
 			Tps:        arena.GetTps(),
