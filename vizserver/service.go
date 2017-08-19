@@ -70,7 +70,7 @@ func (viz *VizService) Start() chan struct{} {
 	)).Methods("GET")
 
 	router.Handle("/record/{recordId:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Replay(viz.recorder, viz.webclientpath)),
+		http.HandlerFunc(apphandler.Replay(viz.recorder, viz.webclientpath, cdnBaseURL)),
 	)).Methods("GET")
 
 	router.Handle("/record/{recordId:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
