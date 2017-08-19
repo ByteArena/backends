@@ -71,7 +71,7 @@ func MakeAgentState(agentId uuid.UUID, start mapcontainer.MapStart) AgentState {
 	initialx := start.Point.X
 	initialy := start.Point.Y
 
-	r := 0.5 // width=1
+	r := 0.3 // agent diameter=0.6
 
 	return AgentState{
 		AgentId:            agentId,

@@ -20,6 +20,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/dhconnelly/rtreego"
 	uuid "github.com/satori/go.uuid"
@@ -456,6 +457,8 @@ func (server *Server) Update() {
 	// Collision checks
 	///////////////////////////////////////////////////////////////////////////
 
+	// TODO: parallelism with goroutines wher possible
+
 	//
 	// A: Agent/Obstacle
 	//
@@ -499,19 +502,73 @@ func (server *Server) Update() {
 
 		bbRegion, err := rtreego.NewRect([]float64{*minX, *minY}, []float64{*maxX - *minX, *maxY - *minY})
 		utils.Check(err, "rtreego Error")
-		log.Println(bbRegion)
-		regionObstacles := server.state.MapMemoization.RtreeObstacles.SearchIntersect(bbRegion)
 
-		if len(regionObstacles) > 0 {
-			log.Println("blocked, mothafucka")
-			//log.Println("LAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", regionObstacles, len(regionObstacles), server.state.MapMemoization.RtreeObstacles.Size())
-			newState := server.state.GetAgentState(agentid)
-			newState.Position = beforestate.Position
-			newState.Velocity = vector.MakeNullVector2()
-			server.state.SetAgentState(
-				agentid,
-				newState,
-			)
+		//start := time.Now().UnixNano()
+		matchingObstacles := server.state.MapMemoization.RtreeObstacles.SearchIntersect(bbRegion)
+		//fmt.Println("Took", time.Now().UnixNano()-start, "nanoseconds")
+
+		if len(matchingObstacles) > 0 {
+
+			// Fine collision checking
+
+			for _, matchingObstacle := range matchingObstacles {
+				geoObject := matchingObstacle.(*state.GeometryObject)
+
+				intersections := make([]vector.Vector2, 0)
+
+				// 1---2
+				// |   |
+				// 4---3
+
+				boxPoints := []vector.Vector2{
+					vector.MakeVector2(bbAfterA.GetX(), bbAfterA.GetY()),
+					vector.MakeVector2(bbAfterB.GetX(), bbAfterA.GetY()),
+					vector.MakeVector2(bbAfterB.GetX(), bbAfterB.GetY()),
+					vector.MakeVector2(bbAfterA.GetX(), bbAfterB.GetY()),
+				}
+
+				// Check agent bounding box intersection with line A---B defined by the obstacle
+				for i := 0; i < len(boxPoints); i++ {
+
+					boxPoint1 := boxPoints[i]
+					boxPoint2 := boxPoints[(i+1)%len(boxPoints)]
+
+					if point, intersects, colinear, _ := trigo.IntersectionWithLineSegment(geoObject.PointA,
+						geoObject.PointB,
+						boxPoint1,
+						boxPoint2,
+					); intersects && !colinear {
+						// INTERSECT RIGHT
+						intersections = append(intersections, point)
+					}
+				}
+
+				if len(intersections) > 0 {
+					// Check if intersection is within collision circle
+
+					collisions := make([]vector.Vector2, 0)
+
+					radiusSq := afterstate.Radius * afterstate.Radius
+					for _, intersection := range intersections {
+						if intersection.Sub(afterstate.Position).MagSq() >= radiusSq {
+							// Circle collision !
+							collisions = append(collisions, intersection)
+						}
+					}
+
+					if len(collisions) > 0 {
+						log.Println("U blocked, mothafucka")
+
+						newState := server.state.GetAgentState(agentid)
+						newState.Position = beforestate.Position
+						newState.Velocity = vector.MakeNullVector2()
+						server.state.SetAgentState(
+							agentid,
+							newState,
+						)
+					}
+				}
+			}
 		}
 	}
 

@@ -95,12 +95,16 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 
 		pa, pb := GetBoundingBox([]vector.Vector2{obstacle.A, obstacle.B})
 		r, err := rtreego.NewRect(pa, pb)
-		utils.Check(err, "NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+		utils.CheckWithFunc(err, func() string {
+			return "rtreego: NewRect error;" + err.Error()
+		})
 
 		rt.Insert(&GeometryObject{
-			Type: GeometryObjectType.Obstacle,
-			ID:   obstacle.Id.String(),
-			Rect: r,
+			Type:   GeometryObjectType.Obstacle,
+			ID:     obstacle.Id.String(),
+			Rect:   r,
+			PointA: obstacle.A,
+			PointB: obstacle.B,
 		})
 	}
 
@@ -214,12 +218,14 @@ var GeometryObjectType = struct {
 }
 
 type GeometryObject struct {
-	ID   string
-	Type uint8
-	Rect *rtreego.Rect
+	ID     string
+	Type   uint8
+	Rect   *rtreego.Rect
+	PointA vector.Vector2
+	PointB vector.Vector2
 }
 
-func (geobj *GeometryObject) Bounds() *rtreego.Rect {
+func (geobj GeometryObject) Bounds() *rtreego.Rect {
 	return geobj.Rect
 }
 
