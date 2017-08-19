@@ -1,10 +1,12 @@
-hash: 9608144f5c5f5403aff086fa330530e313fba9e1447e9323c7f24d004e1b2ef2
-updated: 2017-07-16T18:40:00.804945582+02:00
+hash: b6085eb1a809bfa73421a99829cd54b76428aa94a5c5e5c59cd8bd238431a54d
+updated: 2017-08-19T15:01:58.965531921+02:00
 imports:
 - name: github.com/bitly/go-notify
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
 - name: github.com/cenkalti/backoff
   version: 32cd0c5b3aef12c76ed64aaf678f6c79736be7dc
+- name: github.com/dhconnelly/rtreego
+  version: 1323b09fe8f32430ea7e16ea1df99e106e3e6250
 - name: github.com/docker/distribution
   version: f86db6b22663a27ba4d278220b7e34be528b1e79
   subpackages:

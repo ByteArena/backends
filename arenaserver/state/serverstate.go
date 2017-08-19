@@ -8,8 +8,10 @@ import (
 
 	"github.com/bytearena/bytearena/arenaserver/projectile"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
+	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/dhconnelly/rtreego"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -33,7 +35,7 @@ type ServerState struct {
 /* ServerState implementation */
 /* ***************************************************************************/
 
-func NewServerState() *ServerState {
+func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 
 	return &ServerState{
 		Agents:      make(map[uuid.UUID](AgentState)),
@@ -47,6 +49,64 @@ func NewServerState() *ServerState {
 
 		DebugPoints:      make([]vector.Vector2, 0),
 		debugPointsMutex: &sync.Mutex{},
+
+		MapMemoization: InitializeMapMemoization(arenaMap),
+	}
+}
+
+func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoization {
+	// We have to initialize the Obstacle list
+	obstacles := make([]Obstacle, 0)
+
+	// Les sols
+	for _, ground := range arenaMap.Data.Grounds {
+		for _, polygon := range ground.Outline {
+			for i := 0; i < len(polygon.Points)-1; i++ {
+				a := polygon.Points[i]
+				b := polygon.Points[i+1]
+				obstacles = append(obstacles, MakeObstacle(
+					vector.MakeVector2(a.X, a.Y),
+					vector.MakeVector2(b.X, b.Y),
+				))
+			}
+		}
+	}
+
+	// Les obstacles explicites
+	for _, obstacle := range arenaMap.Data.Obstacles {
+		polygon := obstacle.Polygon
+		for i := 0; i < len(polygon.Points)-1; i++ {
+			a := polygon.Points[i]
+			b := polygon.Points[i+1]
+			obstacles = append(obstacles, MakeObstacle(
+				vector.MakeVector2(a.X, a.Y),
+				vector.MakeVector2(b.X, b.Y),
+			))
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	// Initialize RTree
+	///////////////////////////////////////////////////////////////////////////
+
+	rt := rtreego.NewTree(2, 25, 50) // TODO: better constants here ? what heuristic to use ?
+
+	for _, obstacle := range obstacles {
+
+		pa, pb := GetBoundingBox([]vector.Vector2{obstacle.A, obstacle.B})
+		r, err := rtreego.NewRect(pa, pb)
+		utils.Check(err, "NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+
+		rt.Insert(&GeometryObject{
+			Type: GeometryObjectType.Obstacle,
+			ID:   obstacle.Id.String(),
+			Rect: r,
+		})
+	}
+
+	return &MapMemoization{
+		Obstacles:      obstacles,
+		RtreeObstacles: rt,
 	}
 }
 
@@ -141,4 +201,59 @@ func (serverstate *ServerState) ProcessMutations() {
 			log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + ";")
 		}
 	}
+}
+
+var GeometryObjectType = struct {
+	Obstacle   uint8
+	Agent      uint8
+	Projectile uint8
+}{
+	Obstacle:   0,
+	Agent:      1,
+	Projectile: 2,
+}
+
+type GeometryObject struct {
+	ID   string
+	Type uint8
+	Rect *rtreego.Rect
+}
+
+func (geobj *GeometryObject) Bounds() *rtreego.Rect {
+	return geobj.Rect
+}
+
+func NewGeometryObjectID(id string) *GeometryObject {
+	return &GeometryObject{
+		ID: id,
+	}
+}
+
+func GetBoundingBox(points []vector.Vector2) (rtreego.Point, rtreego.Point) {
+
+	var minX, minY *float64
+	var maxX, maxY *float64
+
+	for _, point := range points {
+		x, y := point.Get()
+		if minX == nil || x < *minX {
+			minX = &(x)
+		}
+
+		if minY == nil || y < *minY {
+			minY = &(y)
+		}
+
+		if maxX == nil || x > *maxX {
+			maxX = &(x)
+		}
+
+		if maxY == nil || y > *maxY {
+			maxY = &(y)
+		}
+	}
+
+	log.Println("WHATT", *minX, *maxY, *minY, *maxY, *maxX-*minX, *maxY-*minY)
+
+	return []float64{*minX, *minY}, []float64{*maxX - *minX + 0.00001, *maxY - *minY + 0.00001}
 }

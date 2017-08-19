@@ -67,43 +67,6 @@ func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.
 	// Vision: les obstacles
 	///////////////////////////////////////////////////////////////////////////
 
-	if serverstate.MapMemoization == nil {
-		// We have to initialize the Obstacle list
-
-		obstacles := make([]state.Obstacle, 0)
-
-		// Les sols
-		for _, ground := range arenaMap.Data.Grounds {
-			for _, polygon := range ground.Outline {
-				for i := 0; i < len(polygon.Points)-1; i++ {
-					a := polygon.Points[i]
-					b := polygon.Points[i+1]
-					obstacles = append(obstacles, state.MakeObstacle(
-						vector.MakeVector2(a.X, a.Y),
-						vector.MakeVector2(b.X, b.Y),
-					))
-				}
-			}
-		}
-
-		// Les obstacles explicites
-		for _, obstacle := range arenaMap.Data.Obstacles {
-			polygon := obstacle.Polygon
-			for i := 0; i < len(polygon.Points)-1; i++ {
-				a := polygon.Points[i]
-				b := polygon.Points[i+1]
-				obstacles = append(obstacles, state.MakeObstacle(
-					vector.MakeVector2(a.X, a.Y),
-					vector.MakeVector2(b.X, b.Y),
-				))
-			}
-		}
-
-		serverstate.MapMemoization = &state.MapMemoization{
-			Obstacles: obstacles,
-		}
-	}
-
 	for _, obstacle := range serverstate.MapMemoization.Obstacles {
 
 		edges := make([]vector.Vector2, 0)

@@ -21,6 +21,7 @@ import (
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/dhconnelly/rtreego"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
@@ -68,7 +69,7 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 		containerorchestrator: orch,
 		agents:                make(map[uuid.UUID]agent.Agent),
 		agentsmutex:           &sync.Mutex{},
-		state:                 state.NewServerState(),
+		state:                 state.NewServerState(arena.GetMapContainer()),
 		commserver:            nil, // initialized in Listen()
 		nbhandshaked:          0,
 		currentturnmutex:      &sync.Mutex{},
@@ -394,6 +395,12 @@ func (server *Server) ProcessMutations() {
 	server.state.ProcessMutations()
 }
 
+type AgentStateKeptForObstacleCollisionDetection struct {
+	Position vector.Vector2
+	Velocity vector.Vector2
+	Radius   float64
+}
+
 func (server *Server) Update() {
 
 	server.DebugNbUpdates++
@@ -424,6 +431,20 @@ func (server *Server) Update() {
 	// Updating agents
 	//
 
+	// Keeping position and velocity before update (useful for obstacle detection)
+
+	before := make(map[uuid.UUID]AgentStateKeptForObstacleCollisionDetection)
+
+	for _, agent := range server.agents {
+		id := agent.GetId()
+		agstate := server.state.GetAgentState(id)
+		before[id] = AgentStateKeptForObstacleCollisionDetection{
+			Position: agstate.Position,
+			Velocity: agstate.Velocity,
+			Radius:   agstate.Radius,
+		}
+	}
+
 	for _, agent := range server.agents {
 		server.state.SetAgentState(
 			agent.GetId(),
@@ -434,6 +455,65 @@ func (server *Server) Update() {
 	///////////////////////////////////////////////////////////////////////////
 	// Collision checks
 	///////////////////////////////////////////////////////////////////////////
+
+	//
+	// A: Agent/Obstacle
+	//
+
+	//
+	// * For each before state:
+	//   * Determine the bounding box enclosing the n-1 and n positions for an agent
+	//   * Get all obstacles overlapping the bounding box
+	//	 * For each obstacle found, determine if they were actually crossed or not
+	//
+
+	for agentid, beforestate := range before {
+		afterstate := server.state.GetAgentState(agentid)
+
+		bbBeforeA, bbBeforeB := GetAgentBoundingBox(beforestate.Position, beforestate.Radius)
+		bbAfterA, bbAfterB := GetAgentBoundingBox(afterstate.Position, afterstate.Radius)
+
+		var minX, minY *float64
+		var maxX, maxY *float64
+
+		for _, point := range []vector.Vector2{bbBeforeA, bbBeforeB, bbAfterA, bbAfterB} {
+
+			x, y := point.Get()
+
+			if minX == nil || x < *minX {
+				minX = &(x)
+			}
+
+			if minY == nil || y < *minY {
+				minY = &(y)
+			}
+
+			if maxX == nil || x > *maxX {
+				maxX = &(x)
+			}
+
+			if maxY == nil || y > *maxY {
+				maxY = &(y)
+			}
+		}
+
+		bbRegion, err := rtreego.NewRect([]float64{*minX, *minY}, []float64{*maxX - *minX, *maxY - *minY})
+		utils.Check(err, "rtreego Error")
+		log.Println(bbRegion)
+		regionObstacles := server.state.MapMemoization.RtreeObstacles.SearchIntersect(bbRegion)
+
+		if len(regionObstacles) > 0 {
+			log.Println("blocked, mothafucka")
+			//log.Println("LAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", regionObstacles, len(regionObstacles), server.state.MapMemoization.RtreeObstacles.Size())
+			newState := server.state.GetAgentState(agentid)
+			newState.Position = beforestate.Position
+			newState.Velocity = vector.MakeNullVector2()
+			server.state.SetAgentState(
+				agentid,
+				newState,
+			)
+		}
+	}
 
 	// TODO: check for collisions:
 	// * agent / agent
@@ -464,4 +544,9 @@ func (server *Server) SubscribeStateObservation() chan state.ServerState {
 
 func (server *Server) GetArena() Game {
 	return server.arena
+}
+
+func GetAgentBoundingBox(center vector.Vector2, radius float64) (vector.Vector2, vector.Vector2) {
+	x, y := center.Get()
+	return vector.MakeVector2(x-radius, y-radius), vector.MakeVector2(x+radius, y+radius)
 }
