@@ -18,6 +18,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/perception"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
+	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
@@ -29,6 +30,7 @@ const debug = false
 
 type Server struct {
 	host                  string
+	UUID                  string
 	port                  int
 	stopticking           chan struct{}
 	tickspersec           int
@@ -49,7 +51,15 @@ type Server struct {
 	arena Game
 }
 
-func NewServer(host string, port int, orch container.ContainerOrchestrator, arena Game) *Server {
+type ArenaStopMessagePayload struct {
+	ArenaServerId string `json:"arenaserverid"`
+}
+
+type ArenaStopMessage struct {
+	Payload ArenaStopMessagePayload `json:"payload"`
+}
+
+func NewServer(host string, port int, orch container.ContainerOrchestrator, arena Game, UUID string) *Server {
 
 	gamehost := host
 
@@ -62,6 +72,7 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 
 	s := &Server{
 		host:                  gamehost,
+		UUID:                  UUID,
 		port:                  port,
 		stopticking:           make(chan struct{}),
 		tickspersec:           arena.GetTps(),
@@ -385,7 +396,15 @@ func (server *Server) Start() chan interface{} {
 
 }
 
-func (server *Server) Stop() {
+func (server *Server) Stop(mqClient *mq.Client) {
+	server.TearDown()
+
+	mqClient.Publish("game", "stopped", ArenaStopMessage{
+		Payload: ArenaStopMessagePayload{
+			ArenaServerId: server.UUID,
+		},
+	})
+
 	close(server.stopticking)
 }
 
