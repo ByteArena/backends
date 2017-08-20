@@ -51,8 +51,12 @@ type Server struct {
 	arena Game
 }
 
-type ArenaStopMessage struct {
+type ArenaStopMessagePayload struct {
 	ArenaServerId string `json:"arenaserverid"`
+}
+
+type ArenaStopMessage struct {
+	Payload ArenaStopMessagePayload `json:"payload"`
 }
 
 func NewServer(host string, port int, orch container.ContainerOrchestrator, arena Game, UUID string) *Server {
@@ -396,7 +400,9 @@ func (server *Server) Stop(mqClient *mq.Client) {
 	server.TearDown()
 
 	mqClient.Publish("game", "stopped", ArenaStopMessage{
-		ArenaServerId: server.UUID,
+		Payload: ArenaStopMessagePayload{
+			ArenaServerId: server.UUID,
+		},
 	})
 
 	close(server.stopticking)
