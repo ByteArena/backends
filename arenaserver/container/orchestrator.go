@@ -52,7 +52,7 @@ func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner AgentContainer) er
 		return err
 	}
 
-	_, err = orch.cli.ImageRemove(
+	out, errImageRemove := orch.cli.ImageRemove(
 		orch.ctx,
 		ctner.ImageName,
 		types.ImageRemoveOptions{
@@ -61,7 +61,9 @@ func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner AgentContainer) er
 		},
 	)
 
-	return err
+	log.Println(out)
+
+	return errImageRemove
 }
 
 func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) error {
