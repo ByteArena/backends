@@ -66,6 +66,11 @@ func remoteLogsToSyslog(orch *ContainerOrchestrator, container AgentContainer) e
 
 		defer reader.Close()
 
+		// Register reader teardown in case of server shutdown
+		orch.AddTearDownCall(func() {
+			reader.Close()
+		})
+
 		// Create log file
 		filename := logDir + "/" + container.AgentId.String() + ".log"
 		utils.Debug("agent-logs", "created file "+filename)

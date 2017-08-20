@@ -18,13 +18,16 @@ import (
 	"github.com/ttacon/chalk"
 )
 
+type TearDownCallback func()
+
 type ContainerOrchestrator struct {
-	ctx            context.Context
-	cli            *client.Client
-	registryAuth   string
-	containers     []AgentContainer
-	GetHost        func(orch *ContainerOrchestrator) (string, error)
-	StartContainer func(orch *ContainerOrchestrator, ctner AgentContainer) error
+	ctx               context.Context
+	cli               *client.Client
+	registryAuth      string
+	containers        []AgentContainer
+	GetHost           func(orch *ContainerOrchestrator) (string, error)
+	StartContainer    func(orch *ContainerOrchestrator, ctner AgentContainer) error
+	TearDownCallbacks []TearDownCallback
 }
 
 func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) error {
@@ -75,8 +78,16 @@ func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) error {
 	return nil
 }
 
+func (orch *ContainerOrchestrator) AddTearDownCall(fn TearDownCallback) {
+	orch.TearDownCallbacks = append(orch.TearDownCallbacks, fn)
+}
+
 func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
 	log.Println("TearDown !", container)
+
+	for _, cb := range orch.TearDownCallbacks {
+		cb()
+	}
 
 	// TODO: understand why this is sloooooooow since feat-build-git
 	/*
