@@ -3,10 +3,12 @@ package container
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/bytearena/bytearena/common/utils"
 
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
@@ -33,6 +35,21 @@ func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) err
 	return orch.StartContainer(orch, ctner)
 }
 
+func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner AgentContainer) error {
+	utils.Debug("orch", "Remove agent image "+ctner.containerid.String())
+
+	_, err := orch.cli.ImageRemove(
+		orch.ctx,
+		ctner.containerid.String(),
+		types.ImageRemoveOptions{
+			Force:         true,
+			PruneChildren: true,
+		},
+	)
+
+	return err
+}
+
 func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) error {
 	orch.cli.ContainerWait(
 		orch.ctx,
@@ -57,6 +74,8 @@ func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
 	//if err != nil {
 	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
 	//}
+
+	orch.RemoveAgentContainer(container)
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
@@ -115,7 +134,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	}
 
 	if !foundlocal {
-		rc, err := orch.cli.ImagePull(
+		reader, err := orch.cli.ImagePull(
 			orch.ctx,
 			dockerimage,
 			types.ImagePullOptions{
@@ -127,8 +146,9 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 			return AgentContainer{}, errors.New("Failed to pull " + dockerimage + " from registry; " + err.Error())
 		}
 
-		defer rc.Close()
-		ioutil.ReadAll(rc)
+		defer reader.Close()
+
+		io.Copy(os.Stdout, reader)
 	}
 
 	containerconfig := container.Config{
