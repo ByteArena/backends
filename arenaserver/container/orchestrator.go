@@ -102,7 +102,8 @@ func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
 	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
 	//}
 
-	orch.RemoveAgentContainer(container)
+	err := orch.RemoveAgentContainer(container)
+	utils.Check(err, "Cannot remove agent container/image")
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
