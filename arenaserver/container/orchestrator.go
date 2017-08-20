@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	"os"
 	"strconv"
 
 	"github.com/docker/distribution/reference"
@@ -84,6 +85,12 @@ func normalizeDockerRef(dockerimage string) (string, error) {
 
 func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, dockerimage string) (AgentContainer, error) {
 
+	containerUnixUser := os.Getenv("CONTAINER_UNIX_USER")
+
+	if containerUnixUser == "" {
+		containerUnixUser = "root"
+	}
+
 	normalizedDockerimage, err := normalizeDockerRef(dockerimage)
 
 	if err != nil {
@@ -126,7 +133,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 
 	containerconfig := container.Config{
 		Image: normalizedDockerimage,
-		User:  "root",
+		User:  containerUnixUser,
 		Env: []string{
 			"PORT=" + strconv.Itoa(port),
 			"HOST=" + host,
