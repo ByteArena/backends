@@ -38,9 +38,23 @@ func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) err
 func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner AgentContainer) error {
 	utils.Debug("orch", "Remove agent image "+ctner.containerid.String())
 
-	_, err := orch.cli.ImageRemove(
+	err := orch.cli.ContainerRemove(
 		orch.ctx,
 		ctner.containerid.String(),
+		types.ContainerRemoveOptions{
+			RemoveVolumes: true,
+			RemoveLinks:   true,
+			Force:         true,
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = orch.cli.ImageRemove(
+		orch.ctx,
+		ctner.ImageName,
 		types.ImageRemoveOptions{
 			Force:         true,
 			PruneChildren: true,
@@ -188,7 +202,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		return AgentContainer{}, errors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
 	}
 
-	agentcontainer := MakeAgentContainer(agentid, ContainerId(resp.ID))
+	agentcontainer := MakeAgentContainer(agentid, ContainerId(resp.ID), normalizedDockerimage)
 	orch.containers = append(orch.containers, agentcontainer)
 
 	return agentcontainer, nil
