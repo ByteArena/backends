@@ -122,7 +122,6 @@ func main() {
 
 							srv.Stop()
 							utils.Debug("timer", "Timeout, stop the arena")
-							os.Exit(0)
 						}()
 
 						<-srv.Start()
