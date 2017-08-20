@@ -36,7 +36,7 @@ func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) err
 }
 
 func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner AgentContainer) error {
-	utils.Debug("orch", "Remove agent image "+ctner.containerid.String())
+	utils.Debug("orch", "Remove agent image "+ctner.ImageName)
 
 	err := orch.cli.ContainerRemove(
 		orch.ctx,
