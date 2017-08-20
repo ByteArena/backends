@@ -19,7 +19,7 @@ type ServerState struct {
 	Agents      map[uuid.UUID](AgentState)
 	Agentsmutex *sync.Mutex
 
-	Projectiles      []*projectile.BallisticProjectile
+	Projectiles      map[uuid.UUID](*projectile.BallisticProjectile)
 	Projectilesmutex *sync.Mutex
 
 	pendingmutations []protocol.StateMutationBatch
@@ -41,7 +41,7 @@ func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 		Agents:      make(map[uuid.UUID](AgentState)),
 		Agentsmutex: &sync.Mutex{},
 
-		Projectiles:      make([]*projectile.BallisticProjectile, 0),
+		Projectiles:      make(map[uuid.UUID]*projectile.BallisticProjectile),
 		Projectilesmutex: &sync.Mutex{},
 
 		pendingmutations: make([]protocol.StateMutationBatch, 0),
@@ -112,6 +112,20 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 		Obstacles:      obstacles,
 		RtreeObstacles: rt,
 	}
+}
+
+func (serverstate *ServerState) GetProjectile(projectileid uuid.UUID) *projectile.BallisticProjectile {
+	serverstate.Projectilesmutex.Lock()
+	res := serverstate.Projectiles[projectileid]
+	serverstate.Projectilesmutex.Unlock()
+
+	return res
+}
+
+func (serverstate *ServerState) SetProjectile(projectileid uuid.UUID, projectile *projectile.BallisticProjectile) {
+	serverstate.Projectilesmutex.Lock()
+	serverstate.Projectiles[projectileid] = projectile
+	serverstate.Projectilesmutex.Unlock()
 }
 
 func (serverstate *ServerState) GetAgentState(agentid uuid.UUID) AgentState {
@@ -258,8 +272,6 @@ func GetBoundingBox(points []vector.Vector2) (rtreego.Point, rtreego.Point) {
 			maxY = &(y)
 		}
 	}
-
-	log.Println("WHATT", *minX, *maxY, *minY, *maxY, *maxX-*minX, *maxY-*minY)
 
 	return []float64{*minX, *minY}, []float64{*maxX - *minX + 0.00001, *maxY - *minY + 0.00001}
 }

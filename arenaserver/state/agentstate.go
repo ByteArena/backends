@@ -97,8 +97,8 @@ func MakeAgentState(agentId uuid.UUID, start mapcontainer.MapStart) AgentState {
 		MaxShootEnergy:           200, // Const; When shooting, energy decreases
 		ShootEnergy:              200, // Current energy level
 		ShootEnergyReplenishRate: 5,   // Const; Energy regained every tick
-		ShootCooldown:            5,   // Const; number of ticks to wait between every shot
-		ShootEnergyCost:          80,  // Const
+		ShootCooldown:            0,   // Const; number of ticks to wait between every shot
+		ShootEnergyCost:          0,   // Const
 		LastShot:                 0,   // Number of ticks since last shot; 0 => cannot shoot immediately, must wait for first cooldown
 	}
 }
@@ -185,7 +185,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 
 	projectile := projectile.NewBallisticProjectile()
 	projectile.AgentEmitterId = state.AgentId
-	projectile.Position = state.Position
+	projectile.Position = state.Position // Update() will be called later in the same tick, making the projectile appear immediately in front of the agent; is this desirable ?
 
 	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
 	absaiming := localAngleToAbsoluteAngleVec(state.Orientation, aiming, nil) // TODO: replace nil here by an actual angle constraint
@@ -193,7 +193,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 	log.Println(projectile.Velocity, aiming)
 
 	serverstate.Projectilesmutex.Lock()
-	serverstate.Projectiles = append(serverstate.Projectiles, projectile)
+	serverstate.Projectiles[projectile.Id] = projectile
 	serverstate.Projectilesmutex.Unlock()
 
 	return state
