@@ -167,7 +167,7 @@ func deployImage(name string, imageVersion string, registryhost string) {
 	cmd.Env = nil
 	// cmd.Stdin = os.Stdin
 	// cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
 		msgOut("Error: could not tag image")
@@ -185,7 +185,7 @@ func deployImage(name string, imageVersion string, registryhost string) {
 	cmd2.Env = nil
 	// cmd2.Stdin = os.Stdin
 	// cmd2.Stdout = os.Stdout
-	cmd2.Stderr = os.Stderr
+	// cmd2.Stderr = os.Stderr
 
 	if err := cmd2.Start(); err != nil {
 		msgOut("Error: could not push image to registry")
