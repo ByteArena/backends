@@ -19,6 +19,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/mq"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
@@ -395,8 +396,8 @@ func (server *Server) Start() chan interface{} {
 func (server *Server) Stop(mqClient *mq.Client) {
 	server.TearDown()
 
-	mqClient.Publish("game", "stopped", ArenaStopMessage{
-		ArenaServerId: server.UUID,
+	mqClient.Publish("game", "stopped", types.MQPayload{
+		"arenaserverid": server.UUID,
 	})
 
 	close(server.stopticking)
