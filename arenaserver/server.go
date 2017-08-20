@@ -393,6 +393,8 @@ func (server *Server) Start() chan interface{} {
 }
 
 func (server *Server) Stop(mqClient *mq.Client) {
+	server.TearDown()
+
 	mqClient.Publish("game", "stopped", ArenaStopMessage{
 		ArenaServerId: server.UUID,
 	})

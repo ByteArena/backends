@@ -125,7 +125,7 @@ func main() {
 						}()
 
 						<-srv.Start()
-						srv.TearDown()
+						srv.Stop(brokerclient)
 
 						notify.PostTimeout("game:stopped", nil, time.Millisecond)
 					}
