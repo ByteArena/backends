@@ -77,8 +77,8 @@ func MakeAgentState(agentId uuid.UUID, start mapcontainer.MapStart) AgentState {
 		AgentId:            agentId,
 		Position:           vector.MakeVector2(initialx, initialy),
 		Velocity:           vector.MakeNullVector2(),
-		MaxSpeed:           0.5,
-		MaxSteeringForce:   0.08,
+		MaxSpeed:           1.5,
+		MaxSteeringForce:   0.24,
 		DragForce:          0.03,
 		MaxAngularVelocity: number.DegreeToRadian(9), // en radians/tick; Pi = 180°
 		Radius:             r,

@@ -73,6 +73,7 @@ func transformServerStateToVizMessage(game arenaserver.Game, state state.ServerS
 	for id, agent := range state.Agents {
 		msg.Agents = append(msg.Agents, types.VizAgentMessage{
 			Id:           id,
+			Name:         agent.AgentId.String(),
 			Kind:         "agent",
 			Position:     agent.Position,
 			Velocity:     agent.Velocity,

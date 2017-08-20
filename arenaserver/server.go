@@ -416,14 +416,23 @@ func (server *Server) Update() {
 	//
 
 	server.state.Projectilesmutex.Lock()
-	for i, projectile := range server.state.Projectiles {
+	projectilesToRemove := make([]uuid.UUID, 0)
+	for _, projectile := range server.state.Projectiles {
 		if projectile.TTL <= 0 {
-			// has been set to 0 during the previous tick; pruning now (0 TTL projectiles might still have a collision later in this method)
-			// Remove projectile from projectiles array
-			server.state.Projectiles[i] = server.state.Projectiles[len(server.state.Projectiles)-1]
-			server.state.Projectiles = server.state.Projectiles[:len(server.state.Projectiles)-1]
+			projectilesToRemove = append(projectilesToRemove, projectile.Id)
 		} else {
 			projectile.Update()
+		}
+	}
+
+	for _, projectileToRemoveId := range projectilesToRemove {
+		// has been set to 0 during the previous tick; pruning now (0 TTL projectiles might still have a collision later in this method)
+		// Remove projectile from projectiles array
+		for index, projectile := range server.state.Projectiles {
+			if projectile.Id == projectileToRemoveId {
+				server.state.Projectiles[index] = server.state.Projectiles[len(server.state.Projectiles)-1]
+				server.state.Projectiles = server.state.Projectiles[:len(server.state.Projectiles)-1]
+			}
 		}
 	}
 	server.state.Projectilesmutex.Unlock()

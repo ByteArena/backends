@@ -15,6 +15,7 @@ type VizMessage struct {
 
 type VizAgentMessage struct {
 	Id           uuid.UUID
+	Name         string
 	Position     vector.Vector2
 	Velocity     vector.Vector2
 	VisionRadius float64
