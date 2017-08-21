@@ -97,7 +97,7 @@ func main() {
 						utils.Check(err, "Could not fetch game "+arenaSubmitted.Id)
 
 						orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
-						srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID)
+						srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID, brokerclient)
 
 						for _, contestant := range arena.GetContestants() {
 							srv.RegisterAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)
@@ -107,7 +107,7 @@ func main() {
 						go func() {
 							<-common.SignalHandler()
 							utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
-							srv.Stop(brokerclient)
+							srv.Stop()
 						}()
 
 						go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
@@ -117,7 +117,7 @@ func main() {
 						go func() {
 							<-timeoutTimer.C
 
-							srv.Stop(brokerclient)
+							srv.Stop()
 							utils.Debug("timer", "Timeout, stop the arena")
 						}()
 

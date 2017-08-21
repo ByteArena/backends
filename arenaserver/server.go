@@ -45,6 +45,7 @@ type Server struct {
 	stateobservers        []chan state.ServerState
 	DebugNbMutations      int
 	DebugNbUpdates        int
+	mqClient              mq.ClientInterface
 
 	agentimages map[uuid.UUID]string
 
@@ -59,7 +60,7 @@ type ArenaStopMessage struct {
 	Payload ArenaStopMessagePayload `json:"payload"`
 }
 
-func NewServer(host string, port int, orch container.ContainerOrchestrator, arena Game, UUID string) *Server {
+func NewServer(host string, port int, orch container.ContainerOrchestrator, arena Game, UUID string, mqClient mq.ClientInterface) *Server {
 
 	gamehost := host
 
@@ -83,6 +84,7 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 		commserver:            nil, // initialized in Listen()
 		nbhandshaked:          0,
 		currentturnmutex:      &sync.Mutex{},
+		mqClient:              mqClient,
 
 		agentimages: make(map[uuid.UUID]string),
 
@@ -96,45 +98,52 @@ func (server *Server) GetTicksPerSecond() int {
 	return server.tickspersec
 }
 
+// func (server *Server) spawnAgents() error {
+
+// 	for _, agent := range server.agents {
+// 		agentimage := server.agentimages[agent.GetId()]
+
+// 		container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, agentimage)
+
+// 		if err != nil {
+// 			return errors.New("Cannot create agent container: " + err.Error())
+// 		}
+
+// 		err = server.containerorchestrator.StartAgentContainer(container)
+
+// 		if err != nil {
+// 			return errors.New("Failed to start docker container: " + err.Error())
+// 		}
+// 	}
+
+// 	return nil
+// }
+
 func (server *Server) spawnAgents() error {
 
-	for _, agent := range server.agents {
-		agentimage := server.agentimages[agent.GetId()]
+	for _, ag := range server.agents {
+		agentstate := server.state.GetAgentState(ag.GetId())
+		agentimage := server.agentimages[ag.GetId()]
 
-		container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, agentimage)
+		go func(agent agent.Agent, agentstate state.AgentState, dockerimage string) {
 
-		if err != nil {
-			return errors.New("Cannot create agent container: " + err.Error())
-		}
+			container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
+			utils.Check(err, "Failed to create docker container for "+agent.String())
 
-		err = server.containerorchestrator.StartAgentContainer(container)
+			err = server.containerorchestrator.StartAgentContainer(container)
+			utils.Check(err, "Failed to start docker container for "+agent.String())
 
-		if err != nil {
-			return errors.New("Failed to start docker container: " + err.Error())
-		}
+			server.containerorchestrator.Wait(container)
+
+			utils.Debug("arena", "One container exited")
+			server.TearDown()
+			server.Stop()
+
+		}(ag, agentstate, agentimage)
 	}
 
 	return nil
 }
-
-// func (server *Server) spawnAgents() {
-
-// 	for _, ag := range server.agents {
-// 		agentstate := server.state.GetAgentState(ag.GetId())
-// 		agentimage := server.agentimages[ag.GetId()]
-
-// 		go func(agent agent.Agent, agentstate state.AgentState, dockerimage string) {
-
-// 			container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
-// 			utils.Check(err, "Failed to create docker container for "+agent.String())
-
-// 			err = server.containerorchestrator.StartAgentContainer(container)
-// 			utils.Check(err, "Failed to start docker container for "+agent.String())
-
-// 			server.containerorchestrator.Wait(container)
-// 		}(ag, agentstate, agentimage)
-// 	}
-// }
 
 func (server *Server) RegisterAgent(agentimage string) {
 	arenamap := server.arena.GetMapContainer()
@@ -422,10 +431,10 @@ func (server *Server) Start() chan interface{} {
 
 }
 
-func (server *Server) Stop(mqClient mq.ClientInterface) {
+func (server *Server) Stop() {
 	server.TearDown()
 
-	mqClient.Publish("game", "stopped", ArenaStopMessage{
+	server.mqClient.Publish("game", "stopped", ArenaStopMessage{
 		Payload: ArenaStopMessagePayload{
 			ArenaServerId: server.UUID,
 		},
