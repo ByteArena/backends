@@ -62,6 +62,36 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 		worldTransform = worldTransform.Scale(1/pxperunit, 1/pxperunit)
 	}
 
+	// Convert coordinate system of SVG into the one of BabylonJS
+	/*
+
+		SVG:
+
+		o--------- x
+		|
+		|
+		|
+		y
+
+
+		BabylonJS:
+
+		y
+		|   z
+		|  /
+		| /
+		o---------x
+
+		As a consequence:
+
+		BabylonJS(x) <= SVG(x)
+		BabylonJS(z) <= -1 * SVG(y)
+		BabylonJS(y) <= 0 (we're handling 2D polygon, so this dimension is not specified)
+
+	*/
+
+	worldTransform = worldTransform.Scale(1, -1)
+
 	svggrounds := make([]SVGNode, 0)
 	svgstarts := make([]SVGNode, 0)
 	svgobjects := make([]SVGNode, 0)
@@ -273,8 +303,8 @@ func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapco
 		}
 
 		// Normalize coords for each subpath
-		// Z => expand
-		// m => M (relative => abs)
+		// Z => (close line command) expand to an actual point
+		// m => M (move relative => move abs)
 
 		for i, subpath := range subpathes {
 			for j, op := range subpath {
@@ -301,8 +331,10 @@ func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapco
 			points := make([]mapcontainer.MapPoint, 0)
 			for _, op := range subpath {
 				x, y := pathtransform.
-					Mul(worldTransform).
 					Transform(op.Coords[0], op.Coords[1])
+
+				x, y = worldTransform.
+					Transform(x, y)
 
 				points = append(points, mapcontainer.MapPoint{X: x, Y: y})
 			}
@@ -450,8 +482,9 @@ func processStarts(worldTransform vector.Matrix2, svgstarts []SVGNode) []mapcont
 				cx, cy := typednode.GetCenter()
 				cxt, cyt := typednode.
 					GetFullTransform().
-					Mul(worldTransform).
 					Transform(cx, cy)
+
+				cxt, cyt = worldTransform.Transform(cxt, cyt)
 
 				starts = append(starts, mapcontainer.MapStart{
 					Id:    typednode.GetId(),
@@ -463,8 +496,9 @@ func processStarts(worldTransform vector.Matrix2, svgstarts []SVGNode) []mapcont
 				cx, cy := typednode.GetCenter()
 				cxt, cyt := typednode.
 					GetFullTransform().
-					Mul(worldTransform).
 					Transform(cx, cy)
+
+				cxt, cyt = worldTransform.Transform(cxt, cyt)
 
 				starts = append(starts, mapcontainer.MapStart{
 					Id:    typednode.GetId(),
@@ -498,8 +532,12 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapco
 
 		cxt, cyt := node.
 			GetFullTransform().
-			Mul(worldTransform).
 			Transform(cx, cy)
+
+		cxt, cyt = worldTransform.
+			Transform(cxt, cyt)
+
+		radiust, _ := worldTransform.Transform(radius, 0)
 
 		objtype := ""
 		if ids.Contains("ba:rocks01") > -1 {
@@ -554,7 +592,7 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapco
 		return &mapcontainer.MapObject{
 			Id:       node.GetId(),
 			Point:    mapcontainer.MapPoint{X: cxt, Y: cyt},
-			Diameter: radius * 2,
+			Diameter: radiust * 2,
 			Type:     objtype,
 		}
 	}
