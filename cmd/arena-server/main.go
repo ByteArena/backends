@@ -108,6 +108,7 @@ func main() {
 							<-common.SignalHandler()
 							utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 							srv.Stop()
+							log.Println("Stop")
 						}()
 
 						go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
@@ -135,6 +136,7 @@ func main() {
 	<-streamArenaStopped
 
 	if hc != nil {
+		log.Println("Stop healthcheck")
 		hc.Stop()
 	}
 }

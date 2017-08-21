@@ -432,6 +432,7 @@ func (server *Server) Start() chan interface{} {
 }
 
 func (server *Server) Stop() {
+	log.Println("TearDown from stop")
 	server.TearDown()
 
 	server.mqClient.Publish("game", "stopped", ArenaStopMessage{
@@ -441,6 +442,7 @@ func (server *Server) Stop() {
 	})
 
 	close(server.stopticking)
+	log.Println("Close ticking")
 }
 
 func (server *Server) ProcessMutations() {
