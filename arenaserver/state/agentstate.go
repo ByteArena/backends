@@ -1,7 +1,6 @@
 package state
 
 import (
-	"log"
 	"math"
 
 	"github.com/bytearena/bytearena/arenaserver/projectile"
@@ -190,7 +189,6 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
 	absaiming := localAngleToAbsoluteAngleVec(state.Orientation, aiming, nil) // TODO: replace nil here by an actual angle constraint
 	projectile.Velocity = absaiming.SetMag(projectile.Speed)                  // adding the agent position to "absolutize" the target vector
-	log.Println(projectile.Velocity, aiming)
 
 	serverstate.Projectilesmutex.Lock()
 	serverstate.Projectiles[projectile.Id] = projectile

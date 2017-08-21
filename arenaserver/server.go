@@ -554,16 +554,28 @@ func processAgentObstacleCollisions(server *Server, before map[uuid.UUID]movingO
 			//log.Println("U blocked, mothafucka")
 
 			agentstate.Position = collisionPoint
-			agentstate.Velocity = vector.MakeNullVector2()
+			agentstate.Velocity = vector.MakeVector2(0.01, 0.01)
 			server.state.SetAgentState(
 				agentid,
 				agentstate,
 			)
 		})
+
+		// if !isInsideSurface(server, agentstate.Position) {
+		// 	log.Println("HE IS OUTSIDE !!!!!!!!!")
+		// 	agentstate.Position = beforestate.Position
+		// 	server.state.SetAgentState(
+		// 		agentid,
+		// 		agentstate,
+		// 	)
+		// } else {
+		// 	log.Println("HE IS NOT OUTSIDE !!!!!!!!!")
+		// }
 	}
 }
 
 func processMovingObjectObstacleCollision(server *Server, beforeState, afterState movingObjectTemporaryState, collisionhandler func(collision vector.Vector2)) {
+
 	bbBeforeA, bbBeforeB := GetAgentBoundingBox(beforeState.Position, beforeState.Radius)
 	bbAfterA, bbAfterB := GetAgentBoundingBox(afterState.Position, afterState.Radius)
 
@@ -619,158 +631,128 @@ func processMovingObjectObstacleCollision(server *Server, beforeState, afterStat
 		leftEdge := vector.MakeSegment2(beforeDiameterSegmentLeftPoint, afterDiameterSegmentLeftPoint)
 		rightEdge := vector.MakeSegment2(beforeDiameterSegmentRightPoint, afterDiameterSegmentRightPoint)
 
-		// edgesToTest := []vector.Segment2{
-		// 	leftEdge,
-		// 	centerEdge,
-		// 	rightEdge,
-		// }
+		edgesToTest := []vector.Segment2{
+			leftEdge,
+			centerEdge,
+			rightEdge,
+		}
 
-		collisions := make([]vector.Vector2, 0)
+		type Collision struct {
+			Point    vector.Vector2
+			Obstacle *state.GeometryObject
+		}
+
+		collisions := make([]Collision, 0)
 
 		for _, matchingObstacle := range matchingObstacles {
 			geoObject := matchingObstacle.(*state.GeometryObject)
 
-			// for _, edge := range edgesToTest {
-			// 	point1, point2 := edge.Get()
-			// 	if collisionPoint, intersects, colinear, _ := trigo.IntersectionWithLineSegment(
-			// 		geoObject.PointA,
-			// 		geoObject.PointB,
-			// 		point1,
-			// 		point2,
-			// 	); intersects && !colinear {
-			// 		collisions = append(collisions, collisionPoint)
-			// 	}
-			// }
+			circleCollisions := trigo.LineCircleIntersectionPoints(
+				geoObject.PointA,
+				geoObject.PointB,
+				afterState.Position,
+				afterState.Radius,
+			)
 
-			doCheck := func(segment vector.Segment2) {
-				point1, point2 := segment.Get()
+			for _, circleCollision := range circleCollisions {
+				collisions = append(collisions, Collision{
+					Point:    circleCollision,
+					Obstacle: geoObject,
+				})
+			}
+
+			for _, edge := range edgesToTest {
+				point1, point2 := edge.Get()
 				if collisionPoint, intersects, colinear, _ := trigo.IntersectionWithLineSegment(
 					geoObject.PointA,
 					geoObject.PointB,
 					point1,
 					point2,
 				); intersects && !colinear {
-					//collisions = append(collisions, collisionPoint)
-					// normale de leftEdge en I
-					seg := vector.MakeSegment2(beforeState.Position, collisionPoint).OrthogonalToBClockwise().SetLengthFromCenter(1000)
-
-					segPoint1, segPoint2 := seg.Get()
-					centerPoint1, centerPoint2 := centerEdge.Get()
-					if intersectionCenterPath, intersectsCenterPath, colinearCenterPath, _ := trigo.IntersectionWithLineSegment(
-						segPoint1,
-						segPoint2,
-						centerPoint1,
-						centerPoint2,
-					); intersectsCenterPath && !colinearCenterPath {
-						collisions = append(collisions, intersectionCenterPath)
-					}
+					collisions = append(collisions, Collision{
+						Point:    collisionPoint,
+						Obstacle: geoObject,
+					})
 				}
 			}
-
-			doCheck(leftEdge)
-			doCheck(centerEdge)
-			doCheck(rightEdge)
-
-			// Test collision with beginning circle
-			collisions = append(collisions, trigo.LineCircleIntersectionPoints(
-				geoObject.PointA,
-				geoObject.PointB,
-				beforeState.Position,
-				beforeState.Radius,
-			)...)
-
-			// Test collision with end circle
-			collisions = append(collisions, trigo.LineCircleIntersectionPoints(
-				geoObject.PointA,
-				geoObject.PointB,
-				afterState.Position,
-				afterState.Radius,
-			)...)
 		}
 
 		if len(collisions) > 0 {
-			closestDist := -1.0
-			var closestCollision *vector.Vector2
 
-			// determine closest collision point on path
-			for _, collisionPoint := range collisions {
-				// project collision point on path
+			normal := vector.MakeNullVector2()
+			maxDist := -1.0
+			for _, collision := range collisions {
+				thisDist := collision.Point.Sub(beforeState.Position).Mag()
+				if maxDist < 0 || maxDist > thisDist {
+					maxDist = thisDist
+				}
 
-				thisDist := collisionPoint.Sub(beforeState.Position).Mag()
+				normal = normal.Add(collision.Obstacle.Normal)
+			}
 
-				if closestDist < 0 || closestDist > thisDist {
-					closestDist = thisDist
-					closestCollision = &collisionPoint
+			normal = normal.Normalize()
+
+			backoffDistance := 0.1
+			nextPoint := centerEdge.Vector2().SetMag(maxDist).Sub(normal.SetMag(backoffDistance)).Add(beforeState.Position)
+
+			if !isInsideGroundSurface(server, nextPoint) {
+				//log.Println("OUTSIDE !!!!!!!!!")
+				collisionhandler(beforeState.Position)
+			} else {
+				if isInsideCollisionMesh(server, nextPoint) {
+					//log.Println("IN OBSTACLE !!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+					collisionhandler(beforeState.Position)
+				} else {
+					collisionhandler(nextPoint)
 				}
 			}
 
-			collisionhandler((*closestCollision).SetMag((*closestCollision).Mag() - 0.5))
 		}
-
-		/*
-			for _, matchingObstacle := range matchingObstacles {
-				geoObject := matchingObstacle.(*state.GeometryObject)
-
-				intersections := make([]vector.Vector2, 0)
-
-				// 1---2
-				// |   |
-				// 4---3
-
-				boxPoints := []vector.Vector2{
-					vector.MakeVector2(bbAfterA.GetX(), bbAfterA.GetY()),
-					vector.MakeVector2(bbAfterB.GetX(), bbAfterA.GetY()),
-					vector.MakeVector2(bbAfterB.GetX(), bbAfterB.GetY()),
-					vector.MakeVector2(bbAfterA.GetX(), bbAfterB.GetY()),
-				}
-
-				// Check agent bounding box intersection with line A---B defined by the obstacle
-				for i := 0; i < len(boxPoints); i++ {
-
-					boxPoint1 := boxPoints[i]
-					boxPoint2 := boxPoints[(i+1)%len(boxPoints)]
-
-					if point, intersects, colinear, _ := trigo.IntersectionWithLineSegment(geoObject.PointA,
-						geoObject.PointB,
-						boxPoint1,
-						boxPoint2,
-					); intersects && !colinear {
-						// INTERSECT RIGHT
-						intersections = append(intersections, point)
-					}
-				}
-
-				if len(intersections) > 0 {
-					// Check if intersection is within collision circle
-
-					collisions := make([]vector.Vector2, 0)
-
-					radiusSq := afterState.Radius * afterState.Radius
-					for _, intersection := range intersections {
-						if intersection.Sub(afterState.Position).MagSq() >= radiusSq {
-							// Circle collision !
-							collisions = append(collisions, intersection)
-						}
-					}
-
-					if len(collisions) > 0 {
-						minDistSq := -1.0
-						var closestCollision *vector.Vector2
-						// determine closest collision point
-						for _, collisionPoint := range collisions {
-							thisDistSq := collisionPoint.Sub(beforeState.Position).MagSq()
-							if minDistSq < 0 || minDistSq > thisDistSq {
-								minDistSq = thisDistSq
-								closestCollision = &collisionPoint
-							}
-						}
-
-						collisionhandler(*closestCollision)
-					}
-				}
-			}
-		*/
 	}
+}
+
+func isInsideGroundSurface(server *Server, point vector.Vector2) bool {
+
+	px, py := point.Get()
+
+	bb, _ := rtreego.NewRect([]float64{px - 0.005, py - 0.005}, []float64{0.01, 0.01})
+	matchingTriangles := server.state.MapMemoization.RtreeSurface.SearchIntersect(bb)
+
+	if len(matchingTriangles) == 0 {
+		return false
+	}
+
+	// On vérifie que le point est bien dans un des triangles
+	for _, spatial := range matchingTriangles {
+		triangle := spatial.(*state.TriangleRtreeWrapper)
+		if trigo.PointIsInTriangle(point, triangle.Points[0], triangle.Points[1], triangle.Points[2]) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isInsideCollisionMesh(server *Server, point vector.Vector2) bool {
+
+	px, py := point.Get()
+
+	bb, _ := rtreego.NewRect([]float64{px - 0.005, py - 0.005}, []float64{0.01, 0.01})
+	matchingTriangles := server.state.MapMemoization.RtreeCollisions.SearchIntersect(bb)
+
+	if len(matchingTriangles) == 0 {
+		return false
+	}
+
+	// On vérifie que le point est bien dans un des triangles
+	for _, spatial := range matchingTriangles {
+		triangle := spatial.(*state.TriangleRtreeWrapper)
+		if trigo.PointIsInTriangle(point, triangle.Points[0], triangle.Points[1], triangle.Points[2]) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (server *Server) SubscribeStateObservation() chan state.ServerState {

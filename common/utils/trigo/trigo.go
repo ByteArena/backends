@@ -198,3 +198,17 @@ func FullCircleAngleToSignedHalfCircleAngle(rad float64) float64 {
 
 	return rad
 }
+
+func PointIsInTriangle(point, p0, p1, p2 vector.Vector2) bool {
+	p0x, p0y := p0.Get()
+	p1x, p1y := p1.Get()
+	p2x, p2y := p2.Get()
+	px, py := point.Get()
+
+	Area := 0.5 * (-p1y*p2x + p0y*(-p1x+p2x) + p0x*(p1y-p2y) + p1x*p2y)
+
+	s := 1 / (2 * Area) * (p0y*p2x - p0x*p2y + (p2y-p0y)*px + (p0x-p2x)*py)
+	t := 1 / (2 * Area) * (p0x*p1y - p0y*p1x + (p0y-p1y)*px + (p1x-p0x)*py)
+
+	return (s > 0 && t > 0 && 1-s-t > 0)
+}

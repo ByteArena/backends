@@ -17,6 +17,8 @@ import (
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	poly2tri "github.com/netgusto/poly2tri-go"
+
+	polygonutils "github.com/bytearena/bytearena/cmd/map-builder/polygon"
 )
 
 func main() {
@@ -46,9 +48,9 @@ func main() {
 	//fmt.Println(SVGDebug(svg, 0))
 
 	builtmap := buildMap(svg, *pxperunit)
-	bjsonmap, _ := json.MarshalIndent(builtmap, "", "  ")
+	bjsonmap, _ := json.MarshalIndent(builtmap, "", "")
 
-	fmt.Println(string(bjsonmap))
+	fmt.Println(strings.Replace(string(bjsonmap), "\n", "", -1))
 }
 
 func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
@@ -189,34 +191,47 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 				diameter := obstacleObject.Diameter
 				halfDiameter := diameter / 2.0
 
-				pointA := mapcontainer.MapPoint{
-					X: center.X - halfDiameter,
-					Y: center.Y - halfDiameter,
-				}
+				polyPoints, _ := polygonutils.EnsureWinding(polygonutils.CartesianSystemWinding.CCW, []vector.Vector2{
+					vector.MakeVector2(
+						center.X-halfDiameter,
+						center.Y-halfDiameter,
+					),
+					vector.MakeVector2(
+						center.X+halfDiameter,
+						center.Y-halfDiameter,
+					),
+					vector.MakeVector2(
+						center.X+halfDiameter,
+						center.Y+halfDiameter,
+					),
+					vector.MakeVector2(
+						center.X-halfDiameter,
+						center.Y+halfDiameter,
+					),
+				})
 
-				pointB := mapcontainer.MapPoint{
-					X: center.X + halfDiameter,
-					Y: center.Y - halfDiameter,
-				}
-
-				pointC := mapcontainer.MapPoint{
-					X: center.X + halfDiameter,
-					Y: center.Y + halfDiameter,
-				}
-
-				pointD := mapcontainer.MapPoint{
-					X: center.X - halfDiameter,
-					Y: center.Y + halfDiameter,
+				normals := make([]mapcontainer.MapPoint, 0)
+				polylen := len(polyPoints)
+				for i := 0; i < polylen; i++ {
+					p1 := polyPoints[i]
+					p2 := polyPoints[(i+1)%polylen]
+					vec := vector.MakeVector2(p2.GetX(), p2.GetY()).Sub(p1)
+					normal := vec.OrthogonalClockwise().Normalize() // clockwise: because poly is CCW, outwards is on the right of the edge
+					normals = append(normals, mapcontainer.MapPoint{
+						X: normal.GetX(),
+						Y: normal.GetY(),
+					})
 				}
 
 				polygon := mapcontainer.MapPolygon{
 					Points: []mapcontainer.MapPoint{
-						pointA,
-						pointB,
-						pointC,
-						pointD,
-						pointA,
+						mapcontainer.MakeMapPointFromVector2(polyPoints[0]),
+						mapcontainer.MakeMapPointFromVector2(polyPoints[1]),
+						mapcontainer.MakeMapPointFromVector2(polyPoints[2]),
+						mapcontainer.MakeMapPointFromVector2(polyPoints[3]),
+						mapcontainer.MakeMapPointFromVector2(polyPoints[0]),
 					},
+					Normals: normals,
 				}
 
 				obstacles = append(obstacles, mapcontainer.MapObstacle{
@@ -233,7 +248,38 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 	}
 
 	/************************************/
-	/* TODO: Processing CUSTOMOBSTACLES */
+	/* Building collision meshes
+	/************************************/
+
+	collisionMeshes := make([]mapcontainer.CollisionMesh, 0)
+
+	for _, obstacle := range obstacles {
+		contour := make([]*poly2tri.Point, 0)
+
+		for _, point := range obstacle.Polygon.Points[:len(obstacle.Polygon.Points)-1] {
+			contour = append(contour, poly2tri.NewPoint(point.X, point.Y))
+		}
+
+		swctx := poly2tri.NewSweepContext(contour, false)
+		swctx.Triangulate()
+		triangles := swctx.GetTriangles()
+
+		vertices := make([]float64, 0)
+		for _, triangle := range triangles {
+			vertices = append(vertices, []float64{
+				triangle.Points[0].GetX(), 0, triangle.Points[0].GetY(),
+				triangle.Points[1].GetX(), 0, triangle.Points[1].GetY(),
+				triangle.Points[2].GetX(), 0, triangle.Points[2].GetY(),
+			}...)
+		}
+
+		collisionMeshes = append(collisionMeshes, mapcontainer.CollisionMesh{
+			Id:       obstacle.Id,
+			Vertices: vertices,
+		})
+	}
+
+	/************************************/
 	/************************************/
 
 	builtmap := mapcontainer.MapContainer{}
@@ -249,6 +295,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 	builtmap.Data.Starts = starts
 	builtmap.Data.Objects = objects
 	builtmap.Data.Obstacles = obstacles
+	builtmap.Data.CollisionMeshes = collisionMeshes
 
 	return builtmap
 }
@@ -302,31 +349,49 @@ func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapco
 			subpathes = append(subpathes, subpath)
 		}
 
+		// // Normalize coords for each subpath
+		// // Z => (close line command) expand to an actual point
+		// // m => M (move relative => move abs)
+
+		// for i, subpath := range subpathes {
+		// 	for j, op := range subpath {
+		// 		if strings.ToUpper(op.Operation) == "Z" {
+		// 			// expand Z into L X Y
+
+		// 			firstop := subpath[0]
+		// 			x := firstop.Coords[0]
+		// 			y := firstop.Coords[1]
+
+		// 			subpath[j] = PathOperation{
+		// 				Operation: "L",
+		// 				Coords:    []float64{x, y},
+		// 			}
+		// 		}
+		// 	}
+
+		// 	subpathes[i] = subpath
+		// }
+
 		// Normalize coords for each subpath
-		// Z => (close line command) expand to an actual point
-		// m => M (move relative => move abs)
+		// Z => (close line command) remove
 
 		for i, subpath := range subpathes {
+			newsubpath := subpath
 			for j, op := range subpath {
 				if strings.ToUpper(op.Operation) == "Z" {
-					// expand Z into L X Y
-
-					firstop := subpath[0]
-					x := firstop.Coords[0]
-					y := firstop.Coords[1]
-
-					subpath[j] = PathOperation{
-						Operation: "L",
-						Coords:    []float64{x, y},
-					}
+					newsubpath = append(newsubpath[:j], newsubpath[j+1:]...)
 				}
 			}
 
-			subpathes[i] = subpath
+			subpathes[i] = newsubpath
 		}
 
 		// Make polygons
-		ground := mapcontainer.MapGround{Id: svgground.GetId(), Outline: make([]mapcontainer.MapPolygon, 0)}
+		ground := mapcontainer.MapGround{
+			Id:      svgground.GetId(),
+			Outline: make([]mapcontainer.MapPolygon, 0),
+		}
+
 		for _, subpath := range subpathes {
 			points := make([]mapcontainer.MapPoint, 0)
 			for _, op := range subpath {
@@ -342,15 +407,63 @@ func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapco
 			ground.Outline = append(ground.Outline, mapcontainer.MapPolygon{Points: points})
 		}
 
-		// Make meshes from polygons
+		for mappolygonindex, mappolygon := range ground.Outline {
+			poly := mappolygon.ToVector2Array()
 
+			winding := polygonutils.GetPolygonWindingForCartesianSystem(poly)
+
+			// Change polygons winding to CW
+			if polygonutils.IsCW(winding) {
+				// CW; change to CCW
+				log.Println("POLY IS CW; CHANGE WINDING TO CCW")
+				newpoly := polygonutils.InvertWinding(poly)
+				newwinding := polygonutils.GetPolygonWindingForCartesianSystem(newpoly)
+				if !polygonutils.IsCCW(newwinding) {
+					panic("Could not change ground polygon winding from CW to CCW")
+				}
+
+				newMapPoint := make([]mapcontainer.MapPoint, len(newpoly))
+				for i, point := range newpoly {
+					newMapPoint[i] = mapcontainer.MapPoint{
+						X: point.GetX(),
+						Y: point.GetY(),
+					}
+				}
+
+				ground.Outline[mappolygonindex].Points = newMapPoint
+			} else if polygonutils.IsCCW(winding) {
+				log.Println("POLY IS CCW; NOTHING TO DO")
+			} else {
+				panic("Ground polygon is neither CCW nor CW; something's wrong")
+			}
+
+			// Calculate (outwards pointing) normal for each polygon edge
+			normals := make([]mapcontainer.MapPoint, 0)
+			polylen := len(poly)
+			for i := 0; i < polylen; i++ {
+				p1 := poly[i]
+				p2 := poly[(i+1)%polylen]
+				vec := vector.MakeVector2(p2.GetX(), p2.GetY()).Sub(p1)
+				normal := vec.OrthogonalClockwise().Normalize() // clockwise: because poly is CCW, outwards is on the right of the edge
+				normals = append(normals, mapcontainer.MapPoint{
+					X: normal.GetX(),
+					Y: normal.GetY(),
+				})
+			}
+
+			ground.Outline[mappolygonindex].Normals = normals
+		}
+
+		///////////////////////////////////////////////////////////////////////
+		// Make visible mesh from polygons
+		///////////////////////////////////////////////////////////////////////
 		if len(ground.Outline) == 0 {
 			continue
 		}
 
 		contour := make([]*poly2tri.Point, 0)
 
-		for _, point := range ground.Outline[0].Points[:len(ground.Outline[0].Points)-2] { // avoid last point (repetition of the first point)
+		for _, point := range ground.Outline[0].Points[:len(ground.Outline[0].Points)-1] {
 			contour = append(contour, poly2tri.NewPoint(point.X, point.Y))
 		}
 
@@ -358,7 +471,7 @@ func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapco
 
 		for _, holePolygon := range ground.Outline[1:] {
 			hole := make([]*poly2tri.Point, 0)
-			for _, point := range holePolygon.Points[:len(holePolygon.Points)-2] { // avoid last point (repetition of the first point)
+			for _, point := range holePolygon.Points[:len(holePolygon.Points)-1] { // avoid last point (repetition of the first point)
 				hole = append(hole, poly2tri.NewPoint(point.X, point.Y))
 			}
 
@@ -367,21 +480,6 @@ func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapco
 
 		swctx.Triangulate()
 		triangles := swctx.GetTriangles()
-		// log.Println(triangles)
-		// panic("toooo")
-
-		// jsonmesh, _ := json.MarshalIndent(triangles, "", "  ")
-		// fmt.Println(string(jsonmesh))
-
-		// fmt.Println("<svg height=\"1000\" width=\"1000\">")
-		// for _, triangle := range triangles {
-		// 	fmt.Print(fmt.Sprintf("	<polygon points=\"%f,%f %f,%f %f,%f\" style=\"fill:lime;stroke:purple;stroke-width:1\" />\n",
-		// 		triangle.Points[0].GetX()*10, triangle.Points[0].GetY()*10,
-		// 		triangle.Points[1].GetX()*10, triangle.Points[1].GetY()*10,
-		// 		triangle.Points[2].GetX()*10, triangle.Points[2].GetY()*10,
-		// 	))
-		// }
-		// fmt.Println("</svg>")
 
 		// Transform triangles to array of floats ([][][]float64 => []float64)
 		positions := make([][][]float64, 0)
