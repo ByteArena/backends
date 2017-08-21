@@ -109,8 +109,7 @@ func (server *Server) spawnAgents() {
 			err = server.containerorchestrator.StartAgentContainer(container)
 			utils.Check(err, "Failed to start docker container for "+agent.String())
 
-			err = server.containerorchestrator.Wait(container)
-			utils.Check(err, "Failed to wait docker container completion for "+agent.String())
+			server.containerorchestrator.Wait(container)
 		}(ag, agentstate, agentimage)
 	}
 }
@@ -286,7 +285,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 			ag = ag.SetConn(msg.GetEmitterConn())
 			server.setAgent(ag)
 
-			log.Println("Received handshake from agent " + ag.String() + "; agent said \"" + handshake.GetGreetings() + "\"")
+			utils.Debug("arena", "Received handshake from agent "+ag.String()+"; agent said \""+handshake.GetGreetings()+"\"")
 
 			server.nbhandshaked++
 
@@ -353,10 +352,8 @@ func (server *Server) monitoring() {
 }
 
 func (server *Server) OnAgentsReady() {
-	log.Print(chalk.Green)
-	log.Println("All agents ready; starting in .5 second")
-	log.Print(chalk.Reset)
-	time.Sleep(time.Duration(time.Millisecond * 500))
+	utils.Debug("arena", "Agents are ready; starting in 1 second")
+	time.Sleep(time.Duration(time.Second * 1))
 
 	go server.monitoring()
 
@@ -376,7 +373,7 @@ func (server *Server) startTicking() {
 				{
 					log.Println("Received stop ticking signal")
 					notify.Post("app:stopticking", nil)
-					return // exiting goroutine,
+					return
 				}
 			case <-ticker:
 				{
@@ -394,7 +391,7 @@ func (server *Server) Start() chan interface{} {
 
 }
 
-func (server *Server) Stop(mqClient *mq.Client) {
+func (server *Server) Stop(mqClient mq.ClientInterface) {
 	server.TearDown()
 
 	mqClient.Publish("game", "stopped", ArenaStopMessage{

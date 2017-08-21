@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"os"
 	"strconv"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	uuid "github.com/satori/go.uuid"
-	"github.com/ttacon/chalk"
 )
 
 type TearDownCallback func()
@@ -31,9 +29,7 @@ type ContainerOrchestrator struct {
 }
 
 func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) error {
-
-	log.Print(chalk.Yellow)
-	log.Print("Spawning agent "+ctner.AgentId.String()+" in its own container", chalk.Reset)
+	utils.Debug("orch", "Spawning agent "+ctner.AgentId.String())
 
 	return orch.StartContainer(orch, ctner)
 }
@@ -50,18 +46,17 @@ func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner AgentContainer) er
 		},
 	)
 
-	log.Println(out)
+	utils.Debug("orch", "Removed "+strconv.Itoa(len(out))+" layers")
 
 	return errImageRemove
 }
 
-func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) error {
+func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) {
 	orch.cli.ContainerWait(
 		orch.ctx,
 		ctner.containerid.String(),
 		container.WaitConditionRemoved,
 	)
-	return nil
 }
 
 func (orch *ContainerOrchestrator) AddTearDownCall(fn TearDownCallback) {
@@ -69,8 +64,6 @@ func (orch *ContainerOrchestrator) AddTearDownCall(fn TearDownCallback) {
 }
 
 func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
-	log.Println("TearDown !", container)
-
 	for _, cb := range orch.TearDownCallbacks {
 		cb()
 	}
@@ -89,7 +82,10 @@ func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
 	//}
 
 	err := orch.RemoveAgentContainer(container)
-	utils.Check(err, "Cannot remove agent container/image")
+
+	if err != nil {
+		utils.Debug("orch", "Cannot remove agent container: "+err.Error())
+	}
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
