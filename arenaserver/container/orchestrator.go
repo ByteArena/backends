@@ -81,11 +81,11 @@ func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
 	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
 	//}
 
-	err := orch.RemoveAgentContainer(container)
+	// err := orch.RemoveAgentContainer(container)
 
-	if err != nil {
-		utils.Debug("orch", "Cannot remove agent container: "+err.Error())
-	}
+	// if err != nil {
+	// 	utils.Debug("orch", "Cannot remove agent container: "+err.Error())
+	// }
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
