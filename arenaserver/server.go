@@ -96,30 +96,53 @@ func (server *Server) GetTicksPerSecond() int {
 	return server.tickspersec
 }
 
-func (server *Server) spawnAgents() {
-	for _, ag := range server.agents {
-		agentstate := server.state.GetAgentState(ag.GetId())
-		agentimage := server.agentimages[ag.GetId()]
+func (server *Server) spawnAgents() error {
 
-		go func(agent agent.Agent, agentstate state.AgentState, dockerimage string) {
+	for _, agent := range server.agents {
+		agentimage := server.agentimages[agent.GetId()]
 
-			container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
-			utils.Check(err, "Failed to create docker container for "+agent.String())
+		container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, agentimage)
 
-			err = server.containerorchestrator.StartAgentContainer(container)
-			utils.Check(err, "Failed to start docker container for "+agent.String())
+		if err != nil {
+			return errors.New("Cannot create agent container: " + err.Error())
+		}
 
-			server.containerorchestrator.Wait(container)
-		}(ag, agentstate, agentimage)
+		err = server.containerorchestrator.StartAgentContainer(container)
+
+		if err != nil {
+			return errors.New("Failed to start docker container: " + err.Error())
+		}
 	}
+
+	return nil
 }
+
+// func (server *Server) spawnAgents() {
+
+// 	for _, ag := range server.agents {
+// 		agentstate := server.state.GetAgentState(ag.GetId())
+// 		agentimage := server.agentimages[ag.GetId()]
+
+// 		go func(agent agent.Agent, agentstate state.AgentState, dockerimage string) {
+
+// 			container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
+// 			utils.Check(err, "Failed to create docker container for "+agent.String())
+
+// 			err = server.containerorchestrator.StartAgentContainer(container)
+// 			utils.Check(err, "Failed to start docker container for "+agent.String())
+
+// 			server.containerorchestrator.Wait(container)
+// 		}(ag, agentstate, agentimage)
+// 	}
+// }
 
 func (server *Server) RegisterAgent(agentimage string) {
 	arenamap := server.arena.GetMapContainer()
 	agentSpawnPointIndex := len(server.agents)
 
 	if agentSpawnPointIndex >= len(arenamap.Data.Starts) {
-		log.Panicln("Agent cannot spawn, no starting point left")
+		utils.Debug("arena", "Agent "+agentimage+" cannot spawn, no starting point left")
+		return
 	}
 
 	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
@@ -385,8 +408,16 @@ func (server *Server) startTicking() {
 }
 
 func (server *Server) Start() chan interface{} {
-	server.spawnAgents()
+	utils.Debug("arena", "Spawn agents")
+	err := server.spawnAgents()
+
+	utils.CheckWithFunc(err, func() string {
+		return "Failed to spawn agents: " + err.Error()
+	})
+
+	utils.Debug("arena", "Listen")
 	block := server.Listen()
+
 	return block
 
 }
