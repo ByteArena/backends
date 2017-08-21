@@ -132,45 +132,43 @@ func (server *Server) RegisterAgent(agentimage string) {
 	server.state.SetAgentState(agent.GetId(), agentstate)
 
 	server.agentimages[agent.GetId()] = agentimage
-}
 
-// func (server *Server) SetObstacle(obstacle state.Obstacle) {
-// 	server.state.SetObstacle(obstacle)
-// }
+	utils.Debug("arena", "Registrer agent "+agentimage)
+}
 
 func (server *Server) setAgent(agent agent.Agent) {
 	server.agentsmutex.Lock()
+	defer server.agentsmutex.Unlock()
+
 	server.agents[agent.GetId()] = agent
-	server.agentsmutex.Unlock()
 }
 
 func (s *Server) SetTurn(turn utils.Tickturn) {
 	s.currentturnmutex.Lock()
+	defer s.currentturnmutex.Unlock()
+
 	s.currentturn = turn
-	s.currentturnmutex.Unlock()
 }
 
 func (s *Server) GetTurn() utils.Tickturn {
 	s.currentturnmutex.Lock()
+	defer s.currentturnmutex.Unlock()
+
 	res := s.currentturn
-	s.currentturnmutex.Unlock()
+
 	return res
 }
 
 func (server *Server) Listen() chan interface{} {
 	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
 	server.commserver = comm.NewCommServer(serveraddress)
-	log.Println("Server listening on port " + strconv.Itoa(server.port))
 
-	if server.GetNbExpectedagents() > 0 {
-		go func() {
-			err := server.commserver.Listen(server)
-			utils.Check(err, "Failed to listen on "+serveraddress)
-			notify.Post("app:stopticking", nil)
-		}()
-	} else {
-		server.OnAgentsReady()
-	}
+	utils.Debug("arena", "Server listening on port "+strconv.Itoa(server.port))
+
+	err := server.commserver.Listen(server)
+	utils.Check(err, "Failed to listen on "+serveraddress)
+
+	notify.Post("app:stopticking", nil)
 
 	block := make(chan interface{})
 	notify.Start("app:stopticking", block)
@@ -187,7 +185,7 @@ func (server *Server) GetState() *state.ServerState {
 }
 
 func (server *Server) TearDown() {
-	log.Println("server::Teardown()")
+	utils.Debug("arena", "teardown")
 	server.containerorchestrator.TearDownAll()
 }
 

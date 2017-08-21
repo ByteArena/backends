@@ -66,8 +66,7 @@ func main() {
 	notify.Start("game:launch", streamArenaLaunched)
 
 	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
-
-		log.Println(string(msg.Data))
+		utils.Debug("arenamaster", "Received launching order")
 
 		var payload messageArenaLaunch
 		err := json.Unmarshal(msg.Data, &payload)
@@ -76,8 +75,6 @@ func main() {
 			log.Println("ERROR:game:launch Invalid payload " + string(msg.Data))
 			return
 		}
-
-		log.Println("INFO:game:launch Received from MESSAGEBROKER", payload)
 
 		notify.PostTimeout("game:launch", payload, time.Millisecond)
 	})
