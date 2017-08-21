@@ -156,9 +156,10 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 			return AgentContainer{}, errors.New("Failed to pull " + dockerimage + " from registry; " + err.Error())
 		}
 
-		defer reader.Close()
-
-		io.Copy(os.Stdout, reader)
+		go func() {
+			io.Copy(os.Stdout, reader)
+			reader.Close()
+		}()
 	}
 
 	containerconfig := container.Config{
