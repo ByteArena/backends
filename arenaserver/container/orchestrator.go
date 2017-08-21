@@ -3,7 +3,7 @@ package container
 import (
 	"context"
 	"errors"
-	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
 
@@ -156,10 +156,12 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 			return AgentContainer{}, errors.New("Failed to pull " + dockerimage + " from registry; " + err.Error())
 		}
 
-		go func() {
-			io.Copy(os.Stdout, reader)
-			reader.Close()
-		}()
+		ioutil.ReadAll(reader)
+
+		// go func() {
+		// 	io.Copy(os.Stdout, reader)
+		// 	reader.Close()
+		// }()
 	}
 
 	containerconfig := container.Config{
