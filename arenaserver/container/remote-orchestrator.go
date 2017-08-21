@@ -2,7 +2,7 @@ package container
 
 import (
 	"context"
-	// "errors"
+	"errors"
 	"io"
 	"os"
 
@@ -25,11 +25,11 @@ func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner AgentContainer)
 		return err
 	}
 
-	// err = remoteLogsToSyslog(orch, ctner)
+	err = remoteLogsToSyslog(orch, ctner)
 
-	// if err != nil {
-	// 	return errors.New("Failed to follow docker container logs for " + ctner.containerid.String())
-	// }
+	if err != nil {
+		return errors.New("Failed to follow docker container logs for " + ctner.containerid.String())
+	}
 
 	return nil
 }
