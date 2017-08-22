@@ -53,7 +53,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 			return err
 		}
 
-		conn.SetReadDeadline(time.Now().Add(time.Second * 10))
+		// conn.SetReadDeadline(time.Now().Add(time.Second * 10))
 
 		go func() {
 			defer conn.Close()
