@@ -122,7 +122,15 @@ func main() {
 							utils.Debug("timer", "Timeout, stop the arena")
 						}()
 
-						<-srv.Start()
+						serverChan, startErr := srv.Start()
+
+						if startErr != nil {
+							srv.Stop()
+							log.Panicln("Cannot start server: " + startErr.Error())
+						}
+
+						<-serverChan
+
 						notify.PostTimeout("game:stopped", nil, time.Millisecond)
 					}
 				}

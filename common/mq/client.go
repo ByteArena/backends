@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -49,8 +50,14 @@ func NewClient(host string) (*Client, error) {
 }
 
 func (client *Client) connect() bool {
+	protocol := "ws"
+
+	if os.Getenv("ENV") == "prod" {
+		protocol = "wss"
+	}
+
 	dialer := websocket.DefaultDialer
-	conn, _, err := dialer.Dial("wss://"+client.host, http.Header{})
+	conn, _, err := dialer.Dial(protocol+"://"+client.host, http.Header{})
 	if err != nil {
 		return false
 	}

@@ -116,7 +116,14 @@ func main() {
 
 	vizservice.Start()
 
-	<-srv.Start()
+	serverChan, startErr := srv.Start()
+
+	if startErr != nil {
+		srv.Stop()
+		log.Panicln("Cannot start server: " + startErr.Error())
+	}
+	<-serverChan
+
 	srv.TearDown()
 
 	recorder.Close(game.GetId())

@@ -102,26 +102,20 @@ func (server *Server) GetTicksPerSecond() int {
 
 func (server *Server) spawnAgents() error {
 
-	for _, ag := range server.agents {
-		agentstate := server.state.GetAgentState(ag.GetId())
-		agentimage := server.agentimages[ag.GetId()]
+	for _, agent := range server.agents {
+		dockerimage := server.agentimages[agent.GetId()]
 
-		go func(agent agent.Agent, agentstate state.AgentState, dockerimage string) {
+		container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
 
-			container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
-			utils.Check(err, "Failed to create docker container for "+agent.String())
+		if err != nil {
+			return errors.New("Failed to create docker container for " + agent.String() + ": " + err.Error())
+		}
 
-			err = server.containerorchestrator.StartAgentContainer(container)
-			utils.Check(err, "Failed to start docker container for "+agent.String())
+		err = server.containerorchestrator.StartAgentContainer(container)
 
-			waitchan, _ := server.containerorchestrator.Wait(container)
-			<-waitchan
-
-			utils.Debug("arena", "One container exited")
-			server.TearDown()
-			server.Stop()
-
-		}(ag, agentstate, agentimage)
+		if err != nil {
+			return errors.New("Failed to start docker container for " + agent.String() + ": " + err.Error())
+		}
 	}
 
 	return nil
@@ -413,19 +407,18 @@ func (server *Server) startTicking() {
 	}()
 }
 
-func (server *Server) Start() chan interface{} {
+func (server *Server) Start() (chan interface{}, error) {
 	utils.Debug("arena", "Spawn agents")
 	err := server.spawnAgents()
 
-	utils.CheckWithFunc(err, func() string {
-		return "Failed to spawn agents: " + err.Error()
-	})
+	if err != nil {
+		return nil, errors.New("Failed to spawn agents: " + err.Error())
+	}
 
 	utils.Debug("arena", "Listen")
 	block := server.Listen()
 
-	return block
-
+	return block, nil
 }
 
 func (server *Server) Stop() {
@@ -433,6 +426,8 @@ func (server *Server) Stop() {
 	close(server.stopticking)
 
 	server.TearDown()
+
+	utils.Debug("arena", "Publish game state (stopped)")
 
 	server.mqClient.Publish("game", "stopped", ArenaStopMessage{
 		Payload: ArenaStopMessagePayload{
