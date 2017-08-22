@@ -48,7 +48,7 @@ func main() {
 
 	port := flag.Int("port", 8081, "Port of the viz server")
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
-	apiurl := flag.String("apiurl", "http://graphql.net.bytearena.com", "GQL API URL")
+	apiurl := flag.String("apiurl", "https://graphql.net.bytearena.com", "GQL API URL")
 	recordDirectory := flag.String("record-dir", "", "Record files destination")
 
 	flag.Parse()

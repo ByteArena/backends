@@ -65,7 +65,7 @@ func main() {
 	brokerclient, err := arenatrainer.NewMemoryMessageClient()
 	utils.Check(err, "ERROR: Could not connect to messagebroker")
 
-	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(), game)
+	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(), game, "", brokerclient)
 
 	for _, contestant := range game.GetContestants() {
 		var image string

@@ -35,7 +35,7 @@ func main() {
 	arenaServerUUID := flag.String("id", "", "ID of the arena; required")
 	port := flag.Int("port", 8080, "Port serving the arena")
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
-	apiurl := flag.String("apiurl", "http://graphql.net.bytearena.com", "GQL API URL")
+	apiurl := flag.String("apiurl", "https://graphql.net.bytearena.com", "GQL API URL")
 	timeout := flag.Int("timeout", 60, "Limit the time of the game (in minutes)")
 	registryAddr := flag.String("registryAddr", "", "Docker registry address")
 	arenaAddr := flag.String("arenaAddr", "", "Address of the arena")
@@ -66,8 +66,7 @@ func main() {
 	notify.Start("game:launch", streamArenaLaunched)
 
 	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
-
-		log.Println(string(msg.Data))
+		utils.Debug("arenamaster", "Received launching order")
 
 		var payload messageArenaLaunch
 		err := json.Unmarshal(msg.Data, &payload)
@@ -76,8 +75,6 @@ func main() {
 			log.Println("ERROR:game:launch Invalid payload " + string(msg.Data))
 			return
 		}
-
-		log.Println("INFO:game:launch Received from MESSAGEBROKER", payload)
 
 		notify.PostTimeout("game:launch", payload, time.Millisecond)
 	})
@@ -100,7 +97,7 @@ func main() {
 						utils.Check(err, "Could not fetch game "+arenaSubmitted.Id)
 
 						orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
-						srv := arenaserver.NewServer(*host, *port, orch, arena)
+						srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID, brokerclient)
 
 						for _, contestant := range arena.GetContestants() {
 							srv.RegisterAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)
@@ -111,6 +108,7 @@ func main() {
 							<-common.SignalHandler()
 							utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 							srv.Stop()
+							log.Println("Stop")
 						}()
 
 						go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
@@ -125,8 +123,6 @@ func main() {
 						}()
 
 						<-srv.Start()
-						srv.TearDown()
-
 						notify.PostTimeout("game:stopped", nil, time.Millisecond)
 					}
 				}
@@ -140,6 +136,7 @@ func main() {
 	<-streamArenaStopped
 
 	if hc != nil {
+		log.Println("Stop healthcheck")
 		hc.Stop()
 	}
 }

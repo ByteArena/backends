@@ -18,6 +18,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/perception"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
+	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/trigo"
@@ -31,6 +32,7 @@ const debug = false
 
 type Server struct {
 	host                  string
+	UUID                  string
 	port                  int
 	stopticking           chan struct{}
 	tickspersec           int
@@ -45,13 +47,22 @@ type Server struct {
 	stateobservers        []chan state.ServerState
 	DebugNbMutations      int
 	DebugNbUpdates        int
+	mqClient              mq.ClientInterface
 
 	agentimages map[uuid.UUID]string
 
 	arena Game
 }
 
-func NewServer(host string, port int, orch container.ContainerOrchestrator, arena Game) *Server {
+type ArenaStopMessagePayload struct {
+	ArenaServerId string `json:"arenaserverid"`
+}
+
+type ArenaStopMessage struct {
+	Payload ArenaStopMessagePayload `json:"payload"`
+}
+
+func NewServer(host string, port int, orch container.ContainerOrchestrator, arena Game, UUID string, mqClient mq.ClientInterface) *Server {
 
 	gamehost := host
 
@@ -64,6 +75,7 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 
 	s := &Server{
 		host:                  gamehost,
+		UUID:                  UUID,
 		port:                  port,
 		stopticking:           make(chan struct{}),
 		tickspersec:           arena.GetTps(),
@@ -74,6 +86,7 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 		commserver:            nil, // initialized in Listen()
 		nbhandshaked:          0,
 		currentturnmutex:      &sync.Mutex{},
+		mqClient:              mqClient,
 
 		agentimages: make(map[uuid.UUID]string),
 
@@ -87,7 +100,8 @@ func (server *Server) GetTicksPerSecond() int {
 	return server.tickspersec
 }
 
-func (server *Server) spawnAgents() {
+func (server *Server) spawnAgents() error {
+
 	for _, ag := range server.agents {
 		agentstate := server.state.GetAgentState(ag.GetId())
 		agentimage := server.agentimages[ag.GetId()]
@@ -100,10 +114,17 @@ func (server *Server) spawnAgents() {
 			err = server.containerorchestrator.StartAgentContainer(container)
 			utils.Check(err, "Failed to start docker container for "+agent.String())
 
-			err = server.containerorchestrator.Wait(container)
-			utils.Check(err, "Failed to wait docker container completion for "+agent.String())
+			waitchan, _ := server.containerorchestrator.Wait(container)
+			<-waitchan
+
+			utils.Debug("arena", "One container exited")
+			server.TearDown()
+			server.Stop()
+
 		}(ag, agentstate, agentimage)
 	}
+
+	return nil
 }
 
 func (server *Server) RegisterAgent(agentimage string) {
@@ -111,7 +132,8 @@ func (server *Server) RegisterAgent(agentimage string) {
 	agentSpawnPointIndex := len(server.agents)
 
 	if agentSpawnPointIndex >= len(arenamap.Data.Starts) {
-		log.Panicln("Agent cannot spawn, no starting point left")
+		utils.Debug("arena", "Agent "+agentimage+" cannot spawn, no starting point left")
+		return
 	}
 
 	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
@@ -123,41 +145,41 @@ func (server *Server) RegisterAgent(agentimage string) {
 	server.state.SetAgentState(agent.GetId(), agentstate)
 
 	server.agentimages[agent.GetId()] = agentimage
+
+	utils.Debug("arena", "Registrer agent "+agentimage)
 }
 
 func (server *Server) setAgent(agent agent.Agent) {
 	server.agentsmutex.Lock()
+	defer server.agentsmutex.Unlock()
+
 	server.agents[agent.GetId()] = agent
-	server.agentsmutex.Unlock()
 }
 
 func (s *Server) SetTurn(turn utils.Tickturn) {
 	s.currentturnmutex.Lock()
+	defer s.currentturnmutex.Unlock()
+
 	s.currentturn = turn
-	s.currentturnmutex.Unlock()
 }
 
 func (s *Server) GetTurn() utils.Tickturn {
 	s.currentturnmutex.Lock()
+	defer s.currentturnmutex.Unlock()
+
 	res := s.currentturn
-	s.currentturnmutex.Unlock()
+
 	return res
 }
 
 func (server *Server) Listen() chan interface{} {
 	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
 	server.commserver = comm.NewCommServer(serveraddress)
-	log.Println("Server listening on port " + strconv.Itoa(server.port))
 
-	if server.GetNbExpectedagents() > 0 {
-		go func() {
-			err := server.commserver.Listen(server)
-			utils.Check(err, "Failed to listen on "+serveraddress)
-			notify.Post("app:stopticking", nil)
-		}()
-	} else {
-		server.OnAgentsReady()
-	}
+	utils.Debug("arena", "Server listening on port "+strconv.Itoa(server.port))
+
+	err := server.commserver.Listen(server)
+	utils.Check(err, "Failed to listen on "+serveraddress)
 
 	block := make(chan interface{})
 	notify.Start("app:stopticking", block)
@@ -174,7 +196,7 @@ func (server *Server) GetState() *state.ServerState {
 }
 
 func (server *Server) TearDown() {
-	log.Println("server::Teardown()")
+	utils.Debug("arena", "teardown")
 	server.containerorchestrator.TearDownAll()
 }
 
@@ -291,7 +313,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 			ag = ag.SetConn(msg.GetEmitterConn())
 			server.setAgent(ag)
 
-			log.Println("Received handshake from agent " + ag.String() + "; agent said \"" + handshake.GetGreetings() + "\"")
+			utils.Debug("arena", "Received handshake from agent "+ag.String()+"; agent said \""+handshake.GetGreetings()+"\"")
 
 			server.nbhandshaked++
 
@@ -358,11 +380,10 @@ func (server *Server) monitoring() {
 }
 
 func (server *Server) OnAgentsReady() {
-	log.Print(chalk.Green)
-	log.Println("All agents ready; starting in .5 second")
-	log.Print(chalk.Reset)
-	time.Sleep(time.Duration(time.Millisecond * 500))
+	utils.Debug("arena", "Agents are ready; starting in 1 second")
+	time.Sleep(time.Duration(time.Second * 1))
 
+	// TODO: handle monitoring stop on app:stopticking
 	go server.monitoring()
 
 	server.startTicking()
@@ -381,7 +402,7 @@ func (server *Server) startTicking() {
 				{
 					log.Println("Received stop ticking signal")
 					notify.Post("app:stopticking", nil)
-					return // exiting goroutine,
+					return
 				}
 			case <-ticker:
 				{
@@ -393,14 +414,33 @@ func (server *Server) startTicking() {
 }
 
 func (server *Server) Start() chan interface{} {
-	server.spawnAgents()
+	utils.Debug("arena", "Spawn agents")
+	err := server.spawnAgents()
+
+	utils.CheckWithFunc(err, func() string {
+		return "Failed to spawn agents: " + err.Error()
+	})
+
+	utils.Debug("arena", "Listen")
 	block := server.Listen()
+
 	return block
 
 }
 
 func (server *Server) Stop() {
+	log.Println("TearDown from stop")
 	close(server.stopticking)
+
+	server.TearDown()
+
+	server.mqClient.Publish("game", "stopped", ArenaStopMessage{
+		Payload: ArenaStopMessagePayload{
+			ArenaServerId: server.UUID,
+		},
+	})
+
+	log.Println("Close ticking")
 }
 
 func (server *Server) ProcessMutations() {

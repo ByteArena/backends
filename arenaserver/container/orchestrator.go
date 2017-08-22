@@ -3,59 +3,90 @@ package container
 import (
 	"context"
 	"errors"
-	"io/ioutil"
-	"log"
+	"io"
+	"os"
 	"strconv"
+	"time"
+
+	"github.com/bytearena/bytearena/common/utils"
 
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	uuid "github.com/satori/go.uuid"
-	"github.com/ttacon/chalk"
 )
 
+type TearDownCallback func()
+
 type ContainerOrchestrator struct {
-	ctx            context.Context
-	cli            *client.Client
-	registryAuth   string
-	containers     []AgentContainer
-	GetHost        func(orch *ContainerOrchestrator) (string, error)
-	StartContainer func(orch *ContainerOrchestrator, ctner AgentContainer) error
+	ctx               context.Context
+	cli               *client.Client
+	registryAuth      string
+	containers        []AgentContainer
+	GetHost           func(orch *ContainerOrchestrator) (string, error)
+	StartContainer    func(orch *ContainerOrchestrator, ctner AgentContainer) error
+	TearDownCallbacks []TearDownCallback
 }
 
 func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) error {
-
-	log.Print(chalk.Yellow)
-	log.Print("Spawning agent "+ctner.AgentId.String()+" in its own container", chalk.Reset)
+	utils.Debug("orch", "Spawning agent "+ctner.AgentId.String())
 
 	return orch.StartContainer(orch, ctner)
 }
 
-func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) error {
-	orch.cli.ContainerWait(
+func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner AgentContainer) error {
+	utils.Debug("orch", "Remove agent image "+ctner.ImageName)
+
+	out, errImageRemove := orch.cli.ImageRemove(
+		orch.ctx,
+		ctner.ImageName,
+		types.ImageRemoveOptions{
+			Force:         true,
+			PruneChildren: true,
+		},
+	)
+
+	utils.Debug("orch", "Removed "+strconv.Itoa(len(out))+" layers")
+
+	return errImageRemove
+}
+
+func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
+	waitChan, errorChan := orch.cli.ContainerWait(
 		orch.ctx,
 		ctner.containerid.String(),
 		container.WaitConditionRemoved,
 	)
-	return nil
+
+	return waitChan, errorChan
+}
+
+func (orch *ContainerOrchestrator) AddTearDownCall(fn TearDownCallback) {
+	orch.TearDownCallbacks = append(orch.TearDownCallbacks, fn)
 }
 
 func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
-	log.Println("TearDown !", container)
+	for _, cb := range orch.TearDownCallbacks {
+		cb()
+	}
 
-	// TODO: understand why this is sloooooooow since feat-build-git
-	/*
-		timeout := time.Second * 5
-		err := orch.cli.ContainerStop(
-			orch.ctx,
-			container.containerid.String(),
-			&timeout,
-		)*/
+	timeout := time.Second * 5
+	err := orch.cli.ContainerStop(
+		orch.ctx,
+		container.containerid.String(),
+		&timeout,
+	)
 
-	//if err != nil {
-	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
-	//}
+	if err != nil {
+		orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
+	}
+
+	err = orch.RemoveAgentContainer(container)
+
+	if err != nil {
+		utils.Debug("orch", "Cannot remove agent container: "+err.Error())
+	}
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
@@ -84,6 +115,12 @@ func normalizeDockerRef(dockerimage string) (string, error) {
 
 func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, dockerimage string) (AgentContainer, error) {
 
+	containerUnixUser := os.Getenv("CONTAINER_UNIX_USER")
+
+	if containerUnixUser == "" {
+		containerUnixUser = "root"
+	}
+
 	normalizedDockerimage, err := normalizeDockerRef(dockerimage)
 
 	if err != nil {
@@ -108,7 +145,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	}
 
 	if !foundlocal {
-		rc, err := orch.cli.ImagePull(
+		reader, err := orch.cli.ImagePull(
 			orch.ctx,
 			dockerimage,
 			types.ImagePullOptions{
@@ -120,13 +157,15 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 			return AgentContainer{}, errors.New("Failed to pull " + dockerimage + " from registry; " + err.Error())
 		}
 
-		defer rc.Close()
-		ioutil.ReadAll(rc)
+		defer reader.Close()
+
+		io.Copy(os.Stdout, reader)
+		utils.Debug("orch", "Pulled image successfully")
 	}
 
 	containerconfig := container.Config{
 		Image: normalizedDockerimage,
-		User:  "root",
+		User:  containerUnixUser,
 		Env: []string{
 			"PORT=" + strconv.Itoa(port),
 			"HOST=" + host,
@@ -161,7 +200,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		return AgentContainer{}, errors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
 	}
 
-	agentcontainer := MakeAgentContainer(agentid, ContainerId(resp.ID))
+	agentcontainer := MakeAgentContainer(agentid, ContainerId(resp.ID), normalizedDockerimage)
 	orch.containers = append(orch.containers, agentcontainer)
 
 	return agentcontainer, nil

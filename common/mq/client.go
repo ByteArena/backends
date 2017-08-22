@@ -50,7 +50,7 @@ func NewClient(host string) (*Client, error) {
 
 func (client *Client) connect() bool {
 	dialer := websocket.DefaultDialer
-	conn, _, err := dialer.Dial("ws://"+client.host, http.Header{})
+	conn, _, err := dialer.Dial("wss://"+client.host, http.Header{})
 	if err != nil {
 		return false
 	}
