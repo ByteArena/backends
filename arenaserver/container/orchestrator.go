@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/bytearena/bytearena/common/utils"
 
@@ -70,20 +71,18 @@ func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
 		cb()
 	}
 
-	// TODO: understand why this is sloooooooow since feat-build-git
-	/*
-		timeout := time.Second * 5
-		err := orch.cli.ContainerStop(
-			orch.ctx,
-			container.containerid.String(),
-			&timeout,
-		)*/
+	timeout := time.Second * 5
+	err := orch.cli.ContainerStop(
+		orch.ctx,
+		container.containerid.String(),
+		&timeout,
+	)
 
-	//if err != nil {
-	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
-	//}
+	if err != nil {
+		orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
+	}
 
-	err := orch.RemoveAgentContainer(container)
+	err = orch.RemoveAgentContainer(container)
 
 	if err != nil {
 		utils.Debug("orch", "Cannot remove agent container: "+err.Error())
