@@ -66,8 +66,7 @@ func main() {
 	notify.Start("game:launch", streamArenaLaunched)
 
 	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
-
-		log.Println(string(msg.Data))
+		utils.Debug("arenamaster", "Received launching order")
 
 		var payload messageArenaLaunch
 		err := json.Unmarshal(msg.Data, &payload)
@@ -76,8 +75,6 @@ func main() {
 			log.Println("ERROR:game:launch Invalid payload " + string(msg.Data))
 			return
 		}
-
-		log.Println("INFO:game:launch Received from MESSAGEBROKER", payload)
 
 		notify.PostTimeout("game:launch", payload, time.Millisecond)
 	})
@@ -100,7 +97,7 @@ func main() {
 						utils.Check(err, "Could not fetch game "+arenaSubmitted.Id)
 
 						orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
-						srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID)
+						srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID, brokerclient)
 
 						for _, contestant := range arena.GetContestants() {
 							srv.RegisterAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)
@@ -110,7 +107,8 @@ func main() {
 						go func() {
 							<-common.SignalHandler()
 							utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
-							srv.Stop(brokerclient)
+							srv.Stop()
+							log.Println("Stop")
 						}()
 
 						go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
@@ -120,7 +118,7 @@ func main() {
 						go func() {
 							<-timeoutTimer.C
 
-							srv.Stop(brokerclient)
+							srv.Stop()
 							utils.Debug("timer", "Timeout, stop the arena")
 						}()
 
@@ -138,6 +136,7 @@ func main() {
 	<-streamArenaStopped
 
 	if hc != nil {
+		log.Println("Stop healthcheck")
 		hc.Stop()
 	}
 }

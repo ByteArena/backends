@@ -90,15 +90,6 @@ func (a *GameGql) GetContestants() []Contestant {
 	return res
 }
 
-// func (a *GameGql) Setup(srv *Server) {
-// 	for _, obstacle := range a.gqlgame.Arena.Obstacles {
-// 		srv.SetObstacle(state.MakeObstacle(
-// 			vector.MakeVector2(obstacle.A.X, obstacle.A.Y),
-// 			vector.MakeVector2(obstacle.B.X, obstacle.B.Y),
-// 		))
-// 	}
-// }
-
 func (a *GameGql) GetMapContainer() *mapcontainer.MapContainer {
 	return a.mapContainer
 }

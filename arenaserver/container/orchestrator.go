@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/bytearena/bytearena/common/utils"
 
@@ -15,7 +15,6 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	uuid "github.com/satori/go.uuid"
-	"github.com/ttacon/chalk"
 )
 
 type TearDownCallback func()
@@ -31,9 +30,7 @@ type ContainerOrchestrator struct {
 }
 
 func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) error {
-
-	log.Print(chalk.Yellow)
-	log.Print("Spawning agent "+ctner.AgentId.String()+" in its own container", chalk.Reset)
+	utils.Debug("orch", "Spawning agent "+ctner.AgentId.String())
 
 	return orch.StartContainer(orch, ctner)
 }
@@ -50,18 +47,19 @@ func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner AgentContainer) er
 		},
 	)
 
-	log.Println(out)
+	utils.Debug("orch", "Removed "+strconv.Itoa(len(out))+" layers")
 
 	return errImageRemove
 }
 
-func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) error {
-	orch.cli.ContainerWait(
+func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
+	waitChan, errorChan := orch.cli.ContainerWait(
 		orch.ctx,
 		ctner.containerid.String(),
 		container.WaitConditionRemoved,
 	)
-	return nil
+
+	return waitChan, errorChan
 }
 
 func (orch *ContainerOrchestrator) AddTearDownCall(fn TearDownCallback) {
@@ -69,27 +67,26 @@ func (orch *ContainerOrchestrator) AddTearDownCall(fn TearDownCallback) {
 }
 
 func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
-	log.Println("TearDown !", container)
-
 	for _, cb := range orch.TearDownCallbacks {
 		cb()
 	}
 
-	// TODO: understand why this is sloooooooow since feat-build-git
-	/*
-		timeout := time.Second * 5
-		err := orch.cli.ContainerStop(
-			orch.ctx,
-			container.containerid.String(),
-			&timeout,
-		)*/
+	timeout := time.Second * 5
+	err := orch.cli.ContainerStop(
+		orch.ctx,
+		container.containerid.String(),
+		&timeout,
+	)
 
-	//if err != nil {
-	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
-	//}
+	if err != nil {
+		orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
+	}
 
-	err := orch.RemoveAgentContainer(container)
-	utils.Check(err, "Cannot remove agent container/image")
+	err = orch.RemoveAgentContainer(container)
+
+	if err != nil {
+		utils.Debug("orch", "Cannot remove agent container: "+err.Error())
+	}
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
@@ -163,6 +160,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		defer reader.Close()
 
 		io.Copy(os.Stdout, reader)
+		utils.Debug("orch", "Pulled image successfully")
 	}
 
 	containerconfig := container.Config{
