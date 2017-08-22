@@ -209,6 +209,18 @@ func (s Segment2) MoveCenterTo(newcenterpos Vector2) Segment2 {
 	return s.Translate(translation)
 }
 
+func (s Segment2) ToRectangleCentered(height float64) []Vector2 {
+	a1, a2 := s.OrthogonalToACentered().SetLengthFromCenter(height).Get()
+	b1, b2 := s.OrthogonalToBCentered().SetLengthFromCenter(height).Get()
+
+	return []Vector2{
+		a1,
+		b1,
+		b2,
+		a2,
+	}
+}
+
 var testnum int
 
 func test(ok bool, testname string) {

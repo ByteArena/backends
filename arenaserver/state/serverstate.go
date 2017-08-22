@@ -19,7 +19,7 @@ type ServerState struct {
 	Agents      map[uuid.UUID](AgentState)
 	Agentsmutex *sync.Mutex
 
-	Projectiles      []*projectile.BallisticProjectile
+	Projectiles      map[uuid.UUID](*projectile.BallisticProjectile)
 	Projectilesmutex *sync.Mutex
 
 	pendingmutations []protocol.StateMutationBatch
@@ -41,7 +41,7 @@ func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 		Agents:      make(map[uuid.UUID](AgentState)),
 		Agentsmutex: &sync.Mutex{},
 
-		Projectiles:      make([]*projectile.BallisticProjectile, 0),
+		Projectiles:      make(map[uuid.UUID]*projectile.BallisticProjectile),
 		Projectilesmutex: &sync.Mutex{},
 
 		pendingmutations: make([]protocol.StateMutationBatch, 0),
@@ -55,41 +55,49 @@ func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 }
 
 func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoization {
-	// We have to initialize the Obstacle list
+
+	///////////////////////////////////////////////////////////////////////////
+	// Obstacles
+	///////////////////////////////////////////////////////////////////////////
+
 	obstacles := make([]Obstacle, 0)
 
-	// Les sols
+	// Obstacles formed by the grounds
 	for _, ground := range arenaMap.Data.Grounds {
 		for _, polygon := range ground.Outline {
 			for i := 0; i < len(polygon.Points)-1; i++ {
 				a := polygon.Points[i]
 				b := polygon.Points[i+1]
+				normal := polygon.Normals[i]
 				obstacles = append(obstacles, MakeObstacle(
 					vector.MakeVector2(a.X, a.Y),
 					vector.MakeVector2(b.X, b.Y),
+					vector.MakeVector2(normal.X, normal.Y),
 				))
 			}
 		}
 	}
 
-	// Les obstacles explicites
+	// Explicit obstacles
 	for _, obstacle := range arenaMap.Data.Obstacles {
 		polygon := obstacle.Polygon
 		for i := 0; i < len(polygon.Points)-1; i++ {
 			a := polygon.Points[i]
 			b := polygon.Points[i+1]
+			normal := polygon.Normals[i]
 			obstacles = append(obstacles, MakeObstacle(
 				vector.MakeVector2(a.X, a.Y),
 				vector.MakeVector2(b.X, b.Y),
+				vector.MakeVector2(normal.X, normal.Y),
 			))
 		}
 	}
 
 	///////////////////////////////////////////////////////////////////////////
-	// Initialize RTree
+	// Initialize Obstacle RTree
 	///////////////////////////////////////////////////////////////////////////
 
-	rt := rtreego.NewTree(2, 25, 50) // TODO: better constants here ? what heuristic to use ?
+	rtObstacles := rtreego.NewTree(2, 25, 50) // TODO: better constants here ? what heuristic to use ?
 
 	for _, obstacle := range obstacles {
 
@@ -99,19 +107,96 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 			return "rtreego: NewRect error;" + err.Error()
 		})
 
-		rt.Insert(&GeometryObject{
+		rtObstacles.Insert(&GeometryObject{
 			Type:   GeometryObjectType.Obstacle,
 			ID:     obstacle.Id.String(),
 			Rect:   r,
 			PointA: obstacle.A,
 			PointB: obstacle.B,
+			Normal: obstacle.Normal,
 		})
 	}
 
-	return &MapMemoization{
-		Obstacles:      obstacles,
-		RtreeObstacles: rt,
+	///////////////////////////////////////////////////////////////////////////
+	// Initialize Ground Surface RTree
+	///////////////////////////////////////////////////////////////////////////
+
+	rtSurface := rtreego.NewTree(2, 25, 50) // TODO: better constants here ? what heuristic to use ?
+
+	for _, ground := range arenaMap.Data.Grounds {
+
+		for i := 0; i < len(ground.Mesh.Vertices); i += 9 {
+
+			// Skipping Height dimension
+			points := [3]vector.Vector2{
+				vector.MakeVector2(ground.Mesh.Vertices[i], ground.Mesh.Vertices[i+2]),
+				vector.MakeVector2(ground.Mesh.Vertices[i+3], ground.Mesh.Vertices[i+5]),
+				vector.MakeVector2(ground.Mesh.Vertices[i+6], ground.Mesh.Vertices[i+8]),
+			}
+
+			pa, pb := GetBoundingBox(points[:])
+			r, err := rtreego.NewRect(pa, pb)
+			utils.CheckWithFunc(err, func() string {
+				return "rtreego: NewRect error;" + err.Error()
+			})
+
+			rtSurface.Insert(&TriangleRtreeWrapper{
+				Rect:   r,
+				Points: points,
+			})
+		}
 	}
+
+	///////////////////////////////////////////////////////////////////////////
+	// Initialize Collision Meshes RTree
+	///////////////////////////////////////////////////////////////////////////
+
+	rtCollisions := rtreego.NewTree(2, 25, 50) // TODO: better constants here ? what heuristic to use ?
+
+	for _, collisionmesh := range arenaMap.Data.CollisionMeshes {
+
+		for i := 0; i < len(collisionmesh.Vertices); i += 9 {
+
+			// Skipping Height dimension
+			points := [3]vector.Vector2{
+				vector.MakeVector2(collisionmesh.Vertices[i], collisionmesh.Vertices[i+2]),
+				vector.MakeVector2(collisionmesh.Vertices[i+3], collisionmesh.Vertices[i+5]),
+				vector.MakeVector2(collisionmesh.Vertices[i+6], collisionmesh.Vertices[i+8]),
+			}
+
+			pa, pb := GetBoundingBox(points[:])
+			r, err := rtreego.NewRect(pa, pb)
+			utils.CheckWithFunc(err, func() string {
+				return "rtreego: NewRect error;" + err.Error()
+			})
+
+			rtCollisions.Insert(&TriangleRtreeWrapper{
+				Rect:   r,
+				Points: points,
+			})
+		}
+	}
+
+	return &MapMemoization{
+		Obstacles:       obstacles,
+		RtreeObstacles:  rtObstacles,
+		RtreeSurface:    rtSurface,
+		RtreeCollisions: rtCollisions,
+	}
+}
+
+func (serverstate *ServerState) GetProjectile(projectileid uuid.UUID) *projectile.BallisticProjectile {
+	serverstate.Projectilesmutex.Lock()
+	res := serverstate.Projectiles[projectileid]
+	serverstate.Projectilesmutex.Unlock()
+
+	return res
+}
+
+func (serverstate *ServerState) SetProjectile(projectileid uuid.UUID, projectile *projectile.BallisticProjectile) {
+	serverstate.Projectilesmutex.Lock()
+	serverstate.Projectiles[projectileid] = projectile
+	serverstate.Projectilesmutex.Unlock()
 }
 
 func (serverstate *ServerState) GetAgentState(agentid uuid.UUID) AgentState {
@@ -223,43 +308,57 @@ type GeometryObject struct {
 	Rect   *rtreego.Rect
 	PointA vector.Vector2
 	PointB vector.Vector2
+	Normal vector.Vector2
 }
 
 func (geobj GeometryObject) Bounds() *rtreego.Rect {
 	return geobj.Rect
 }
 
-func NewGeometryObjectID(id string) *GeometryObject {
-	return &GeometryObject{
-		ID: id,
-	}
+type TriangleRtreeWrapper struct {
+	Rect   *rtreego.Rect
+	Points [3]vector.Vector2
+}
+
+func (geobj TriangleRtreeWrapper) Bounds() *rtreego.Rect {
+	return geobj.Rect
 }
 
 func GetBoundingBox(points []vector.Vector2) (rtreego.Point, rtreego.Point) {
 
-	var minX, minY *float64
-	var maxX, maxY *float64
+	var minX = 10000000000.0
+	var minY = 10000000000.0
+	var maxX = -10000000000.0
+	var maxY = -10000000000.0
 
 	for _, point := range points {
 		x, y := point.Get()
-		if minX == nil || x < *minX {
-			minX = &(x)
+		if x < minX {
+			minX = x
 		}
 
-		if minY == nil || y < *minY {
-			minY = &(y)
+		if y < minY {
+			minY = y
 		}
 
-		if maxX == nil || x > *maxX {
-			maxX = &(x)
+		if x > maxX {
+			maxX = x
 		}
 
-		if maxY == nil || y > *maxY {
-			maxY = &(y)
+		if y > maxY {
+			maxY = y
 		}
 	}
 
-	log.Println("WHATT", *minX, *maxY, *minY, *maxY, *maxX-*minX, *maxY-*minY)
+	width := maxX - minX
+	if width <= 0 {
+		width = 0.00001
+	}
 
-	return []float64{*minX, *minY}, []float64{*maxX - *minX + 0.00001, *maxY - *minY + 0.00001}
+	height := maxY - minY
+	if height <= 0 {
+		height = 0.00001
+	}
+
+	return []float64{minX, minY}, []float64{width, height}
 }

@@ -10,15 +10,17 @@ type BallisticProjectile struct {
 	Position       vector.Vector2
 	Velocity       vector.Vector2
 	Speed          float64
+	Radius         float64
 	TTL            int
 	AgentEmitterId uuid.UUID
 }
 
 func NewBallisticProjectile() *BallisticProjectile {
 	return &BallisticProjectile{
-		Id:    uuid.NewV4(), // random uuid
-		TTL:   50,
-		Speed: 6,
+		Id:     uuid.NewV4(), // random uuid
+		TTL:    50,
+		Speed:  6,
+		Radius: 0.3,
 	}
 }
 

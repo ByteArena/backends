@@ -5,6 +5,8 @@ import (
 )
 
 type MapMemoization struct {
-	Obstacles      []Obstacle
-	RtreeObstacles *rtreego.Rtree
+	Obstacles       []Obstacle
+	RtreeObstacles  *rtreego.Rtree
+	RtreeSurface    *rtreego.Rtree
+	RtreeCollisions *rtreego.Rtree
 }
