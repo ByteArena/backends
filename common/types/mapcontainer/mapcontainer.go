@@ -18,11 +18,11 @@ type MapContainer struct {
 		Repository     string `json:"repository"`
 	} `json:"meta"`
 	Data struct {
-		Grounds         []MapGround     `json:"grounds"`
-		Starts          []MapStart      `json:"starts"`
-		Obstacles       []MapObstacle   `json:"obstacles"`
-		CollisionMeshes []CollisionMesh `json:"collisionmeshes"`
-		Objects         []MapObject     `json:"objects"`
+		Grounds         []MapGround         `json:"grounds"`
+		Starts          []MapStart          `json:"starts"`
+		Obstacles       []MapObstacleObject `json:"obstacles"`
+		CollisionMeshes []CollisionMesh     `json:"collisionmeshes"`
+		Objects         []MapPrefabObject   `json:"objects"`
 	} `json:"data"`
 }
 
@@ -101,12 +101,12 @@ type MapStart struct {
 	Point MapPoint `json:"point"`
 }
 
-type MapObstacle struct {
+type MapObstacleObject struct {
 	Id      string     `json:"id"`
 	Polygon MapPolygon `json:"polygon"`
 }
 
-type MapObject struct {
+type MapPrefabObject struct {
 	Id          string   `json:"id"`
 	Point       MapPoint `json:"point"`
 	Type        string   `json:"type"`

@@ -692,7 +692,7 @@ func processMovingObjectObstacleCollision(server *Server, beforeState, afterStat
 
 			normal = normal.Normalize()
 
-			backoffDistance := 0.1
+			backoffDistance := beforeState.Radius + 0.1
 			nextPoint := centerEdge.Vector2().SetMag(maxDist).Sub(normal.SetMag(backoffDistance)).Add(beforeState.Position)
 
 			if !isInsideGroundSurface(server, nextPoint) {

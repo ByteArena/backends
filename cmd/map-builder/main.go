@@ -144,9 +144,9 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					svggrounds = append(svggrounds, node)
 				}
 
-				// if groups.Contains("ba:obstacle") > -1 {
-				// 	svgobstacles = append(svgobstacles, node)
-				// }
+				if groups.Contains("ba:obstacle") > -1 {
+					svgobstacles = append(svgobstacles, node)
+				}
 			}
 		}
 	})
@@ -167,16 +167,18 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 	/* Processing OBJECTS */
 	/************************************/
 
-	objects := processObjects(worldTransform, svgobjects)
+	objects, _ := processObjects(worldTransform, svgobjects)
 
 	/************************************/
 	/* Processing OBSTACLES */
 	/************************************/
 	// use processObjects to get a pre-processed collection of objects, that we will convert to obstacles
-	obstaclesObjects := processObjects(worldTransform, svgobstacles)
-	obstacles := make([]mapcontainer.MapObstacle, 0)
+	obstaclesPrefabs, obstaclesPolygons := processObjects(worldTransform, svgobstacles)
+	obstacles := make([]mapcontainer.MapObstacleObject, 0)
 
-	for _, obstacleObject := range obstaclesObjects {
+	// Obstacle prefabs
+
+	for _, obstacleObject := range obstaclesPrefabs {
 
 		switch obstacleObject.Type {
 		case "rocks01", "rocks02", "rocksRand", "alienBones", "satellite01", "satellite02", "crater01", "crater02", "craterRand", "station01", "station02", "stationRand":
@@ -234,7 +236,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 					Normals: normals,
 				}
 
-				obstacles = append(obstacles, mapcontainer.MapObstacle{
+				obstacles = append(obstacles, mapcontainer.MapObstacleObject{
 					Id:      obstacleObject.Id,
 					Polygon: polygon,
 				})
@@ -250,6 +252,8 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 	/************************************/
 	/* Building collision meshes
 	/************************************/
+
+	obstacles = append(obstacles, obstaclesPolygons...)
 
 	collisionMeshes := make([]mapcontainer.CollisionMesh, 0)
 
@@ -349,41 +353,9 @@ func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapco
 			subpathes = append(subpathes, subpath)
 		}
 
-		// // Normalize coords for each subpath
-		// // Z => (close line command) expand to an actual point
-		// // m => M (move relative => move abs)
-
-		// for i, subpath := range subpathes {
-		// 	for j, op := range subpath {
-		// 		if strings.ToUpper(op.Operation) == "Z" {
-		// 			// expand Z into L X Y
-
-		// 			firstop := subpath[0]
-		// 			x := firstop.Coords[0]
-		// 			y := firstop.Coords[1]
-
-		// 			subpath[j] = PathOperation{
-		// 				Operation: "L",
-		// 				Coords:    []float64{x, y},
-		// 			}
-		// 		}
-		// 	}
-
-		// 	subpathes[i] = subpath
-		// }
-
-		// Normalize coords for each subpath
-		// Z => (close line command) remove
-
-		for i, subpath := range subpathes {
-			newsubpath := subpath
-			for j, op := range subpath {
-				if strings.ToUpper(op.Operation) == "Z" {
-					newsubpath = append(newsubpath[:j], newsubpath[j+1:]...)
-				}
-			}
-
-			subpathes[i] = newsubpath
+		if len(subpathes) == 0 {
+			// no path defined on ground !
+			continue
 		}
 
 		// Make polygons
@@ -393,73 +365,16 @@ func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapco
 		}
 
 		for _, subpath := range subpathes {
-			points := make([]mapcontainer.MapPoint, 0)
-			for _, op := range subpath {
-				x, y := pathtransform.
-					Transform(op.Coords[0], op.Coords[1])
-
-				x, y = worldTransform.
-					Transform(x, y)
-
-				points = append(points, mapcontainer.MapPoint{X: x, Y: y})
-			}
-
-			ground.Outline = append(ground.Outline, mapcontainer.MapPolygon{Points: points})
-		}
-
-		for mappolygonindex, mappolygon := range ground.Outline {
-			poly := mappolygon.ToVector2Array()
-
-			winding := polygonutils.GetPolygonWindingForCartesianSystem(poly)
-
-			// Change polygons winding to CW
-			if polygonutils.IsCW(winding) {
-				// CW; change to CCW
-				log.Println("POLY IS CW; CHANGE WINDING TO CCW")
-				newpoly := polygonutils.InvertWinding(poly)
-				newwinding := polygonutils.GetPolygonWindingForCartesianSystem(newpoly)
-				if !polygonutils.IsCCW(newwinding) {
-					panic("Could not change ground polygon winding from CW to CCW")
-				}
-
-				newMapPoint := make([]mapcontainer.MapPoint, len(newpoly))
-				for i, point := range newpoly {
-					newMapPoint[i] = mapcontainer.MapPoint{
-						X: point.GetX(),
-						Y: point.GetY(),
-					}
-				}
-
-				ground.Outline[mappolygonindex].Points = newMapPoint
-			} else if polygonutils.IsCCW(winding) {
-				log.Println("POLY IS CCW; NOTHING TO DO")
-			} else {
-				panic("Ground polygon is neither CCW nor CW; something's wrong")
-			}
-
-			// Calculate (outwards pointing) normal for each polygon edge
-			normals := make([]mapcontainer.MapPoint, 0)
-			polylen := len(poly)
-			for i := 0; i < polylen; i++ {
-				p1 := poly[i]
-				p2 := poly[(i+1)%polylen]
-				vec := vector.MakeVector2(p2.GetX(), p2.GetY()).Sub(p1)
-				normal := vec.OrthogonalClockwise().Normalize() // clockwise: because poly is CCW, outwards is on the right of the edge
-				normals = append(normals, mapcontainer.MapPoint{
-					X: normal.GetX(),
-					Y: normal.GetY(),
-				})
-			}
-
-			ground.Outline[mappolygonindex].Normals = normals
+			ground.Outline = append(ground.Outline, PathToMapPolygon(
+				subpath,
+				pathtransform,
+				worldTransform,
+			))
 		}
 
 		///////////////////////////////////////////////////////////////////////
 		// Make visible mesh from polygons
 		///////////////////////////////////////////////////////////////////////
-		if len(ground.Outline) == 0 {
-			continue
-		}
 
 		contour := make([]*poly2tri.Point, 0)
 
@@ -617,10 +532,11 @@ func signum(f float64) int {
 	return 1
 }
 
-func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapcontainer.MapObject {
-	objects := make([]mapcontainer.MapObject, 0)
+func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) ([]mapcontainer.MapPrefabObject, []mapcontainer.MapObstacleObject) {
+	prefabObjects := make([]mapcontainer.MapPrefabObject, 0)
+	obstacleObjects := make([]mapcontainer.MapObstacleObject, 0)
 
-	circleProcessor := func(node SVGNode, cx float64, cy float64, radius float64) *mapcontainer.MapObject {
+	circleProcessor := func(node SVGNode, cx float64, cy float64, radius float64) *mapcontainer.MapPrefabObject {
 
 		ids := GetSVGIDs(node)
 
@@ -687,7 +603,7 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapco
 			return nil
 		}
 
-		return &mapcontainer.MapObject{
+		return &mapcontainer.MapPrefabObject{
 			Id:       node.GetId(),
 			Point:    mapcontainer.MapPoint{X: cxt, Y: cyt},
 			Diameter: radiust * 2,
@@ -695,7 +611,7 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapco
 		}
 	}
 
-	applyFunctions := func(functions []SVGIDFunction, obj *mapcontainer.MapObject) *mapcontainer.MapObject {
+	applyFunctions := func(functions []SVGIDFunction, obj *mapcontainer.MapPrefabObject) *mapcontainer.MapPrefabObject {
 
 		for _, f := range functions {
 			switch f.Function {
@@ -755,7 +671,7 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapco
 				obj = applyFunctions(GetSVGIDs(typednode).GetFunctions(), obj)
 
 				if obj != nil {
-					objects = append(objects, *obj)
+					prefabObjects = append(prefabObjects, *obj)
 				}
 			}
 		case *SVGEllipse:
@@ -765,11 +681,92 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) []mapco
 				obj = applyFunctions(GetSVGIDs(typednode).GetFunctions(), obj)
 
 				if obj != nil {
-					objects = append(objects, *obj)
+					prefabObjects = append(prefabObjects, *obj)
 				}
+			}
+		case *SVGPolygon:
+			{
+				obstacleObjects = append(obstacleObjects, mapcontainer.MapObstacleObject{
+					Id: typednode.GetId(),
+					Polygon: PathToMapPolygon(
+						ParseSVGPolygonPoints(typednode.points),
+						typednode.GetFullTransform(),
+						worldTransform,
+					),
+				})
 			}
 		}
 	}
 
-	return objects
+	return prefabObjects, obstacleObjects
+}
+
+func PathToMapPolygon(path []PathOperation, pathtransform vector.Matrix2, worldTransform vector.Matrix2) mapcontainer.MapPolygon {
+
+	newpath := path
+	for j, op := range path {
+		if strings.ToUpper(op.Operation) == "Z" {
+			newpath = append(newpath[:j], newpath[j+1:]...)
+		}
+	}
+	path = newpath
+
+	points := make([]mapcontainer.MapPoint, 0)
+	for _, op := range path {
+		x, y := pathtransform.
+			Transform(op.Coords[0], op.Coords[1])
+
+		x, y = worldTransform.
+			Transform(x, y)
+
+		points = append(points, mapcontainer.MapPoint{X: x, Y: y})
+	}
+
+	mappoly := mapcontainer.MapPolygon{Points: points}
+	polyarr := mappoly.ToVector2Array()
+
+	winding := polygonutils.GetPolygonWindingForCartesianSystem(polyarr)
+
+	// Change polygons winding to CW
+	if polygonutils.IsCW(winding) {
+		// CW; change to CCW
+		log.Println("POLY IS CW; CHANGE WINDING TO CCW")
+		newpoly := polygonutils.InvertWinding(polyarr)
+		newwinding := polygonutils.GetPolygonWindingForCartesianSystem(newpoly)
+		if !polygonutils.IsCCW(newwinding) {
+			panic("Could not change ground polygon winding from CW to CCW")
+		}
+
+		newMapPoint := make([]mapcontainer.MapPoint, len(newpoly))
+		for i, point := range newpoly {
+			newMapPoint[i] = mapcontainer.MapPoint{
+				X: point.GetX(),
+				Y: point.GetY(),
+			}
+		}
+
+		mappoly.Points = newMapPoint
+	} else if polygonutils.IsCCW(winding) {
+		log.Println("POLY IS CCW; NOTHING TO DO")
+	} else {
+		panic("Ground polygon is neither CCW nor CW; something's wrong")
+	}
+
+	// Calculate (outwards pointing) normal for each polygon edge
+	normals := make([]mapcontainer.MapPoint, 0)
+	polylen := len(polyarr)
+	for i := 0; i < polylen; i++ {
+		p1 := polyarr[i]
+		p2 := polyarr[(i+1)%polylen]
+		vec := vector.MakeVector2(p2.GetX(), p2.GetY()).Sub(p1)
+		normal := vec.OrthogonalClockwise().Normalize() // clockwise: because poly is CCW, outwards is on the right of the edge
+		normals = append(normals, mapcontainer.MapPoint{
+			X: normal.GetX(),
+			Y: normal.GetY(),
+		})
+	}
+
+	mappoly.Normals = normals
+
+	return mappoly
 }
