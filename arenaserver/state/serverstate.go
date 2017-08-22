@@ -70,6 +70,8 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 				b := polygon.Points[i+1]
 				normal := polygon.Normals[i]
 				obstacles = append(obstacles, MakeObstacle(
+					ground.Id,
+					ObstacleType.Ground,
 					vector.MakeVector2(a.X, a.Y),
 					vector.MakeVector2(b.X, b.Y),
 					vector.MakeVector2(normal.X, normal.Y),
@@ -86,6 +88,8 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 			b := polygon.Points[i+1]
 			normal := polygon.Normals[i]
 			obstacles = append(obstacles, MakeObstacle(
+				obstacle.Id,
+				ObstacleType.Object,
 				vector.MakeVector2(a.X, a.Y),
 				vector.MakeVector2(b.X, b.Y),
 				vector.MakeVector2(normal.X, normal.Y),
@@ -107,9 +111,16 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 			return "rtreego: NewRect error;" + err.Error()
 		})
 
+		var geotype int
+		if obstacle.Type == ObstacleType.Ground {
+			geotype = GeometryObjectType.ObstacleGround
+		} else {
+			geotype = GeometryObjectType.ObstacleObject
+		}
+
 		rtObstacles.Insert(&GeometryObject{
-			Type:   GeometryObjectType.Obstacle,
-			ID:     obstacle.Id.String(),
+			Type:   geotype,
+			ID:     obstacle.Id,
 			Rect:   r,
 			PointA: obstacle.A,
 			PointB: obstacle.B,
@@ -293,18 +304,20 @@ func (serverstate *ServerState) ProcessMutations() {
 }
 
 var GeometryObjectType = struct {
-	Obstacle   uint8
-	Agent      uint8
-	Projectile uint8
+	ObstacleGround int
+	ObstacleObject int
+	Agent          int
+	Projectile     int
 }{
-	Obstacle:   0,
-	Agent:      1,
-	Projectile: 2,
+	ObstacleGround: 0,
+	ObstacleObject: 1,
+	Agent:          2,
+	Projectile:     3,
 }
 
 type GeometryObject struct {
 	ID     string
-	Type   uint8
+	Type   int
 	Rect   *rtreego.Rect
 	PointA vector.Vector2
 	PointB vector.Vector2

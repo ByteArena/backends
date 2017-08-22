@@ -49,6 +49,7 @@ func MakeRemoteContainerOrchestrator(arenaAddr string, registryAddr string) Cont
 			return arenaAddr, nil
 		},
 		StartContainer: startContainerRemoteOrch,
+		RemoveImages:   true,
 	}
 }
 

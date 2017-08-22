@@ -561,7 +561,7 @@ func processProjectileObstacleCollisions(server *Server, before map[uuid.UUID]mo
 			Radius:   projectile.Radius,
 		}
 
-		processMovingObjectObstacleCollision(server, beforestate, afterstate, func(collisionPoint vector.Vector2) {
+		processMovingObjectObstacleCollision(server, beforestate, afterstate, []int{state.GeometryObjectType.ObstacleGround}, func(collisionPoint vector.Vector2) {
 			//log.Println("U blocked, projectile")
 
 			projectile.Position = collisionPoint
@@ -585,7 +585,7 @@ func processAgentObstacleCollisions(server *Server, before map[uuid.UUID]movingO
 			Radius:   agentstate.Radius,
 		}
 
-		processMovingObjectObstacleCollision(server, beforestate, afterstate, func(collisionPoint vector.Vector2) {
+		processMovingObjectObstacleCollision(server, beforestate, afterstate, nil, func(collisionPoint vector.Vector2) {
 			//log.Println("U blocked, mothafucka")
 
 			agentstate.Position = collisionPoint
@@ -609,7 +609,16 @@ func processAgentObstacleCollisions(server *Server, before map[uuid.UUID]movingO
 	}
 }
 
-func processMovingObjectObstacleCollision(server *Server, beforeState, afterState movingObjectTemporaryState, collisionhandler func(collision vector.Vector2)) {
+func arrayContainsGeotype(needle int, haystack []int) bool {
+	for _, v := range haystack {
+		if v == needle {
+			return true
+		}
+	}
+	return false
+}
+
+func processMovingObjectObstacleCollision(server *Server, beforeState, afterState movingObjectTemporaryState, geotypesIgnored []int, collisionhandler func(collision vector.Vector2)) {
 
 	bbBeforeA, bbBeforeB := GetAgentBoundingBox(beforeState.Position, beforeState.Radius)
 	bbAfterA, bbAfterB := GetAgentBoundingBox(afterState.Position, afterState.Radius)
@@ -681,6 +690,9 @@ func processMovingObjectObstacleCollision(server *Server, beforeState, afterStat
 
 		for _, matchingObstacle := range matchingObstacles {
 			geoObject := matchingObstacle.(*state.GeometryObject)
+			if geotypesIgnored != nil && arrayContainsGeotype(geoObject.Type, geotypesIgnored) {
+				continue
+			}
 
 			circleCollisions := trigo.LineCircleIntersectionPoints(
 				geoObject.PointA,

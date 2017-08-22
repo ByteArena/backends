@@ -27,6 +27,7 @@ type ContainerOrchestrator struct {
 	GetHost           func(orch *ContainerOrchestrator) (string, error)
 	StartContainer    func(orch *ContainerOrchestrator, ctner AgentContainer) error
 	TearDownCallbacks []TearDownCallback
+	RemoveImages      bool
 }
 
 func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) error {
@@ -82,10 +83,11 @@ func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
 		orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
 	}
 
-	err = orch.RemoveAgentContainer(container)
-
-	if err != nil {
-		utils.Debug("orch", "Cannot remove agent container: "+err.Error())
+	if orch.RemoveImages {
+		err = orch.RemoveAgentContainer(container)
+		if err != nil {
+			utils.Debug("orch", "Cannot remove agent container: "+err.Error())
+		}
 	}
 }
 

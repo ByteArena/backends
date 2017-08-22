@@ -56,6 +56,7 @@ func MakeLocalContainerOrchestrator() ContainerOrchestrator {
 		registryAuth:   registryAuth,
 		GetHost:        getHostLocalOrch,
 		StartContainer: startContainerLocalOrch,
+		RemoveImages:   false,
 	}
 }
 

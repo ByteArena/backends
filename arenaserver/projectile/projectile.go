@@ -13,6 +13,7 @@ type BallisticProjectile struct {
 	Radius         float64
 	TTL            int
 	AgentEmitterId uuid.UUID
+	JustFired      bool
 }
 
 func NewBallisticProjectile() *BallisticProjectile {
@@ -25,6 +26,10 @@ func NewBallisticProjectile() *BallisticProjectile {
 }
 
 func (p *BallisticProjectile) Update() {
-	p.TTL--
-	p.Position = p.Position.Add(p.Velocity)
+	if p.JustFired {
+		p.JustFired = false
+	} else {
+		p.TTL--
+		p.Position = p.Position.Add(p.Velocity)
+	}
 }

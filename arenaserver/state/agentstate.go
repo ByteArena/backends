@@ -184,7 +184,8 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 
 	projectile := projectile.NewBallisticProjectile()
 	projectile.AgentEmitterId = state.AgentId
-	projectile.Position = state.Position // Update() will be called later in the same tick, making the projectile appear immediately in front of the agent; is this desirable ?
+	projectile.Position = state.Position
+	projectile.JustFired = true
 
 	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
 	absaiming := localAngleToAbsoluteAngleVec(state.Orientation, aiming, nil) // TODO: replace nil here by an actual angle constraint
