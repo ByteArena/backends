@@ -98,27 +98,6 @@ func (server *Server) GetTicksPerSecond() int {
 	return server.tickspersec
 }
 
-// func (server *Server) spawnAgents() error {
-
-// 	for _, agent := range server.agents {
-// 		agentimage := server.agentimages[agent.GetId()]
-
-// 		container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, agentimage)
-
-// 		if err != nil {
-// 			return errors.New("Cannot create agent container: " + err.Error())
-// 		}
-
-// 		err = server.containerorchestrator.StartAgentContainer(container)
-
-// 		if err != nil {
-// 			return errors.New("Failed to start docker container: " + err.Error())
-// 		}
-// 	}
-
-// 	return nil
-// }
-
 func (server *Server) spawnAgents() error {
 
 	for _, ag := range server.agents {
@@ -133,7 +112,8 @@ func (server *Server) spawnAgents() error {
 			err = server.containerorchestrator.StartAgentContainer(container)
 			utils.Check(err, "Failed to start docker container for "+agent.String())
 
-			server.containerorchestrator.Wait(container)
+			waitchan, _ := server.containerorchestrator.Wait(container)
+			<-waitchan
 
 			utils.Debug("arena", "One container exited")
 			server.TearDown()

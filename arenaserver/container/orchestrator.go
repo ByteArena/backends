@@ -51,12 +51,14 @@ func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner AgentContainer) er
 	return errImageRemove
 }
 
-func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) {
-	orch.cli.ContainerWait(
+func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
+	waitChan, errorChan := orch.cli.ContainerWait(
 		orch.ctx,
 		ctner.containerid.String(),
 		container.WaitConditionRemoved,
 	)
+
+	return waitChan, errorChan
 }
 
 func (orch *ContainerOrchestrator) AddTearDownCall(fn TearDownCallback) {
