@@ -179,8 +179,6 @@ func (server *Server) Listen() chan interface{} {
 	err := server.commserver.Listen(server)
 	utils.Check(err, "Failed to listen on "+serveraddress)
 
-	notify.Post("app:stopticking", nil)
-
 	block := make(chan interface{})
 	notify.Start("app:stopticking", block)
 
@@ -367,6 +365,7 @@ func (server *Server) OnAgentsReady() {
 	utils.Debug("arena", "Agents are ready; starting in 1 second")
 	time.Sleep(time.Duration(time.Second * 1))
 
+	// TODO: handle monitoring stop on app:stopticking
 	go server.monitoring()
 
 	server.startTicking()
@@ -413,6 +412,8 @@ func (server *Server) Start() chan interface{} {
 
 func (server *Server) Stop() {
 	log.Println("TearDown from stop")
+	close(server.stopticking)
+
 	server.TearDown()
 
 	server.mqClient.Publish("game", "stopped", ArenaStopMessage{
@@ -421,7 +422,6 @@ func (server *Server) Stop() {
 		},
 	})
 
-	close(server.stopticking)
 	log.Println("Close ticking")
 }
 
