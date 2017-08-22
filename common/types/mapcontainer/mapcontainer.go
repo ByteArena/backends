@@ -3,6 +3,8 @@ package mapcontainer
 import (
 	"encoding/json"
 
+	"github.com/bytearena/bytearena/common/utils/vector"
+
 	"github.com/bytearena/bytearena/common/utils/number"
 )
 
@@ -16,16 +18,24 @@ type MapContainer struct {
 		Repository     string `json:"repository"`
 	} `json:"meta"`
 	Data struct {
-		Grounds   []MapGround   `json:"grounds"`
-		Starts    []MapStart    `json:"starts"`
-		Obstacles []MapObstacle `json:"obstacles"`
-		Objects   []MapObject   `json:"objects"`
+		Grounds         []MapGround         `json:"grounds"`
+		Starts          []MapStart          `json:"starts"`
+		Obstacles       []MapObstacleObject `json:"obstacles"`
+		CollisionMeshes []CollisionMesh     `json:"collisionmeshes"`
+		Objects         []MapPrefabObject   `json:"objects"`
 	} `json:"data"`
 }
 
 type MapPoint struct {
 	X float64
 	Y float64
+}
+
+func MakeMapPointFromVector2(vec vector.Vector2) MapPoint {
+	return MapPoint{
+		X: vec.GetX(),
+		Y: vec.GetY(),
+	}
 }
 
 func (p *MapPoint) MarshalJSON() ([]byte, error) {
@@ -67,23 +77,23 @@ type Mesh struct {
 	Uvs      []float64 `json:"uvs"`
 }
 
+type CollisionMesh struct {
+	Id       string    `json:"id"`
+	Vertices []float64 `json:"vertices"`
+}
+
 type MapPolygon struct {
-	Points []MapPoint
+	Points  []MapPoint `json:"points"`
+	Normals []MapPoint `json:"normals"`
 }
 
-func (p *MapPolygon) MarshalJSON() ([]byte, error) {
-	return json.Marshal(p.Points)
-}
-
-func (a *MapPolygon) UnmarshalJSON(b []byte) error {
-	var points []MapPoint
-	if err := json.Unmarshal(b, &points); err != nil {
-		return err
+func (a *MapPolygon) ToVector2Array() []vector.Vector2 {
+	res := make([]vector.Vector2, 0)
+	for _, point := range a.Points {
+		res = append(res, vector.MakeVector2(point.X, point.Y))
 	}
 
-	a.Points = points
-
-	return nil
+	return res
 }
 
 type MapStart struct {
@@ -91,49 +101,15 @@ type MapStart struct {
 	Point MapPoint `json:"point"`
 }
 
-type MapObstacle struct {
+type MapObstacleObject struct {
 	Id      string     `json:"id"`
 	Polygon MapPolygon `json:"polygon"`
 }
 
-type MapObject struct {
+type MapPrefabObject struct {
 	Id          string   `json:"id"`
 	Point       MapPoint `json:"point"`
 	Type        string   `json:"type"`
 	Diameter    float64  `json:"diameter"`
 	Orientation float64  `json:"orientation"`
 }
-
-/*
-{
-    "meta": {
-        "readme": "Byte Arena Training Map",
-        "kind": "deathmatch",
-        "theme": "desert",
-        "maxcontestants": 2,
-        "date": "1234-01-01 00:00:00Z",
-        "repository": "http://github.com/bytearena/maps/"
-    },
-    "data": {
-        "grounds": [
-            {
-                "id": "theground",
-                "outline": [
-                    [[0, 0], [0, 100], [100, 100], [100, 0], [0, 0]],
-                    [[20, 20], [20, 80], [80, 80], [80, 0], [0, 0]]
-				],
-				"mesh": [
-					[[0, 0], [0, 100], [100, 100]],
-					[[0, 0], [0, 100], [100, 100]],
-					[[0, 0], [0, 100], [100, 100]]
-				]
-            }
-        ],
-        "starts": [
-            { "id": "one", "point": [[10, 10]] },
-            { "id": "two", "point": [[20, 20]] },
-            { "id": "three", "point": [[30, 30]] }
-        ]
-    }
-}
-*/

@@ -12,7 +12,6 @@ import (
 )
 
 type Game interface {
-	//Setup(srv *Server)
 	GetId() string
 	GetName() string
 	GetTps() int

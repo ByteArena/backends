@@ -61,12 +61,10 @@ func transformServerStateToVizMessage(game arenaserver.Game, state state.ServerS
 	state.Projectilesmutex.Lock()
 	for _, projectile := range state.Projectiles {
 		msg.Projectiles = append(msg.Projectiles, types.VizProjectileMessage{
-			Position: projectile.Velocity,
-			Radius:   projectile.Radius,
-			Kind:     "projectiles",
-			From: types.VizAgentMessage{
-				Position: projectile.Position,
-			},
+			Id:       projectile.Id,
+			Position: projectile.Position,
+			Velocity: projectile.Velocity,
+			Kind:     "projectile",
 		})
 	}
 	state.Projectilesmutex.Unlock()
@@ -75,6 +73,7 @@ func transformServerStateToVizMessage(game arenaserver.Game, state state.ServerS
 	for id, agent := range state.Agents {
 		msg.Agents = append(msg.Agents, types.VizAgentMessage{
 			Id:           id,
+			Name:         agent.AgentId.String(),
 			Kind:         "agent",
 			Position:     agent.Position,
 			Velocity:     agent.Velocity,

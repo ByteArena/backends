@@ -3,14 +3,12 @@ package state
 import "github.com/bytearena/bytearena/common/utils/vector"
 
 type PerceptionSpecs struct {
-	// Weight int
-	// statique
-	// TBD
 	MaxSpeed           float64 // max distance covered per turn
 	MaxSteeringForce   float64 // max force applied when steering (ie, max magnitude of steering vector)
 	MaxAngularVelocity float64
 	VisionRadius       float64
 	VisionAngle        float64
+	DragForce          float64
 }
 
 type PerceptionVisionItem struct {

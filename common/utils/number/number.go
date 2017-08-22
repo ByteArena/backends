@@ -18,6 +18,9 @@ func ToFixed(val float64, places int) (newVal float64) {
 		round = math.Floor(digit)
 	}
 	newVal = round / pow
+	if newVal == -0.0 {
+		newVal = 0.0
+	}
 	return
 }
 

@@ -112,7 +112,7 @@ func main() {
 
 	// Below line is used to serve assets locally
 	// TODO: find a way to bundle the trainer with the assets
-	// vizservice.SetPathToAssets("/Users/jerome/Code/other/assets/")
+	vizservice.SetPathToAssets("/Users/jerome/Code/other/assets/")
 
 	vizservice.Start()
 

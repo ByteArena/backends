@@ -40,6 +40,14 @@ func (v Vector2) Get() (float64, float64) {
 	return v.x, v.y
 }
 
+func (v Vector2) GetX() float64 {
+	return v.x
+}
+
+func (v Vector2) GetY() float64 {
+	return v.y
+}
+
 func (v Vector2) MarshalJSON() ([]byte, error) {
 	propfmt := "%.4f"
 	buffer := bytes.NewBufferString("[")

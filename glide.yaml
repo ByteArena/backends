@@ -28,3 +28,4 @@ import:
   version: ^1.0.0
 - package: github.com/netgusto/poly2tri-go
   version: ^1.0.0
+- package: github.com/dhconnelly/rtreego
