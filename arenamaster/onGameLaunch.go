@@ -55,24 +55,27 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 				}
 			}()
 
-			go func() {
-				timeout := 30
-				timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Second)
-				<-timeoutTimer.C
-
-				_, isPending := state.pendingArenas[astate.id]
-
-				if isPending {
-					utils.Debug("pending", "Arena "+astate.id+" couldn't be launched")
-
-					delete(state.pendingArenas, astate.id)
-
-					// Retry to launch a game
-					onGameLaunch(state, payload, mqclient, gql)
-				}
-			}()
+			go waitForLaunchedOrRetry(state, payload, mqclient, gql, astate)
 		}
 	} else {
 		utils.Debug("master", "No game available")
+	}
+}
+
+func waitForLaunchedOrRetry(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client, astate ArenaState) {
+	timeout := 30
+	timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Second)
+	<-timeoutTimer.C
+
+	_, isPending := state.pendingArenas[astate.id]
+
+	if isPending {
+		utils.Debug("pending", "Arena "+astate.id+" couldn't be launched")
+
+		delete(state.pendingArenas, astate.id)
+
+		// Retry to launch a game
+		onGameStop(state, payload, gql)
+		onGameLaunch(state, payload, mqclient, gql)
 	}
 }
