@@ -408,15 +408,16 @@ func (server *Server) startTicking() {
 }
 
 func (server *Server) Start() (chan interface{}, error) {
+
+	utils.Debug("arena", "Listen")
+	block := server.Listen()
+
 	utils.Debug("arena", "Spawn agents")
 	err := server.spawnAgents()
 
 	if err != nil {
 		return nil, errors.New("Failed to spawn agents: " + err.Error())
 	}
-
-	utils.Debug("arena", "Listen")
-	block := server.Listen()
 
 	return block, nil
 }
@@ -726,28 +727,54 @@ func processMovingObjectObstacleCollision(server *Server, beforeState, afterStat
 
 		if len(collisions) > 0 {
 
-			normal := vector.MakeNullVector2()
-			maxDist := -1.0
+			//normal := vector.MakeNullVector2()
+			minDist := -1.0
 			for _, collision := range collisions {
 				thisDist := collision.Point.Sub(beforeState.Position).Mag()
-				if maxDist < 0 || maxDist > thisDist {
-					maxDist = thisDist
+				if minDist < 0 || minDist > thisDist {
+					minDist = thisDist
+					//normal = collision.Obstacle.Normal
 				}
-
-				normal = normal.Add(collision.Obstacle.Normal)
 			}
 
-			normal = normal.Normalize()
+			//normal = normal.Normalize()
 
-			backoffDistance := beforeState.Radius + 0.1
-			nextPoint := centerEdge.Vector2().SetMag(maxDist).Sub(normal.SetMag(backoffDistance)).Add(beforeState.Position)
+			backoffDistance := beforeState.Radius + 0.001
+			//nextPoint := centerEdge.Vector2().SetMag(maxDist).Sub(normal.SetMag(backoffDistance)).Add(beforeState.Position)
+			nextPoint := centerEdge.Vector2().SetMag(minDist - backoffDistance).Add(beforeState.Position)
 
 			if !isInsideGroundSurface(server, nextPoint) {
-				//log.Println("OUTSIDE !!!!!!!!!")
+
+				// backtracking position to last not outside
+				backsteps := 10
+				railRel := afterState.Position.Sub(beforeState.Position)
+				for k := 1; k <= backsteps; k++ {
+					nextPointRel := railRel.Scale(1 - float64(k)/float64(backsteps))
+					if isInsideGroundSurface(server, nextPointRel.Add(beforeState.Position)) {
+						collisionhandler(nextPointRel.Add(beforeState.Position))
+						return
+					}
+				}
+
+				//log.Println("NOPE, BEFORESTATE GROUND !")
 				collisionhandler(beforeState.Position)
+
 			} else {
 				if isInsideCollisionMesh(server, nextPoint) {
-					//log.Println("IN OBSTACLE !!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+					// backtracking position to last not in obstacle
+					backsteps := 30
+					railRel := afterState.Position.Sub(beforeState.Position)
+					for k := 1; k <= backsteps; k++ {
+						nextPointRel := railRel.Scale(1 - float64(k)/float64(backsteps))
+						if !isInsideCollisionMesh(server, nextPointRel.Add(beforeState.Position)) {
+							collisionhandler(nextPointRel.Add(beforeState.Position))
+							return
+						}
+					}
+
+					//log.Println("NOPE, BEFORESTATE OBSTACLE !")
+
 					collisionhandler(beforeState.Position)
 				} else {
 					collisionhandler(nextPoint)

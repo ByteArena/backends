@@ -184,7 +184,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 
 	projectile := projectile.NewBallisticProjectile()
 	projectile.AgentEmitterId = state.AgentId
-	projectile.Position = state.Position
+	projectile.Position = state.Position.Add(state.Velocity) // setting at next agent position (which will be updated later in the tick)
 	projectile.JustFired = true
 
 	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
