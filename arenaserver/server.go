@@ -105,7 +105,12 @@ func (server *Server) spawnAgents() error {
 	for _, agent := range server.agents {
 		dockerimage := server.agentimages[agent.GetId()]
 
-		container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), server.host, server.port, dockerimage)
+		arenaHostnameForAgents, err := server.containerorchestrator.GetHost(&server.containerorchestrator)
+		if err != nil {
+			return errors.New("Failed to fetch arena hostname for agents; " + err.Error())
+		}
+
+		container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), arenaHostnameForAgents, server.port, dockerimage)
 
 		if err != nil {
 			return errors.New("Failed to create docker container for " + agent.String() + ": " + err.Error())
