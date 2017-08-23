@@ -21,7 +21,7 @@ mutation ($id: String, $arenaServerId: String, $game: GameInputUpdate!) {
 `
 
 func getMasterStatus(state *State) string {
-	return "(" + strconv.Itoa(len(state.idleArenas)) + " arena(s) idle, " + strconv.Itoa(len(state.runningArenas)) + " arena(s) running)"
+	return "(" + strconv.Itoa(len(state.idleArenas)) + " arena(s) idle, " + strconv.Itoa(len(state.runningArenas)) + " arena(s) running, " + strconv.Itoa(len(state.pendingArenas)) + " arena(s) pending)"
 }
 
 func onGameHandshake(state *State, payload *types.MQPayload) {
@@ -40,17 +40,21 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 
 	if len(state.idleArenas) > 0 {
 
-		var astate ArenaState
-
-		for _, value := range state.idleArenas {
-			astate = value
-			break
-		}
-
-		delete(state.idleArenas, astate.id)
-		state.runningArenas[astate.id] = astate
-
 		if id, ok := (*payload)["id"].(string); ok {
+
+			var astate ArenaState
+
+			// Take the first arena
+			for _, value := range state.idleArenas {
+				astate = value
+				break
+			}
+
+			// Remove from idle pool
+			delete(state.idleArenas, astate.id)
+
+			// Put it into pending arenas (waiting for arena comfirmation)
+			state.pendingArenas[astate.id] = astate
 
 			mqclient.Publish("game", astate.id+".launch", types.MQPayload{
 				"id": id,
@@ -76,9 +80,40 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 					utils.Debug("master", "Game state set to running for Game "+id+" on server "+astate.id)
 				}
 			}()
+
+			go func() {
+				timeout := 30
+				timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Second)
+				<-timeoutTimer.C
+
+				_, isPending := state.pendingArenas[astate.id]
+
+				if isPending {
+					utils.Debug("pending", "Arena "+astate.id+" couldn't be launched")
+
+					delete(state.pendingArenas, astate.id)
+
+					// Retry to launch a game
+					onGameLaunch(state, payload, mqclient, gql)
+				}
+			}()
 		}
 	} else {
 		utils.Debug("master", "No game available")
+	}
+}
+
+func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
+	if arenaServerId, ok := (*payload)["arenaserverid"].(string); ok {
+		if arena, ok := state.pendingArenas[arenaServerId]; ok {
+
+			// Put it into running arenas, now that we're sure
+			state.runningArenas[arena.id] = arena
+
+			delete(state.pendingArenas, arena.id)
+
+			utils.Debug("master", arenaServerId+" launched "+getMasterStatus(state))
+		}
 	}
 }
 
