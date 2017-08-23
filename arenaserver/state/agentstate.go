@@ -35,7 +35,9 @@ import (
 // or by simulating moment of inertia.
 
 type AgentState struct {
-	AgentId            uuid.UUID
+	AgentId   uuid.UUID
+	AgentName string
+
 	Radius             float64
 	Mass               float64
 	Position           vector.Vector2
@@ -66,14 +68,16 @@ type AgentState struct {
 	LastShot                 int     // Number of ticks since last shot
 }
 
-func MakeAgentState(agentId uuid.UUID, start mapcontainer.MapStart) AgentState {
+func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapStart) AgentState {
 	initialx := start.Point.X
 	initialy := start.Point.Y
 
 	r := 0.3 // agent diameter=0.6
 
 	return AgentState{
-		AgentId:            agentId,
+		AgentId:   agentId,
+		AgentName: agentName,
+
 		Position:           vector.MakeVector2(initialx, initialy),
 		Velocity:           vector.MakeNullVector2(),
 		MaxSpeed:           1.5,

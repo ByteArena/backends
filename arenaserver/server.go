@@ -126,7 +126,7 @@ func (server *Server) spawnAgents() error {
 	return nil
 }
 
-func (server *Server) RegisterAgent(agentimage string) {
+func (server *Server) RegisterAgent(agentimage, agentname string) {
 	arenamap := server.arena.GetMapContainer()
 	agentSpawnPointIndex := len(server.agents)
 
@@ -138,7 +138,7 @@ func (server *Server) RegisterAgent(agentimage string) {
 	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
 
 	agent := agent.MakeNetAgentImp()
-	agentstate := state.MakeAgentState(agent.GetId(), agentSpawningPos)
+	agentstate := state.MakeAgentState(agent.GetId(), agentname, agentSpawningPos)
 
 	server.setAgent(agent)
 	server.state.SetAgentState(agent.GetId(), agentstate)

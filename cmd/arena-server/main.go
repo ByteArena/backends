@@ -100,7 +100,7 @@ func main() {
 						srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID, brokerclient)
 
 						for _, contestant := range arena.GetContestants() {
-							srv.RegisterAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)
+							srv.RegisterAgent(contestant.AgentRegistry+"/"+contestant.AgentImage, contestant.Username)
 						}
 
 						// handling signals

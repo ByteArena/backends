@@ -76,7 +76,7 @@ func main() {
 			image = contestant.AgentRegistry + "/" + contestant.AgentImage
 		}
 
-		srv.RegisterAgent(image)
+		srv.RegisterAgent(image, image)
 	}
 
 	// handling signals
