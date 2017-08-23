@@ -106,7 +106,7 @@ func main() {
 					msg.EmitterConn = conn
 
 					go func() {
-						log.Println("Dispatching agent message", msg)
+						log.Println("Dispatching agent message", string(msg.GetPayload()))
 					}()
 				}
 			}()
