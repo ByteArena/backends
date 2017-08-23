@@ -51,6 +51,8 @@ type Server struct {
 
 	agentimages map[uuid.UUID]string
 
+	agenthandshakes map[uuid.UUID]struct{}
+
 	arena Game
 }
 
@@ -89,6 +91,8 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 		mqClient:              mqClient,
 
 		agentimages: make(map[uuid.UUID]string),
+
+		agenthandshakes: make(map[uuid.UUID]struct{}),
 
 		arena: arena,
 	}
@@ -295,9 +299,21 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 		return errors.New("DispatchAgentMessage: agentid does not match any known agent in received agent message !;" + msg.GetAgentId().String())
 	}
 
+	// proto := msg.GetEmitterConn().LocalAddr().Network()
+	// ip := strings.Split(msg.GetEmitterConn().RemoteAddr().String(), ":")[0]
+	// if proto != "tcp" || ip != "TODO:take from agent container struct"
+	// Problem here: cannot check ip against the one we get from Docker by inspecting the container
+	// as the two addresses do not match
+
 	switch msg.GetType() {
 	case "Handshake":
 		{
+			if _, found := server.agenthandshakes[msg.GetAgentId()]; found {
+				return errors.New("ERROR: Received duplicate handshake from agent " + ag.String())
+			}
+
+			server.agenthandshakes[msg.GetAgentId()] = struct{}{}
+
 			var handshake protocol.MessageHandshakeImp
 			err = json.Unmarshal(msg.GetPayload(), &handshake)
 			if err != nil {

@@ -23,20 +23,20 @@ type ContainerOrchestrator struct {
 	ctx               context.Context
 	cli               *client.Client
 	registryAuth      string
-	containers        []AgentContainer
+	containers        []*AgentContainer
 	GetHost           func(orch *ContainerOrchestrator) (string, error)
-	StartContainer    func(orch *ContainerOrchestrator, ctner AgentContainer) error
+	StartContainer    func(orch *ContainerOrchestrator, ctner *AgentContainer) error
 	TearDownCallbacks []TearDownCallback
 	RemoveImages      bool
 }
 
-func (orch *ContainerOrchestrator) StartAgentContainer(ctner AgentContainer) error {
+func (orch *ContainerOrchestrator) StartAgentContainer(ctner *AgentContainer) error {
 	utils.Debug("orch", "Spawning agent "+ctner.AgentId.String())
 
 	return orch.StartContainer(orch, ctner)
 }
 
-func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner AgentContainer) error {
+func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner *AgentContainer) error {
 	utils.Debug("orch", "Remove agent image "+ctner.ImageName)
 
 	out, errImageRemove := orch.cli.ImageRemove(
@@ -67,7 +67,7 @@ func (orch *ContainerOrchestrator) AddTearDownCall(fn TearDownCallback) {
 	orch.TearDownCallbacks = append(orch.TearDownCallbacks, fn)
 }
 
-func (orch *ContainerOrchestrator) TearDown(container AgentContainer) {
+func (orch *ContainerOrchestrator) TearDown(container *AgentContainer) {
 	for _, cb := range orch.TearDownCallbacks {
 		cb()
 	}
@@ -115,7 +115,7 @@ func normalizeDockerRef(dockerimage string) (string, error) {
 	return parsedRefWithTag.String(), nil
 }
 
-func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, dockerimage string) (AgentContainer, error) {
+func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, dockerimage string) (*AgentContainer, error) {
 
 	containerUnixUser := os.Getenv("CONTAINER_UNIX_USER")
 
@@ -126,7 +126,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 	normalizedDockerimage, err := normalizeDockerRef(dockerimage)
 
 	if err != nil {
-		return AgentContainer{}, err
+		return nil, err
 	}
 
 	localimages, _ := orch.cli.ImageList(orch.ctx, types.ImageListOptions{})
@@ -156,7 +156,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		)
 
 		if err != nil {
-			return AgentContainer{}, errors.New("Failed to pull " + dockerimage + " from registry; " + err.Error())
+			return nil, errors.New("Failed to pull " + dockerimage + " from registry; " + err.Error())
 		}
 
 		defer reader.Close()
@@ -199,10 +199,10 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		"agent-"+agentid.String(), // container name
 	)
 	if err != nil {
-		return AgentContainer{}, errors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
+		return nil, errors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
 	}
 
-	agentcontainer := MakeAgentContainer(agentid, ContainerId(resp.ID), normalizedDockerimage)
+	agentcontainer := NewAgentContainer(agentid, ContainerId(resp.ID), normalizedDockerimage)
 	orch.containers = append(orch.containers, agentcontainer)
 
 	return agentcontainer, nil

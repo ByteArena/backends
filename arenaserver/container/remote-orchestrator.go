@@ -11,9 +11,10 @@ import (
 	"github.com/docker/docker/client"
 )
 
+// TODO: parametrize this
 var logDir = "/var/log/agents"
 
-func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner AgentContainer) error {
+func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner *AgentContainer) error {
 
 	err := orch.cli.ContainerStart(
 		orch.ctx,
@@ -30,6 +31,16 @@ func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner AgentContainer)
 	if err != nil {
 		return errors.New("Failed to follow docker container logs for " + ctner.containerid.String())
 	}
+
+	containerInfo, err := orch.cli.ContainerInspect(
+		orch.ctx,
+		ctner.containerid.String(),
+	)
+	if err != nil {
+		return errors.New("Could not inspect container " + ctner.containerid.String())
+	}
+
+	ctner.SetIPAddress(containerInfo.NetworkSettings.IPAddress)
 
 	return nil
 }
@@ -53,8 +64,8 @@ func MakeRemoteContainerOrchestrator(arenaAddr string, registryAddr string) Cont
 	}
 }
 
-func remoteLogsToSyslog(orch *ContainerOrchestrator, container AgentContainer) error {
-	go func(orch *ContainerOrchestrator, container AgentContainer) {
+func remoteLogsToSyslog(orch *ContainerOrchestrator, container *AgentContainer) error {
+	go func(orch *ContainerOrchestrator, container *AgentContainer) {
 		reader, err := orch.cli.ContainerLogs(orch.ctx, container.containerid.String(), types.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
