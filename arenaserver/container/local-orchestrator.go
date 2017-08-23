@@ -43,7 +43,7 @@ func startContainerLocalOrch(orch *ContainerOrchestrator, ctner AgentContainer) 
 	return nil
 }
 
-func MakeLocalContainerOrchestrator() ContainerOrchestrator {
+func MakeLocalContainerOrchestrator(host string) ContainerOrchestrator {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
 	utils.Check(err, "Failed to initialize docker client environment")
@@ -51,10 +51,16 @@ func MakeLocalContainerOrchestrator() ContainerOrchestrator {
 	registryAuth := ""
 
 	return ContainerOrchestrator{
-		ctx:            ctx,
-		cli:            cli,
-		registryAuth:   registryAuth,
-		GetHost:        getHostLocalOrch,
+		ctx:          ctx,
+		cli:          cli,
+		registryAuth: registryAuth,
+		GetHost: func(orch *ContainerOrchestrator) (string, error) {
+			if host == "" {
+				return getHostLocalOrch(orch)
+			}
+
+			return host, nil
+		},
 		StartContainer: startContainerLocalOrch,
 		RemoveImages:   false,
 	}

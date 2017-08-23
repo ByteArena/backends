@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"os"
 	"strconv"
 	"time"
@@ -165,8 +164,6 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		io.Copy(os.Stdout, reader)
 		utils.Debug("orch", "Pulled image successfully")
 	}
-
-	log.Println("---------------------------------------- HOST:", host)
 
 	containerconfig := container.Config{
 		Image: normalizedDockerimage,
