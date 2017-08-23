@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/bytearena/bytearena/vizserver/types"
@@ -28,6 +29,12 @@ func Arena(arenas *types.VizArenaMap, basepath string, CDNBaseURL string) func(w
 			return
 		}
 
+		protocol := "ws"
+
+		if os.Getenv("ENV") == "prod" {
+			protocol = "wss"
+		}
+
 		var vizhtmlTemplate = template.Must(template.New("").Parse(string(vizhtml)))
 		vizhtmlTemplate.Execute(w, struct {
 			WsURL      string
@@ -35,7 +42,7 @@ func Arena(arenas *types.VizArenaMap, basepath string, CDNBaseURL string) func(w
 			Rand       int64
 			Tps        int
 		}{
-			WsURL:      "wss://" + r.Host + "/arena/" + arena.GetId() + "/ws",
+			WsURL:      protocol + "://" + r.Host + "/arena/" + arena.GetId() + "/ws",
 			CDNBaseURL: CDNBaseURL,
 			Rand:       time.Now().Unix(),
 			Tps:        arena.GetTps(),
