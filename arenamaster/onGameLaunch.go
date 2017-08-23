@@ -32,6 +32,8 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 			// Remove from idle pool
 			delete(state.idleArenas, astate.id)
 
+			astate.GameId = id
+
 			// Put it into pending arenas (waiting for arena comfirmation)
 			state.pendingArenas[astate.id] = astate
 
