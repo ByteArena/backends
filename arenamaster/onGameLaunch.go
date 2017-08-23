@@ -16,6 +16,11 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 
 		if id, ok := (*payload)["id"].(string); ok {
 
+			// Ignore if the game is already running
+			if isGameIdAlreadyRunning(state, id) {
+				return
+			}
+
 			var astate ArenaState
 
 			// Take the first arena
@@ -78,4 +83,16 @@ func waitForLaunchedOrRetry(state *State, payload *types.MQPayload, mqclient *mq
 		onGameStop(state, payload, gql)
 		onGameLaunch(state, payload, mqclient, gql)
 	}
+}
+
+func isGameIdAlreadyRunning(state *State, id string) bool {
+	// FIXME(sven): missing check in pending arenas
+
+	for _, a := range state.runningArenas {
+		if a.GameId == id {
+			return true
+		}
+	}
+
+	return false
 }
