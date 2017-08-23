@@ -129,6 +129,13 @@ func main() {
 							log.Panicln("Cannot start server: " + startErr.Error())
 						}
 
+						brokerclient.Publish("game", "launched", types.NewMQMessage(
+							"arena-server",
+							"Arena Server "+(*arenaServerUUID)+" launched",
+						).SetPayload(types.MQPayload{
+							"arenaserverid": (*arenaServerUUID),
+						}))
+
 						<-serverChan
 
 						notify.PostTimeout("game:stopped", nil, time.Millisecond)
