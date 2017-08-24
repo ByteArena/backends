@@ -159,4 +159,7 @@ func main() {
 	notify.Start("game:stopped", streamArenaStopped)
 
 	<-streamArenaStopped
+
+	timeoutTimer := time.NewTimer(time.Duration(10) * time.Second)
+	<-timeoutTimer.C
 }
