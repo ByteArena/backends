@@ -35,7 +35,7 @@ type Server struct {
 	host                  string
 	UUID                  string
 	port                  int
-	stopticking           chan struct{}
+	stopticking           chan bool
 	tickspersec           int
 	containerorchestrator container.ContainerOrchestrator
 	agents                map[uuid.UUID]agent.Agent
@@ -82,7 +82,7 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 		host:                  gamehost,
 		UUID:                  UUID,
 		port:                  port,
-		stopticking:           make(chan struct{}),
+		stopticking:           make(chan bool),
 		tickspersec:           arena.GetTps(),
 		containerorchestrator: orch,
 		agents:                make(map[uuid.UUID]agent.Agent),
@@ -445,7 +445,10 @@ func (server *Server) startTicking() {
 
 		server.AddTearDownCall(func() error {
 			log.Println("Close ticking")
+
+			server.stopticking <- true
 			close(server.stopticking)
+
 			return nil
 		})
 
