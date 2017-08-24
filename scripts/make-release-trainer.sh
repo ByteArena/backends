@@ -9,14 +9,12 @@ BUILDS=(
 
 REPO_OWNER=bytearena
 REPO=trainer-test
-TAG=12
+TAG=$1
 
 GH_API="https://api.github.com"
 GH_REPO="$GH_API/repos/$REPO_OWNER/$REPO"
 GH_TAGS="$GH_REPO/releases/tags/$TAG"
 AUTH="Authorization: token $GITHUB_API_TOKEN"
-WGET_ARGS="--content-disposition --auth-no-challenge --no-cookie"
-CURL_ARGS="-LJO#"
 VERION=$(git rev-parse HEAD)
 FILENAME=arena-trainer-$VERION
 DIRECTORY=../../build/releases
