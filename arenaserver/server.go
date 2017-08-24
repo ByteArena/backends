@@ -449,20 +449,20 @@ func (server *Server) OnAgentsReady() {
 
 func (server *Server) startTicking() {
 
+	tickduration := time.Duration((1000000 / time.Duration(server.tickspersec)) * time.Microsecond)
+	ticker := time.Tick(tickduration)
+
+	log.Println("registrer close ticking")
+	server.AddTearDownCall(func() error {
+		log.Println("Close ticking")
+
+		server.stopticking <- true
+		close(server.stopticking)
+
+		return nil
+	})
+
 	go func() {
-
-		tickduration := time.Duration((1000000 / time.Duration(server.tickspersec)) * time.Microsecond)
-		ticker := time.Tick(tickduration)
-
-		log.Println("registrer close ticking")
-		server.AddTearDownCall(func() error {
-			log.Println("Close ticking")
-
-			server.stopticking <- true
-			close(server.stopticking)
-
-			return nil
-		})
 
 		for {
 			select {
