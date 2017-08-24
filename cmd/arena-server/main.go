@@ -163,6 +163,4 @@ func main() {
 	utils.Debug("arena", "Shutdown in 10 secs")
 	timeoutTimer := time.NewTimer(time.Duration(10) * time.Second)
 	<-timeoutTimer.C
-
-	os.Exit(0)
 }
