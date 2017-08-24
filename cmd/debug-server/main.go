@@ -53,9 +53,8 @@ func main() {
 		panic("Failed to create docker container for " + agentid.String() + ": " + err.Error())
 	}
 
-	err = orch.StartAgentContainer(container, func(types.TearDownCallback) {
+	err = orch.StartAgentContainer(container, func(types.TearDownCallback) {})
 
-	})
 	if err != nil {
 		panic("Failed to start docker container for " + agentid.String() + ": " + err.Error())
 	}

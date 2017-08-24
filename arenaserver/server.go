@@ -457,6 +457,19 @@ func (server *Server) Start() (chan interface{}, error) {
 		return nil, errors.New("Failed to spawn agents: " + err.Error())
 	}
 
+	server.AddTearDownCall(func() error {
+
+		utils.Debug("arena", "Publish game state (stopped)")
+
+		err := server.mqClient.Publish("game", "stopped", ArenaStopMessage{
+			Payload: ArenaStopMessagePayload{
+				ArenaServerId: server.UUID,
+			},
+		})
+
+		return err
+	})
+
 	return block, nil
 }
 
@@ -465,14 +478,6 @@ func (server *Server) Stop() {
 	close(server.stopticking)
 
 	server.TearDown()
-
-	utils.Debug("arena", "Publish game state (stopped)")
-
-	server.mqClient.Publish("game", "stopped", ArenaStopMessage{
-		Payload: ArenaStopMessagePayload{
-			ArenaServerId: server.UUID,
-		},
-	})
 
 	log.Println("Close ticking")
 }
