@@ -4,7 +4,7 @@ set -e
 BUILDS=(
     "GOARCH=amd64 GOOS=linux"
     "GOARCH=amd64 GOOS=windows"
-    "GOARCH=amd64 GOOS=mac"
+    "GOARCH=amd64 GOOS=darwin"
 )
 
 REPO_OWNER=bytearena
