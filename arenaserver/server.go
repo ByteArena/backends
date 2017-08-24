@@ -409,7 +409,7 @@ func (server *Server) monitoring(stopChannel chan bool) {
 		select {
 		case <-stopChannel:
 			{
-				return
+				break
 			}
 		case <-time.After(monitorfreq):
 			{
