@@ -1,12 +1,20 @@
 package container
 
-import uuid "github.com/satori/go.uuid"
+import (
+	"io"
+	"os"
+
+	uuid "github.com/satori/go.uuid"
+)
 
 type AgentContainer struct {
 	AgentId     uuid.UUID
 	containerid ContainerId
 	ImageName   string
 	IPAddress   string
+
+	LogReader io.ReadCloser
+	LogWriter *os.File
 }
 
 func NewAgentContainer(agentid uuid.UUID, containerid ContainerId, imageName string) *AgentContainer {
@@ -20,4 +28,9 @@ func NewAgentContainer(agentid uuid.UUID, containerid ContainerId, imageName str
 
 func (cnt *AgentContainer) SetIPAddress(ip string) {
 	cnt.IPAddress = ip
+}
+
+func (cnt *AgentContainer) SetLogger(reader io.ReadCloser, writer *os.File) {
+	cnt.LogReader = reader
+	cnt.LogWriter = writer
 }

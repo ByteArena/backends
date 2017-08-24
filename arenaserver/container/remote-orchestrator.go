@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	t "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -14,7 +15,7 @@ import (
 // TODO: parametrize this
 var logDir = "/var/log/agents"
 
-func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner *AgentContainer) error {
+func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner *AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
 
 	err := orch.cli.ContainerStart(
 		orch.ctx,
@@ -26,11 +27,22 @@ func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner *AgentContainer
 		return err
 	}
 
-	err = remoteLogsToSyslog(orch, ctner)
+	err = setAgentLogger(orch, ctner)
 
 	if err != nil {
 		return errors.New("Failed to follow docker container logs for " + ctner.containerid.String())
 	}
+
+	addTearDownCall(func() error {
+		utils.Debug("orch", "Closed agent container logger")
+
+		ctner.LogReader.Close()
+
+		ctner.LogWriter.Sync()
+		ctner.LogWriter.Close()
+
+		return nil
+	})
 
 	containerInfo, err := orch.cli.ContainerInspect(
 		orch.ctx,
@@ -64,7 +76,8 @@ func MakeRemoteContainerOrchestrator(arenaAddr string, registryAddr string) Cont
 	}
 }
 
-func remoteLogsToSyslog(orch *ContainerOrchestrator, container *AgentContainer) error {
+func setAgentLogger(orch *ContainerOrchestrator, container *AgentContainer) error {
+
 	go func(orch *ContainerOrchestrator, container *AgentContainer) {
 		reader, err := orch.cli.ContainerLogs(orch.ctx, container.containerid.String(), types.ContainerLogsOptions{
 			ShowStdout: true,
@@ -76,25 +89,15 @@ func remoteLogsToSyslog(orch *ContainerOrchestrator, container *AgentContainer) 
 
 		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.containerid.String())
 
-		defer reader.Close()
-
 		// Create log file
 		filename := logDir + "/" + container.AgentId.String() + ".log"
 		utils.Debug("agent-logs", "created file "+filename)
 
 		handle, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0777)
 
-		// Register reader teardown in case of server shutdown
-		orch.AddTearDownCall(func() {
-			handle.Close()
-			reader.Close()
-		})
+		container.SetLogger(reader, handle)
 
 		_, err = io.Copy(handle, reader)
-
-		handle.Sync()
-		handle.Close()
-
 	}(orch, container)
 
 	return nil

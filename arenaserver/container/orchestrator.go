@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	t "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 
 	"github.com/docker/distribution/reference"
@@ -17,23 +18,20 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-type TearDownCallback func()
-
 type ContainerOrchestrator struct {
-	ctx               context.Context
-	cli               *client.Client
-	registryAuth      string
-	containers        []*AgentContainer
-	GetHost           func(orch *ContainerOrchestrator) (string, error)
-	StartContainer    func(orch *ContainerOrchestrator, ctner *AgentContainer) error
-	TearDownCallbacks []TearDownCallback
-	RemoveImages      bool
+	ctx            context.Context
+	cli            *client.Client
+	registryAuth   string
+	containers     []*AgentContainer
+	GetHost        func(orch *ContainerOrchestrator) (string, error)
+	StartContainer func(orch *ContainerOrchestrator, ctner *AgentContainer, addTearDownCall func(t.TearDownCallback)) error
+	RemoveImages   bool
 }
 
-func (orch *ContainerOrchestrator) StartAgentContainer(ctner *AgentContainer) error {
+func (orch *ContainerOrchestrator) StartAgentContainer(ctner *AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
 	utils.Debug("orch", "Spawning agent "+ctner.AgentId.String())
 
-	return orch.StartContainer(orch, ctner)
+	return orch.StartContainer(orch, ctner, addTearDownCall)
 }
 
 func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner *AgentContainer) error {
@@ -63,15 +61,7 @@ func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) (<-chan container.
 	return waitChan, errorChan
 }
 
-func (orch *ContainerOrchestrator) AddTearDownCall(fn TearDownCallback) {
-	orch.TearDownCallbacks = append(orch.TearDownCallbacks, fn)
-}
-
 func (orch *ContainerOrchestrator) TearDown(container *AgentContainer) {
-	for _, cb := range orch.TearDownCallbacks {
-		cb()
-	}
-
 	timeout := time.Second * 5
 	err := orch.cli.ContainerStop(
 		orch.ctx,
@@ -92,9 +82,6 @@ func (orch *ContainerOrchestrator) TearDown(container *AgentContainer) {
 }
 
 func (orch *ContainerOrchestrator) TearDownAll() {
-	for _, container := range orch.containers {
-		orch.TearDown(container)
-	}
 }
 
 type DockerRef struct {

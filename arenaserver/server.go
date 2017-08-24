@@ -19,6 +19,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/mq"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/trigo"
@@ -54,6 +55,8 @@ type Server struct {
 	agenthandshakes map[uuid.UUID]struct{}
 
 	arena Game
+
+	TearDownCallbacks []types.TearDownCallback
 }
 
 type ArenaStopMessagePayload struct {
@@ -100,6 +103,10 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 	return s
 }
 
+func (s *Server) AddTearDownCall(fn types.TearDownCallback) {
+	s.TearDownCallbacks = append(s.TearDownCallbacks, fn)
+}
+
 func (server *Server) GetTicksPerSecond() int {
 	return server.tickspersec
 }
@@ -120,11 +127,17 @@ func (server *Server) spawnAgents() error {
 			return errors.New("Failed to create docker container for " + agent.String() + ": " + err.Error())
 		}
 
-		err = server.containerorchestrator.StartAgentContainer(container)
+		err = server.containerorchestrator.StartAgentContainer(container, server.AddTearDownCall)
 
 		if err != nil {
 			return errors.New("Failed to start docker container for " + agent.String() + ": " + err.Error())
 		}
+
+		server.AddTearDownCall(func() error {
+			server.containerorchestrator.TearDown(container)
+
+			return nil
+		})
 	}
 
 	return nil
@@ -201,6 +214,10 @@ func (server *Server) GetState() *state.ServerState {
 func (server *Server) TearDown() {
 	utils.Debug("arena", "teardown")
 	server.containerorchestrator.TearDownAll()
+
+	for _, cb := range server.TearDownCallbacks {
+		cb()
+	}
 }
 
 func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
