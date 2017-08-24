@@ -446,6 +446,12 @@ func (server *Server) startTicking() {
 				}
 			}
 		}
+
+		server.AddTearDownCall(func() error {
+			log.Println("Close ticking")
+			close(server.stopticking)
+			return nil
+		})
 	}()
 }
 
@@ -479,11 +485,8 @@ func (server *Server) Start() (chan interface{}, error) {
 
 func (server *Server) Stop() {
 	log.Println("TearDown from stop")
-	close(server.stopticking)
 
 	server.TearDown()
-
-	log.Println("Close ticking")
 }
 
 func (server *Server) ProcessMutations() {
