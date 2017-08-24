@@ -62,8 +62,11 @@ func main() {
 		"id": (*arenaServerUUID),
 	}))
 
-	streamArenaLaunched := make(chan interface{})
-	notify.Start("game:launch", streamArenaLaunched)
+	var hc *healthcheck.HealthCheckServer
+	if env == "prod" {
+		hc = NewHealthCheck(brokerclient, graphqlclient)
+		hc.Start()
+	}
 
 	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
 		utils.Debug("arenamaster", "Received launching order")
@@ -76,84 +79,24 @@ func main() {
 			return
 		}
 
-		notify.PostTimeout("game:launch", payload, time.Millisecond)
-	})
+		arena, err := apiqueries.FetchGameById(graphqlclient, payload.Id)
+		utils.Check(err, "Could not fetch game "+payload.Id)
 
-	var hc *healthcheck.HealthCheckServer
-	if env == "prod" {
-		hc = NewHealthCheck(brokerclient, graphqlclient)
-		hc.Start()
-	}
+		orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
+		srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID, brokerclient)
 
-	go func() {
-		for {
-			select {
-			case payload := <-streamArenaLaunched:
-				{
-					if arenaSubmitted, ok := payload.(messageArenaLaunch); ok {
-
-						// Fetch game from GraphQL
-						arena, err := apiqueries.FetchGameById(graphqlclient, arenaSubmitted.Id)
-						utils.Check(err, "Could not fetch game "+arenaSubmitted.Id)
-
-						orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
-						srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID, brokerclient)
-
-						for _, contestant := range arena.GetContestants() {
-							srv.RegisterAgent(contestant.AgentRegistry+"/"+contestant.AgentImage, contestant.Username)
-						}
-
-						srv.AddTearDownCall(func() error {
-							if hc != nil {
-								log.Println("Stop healthcheck")
-								hc.Stop()
-							}
-
-							return nil
-						})
-
-						// handling signals
-						go func() {
-							<-common.SignalHandler()
-							utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
-							srv.Stop()
-							log.Println("Stop")
-						}()
-
-						go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
-
-						// Limit the game in time
-						timeoutTimer := time.NewTimer(time.Duration(*timeout) * time.Minute)
-						go func() {
-							<-timeoutTimer.C
-
-							srv.Stop()
-							utils.Debug("timer", "Timeout, stop the arena")
-						}()
-
-						serverChan, startErr := srv.Start()
-
-						if startErr != nil {
-							srv.Stop()
-							log.Panicln("Cannot start server: " + startErr.Error())
-						}
-
-						brokerclient.Publish("game", "launched", types.NewMQMessage(
-							"arena-server",
-							"Arena Server "+(*arenaServerUUID)+" launched",
-						).SetPayload(types.MQPayload{
-							"arenaserverid": (*arenaServerUUID),
-						}))
-
-						<-serverChan
-						srv.Stop()
-
-						notify.PostTimeout("game:stopped", nil, time.Millisecond)
-					}
-				}
+		srv.AddTearDownCall(func() error {
+			if hc != nil {
+				log.Println("Stop healthcheck")
+				hc.Stop()
 			}
-		}
-	}()
+
+			return nil
+		})
+
+		go startGame(payload, orch, arena, srv, *timeout)
+		go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
+	})
 
 	streamArenaStopped := make(chan interface{})
 	notify.Start("game:stopped", streamArenaStopped)
@@ -163,4 +106,41 @@ func main() {
 	utils.Debug("arena", "Shutdown in 10 secs")
 	timeoutTimer := time.NewTimer(time.Duration(10) * time.Second)
 	<-timeoutTimer.C
+}
+
+func startGame(arenaSubmitted messageArenaLaunch, orch container.ContainerOrchestrator, arena arenaserver.Game, srv *arenaserver.Server, timeout int) {
+	for _, contestant := range arena.GetContestants() {
+		srv.RegisterAgent(contestant.AgentRegistry+"/"+contestant.AgentImage, contestant.Username)
+	}
+
+	// handling signals
+	go func() {
+		<-common.SignalHandler()
+		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
+		srv.Stop()
+		log.Println("Stop")
+	}()
+
+	// Limit the game in time
+	timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Minute)
+	go func() {
+		<-timeoutTimer.C
+
+		srv.Stop()
+		utils.Debug("timer", "Timeout, stop the arena")
+	}()
+
+	serverChan, startErr := srv.Start()
+
+	if startErr != nil {
+		srv.Stop()
+		log.Panicln("Cannot start server: " + startErr.Error())
+	}
+
+	srv.SendLaunched()
+
+	<-serverChan
+	srv.Stop()
+
+	notify.PostTimeout("game:stopped", nil, time.Millisecond)
 }

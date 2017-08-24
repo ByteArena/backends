@@ -907,6 +907,16 @@ func (server *Server) SubscribeStateObservation() chan state.ServerState {
 	return ch
 }
 
+func (server *Server) SendLaunched() {
+
+	server.mqClient.Publish("game", "launched", types.NewMQMessage(
+		"arena-server",
+		"Arena Server "+server.UUID+" launched",
+	).SetPayload(types.MQPayload{
+		"arenaserverid": server.UUID,
+	}))
+}
+
 func (server *Server) GetArena() Game {
 	return server.arena
 }
