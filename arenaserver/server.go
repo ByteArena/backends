@@ -56,7 +56,8 @@ type Server struct {
 
 	arena Game
 
-	TearDownCallbacks []types.TearDownCallback
+	TearDownCallbacks      []types.TearDownCallback
+	tearDownCallbacksMutex *sync.Mutex
 }
 
 type ArenaStopMessagePayload struct {
@@ -98,12 +99,18 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 		agenthandshakes: make(map[uuid.UUID]struct{}),
 
 		arena: arena,
+
+		TearDownCallbacks:      make([]types.TearDownCallback, 0),
+		tearDownCallbacksMutex: &sync.Mutex{},
 	}
 
 	return s
 }
 
 func (s *Server) AddTearDownCall(fn types.TearDownCallback) {
+	s.tearDownCallbacksMutex.Lock()
+	defer s.tearDownCallbacksMutex.Unlock()
+
 	s.TearDownCallbacks = append(s.TearDownCallbacks, fn)
 }
 
@@ -215,6 +222,8 @@ func (server *Server) TearDown() {
 	utils.Debug("arena", "teardown")
 	server.containerorchestrator.TearDownAll()
 
+	server.tearDownCallbacksMutex.Lock()
+
 	for _, cb := range server.TearDownCallbacks {
 		utils.Debug("teardown", "Executing TearDownCallback")
 		cb()
@@ -222,6 +231,8 @@ func (server *Server) TearDown() {
 
 	// Reset to avoid calling teardown callback multiple times
 	server.TearDownCallbacks = make([]types.TearDownCallback, 0)
+
+	server.tearDownCallbacksMutex.Unlock()
 }
 
 func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
@@ -443,6 +454,7 @@ func (server *Server) startTicking() {
 		tickduration := time.Duration((1000000 / time.Duration(server.tickspersec)) * time.Microsecond)
 		ticker := time.Tick(tickduration)
 
+		log.Println("registrer close ticking")
 		server.AddTearDownCall(func() error {
 			log.Println("Close ticking")
 
