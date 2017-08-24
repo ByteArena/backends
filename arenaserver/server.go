@@ -226,7 +226,7 @@ func (server *Server) TearDown() {
 
 	for _, cb := range server.TearDownCallbacks {
 		utils.Debug("teardown", "Executing TearDownCallback")
-		cb()
+		go cb()
 	}
 
 	// Reset to avoid calling teardown callback multiple times
