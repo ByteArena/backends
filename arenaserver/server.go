@@ -19,6 +19,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/mq"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/trigo"
@@ -34,7 +35,7 @@ type Server struct {
 	host                  string
 	UUID                  string
 	port                  int
-	stopticking           chan struct{}
+	stopticking           chan bool
 	tickspersec           int
 	containerorchestrator container.ContainerOrchestrator
 	agents                map[uuid.UUID]agent.Agent
@@ -54,6 +55,9 @@ type Server struct {
 	agenthandshakes map[uuid.UUID]struct{}
 
 	arena Game
+
+	TearDownCallbacks      []types.TearDownCallback
+	tearDownCallbacksMutex *sync.Mutex
 }
 
 type ArenaStopMessagePayload struct {
@@ -79,7 +83,7 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 		host:                  gamehost,
 		UUID:                  UUID,
 		port:                  port,
-		stopticking:           make(chan struct{}),
+		stopticking:           make(chan bool),
 		tickspersec:           arena.GetTps(),
 		containerorchestrator: orch,
 		agents:                make(map[uuid.UUID]agent.Agent),
@@ -95,9 +99,19 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 		agenthandshakes: make(map[uuid.UUID]struct{}),
 
 		arena: arena,
+
+		TearDownCallbacks:      make([]types.TearDownCallback, 0),
+		tearDownCallbacksMutex: &sync.Mutex{},
 	}
 
 	return s
+}
+
+func (s *Server) AddTearDownCall(fn types.TearDownCallback) {
+	s.tearDownCallbacksMutex.Lock()
+	defer s.tearDownCallbacksMutex.Unlock()
+
+	s.TearDownCallbacks = append(s.TearDownCallbacks, fn)
 }
 
 func (server *Server) GetTicksPerSecond() int {
@@ -120,11 +134,17 @@ func (server *Server) spawnAgents() error {
 			return errors.New("Failed to create docker container for " + agent.String() + ": " + err.Error())
 		}
 
-		err = server.containerorchestrator.StartAgentContainer(container)
+		err = server.containerorchestrator.StartAgentContainer(container, server.AddTearDownCall)
 
 		if err != nil {
 			return errors.New("Failed to start docker container for " + agent.String() + ": " + err.Error())
 		}
+
+		server.AddTearDownCall(func() error {
+			server.containerorchestrator.TearDown(container)
+
+			return nil
+		})
 	}
 
 	return nil
@@ -201,6 +221,18 @@ func (server *Server) GetState() *state.ServerState {
 func (server *Server) TearDown() {
 	utils.Debug("arena", "teardown")
 	server.containerorchestrator.TearDownAll()
+
+	server.tearDownCallbacksMutex.Lock()
+
+	for i := len(server.TearDownCallbacks) - 1; i >= 0; i-- {
+		utils.Debug("teardown", "Executing TearDownCallback")
+		server.TearDownCallbacks[i]()
+	}
+
+	// Reset to avoid calling teardown callback multiple times
+	server.TearDownCallbacks = make([]types.TearDownCallback, 0)
+
+	server.tearDownCallbacksMutex.Unlock()
 }
 
 func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
@@ -369,12 +401,16 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 	return nil
 }
 
-func (server *Server) monitoring() {
+func (server *Server) monitoring(stopChannel chan bool) {
 	monitorfreq := time.Second
 	debugNbMutations := 0
 	debugNbUpdates := 0
 	for {
 		select {
+		case <-stopChannel:
+			{
+				break
+			}
 		case <-time.After(monitorfreq):
 			{
 				fmt.Print(chalk.Cyan)
@@ -398,18 +434,32 @@ func (server *Server) OnAgentsReady() {
 	utils.Debug("arena", "Agents are ready; starting in 1 second")
 	time.Sleep(time.Duration(time.Second * 1))
 
-	// TODO: handle monitoring stop on app:stopticking
-	go server.monitoring()
+	go func() {
+		stopChannel := make(chan bool)
+		server.monitoring(stopChannel)
+
+		server.AddTearDownCall(func() error {
+			stopChannel <- true
+			return nil
+		})
+	}()
 
 	server.startTicking()
 }
 
 func (server *Server) startTicking() {
 
-	go func() {
+	tickduration := time.Duration((1000000 / time.Duration(server.tickspersec)) * time.Microsecond)
+	ticker := time.Tick(tickduration)
 
-		tickduration := time.Duration((1000000 / time.Duration(server.tickspersec)) * time.Microsecond)
-		ticker := time.Tick(tickduration)
+	server.AddTearDownCall(func() error {
+		server.stopticking <- true
+		close(server.stopticking)
+
+		return nil
+	})
+
+	go func() {
 
 		for {
 			select {
@@ -417,7 +467,7 @@ func (server *Server) startTicking() {
 				{
 					log.Println("Received stop ticking signal")
 					notify.Post("app:stopticking", nil)
-					return
+					break
 				}
 			case <-ticker:
 				{
@@ -440,24 +490,25 @@ func (server *Server) Start() (chan interface{}, error) {
 		return nil, errors.New("Failed to spawn agents: " + err.Error())
 	}
 
+	server.AddTearDownCall(func() error {
+		utils.Debug("arena", "Publish game state (stopped)")
+
+		err := server.mqClient.Publish("game", "stopped", ArenaStopMessage{
+			Payload: ArenaStopMessagePayload{
+				ArenaServerId: server.UUID,
+			},
+		})
+
+		return err
+	})
+
 	return block, nil
 }
 
 func (server *Server) Stop() {
 	log.Println("TearDown from stop")
-	close(server.stopticking)
 
 	server.TearDown()
-
-	utils.Debug("arena", "Publish game state (stopped)")
-
-	server.mqClient.Publish("game", "stopped", ArenaStopMessage{
-		Payload: ArenaStopMessagePayload{
-			ArenaServerId: server.UUID,
-		},
-	})
-
-	log.Println("Close ticking")
 }
 
 func (server *Server) ProcessMutations() {
@@ -854,6 +905,16 @@ func (server *Server) SubscribeStateObservation() chan state.ServerState {
 	ch := make(chan state.ServerState)
 	server.stateobservers = append(server.stateobservers, ch)
 	return ch
+}
+
+func (server *Server) SendLaunched() {
+
+	server.mqClient.Publish("game", "launched", types.NewMQMessage(
+		"arena-server",
+		"Arena Server "+server.UUID+" launched",
+	).SetPayload(types.MQPayload{
+		"arenaserverid": server.UUID,
+	}))
 }
 
 func (server *Server) GetArena() Game {

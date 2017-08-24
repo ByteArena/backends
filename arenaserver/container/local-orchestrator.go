@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 
+	commonTypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -22,7 +23,7 @@ func getHostLocalOrch(orch *ContainerOrchestrator) (string, error) {
 	return res.IPAM.Config[0].Gateway, nil
 }
 
-func startContainerLocalOrch(orch *ContainerOrchestrator, ctner *AgentContainer) error {
+func startContainerLocalOrch(orch *ContainerOrchestrator, ctner *AgentContainer, addTearDownCall func(commonTypes.TearDownCallback)) error {
 
 	err := orch.cli.ContainerStart(
 		orch.ctx,

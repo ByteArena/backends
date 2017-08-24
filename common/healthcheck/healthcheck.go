@@ -85,8 +85,12 @@ func (server *HealthCheckServer) Start() chan struct{} {
 
 	go func(block chan struct{}) {
 		err := server.listener.Serve(listener)
-		utils.Check(err, "Failed to listen on :"+server.port)
 		close(block)
+
+		if err != nil {
+			log.Println("Failed to listen on :" + server.port + ": " + err.Error())
+		}
+
 	}(block)
 
 	return block

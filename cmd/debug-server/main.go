@@ -12,6 +12,7 @@ import (
 
 	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	uuid "github.com/satori/go.uuid"
 )
@@ -33,7 +34,7 @@ func main() {
 	// arenaAddr := "192.168.0.10"
 	// orch := container.MakeRemoteContainerOrchestrator(arenaAddr, registryAddr)
 
-	orch := container.MakeLocalContainerOrchestrator()
+	orch := container.MakeLocalContainerOrchestrator("")
 
 	///////////////////////////////////////////////////////////////////////////
 	// Spawn agent
@@ -52,7 +53,8 @@ func main() {
 		panic("Failed to create docker container for " + agentid.String() + ": " + err.Error())
 	}
 
-	err = orch.StartAgentContainer(container)
+	err = orch.StartAgentContainer(container, func(types.TearDownCallback) {})
+
 	if err != nil {
 		panic("Failed to start docker container for " + agentid.String() + ": " + err.Error())
 	}
