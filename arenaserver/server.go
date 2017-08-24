@@ -452,10 +452,7 @@ func (server *Server) startTicking() {
 	tickduration := time.Duration((1000000 / time.Duration(server.tickspersec)) * time.Microsecond)
 	ticker := time.Tick(tickduration)
 
-	log.Println("registrer close ticking")
 	server.AddTearDownCall(func() error {
-		log.Println("Close ticking")
-
 		server.stopticking <- true
 		close(server.stopticking)
 
@@ -470,7 +467,7 @@ func (server *Server) startTicking() {
 				{
 					log.Println("Received stop ticking signal")
 					notify.Post("app:stopticking", nil)
-					return
+					break
 				}
 			case <-ticker:
 				{
