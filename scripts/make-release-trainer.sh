@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+# upx is required
+upx -V > /dev/null
+
 BUILDS=(
     "GOARCH=amd64 GOOS=linux"
     "GOARCH=amd64 GOOS=windows"
@@ -25,7 +28,7 @@ if [[ "$TAG" == 'latest' ]]; then
 fi
 
 # Validate token.
-curl -o /dev/null -sH "$AUTH" $GH_REPO || { echo "Error: Invalid repo, token or network issue!";  exit 1; }
+curl -o /dev/null -sH "$AUTH" $GH_REPO || { echo "Error: Invalid repo, token or network issue!"; exit 1; }
 
 # Create release
 curl -s -k -X POST \
@@ -40,7 +43,6 @@ response=$(curl -sH "$AUTH" $GH_TAGS)
 eval $(echo "$response" | grep -m 1 "id.:" | grep -w id | tr : = | tr -cd '[[:alnum:]]=')
 [ "$id" ] || { echo "Error: Failed to get release id for tag: $tag"; echo "$response" | awk 'length($0)<100' >&2; exit 1; }
 
-
 cd cmd/arena-trainer
 
 for i in "${BUILDS[@]}"
@@ -53,7 +55,9 @@ do
 
     echo "Building $FILE release..."
 
-    go build -o "$FILE" -ldflags="-s -w"
+    env $i go build -o "$FILE" -ldflags="-s -w"
+    upx -9 $FILE
+    du -sh $FILE
 
     echo "Uploading $FILE release..."
 
