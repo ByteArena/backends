@@ -390,12 +390,16 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 	return nil
 }
 
-func (server *Server) monitoring() {
+func (server *Server) monitoring(stopChannel chan bool) {
 	monitorfreq := time.Second
 	debugNbMutations := 0
 	debugNbUpdates := 0
 	for {
 		select {
+		case <-stopChannel:
+			{
+				return
+			}
 		case <-time.After(monitorfreq):
 			{
 				fmt.Print(chalk.Cyan)
@@ -419,8 +423,15 @@ func (server *Server) OnAgentsReady() {
 	utils.Debug("arena", "Agents are ready; starting in 1 second")
 	time.Sleep(time.Duration(time.Second * 1))
 
-	// TODO: handle monitoring stop on app:stopticking
-	go server.monitoring()
+	go func() {
+		stopChannel := make(chan bool)
+		server.monitoring(stopChannel)
+
+		server.AddTearDownCall(func() error {
+			stopChannel <- true
+			return nil
+		})
+	}()
 
 	server.startTicking()
 }
@@ -431,6 +442,12 @@ func (server *Server) startTicking() {
 
 		tickduration := time.Duration((1000000 / time.Duration(server.tickspersec)) * time.Microsecond)
 		ticker := time.Tick(tickduration)
+
+		server.AddTearDownCall(func() error {
+			log.Println("Close ticking")
+			close(server.stopticking)
+			return nil
+		})
 
 		for {
 			select {
@@ -446,12 +463,6 @@ func (server *Server) startTicking() {
 				}
 			}
 		}
-
-		server.AddTearDownCall(func() error {
-			log.Println("Close ticking")
-			close(server.stopticking)
-			return nil
-		})
 	}()
 }
 
