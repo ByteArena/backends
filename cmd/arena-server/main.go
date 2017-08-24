@@ -102,10 +102,6 @@ func main() {
 	notify.Start("game:stopped", streamArenaStopped)
 
 	<-streamArenaStopped
-
-	utils.Debug("arena", "Shutdown in 10 secs")
-	timeoutTimer := time.NewTimer(time.Duration(10) * time.Second)
-	<-timeoutTimer.C
 }
 
 func startGame(arenaSubmitted messageArenaLaunch, orch container.ContainerOrchestrator, arena arenaserver.Game, srv *arenaserver.Server, timeout int) {
