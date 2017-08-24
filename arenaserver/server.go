@@ -224,9 +224,9 @@ func (server *Server) TearDown() {
 
 	server.tearDownCallbacksMutex.Lock()
 
-	for _, cb := range server.TearDownCallbacks {
+	for i := len(server.TearDownCallbacks) - 1; i >= 0; i-- {
 		utils.Debug("teardown", "Executing TearDownCallback")
-		go cb()
+		server.TearDownCallbacks[i]()
 	}
 
 	// Reset to avoid calling teardown callback multiple times
