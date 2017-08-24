@@ -80,10 +80,10 @@ func main() {
 	})
 
 	var hc *healthcheck.HealthCheckServer
-	if env == "prod" {
-		hc = NewHealthCheck(brokerclient, graphqlclient)
-		hc.Start()
-	}
+	// if env == "prod" {
+	// 	hc = NewHealthCheck(brokerclient, graphqlclient)
+	// 	hc.Start()
+	// }
 
 	go func() {
 		for {
