@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 	"math/rand"
-	"os"
+	// "os"
 	"time"
 
 	notify "github.com/bitly/go-notify"
@@ -27,7 +27,7 @@ type messageArenaLaunch struct {
 }
 
 func main() {
-	env := os.Getenv("ENV")
+	// env := os.Getenv("ENV")
 
 	rand.Seed(time.Now().UnixNano())
 
