@@ -82,7 +82,6 @@ func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 					err = json.Unmarshal(buf, &msg)
 					if err != nil {
 						utils.Debug("commserver", "Failed to unmarshal incoming JSON in CommServer::Listen(); "+string(buf)+";"+err.Error())
-						return
 					}
 
 					msg.EmitterConn = conn
