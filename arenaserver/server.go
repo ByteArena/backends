@@ -216,8 +216,12 @@ func (server *Server) TearDown() {
 	server.containerorchestrator.TearDownAll()
 
 	for _, cb := range server.TearDownCallbacks {
+		utils.Debug("teardown", "Executing TearDownCallback")
 		cb()
 	}
+
+	// Reset to avoid calling teardown callback multiple times
+	server.TearDownCallbacks = make([]types.TearDownCallback, 0)
 }
 
 func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {

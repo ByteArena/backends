@@ -146,6 +146,7 @@ func main() {
 						}))
 
 						<-serverChan
+						srv.Stop()
 
 						notify.PostTimeout("game:stopped", nil, time.Millisecond)
 					}
