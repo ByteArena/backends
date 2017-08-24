@@ -82,16 +82,16 @@ func (s *CommServer) Listen(dispatcher CommDispatcher) error {
 					err = json.Unmarshal(buf, &msg)
 					if err != nil {
 						utils.Debug("commserver", "Failed to unmarshal incoming JSON in CommServer::Listen(); "+string(buf)+";"+err.Error())
+					} else {
+						msg.EmitterConn = conn
+
+						go func() {
+							err := dispatcher.DispatchAgentMessage(msg)
+							if err != nil {
+								utils.Debug("commserver", "Failed to dispatch agent message; "+err.Error())
+							}
+						}()
 					}
-
-					msg.EmitterConn = conn
-
-					go func() {
-						err := dispatcher.DispatchAgentMessage(msg)
-						if err != nil {
-							utils.Debug("commserver", "Failed to dispatch agent message; "+err.Error())
-						}
-					}()
 				}
 			}()
 		}
