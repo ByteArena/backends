@@ -1,7 +1,6 @@
 package perception
 
 import (
-	"log"
 	"math"
 
 	"github.com/bytearena/bytearena/arenaserver/agent"
@@ -205,7 +204,7 @@ func viewObstacles(serverstate *state.ServerState, agentstate state.AgentState) 
 			vision = append(vision, obstacleperception)
 
 		} else if len(edges) > 0 {
-			log.Println("NOPE !", edges) // problems with FOV > 180
+			//log.Println("NOPE !", edges) // problems with FOV > 180
 		}
 	}
 

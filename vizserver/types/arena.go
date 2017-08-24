@@ -6,28 +6,24 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-type VizArena struct {
+type VizGame struct {
 	game arenaserver.Game
 	pool *WatcherMap
 }
 
-func NewVizArena(game arenaserver.Game) *VizArena {
-	return &VizArena{
+func NewVizGame(game arenaserver.Game) *VizGame {
+	return &VizGame{
 		pool: NewWatcherMap(),
 		game: game,
 	}
 }
 
-func (arena *VizArena) GetId() string {
-	return arena.game.GetId()
+func (vizgame *VizGame) GetGame() arenaserver.Game {
+	return vizgame.game
 }
 
-func (arena *VizArena) GetName() string {
-	return arena.game.GetName()
-}
-
-func (arena *VizArena) GetTps() int {
-	return arena.game.GetTps()
+func (vizgame *VizGame) GetTps() int {
+	return vizgame.game.GetTps()
 }
 
 type VizInitMessageData struct {
@@ -39,13 +35,13 @@ type VizInitMessage struct {
 	Data VizInitMessageData `json:"data"`
 }
 
-func (arena *VizArena) SetWatcher(watcher *Watcher) {
-	arena.pool.Set(watcher.GetId(), watcher)
+func (vizgame *VizGame) SetWatcher(watcher *Watcher) {
+	vizgame.pool.Set(watcher.GetId(), watcher)
 
 	initMsg := VizInitMessage{
 		Type: "init",
 		Data: VizInitMessageData{
-			Map: arena.game.GetMapContainer(),
+			Map: vizgame.game.GetMapContainer(),
 		},
 	}
 
@@ -53,10 +49,10 @@ func (arena *VizArena) SetWatcher(watcher *Watcher) {
 	utils.Check(err, "Could not send VizInitMessage JSON")
 }
 
-func (arena *VizArena) RemoveWatcher(watcherid string) {
-	arena.pool.Remove(watcherid)
+func (vizgame *VizGame) RemoveWatcher(watcherid string) {
+	vizgame.pool.Remove(watcherid)
 }
 
-func (arena *VizArena) GetNumberWatchers() int {
-	return arena.pool.Size()
+func (vizgame *VizGame) GetNumberWatchers() int {
+	return vizgame.pool.Size()
 }

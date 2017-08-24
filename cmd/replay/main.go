@@ -8,11 +8,11 @@ import (
 
 	notify "github.com/bitly/go-notify"
 
-	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
+	"github.com/bytearena/bytearena/vizserver/types"
 )
 
 func main() {
@@ -49,9 +49,9 @@ func NewVizService(port int, game *MockGame) *vizserver.VizService {
 
 	// TODO: refac webclient path / serving
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
-	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(port), webclientpath, func() ([]arenaserver.Game, error) {
-		res := make([]arenaserver.Game, 1)
-		res[0] = game
+	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(port), webclientpath, func() ([]*types.VizGame, error) {
+		res := make([]*types.VizGame, 1)
+		res[0] = types.NewVizGame(game)
 		return res, nil
 	}, recorder)
 

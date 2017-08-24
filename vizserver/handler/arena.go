@@ -7,25 +7,43 @@ import (
 	"os"
 	"time"
 
+	"github.com/bytearena/bytearena/arenaserver"
+
 	"github.com/bytearena/bytearena/vizserver/types"
 	"github.com/gorilla/mux"
 )
 
-func Arena(arenas *types.VizArenaMap, basepath string, CDNBaseURL string) func(w http.ResponseWriter, r *http.Request) {
+func Game(fetchVizGames func() ([]*types.VizGame, error), basepath string, CDNBaseURL string) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		vars := mux.Vars(r)
-		arena := arenas.Get(vars["id"])
 
-		if arena == nil {
-			w.Write([]byte("ARENA NOT FOUND !"))
+		vizgames, err := fetchVizGames()
+		if err != nil {
+			w.Write([]byte("ERROR: Could not fetch viz games"))
+			return
+		}
+
+		var game arenaserver.Game
+		foundgame := false
+
+		for _, vizgame := range vizgames {
+			if vizgame.GetGame().GetId() == vars["id"] {
+				game = vizgame.GetGame()
+				foundgame = true
+				break
+			}
+		}
+
+		if !foundgame {
+			w.Write([]byte("GAME NOT FOUND !"))
 			return
 		}
 
 		vizhtml, err := ioutil.ReadFile(basepath + "index.html")
 		if err != nil {
-			w.Write([]byte("ERROR: could not render arena"))
+			w.Write([]byte("ERROR: could not render game"))
 			return
 		}
 
@@ -42,10 +60,10 @@ func Arena(arenas *types.VizArenaMap, basepath string, CDNBaseURL string) func(w
 			Rand       int64
 			Tps        int
 		}{
-			WsURL:      protocol + "://" + r.Host + "/arena/" + arena.GetId() + "/ws",
+			WsURL:      protocol + "://" + r.Host + "/arena/" + game.GetId() + "/ws",
 			CDNBaseURL: CDNBaseURL,
 			Rand:       time.Now().Unix(),
-			Tps:        arena.GetTps(),
+			Tps:        game.GetTps(),
 		})
 	}
 }

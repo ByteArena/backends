@@ -6,11 +6,11 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	notify "github.com/bitly/go-notify"
 
-	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
@@ -19,6 +19,7 @@ import (
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
+	"github.com/bytearena/bytearena/vizserver/types"
 )
 
 // Simplified version of the VizMessage struct
@@ -31,6 +32,91 @@ type GameStoppedMessage struct {
 	Payload struct {
 		Id string `json:"id"`
 	} `json:"payload"`
+}
+
+type GameList struct {
+	gql        graphql.Client
+	games      map[string]*types.VizGame
+	gamesmutex *sync.RWMutex
+	pollfreq   time.Duration
+}
+
+func NewGameList(gql graphql.Client, pollfreq time.Duration) *GameList {
+	return &GameList{
+		gql:        gql,
+		games:      make(map[string]*types.VizGame),
+		gamesmutex: &sync.RWMutex{},
+		pollfreq:   pollfreq,
+	}
+}
+
+func (glist *GameList) StartSync() {
+	pollstop := make(chan interface{})
+	notify.Start("poll:stop", pollstop)
+
+	// On initialise la liste immédiatement
+	go glist.doFetchFromGQL()
+
+	go func() {
+
+		for {
+			select {
+			case <-pollstop:
+				{
+					return
+				}
+			case <-time.After(glist.pollfreq):
+				{
+					go glist.doFetchFromGQL()
+				}
+			}
+		}
+
+	}()
+}
+
+func (glist *GameList) StopSync() {
+	notify.PostTimeout("poll:stop", nil, time.Millisecond*5)
+}
+
+func (glist *GameList) doFetchFromGQL() {
+
+	games, err := apiqueries.FetchGames(glist.gql)
+	if err != nil {
+		utils.Debug("viz-server", "Could not fetch games from GraphQL server")
+		return
+	}
+
+	glist.gamesmutex.Lock()
+	for _, game := range games {
+		_, ok := glist.games[game.GetId()]
+		if !ok {
+			utils.Debug("viz-server", "Serving a new game "+game.GetName()+" with "+strconv.Itoa(len(game.GetContestants()))+" contestants (ID="+game.GetId()+", TPS="+strconv.Itoa(game.GetTps())+")")
+			glist.games[game.GetId()] = types.NewVizGame(game)
+		}
+	}
+	glist.gamesmutex.Unlock()
+}
+
+func (glist *GameList) GetGameById(gameid string) (game *types.VizGame, ok bool) {
+	glist.gamesmutex.RLock()
+	game, ok = glist.games[gameid]
+	glist.gamesmutex.RUnlock()
+	return game, ok
+}
+
+func (glist *GameList) GetGames() []*types.VizGame {
+	res := make([]*types.VizGame, len(glist.games))
+
+	i := 0
+	glist.gamesmutex.RLock()
+	for _, game := range glist.games {
+		res[i] = game
+		i++
+	}
+	glist.gamesmutex.RUnlock()
+
+	return res
 }
 
 func main() {
@@ -64,20 +150,14 @@ func main() {
 
 	// Make GraphQL client
 	graphqlclient := graphql.MakeClient(*apiurl)
+
+	// On lance une routine de fetch des games 1x/10 sec
+	gamelist := NewGameList(graphqlclient, time.Second*10)
+	gamelist.StartSync()
+
 	serverAddr := ":" + strconv.Itoa(*port)
-
-	games, err := apiqueries.FetchGames(graphqlclient)
-	if err != nil {
-		panic("Could not fetch games from GraphQL server")
-	}
-
-	gamesById := make(map[string]arenaserver.Game, 0)
-	for _, game := range games {
-		gamesById[game.GetId()] = game
-	}
-
-	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]arenaserver.Game, error) {
-		return games, nil
+	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]*types.VizGame, error) {
+		return gamelist.GetGames(), nil
 	}, recorder)
 
 	mqclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
@@ -88,17 +168,17 @@ func main() {
 			return "Failed to decode vizmessage: " + err.Error()
 		})
 
-		arenaId := vizMessage[0].ArenaId
+		arenaID := vizMessage[0].ArenaId
 		UUID := vizMessage[0].UUID
-		game, ok := gamesById[arenaId]
+		game, ok := gamelist.GetGameById(arenaID)
 
 		if ok {
-			recorder.RecordMetadata(UUID, game.GetMapContainer())
+			recorder.RecordMetadata(UUID, game.GetGame().GetMapContainer())
 			recorder.Record(UUID, string(msg.Data))
 		}
 
 		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena "+UUID)
-		notify.PostTimeout("viz:message:"+arenaId, string(msg.Data), time.Millisecond)
+		notify.PostTimeout("viz:message:"+arenaID, string(msg.Data), time.Millisecond)
 	})
 
 	mqclient.Subscribe("game", "stopped", func(msg mq.BrokerMessage) {
