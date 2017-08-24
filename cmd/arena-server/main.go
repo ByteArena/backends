@@ -103,6 +103,15 @@ func main() {
 							srv.RegisterAgent(contestant.AgentRegistry+"/"+contestant.AgentImage, contestant.Username)
 						}
 
+						srv.AddTearDownCall(func() error {
+							if hc != nil {
+								log.Println("Stop healthcheck")
+								hc.Stop()
+							}
+
+							return nil
+						})
+
 						// handling signals
 						go func() {
 							<-common.SignalHandler()
@@ -149,9 +158,4 @@ func main() {
 	notify.Start("game:stopped", streamArenaStopped)
 
 	<-streamArenaStopped
-
-	if hc != nil {
-		log.Println("Stop healthcheck")
-		hc.Stop()
-	}
 }
