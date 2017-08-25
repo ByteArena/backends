@@ -7,18 +7,18 @@ import (
 )
 
 type VizGame struct {
-	game arenaserver.Game
+	game arenaserver.GameInterface
 	pool *WatcherMap
 }
 
-func NewVizGame(game arenaserver.Game) *VizGame {
+func NewVizGame(game arenaserver.GameInterface) *VizGame {
 	return &VizGame{
 		pool: NewWatcherMap(),
 		game: game,
 	}
 }
 
-func (vizgame *VizGame) GetGame() arenaserver.Game {
+func (vizgame *VizGame) GetGame() arenaserver.GameInterface {
 	return vizgame.game
 }
 

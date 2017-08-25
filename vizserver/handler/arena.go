@@ -25,7 +25,7 @@ func Game(fetchVizGames func() ([]*types.VizGame, error), basepath string, CDNBa
 			return
 		}
 
-		var game arenaserver.Game
+		var game arenaserver.GameInterface
 		foundgame := false
 
 		for _, vizgame := range vizgames {

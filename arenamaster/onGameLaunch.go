@@ -48,9 +48,9 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 					graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{
 						"id": id,
 						"game": graphql.Variables{
-							"runStatus":     gqltypes.GameRunStatus.Running,
-							"launchedAt":    time.Now().Format(time.RFC822Z),
-							"arenaServerId": astate.id,
+							"runStatus":       gqltypes.GameRunStatus.Running,
+							"launchedAt":      time.Now().Format(time.RFC822Z),
+							"arenaServerUUID": astate.id,
 						},
 					}),
 				)

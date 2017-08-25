@@ -11,7 +11,7 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-type Game interface {
+type GameInterface interface {
 	GetId() string
 	GetName() string
 	GetTps() int
@@ -19,7 +19,7 @@ type Game interface {
 	GetMapContainer() *mapcontainer.MapContainer
 }
 
-type GameGql struct {
+type GameImpGql struct {
 	gqlgame      graphqltype.GameType
 	mapContainer *mapcontainer.MapContainer
 }
@@ -38,7 +38,7 @@ func FetchUrl(url string) ([]byte, error) {
 	return body, nil
 }
 
-func NewGameGql(game graphqltype.GameType) *GameGql {
+func NewGameGql(game graphqltype.GameType) *GameImpGql {
 
 	// filepath := "../../maps/trainer-map.json"
 	// jsonsource, err := os.Open(filepath)
@@ -56,25 +56,37 @@ func NewGameGql(game graphqltype.GameType) *GameGql {
 		log.Panicln("Could not load map JSON")
 	}
 
-	return &GameGql{
+	return &GameImpGql{
 		mapContainer: &mapContainer,
 		gqlgame:      game,
 	}
 }
 
-func (a *GameGql) GetId() string {
+func (a *GameImpGql) GetId() string {
 	return a.gqlgame.Id
 }
 
-func (a *GameGql) GetName() string {
+func (a *GameImpGql) GetName() string {
 	return a.gqlgame.Arena.Name
 }
 
-func (a *GameGql) GetTps() int {
+func (a *GameImpGql) GetTps() int {
 	return a.gqlgame.Tps
 }
 
-func (a *GameGql) GetContestants() []Contestant {
+func (a *GameImpGql) GetRunStatus() int {
+	return a.gqlgame.RunStatus
+}
+
+func (a *GameImpGql) GetLaunchedAt() string {
+	return a.gqlgame.LaunchedAt
+}
+
+func (a *GameImpGql) GetEndedAt() string {
+	return a.gqlgame.EndedAt
+}
+
+func (a *GameImpGql) GetContestants() []Contestant {
 	log.Println(a.gqlgame.Contestants)
 	res := make([]Contestant, len(a.gqlgame.Contestants))
 	for index, contestant := range a.gqlgame.Contestants {
@@ -89,6 +101,6 @@ func (a *GameGql) GetContestants() []Contestant {
 	return res
 }
 
-func (a *GameGql) GetMapContainer() *mapcontainer.MapContainer {
+func (a *GameImpGql) GetMapContainer() *mapcontainer.MapContainer {
 	return a.mapContainer
 }

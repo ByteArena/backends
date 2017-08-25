@@ -23,9 +23,9 @@ import (
 )
 
 // Simplified version of the VizMessage struct
-type ArenaIdVizMessage struct {
-	ArenaId string
-	UUID    string
+type GameIDVizMessage struct {
+	GameID          string
+	ArenaServerUUID string
 }
 
 type GameStoppedMessage struct {
@@ -34,15 +34,15 @@ type GameStoppedMessage struct {
 	} `json:"payload"`
 }
 
-type GameList struct {
+type GameListSynchronizer struct {
 	gql        graphql.Client
 	games      map[string]*types.VizGame
 	gamesmutex *sync.RWMutex
 	pollfreq   time.Duration
 }
 
-func NewGameList(gql graphql.Client, pollfreq time.Duration) *GameList {
-	return &GameList{
+func NewGameList(gql graphql.Client, pollfreq time.Duration) *GameListSynchronizer {
+	return &GameListSynchronizer{
 		gql:        gql,
 		games:      make(map[string]*types.VizGame),
 		gamesmutex: &sync.RWMutex{},
@@ -50,7 +50,7 @@ func NewGameList(gql graphql.Client, pollfreq time.Duration) *GameList {
 	}
 }
 
-func (glist *GameList) StartSync() {
+func (glist *GameListSynchronizer) StartSync() {
 	pollstop := make(chan interface{})
 	notify.Start("poll:stop", pollstop)
 
@@ -75,11 +75,11 @@ func (glist *GameList) StartSync() {
 	}()
 }
 
-func (glist *GameList) StopSync() {
+func (glist *GameListSynchronizer) StopSync() {
 	notify.PostTimeout("poll:stop", nil, time.Millisecond*5)
 }
 
-func (glist *GameList) doFetchFromGQL() {
+func (glist *GameListSynchronizer) doFetchFromGQL() {
 
 	games, err := apiqueries.FetchGames(glist.gql)
 	if err != nil {
@@ -98,14 +98,14 @@ func (glist *GameList) doFetchFromGQL() {
 	glist.gamesmutex.Unlock()
 }
 
-func (glist *GameList) GetGameById(gameid string) (game *types.VizGame, ok bool) {
+func (glist *GameListSynchronizer) GetGameById(gameid string) (game *types.VizGame, ok bool) {
 	glist.gamesmutex.RLock()
 	game, ok = glist.games[gameid]
 	glist.gamesmutex.RUnlock()
 	return game, ok
 }
 
-func (glist *GameList) GetGames() []*types.VizGame {
+func (glist *GameListSynchronizer) GetGames() []*types.VizGame {
 	res := make([]*types.VizGame, len(glist.games))
 
 	i := 0
@@ -161,16 +161,16 @@ func main() {
 	}, recorder)
 
 	mqclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
-		var vizMessage []ArenaIdVizMessage
+		var vizMessage []GameIDVizMessage
 		err := json.Unmarshal([]byte(msg.Data), &vizMessage)
 
 		utils.CheckWithFunc(err, func() string {
 			return "Failed to decode vizmessage: " + err.Error()
 		})
 
-		arenaID := vizMessage[0].ArenaId
-		UUID := vizMessage[0].UUID
-		game, ok := gamelist.GetGameById(arenaID)
+		gameID := vizMessage[0].GameID
+		UUID := vizMessage[0].ArenaServerUUID
+		game, ok := gamelist.GetGameById(gameID)
 
 		if ok {
 			recorder.RecordMetadata(UUID, game.GetGame().GetMapContainer())
@@ -178,7 +178,7 @@ func main() {
 		}
 
 		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena "+UUID)
-		notify.PostTimeout("viz:message:"+arenaID, string(msg.Data), time.Millisecond)
+		notify.PostTimeout("viz:message:"+gameID, string(msg.Data), time.Millisecond)
 	})
 
 	mqclient.Subscribe("game", "stopped", func(msg mq.BrokerMessage) {
