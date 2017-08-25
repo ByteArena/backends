@@ -88,11 +88,17 @@ func (glist *GameListSynchronizer) doFetchFromGQL() {
 	}
 
 	glist.gamesmutex.Lock()
-	for _, game := range games {
-		_, ok := glist.games[game.GetId()]
+	for _, currentGame := range games {
+		existingVizGame, ok := glist.games[currentGame.GetId()]
 		if !ok {
-			utils.Debug("viz-server", "Serving a new game "+game.GetName()+" with "+strconv.Itoa(len(game.GetContestants()))+" contestants (ID="+game.GetId()+", TPS="+strconv.Itoa(game.GetTps())+")")
-			glist.games[game.GetId()] = types.NewVizGame(game)
+			utils.Debug("viz-server", "Serving a new game "+currentGame.GetName()+" with "+strconv.Itoa(len(currentGame.GetContestants()))+" contestants (GAMEID="+currentGame.GetId()+", TPS="+strconv.Itoa(currentGame.GetTps())+")")
+			glist.games[currentGame.GetId()] = types.NewVizGame(currentGame)
+		} else {
+			existinggame := existingVizGame.GetGame()
+			if existinggame.GetRunStatus() != currentGame.GetRunStatus() {
+				utils.Debug("viz-server", "Game status updated for "+currentGame.GetName()+" from "+strconv.Itoa(existinggame.GetRunStatus())+" to "+strconv.Itoa(currentGame.GetRunStatus()))
+				glist.games[currentGame.GetId()].SetGame(currentGame)
+			}
 		}
 	}
 	glist.gamesmutex.Unlock()

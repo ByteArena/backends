@@ -22,6 +22,10 @@ func (vizgame *VizGame) GetGame() arenaserver.GameInterface {
 	return vizgame.game
 }
 
+func (vizgame *VizGame) SetGame(game arenaserver.GameInterface) {
+	vizgame.game = game
+}
+
 func (vizgame *VizGame) GetTps() int {
 	return vizgame.game.GetTps()
 }

@@ -15,6 +15,9 @@ type GameInterface interface {
 	GetId() string
 	GetName() string
 	GetTps() int
+	GetRunStatus() int
+	GetLaunchedAt() string
+	GetEndedAt() string
 	GetContestants() []Contestant
 	GetMapContainer() *mapcontainer.MapContainer
 }
@@ -40,14 +43,7 @@ func FetchUrl(url string) ([]byte, error) {
 
 func NewGameGql(game graphqltype.GameType) *GameImpGql {
 
-	// filepath := "../../maps/trainer-map.json"
-	// jsonsource, err := os.Open(filepath)
-	// if err != nil {
-	// 	log.Panicln("Error opening file:", err)
-	// }
-
-	// defer jsonsource.Close()
-
+	// TODO: parametrize this
 	jsonsource, err := FetchUrl("https://bytearena.com/assets/bytearena/maps/deathmatch/desert/death-valley/map.json")
 	utils.Check(err, "Could not fetch map")
 

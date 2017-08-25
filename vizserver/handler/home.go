@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver/types"
 )
@@ -21,7 +22,23 @@ func Home(fetchVizGames func() ([]*types.VizGame, error)) func(w http.ResponseWr
 
 		for _, vizgame := range vizgames {
 			game := vizgame.GetGame()
-			w.Write([]byte("<a href='/arena/" + game.GetId() + "'>" + game.GetName() + " (" + strconv.Itoa(vizgame.GetNumberWatchers()) + " watchers right now)</a><br />"))
+			gameStatusLabel := "pending"
+			switch game.GetRunStatus() {
+			case gqltypes.GameRunStatus.Pending:
+				{
+					gameStatusLabel = "Pending"
+				}
+			case gqltypes.GameRunStatus.Running:
+				{
+					gameStatusLabel = "Running"
+				}
+			case gqltypes.GameRunStatus.Finished:
+				{
+					gameStatusLabel = "Finished"
+				}
+			}
+
+			w.Write([]byte("<a href='/arena/" + game.GetId() + "'>" + game.GetName() + " (" + strconv.Itoa(vizgame.GetNumberWatchers()) + " watchers right now) &mdash; " + gameStatusLabel + "</a><br />"))
 		}
 	}
 }

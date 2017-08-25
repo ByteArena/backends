@@ -7,8 +7,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bytearena/bytearena/arenaserver"
+	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 )
 
@@ -20,6 +22,7 @@ type MockGame struct {
 
 func NewMockGame(tps int) *MockGame {
 
+	// TODO: parametrize this
 	filepath := "../../maps/trainer-map.json"
 	jsonsource, err := os.Open(filepath)
 	if err != nil {
@@ -42,19 +45,31 @@ func NewMockGame(tps int) *MockGame {
 	}
 }
 
-func (ins *MockGame) GetId() string {
+func (game *MockGame) GetId() string {
 	return "1"
 }
 
-func (ins *MockGame) GetName() string {
+func (game *MockGame) GetName() string {
 	return "Trainer game"
 }
 
-func (ins *MockGame) GetTps() int {
-	return ins.tps
+func (game *MockGame) GetTps() int {
+	return game.tps
 }
 
-func (ins *MockGame) AddContestant(agentimage string) {
+func (game *MockGame) GetRunStatus() int {
+	return gqltypes.GameRunStatus.Running
+}
+
+func (game *MockGame) GetLaunchedAt() string {
+	return time.Now().Format("2006-01-02T15:04:05-0700")
+}
+
+func (game *MockGame) GetEndedAt() string {
+	return ""
+}
+
+func (game *MockGame) AddContestant(agentimage string) {
 
 	parts := strings.Split(agentimage, "/")
 	var registry string
@@ -68,8 +83,8 @@ func (ins *MockGame) AddContestant(agentimage string) {
 		imagename = agentimage
 	}
 
-	ins.contestants = append(ins.contestants, arenaserver.Contestant{
-		Id:            strconv.Itoa(len(ins.contestants) + 1),
+	game.contestants = append(game.contestants, arenaserver.Contestant{
+		Id:            strconv.Itoa(len(game.contestants) + 1),
 		Username:      "trainer-user",
 		AgentName:     "Trainee " + agentimage,
 		AgentRegistry: registry,
@@ -77,30 +92,10 @@ func (ins *MockGame) AddContestant(agentimage string) {
 	})
 }
 
-func (ins *MockGame) GetContestants() []arenaserver.Contestant {
-	return ins.contestants
+func (game *MockGame) GetContestants() []arenaserver.Contestant {
+	return game.contestants
 }
 
-func (ins *MockGame) GetMapContainer() *mapcontainer.MapContainer {
-	return ins.mapContainer
+func (game *MockGame) GetMapContainer() *mapcontainer.MapContainer {
+	return game.mapContainer
 }
-
-/*
-func (ins *MockGame) Setup(srv *arenaserver.Server) {
-
-	mapcontainer := ins.GetMapContainer()
-	for _, ground := range mapcontainer.Data.Grounds {
-		for _, polygon := range ground.Outline {
-			for i := 0; i < len(polygon.Points)-1; i++ {
-				a := polygon.Points[i]
-				b := polygon.Points[i+1]
-				srv.SetObstacle(state.Obstacle{
-					Id: uuid.NewV4(),
-					A:  vector.MakeVector2(a.X*50, a.Y*50),
-					B:  vector.MakeVector2(b.X*50, b.Y*50),
-				})
-			}
-		}
-	}
-}
-*/
