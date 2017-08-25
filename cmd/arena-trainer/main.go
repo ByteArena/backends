@@ -103,7 +103,7 @@ func main() {
 		notify.PostTimeout("viz:message:"+gameId, string(msg.Data), time.Millisecond)
 	})
 
-	// TODO: refac webclient path / serving
+	// TODO(jerome): refac webclient path / serving
 
 	vizgames := make([]*types.VizGame, 1)
 	vizgames[0] = types.NewVizGame(game)
@@ -114,7 +114,7 @@ func main() {
 	}, recorder)
 
 	// Below line is used to serve assets locally
-	// TODO: find a way to bundle the trainer with the assets
+	// TODO(jerome): find a way to bundle the trainer with the assets
 	vizservice.SetPathToAssets("/Users/jerome/Code/other/assets/")
 
 	vizservice.Start()

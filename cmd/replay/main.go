@@ -47,7 +47,7 @@ func NewVizService(port int, game *MockGame) *vizserver.VizService {
 
 	recorder := recording.MakeEmptyRecorder()
 
-	// TODO: refac webclient path / serving
+	// TODO(jerome|sven): refac webclient path / serving
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
 	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(port), webclientpath, func() ([]*types.VizGame, error) {
 		res := make([]*types.VizGame, 1)

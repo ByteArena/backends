@@ -12,7 +12,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO: parametrize this
+// TODO(jerome): parametrize this
 var logDir = "/var/log/agents"
 
 func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner *AgentContainer, addTearDownCall func(t.TearDownCallback)) error {

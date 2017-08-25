@@ -31,7 +31,7 @@ func (agent NetAgentImp) String() string {
 
 func (agent NetAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator) error {
 	perceptionjson, _ := json.Marshal(perception)
-	message := []byte("{\"Method\": \"tick\", \"Arguments\": [0," + string(perceptionjson) + "]}\n") // TODO: remove 0 (ex turn)
+	message := []byte("{\"Method\": \"tick\", \"Arguments\": [0," + string(perceptionjson) + "]}\n") // TODO(jerome): remove 0 (ex turn)
 	return comm.NetSend(message, agent.GetConn())
 }
 

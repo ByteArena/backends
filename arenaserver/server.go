@@ -333,7 +333,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 
 	// proto := msg.GetEmitterConn().LocalAddr().Network()
 	// ip := strings.Split(msg.GetEmitterConn().RemoteAddr().String(), ":")[0]
-	// if proto != "tcp" || ip != "TODO:take from agent container struct"
+	// if proto != "tcp" || ip != "TODO(jerome):take from agent container struct"
 	// Problem here: cannot check ip against the one we get from Docker by inspecting the container
 	// as the two addresses do not match
 
@@ -368,7 +368,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 				server.OnAgentsReady()
 			}
 
-			// TODO: handle some timeout here if all agents fail to handshake
+			// TODO(sven|jerome): handle some timeout here if all agents fail to handshake
 
 			break
 		}
@@ -548,7 +548,7 @@ func (server *Server) Update() {
 	// Collision checks
 	///////////////////////////////////////////////////////////////////////////
 
-	// TODO: parallelism with goroutines where possible
+	// TODO(jerome): parallelism with goroutines where possible
 
 	//
 	// A: Agent/Obstacle
@@ -557,7 +557,7 @@ func (server *Server) Update() {
 	processAgentObstacleCollisions(server, beforeStateAgents)
 	processProjectileObstacleCollisions(server, beforeStateProjectiles)
 
-	// TODO: check for collisions:
+	// TODO(jerome): check for collisions:
 	// * agent / agent
 	// * agent / obstacle
 	// * agent / projectile
