@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strconv"
-	"time"
 
 	t "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -62,19 +61,19 @@ func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) (<-chan container.
 }
 
 func (orch *ContainerOrchestrator) TearDown(container *AgentContainer) {
-	timeout := time.Second * 5
-	err := orch.cli.ContainerStop(
-		orch.ctx,
-		container.containerid.String(),
-		&timeout,
-	)
+	// timeout := time.Second * 5
+	// err := orch.cli.ContainerStop(
+	// 	orch.ctx,
+	// 	container.containerid.String(),
+	// 	&timeout,
+	// )
 
-	if err != nil {
-		orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
-	}
+	// if err != nil {
+	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
+	//}
 
 	if orch.RemoveImages {
-		err = orch.RemoveAgentContainer(container)
+		err := orch.RemoveAgentContainer(container)
 		if err != nil {
 			utils.Debug("orch", "Cannot remove agent container: "+err.Error())
 		}

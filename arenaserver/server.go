@@ -833,21 +833,31 @@ func processMovingObjectObstacleCollision(server *Server, beforeState, afterStat
 
 			} else {
 				if isInsideCollisionMesh(server, nextPoint) {
+					if isInsideCollisionMesh(server, beforeState.Position) {
+						// moving it outside the mesh !!
+						//log.Println("NOPE !!!")
+						railRel := afterState.Position.Sub(beforeState.Position)
+						railRel = railRel.Sub(railRel.SetMag(0.1))
+						collisionhandler(railRel.Add(beforeState.Position))
 
-					// backtracking position to last not in obstacle
-					backsteps := 30
-					railRel := afterState.Position.Sub(beforeState.Position)
-					for k := 1; k <= backsteps; k++ {
-						nextPointRel := railRel.Scale(1 - float64(k)/float64(backsteps))
-						if !isInsideCollisionMesh(server, nextPointRel.Add(beforeState.Position)) {
-							collisionhandler(nextPointRel.Add(beforeState.Position))
-							return
+					} else {
+						// backtracking position to last not in obstacle
+						backsteps := 30
+						railRel := afterState.Position.Sub(beforeState.Position)
+						railRel = railRel.Sub(railRel.SetMag(0.05))
+						for k := 1; k <= backsteps; k++ {
+							nextPointRel := railRel.Scale(1 - float64(k)/float64(backsteps))
+							if !isInsideCollisionMesh(server, nextPointRel.Add(beforeState.Position)) {
+								collisionhandler(nextPointRel.Add(beforeState.Position))
+								return
+							}
 						}
+
+						//log.Println("NOPE, BEFORESTATE OBSTACLE !")
+
+						collisionhandler(beforeState.Position)
 					}
 
-					//log.Println("NOPE, BEFORESTATE OBSTACLE !")
-
-					collisionhandler(beforeState.Position)
 				} else {
 					collisionhandler(nextPoint)
 				}

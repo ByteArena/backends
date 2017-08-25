@@ -706,7 +706,11 @@ func PathToMapPolygon(path []PathOperation, pathtransform vector.Matrix2, worldT
 	newpath := path
 	for j, op := range path {
 		if strings.ToUpper(op.Operation) == "Z" {
-			newpath = append(newpath[:j], newpath[j+1:]...)
+			if newpath[j-1].Coords[0] != newpath[0].Coords[0] || newpath[j-1].Coords[1] != newpath[0].Coords[1] {
+				newpath = append(newpath[:j], newpath[0])
+			} else {
+				newpath = newpath[:j]
+			}
 		}
 	}
 	path = newpath
