@@ -9,22 +9,22 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-type MutliArenaRecorder struct {
+type MultiArenaRecorder struct {
 	directory                 string
 	recordFileHandles         map[string]*os.File
 	recordMetadataFileHandles map[string]*os.File
 }
 
-func MakeMultiArenaRecorder(directory string) *MutliArenaRecorder {
+func MakeMultiArenaRecorder(directory string) *MultiArenaRecorder {
 
-	return &MutliArenaRecorder{
+	return &MultiArenaRecorder{
 		recordFileHandles:         make(map[string]*os.File),
 		recordMetadataFileHandles: make(map[string]*os.File),
 		directory:                 directory,
 	}
 }
 
-func (r *MutliArenaRecorder) Record(UUID string, msg string) error {
+func (r *MultiArenaRecorder) Record(UUID string, msg string) error {
 	handle, ok := r.recordFileHandles[UUID]
 
 	if !ok {
@@ -48,7 +48,7 @@ func (r *MutliArenaRecorder) Record(UUID string, msg string) error {
 	return err
 }
 
-func (r *MutliArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontainer.MapContainer) error {
+func (r *MultiArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontainer.MapContainer) error {
 	_, ok := r.recordMetadataFileHandles[UUID]
 
 	if !ok {
@@ -82,11 +82,11 @@ func (r *MutliArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontai
 	return nil
 }
 
-func (r *MutliArenaRecorder) GetDirectory() string {
+func (r *MultiArenaRecorder) GetDirectory() string {
 	return r.directory
 }
 
-func (r *MutliArenaRecorder) Close(UUID string) {
+func (r *MultiArenaRecorder) Close(UUID string) {
 	recordHandle, okRecord := r.recordFileHandles[UUID]
 	metadataHandle, okRecordMetadata := r.recordMetadataFileHandles[UUID]
 
@@ -123,7 +123,7 @@ func (r *MutliArenaRecorder) Close(UUID string) {
 	}
 }
 
-func (r *MutliArenaRecorder) Stop() {
+func (r *MultiArenaRecorder) Stop() {
 
 	for _, handle := range r.recordFileHandles {
 		handle.Close()
