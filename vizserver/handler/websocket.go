@@ -19,19 +19,30 @@ type wsincomingmessage struct {
 	err         error
 }
 
-// Simplified version of the VizMessage struct
-type ArenaIdVizMessage struct {
-	ArenaId string
-}
-
-func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w http.ResponseWriter, r *http.Request) {
+func Websocket(fetchVizGames func() ([]*types.VizGame, error), recorder recording.RecorderInterface) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		arena := arenas.Get(vars["id"])
 
-		if arena == nil {
-			w.Write([]byte("ARENA NOT FOUND !"))
+		vizgames, err := fetchVizGames()
+		if err != nil {
+			w.Write([]byte("ERROR: Could not fetch viz games"))
+			return
+		}
+
+		var vizgame *types.VizGame
+		foundgame := false
+
+		for _, vizgameit := range vizgames {
+			if vizgameit.GetGame().GetId() == vars["id"] {
+				vizgame = vizgameit
+				foundgame = true
+				break
+			}
+		}
+
+		if !foundgame {
+			w.Write([]byte("GAME NOT FOUND !"))
 			return
 		}
 
@@ -48,13 +59,11 @@ func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w ht
 		}
 
 		watcher := types.NewWatcher(c)
-		arena.SetWatcher(watcher)
+		vizgame.SetWatcher(watcher)
 
 		defer func(c *websocket.Conn) {
-			arena.RemoveWatcher(watcher.GetId())
-			log.Println(arena.GetNumberWatchers())
+			vizgame.RemoveWatcher(watcher.GetId())
 			c.Close()
-			log.Println("Closing !!!")
 		}(c)
 
 		/////////////////////////////////////////////////////////////
@@ -77,7 +86,7 @@ func Websocket(arenas *types.VizArenaMap, recorder recording.Recorder) func(w ht
 		// Listen to viz messages coming from arenaserver
 		vizmsgchan := make(chan interface{})
 
-		notify.Start("viz:message:"+arena.GetId(), vizmsgchan)
+		notify.Start("viz:message:"+vizgame.GetGame().GetId(), vizmsgchan)
 
 		for {
 			select {

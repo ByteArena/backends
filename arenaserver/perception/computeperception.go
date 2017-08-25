@@ -6,7 +6,7 @@ import (
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 )
 
-func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.Agent) state.Perception {
+func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.AgentInterface) state.Perception {
 	p := state.Perception{}
 	agentstate := serverstate.GetAgentState(agent.GetId())
 

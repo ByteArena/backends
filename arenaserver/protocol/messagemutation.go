@@ -2,11 +2,11 @@ package protocol
 
 import "encoding/json"
 
-type MessageMutations interface {
-	GetMutations() []MessageMutation
+type MessageMutationsInterface interface {
+	GetMutations() []MessageMutationInterface
 }
 
-type MessageMutation interface {
+type MessageMutationInterface interface {
 	GetMethod() string
 	GetArguments() json.RawMessage
 }

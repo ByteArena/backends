@@ -6,7 +6,7 @@ import (
 
 type EmptyRecorder struct{}
 
-func MakeEmptyRecorder() Recorder {
+func MakeEmptyRecorder() EmptyRecorder {
 	return EmptyRecorder{}
 }
 

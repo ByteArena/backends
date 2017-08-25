@@ -101,7 +101,7 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 	// Initialize Obstacle RTree
 	///////////////////////////////////////////////////////////////////////////
 
-	rtObstacles := rtreego.NewTree(2, 25, 50) // TODO: better constants here ? what heuristic to use ?
+	rtObstacles := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
 
 	for _, obstacle := range obstacles {
 
@@ -132,7 +132,7 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 	// Initialize Ground Surface RTree
 	///////////////////////////////////////////////////////////////////////////
 
-	rtSurface := rtreego.NewTree(2, 25, 50) // TODO: better constants here ? what heuristic to use ?
+	rtSurface := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
 
 	for _, ground := range arenaMap.Data.Grounds {
 
@@ -162,7 +162,7 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 	// Initialize Collision Meshes RTree
 	///////////////////////////////////////////////////////////////////////////
 
-	rtCollisions := rtreego.NewTree(2, 25, 50) // TODO: better constants here ? what heuristic to use ?
+	rtCollisions := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
 
 	for _, collisionmesh := range arenaMap.Data.CollisionMeshes {
 

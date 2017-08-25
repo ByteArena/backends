@@ -16,7 +16,7 @@ type RecordMetadata struct {
 	Date         string                     `json:"date"`
 }
 
-type Recorder interface {
+type RecorderInterface interface {
 	RecordMetadata(UUID string, mapcontainer *mapcontainer.MapContainer) error
 	Record(UUID string, msg string) error
 	Close(UUID string)

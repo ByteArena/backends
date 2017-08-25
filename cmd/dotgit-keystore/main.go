@@ -34,7 +34,7 @@ func main() {
 	fingerprint := os.Args[1]
 	log.Println("Authenticating key with fingerprint " + fingerprint)
 
-	var db protocol.Database = database.NewGraphQLDatabase()
+	var db protocol.DatabaseInterface = database.NewGraphQLDatabase()
 
 	err = db.Connect(cnf.GetDatabaseURI())
 	if err != nil {

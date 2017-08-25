@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func ReplayWebsocket(recorder recording.Recorder, basepath string) func(w http.ResponseWriter, r *http.Request) {
+func ReplayWebsocket(recorder recording.RecorderInterface, basepath string) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)

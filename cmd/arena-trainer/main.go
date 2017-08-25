@@ -18,6 +18,7 @@ import (
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
+	"github.com/bytearena/bytearena/vizserver/types"
 )
 
 type arrayFlags []string
@@ -88,7 +89,7 @@ func main() {
 
 	go protocol.StreamState(srv, brokerclient, "trainer")
 
-	var recorder recording.Recorder = recording.MakeEmptyRecorder()
+	var recorder recording.RecorderInterface = recording.MakeEmptyRecorder()
 	if *recordFile != "" {
 		recorder = recording.MakeSingleArenaRecorder(*recordFile)
 	}
@@ -102,16 +103,18 @@ func main() {
 		notify.PostTimeout("viz:message:"+gameId, string(msg.Data), time.Millisecond)
 	})
 
-	// TODO: refac webclient path / serving
+	// TODO(jerome): refac webclient path / serving
+
+	vizgames := make([]*types.VizGame, 1)
+	vizgames[0] = types.NewVizGame(game)
+
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
-	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]arenaserver.Game, error) {
-		res := make([]arenaserver.Game, 1)
-		res[0] = game
-		return res, nil
+	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]*types.VizGame, error) {
+		return vizgames, nil
 	}, recorder)
 
 	// Below line is used to serve assets locally
-	// TODO: find a way to bundle the trainer with the assets
+	// TODO(jerome): find a way to bundle the trainer with the assets
 	vizservice.SetPathToAssets("/Users/jerome/Code/other/assets/")
 
 	vizservice.Start()

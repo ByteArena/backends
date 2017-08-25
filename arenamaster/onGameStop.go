@@ -10,8 +10,8 @@ import (
 )
 
 const updateGameStateMutation = `
-mutation ($id: String, $arenaServerId: String, $game: GameInputUpdate!) {
-	updateGame(id: $id, arenaServerId: $arenaServerId, game: $game) {
+mutation ($id: String, $arenaServerUUID: String, $game: GameInputUpdate!) {
+	updateGame(id: $id, arenaServerId: $arenaServerUUID, game: $game) {
 		id
 		runStatus
 	}
@@ -20,18 +20,18 @@ mutation ($id: String, $arenaServerId: String, $game: GameInputUpdate!) {
 
 func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 
-	if arenaServerId, ok := (*payload)["arenaserverid"].(string); ok {
-		arena, ok := state.runningArenas[arenaServerId]
+	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
+		arena, ok := state.runningArenas[arenaServerUUID]
 
 		if ok {
 			delete(state.runningArenas, arena.id)
 
-			utils.Debug("master", "Arena running on server "+arenaServerId+" stopped "+getMasterStatus(state))
+			utils.Debug("master", "Arena running on server "+arenaServerUUID+" stopped "+getMasterStatus(state))
 
 			go func() {
 				_, err := gql.RequestSync(
 					graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{
-						"arenaServerId": arenaServerId,
+						"arenaServerUUID": arenaServerUUID,
 						"game": graphql.Variables{
 							"runStatus": gqltypes.GameRunStatus.Finished,
 							"endedAt":   time.Now().Format(time.RFC822Z),
@@ -40,14 +40,14 @@ func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 				)
 
 				if err != nil {
-					utils.Debug("master", "ERROR: could not set game state to finished for Game running on arena server "+arenaServerId)
+					utils.Debug("master", "ERROR: could not set game state to finished for Game running on arena server "+arenaServerUUID)
 				} else {
-					utils.Debug("master", "Game state set to finished for Game running on arena server "+arenaServerId)
+					utils.Debug("master", "Game state set to finished for Game running on arena server "+arenaServerUUID)
 				}
 			}()
 
 		} else {
-			utils.Debug("master", "Arena server "+arenaServerId+" is not running an arena")
+			utils.Debug("master", "Arena server "+arenaServerUUID+" is not running an arena")
 		}
 	}
 }

@@ -33,12 +33,12 @@ const debug = false
 
 type Server struct {
 	host                  string
-	UUID                  string
+	arenaServerUUID       string
 	port                  int
 	stopticking           chan bool
 	tickspersec           int
 	containerorchestrator container.ContainerOrchestrator
-	agents                map[uuid.UUID]agent.Agent
+	agents                map[uuid.UUID]agent.AgentInterface
 	agentsmutex           *sync.Mutex
 	state                 *state.ServerState
 	commserver            *comm.CommServer
@@ -54,21 +54,21 @@ type Server struct {
 
 	agenthandshakes map[uuid.UUID]struct{}
 
-	arena Game
+	game GameInterface
 
 	TearDownCallbacks      []types.TearDownCallback
 	tearDownCallbacksMutex *sync.Mutex
 }
 
-type ArenaStopMessagePayload struct {
-	ArenaServerId string `json:"arenaserverid"`
+type GameStopMessagePayload struct {
+	ArenaServerUUID string `json:"arenaserveruuid"`
 }
 
-type ArenaStopMessage struct {
-	Payload ArenaStopMessagePayload `json:"payload"`
+type GameStopMessage struct {
+	Payload GameStopMessagePayload `json:"payload"`
 }
 
-func NewServer(host string, port int, orch container.ContainerOrchestrator, arena Game, UUID string, mqClient mq.ClientInterface) *Server {
+func NewServer(host string, port int, orch container.ContainerOrchestrator, game GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
 
 	gamehost := host
 
@@ -81,14 +81,14 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 
 	s := &Server{
 		host:                  gamehost,
-		UUID:                  UUID,
+		arenaServerUUID:       arenaServerUUID,
 		port:                  port,
 		stopticking:           make(chan bool),
-		tickspersec:           arena.GetTps(),
+		tickspersec:           game.GetTps(),
 		containerorchestrator: orch,
-		agents:                make(map[uuid.UUID]agent.Agent),
+		agents:                make(map[uuid.UUID]agent.AgentInterface),
 		agentsmutex:           &sync.Mutex{},
-		state:                 state.NewServerState(arena.GetMapContainer()),
+		state:                 state.NewServerState(game.GetMapContainer()),
 		commserver:            nil, // initialized in Listen()
 		nbhandshaked:          0,
 		currentturnmutex:      &sync.Mutex{},
@@ -98,7 +98,7 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, aren
 
 		agenthandshakes: make(map[uuid.UUID]struct{}),
 
-		arena: arena,
+		game: game,
 
 		TearDownCallbacks:      make([]types.TearDownCallback, 0),
 		tearDownCallbacksMutex: &sync.Mutex{},
@@ -151,7 +151,7 @@ func (server *Server) spawnAgents() error {
 }
 
 func (server *Server) RegisterAgent(agentimage, agentname string) {
-	arenamap := server.arena.GetMapContainer()
+	arenamap := server.game.GetMapContainer()
 	agentSpawnPointIndex := len(server.agents)
 
 	if agentSpawnPointIndex >= len(arenamap.Data.Starts) {
@@ -172,7 +172,7 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 	utils.Debug("arena", "Registrer agent "+agentimage)
 }
 
-func (server *Server) setAgent(agent agent.Agent) {
+func (server *Server) setAgent(agent agent.AgentInterface) {
 	server.agentsmutex.Lock()
 	defer server.agentsmutex.Unlock()
 
@@ -211,7 +211,7 @@ func (server *Server) Listen() chan interface{} {
 }
 
 func (server *Server) GetNbExpectedagents() int {
-	return len(server.arena.GetContestants())
+	return len(server.game.GetContestants())
 }
 
 func (server *Server) GetState() *state.ServerState {
@@ -235,8 +235,8 @@ func (server *Server) TearDown() {
 	server.tearDownCallbacksMutex.Unlock()
 }
 
-func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
-	var emptyagent agent.Agent
+func (server *Server) DoFindAgent(agentid string) (agent.AgentInterface, error) {
+	var emptyagent agent.AgentInterface
 
 	foundkey, err := uuid.FromString(agentid)
 	if err != nil {
@@ -275,10 +275,10 @@ func (server *Server) DoTick() {
 	///////////////////////////////////////////////////////////////////////////
 	server.GetState().DebugPoints = make([]vector.Vector2, 0)
 
-	arenamap := server.arena.GetMapContainer()
+	arenamap := server.game.GetMapContainer()
 
 	for _, ag := range server.agents {
-		go func(server *Server, ag agent.Agent, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
+		go func(server *Server, ag agent.AgentInterface, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
 
 			p := perception.ComputeAgentPerception(arenamap, serverstate, ag)
 
@@ -324,7 +324,7 @@ func (server *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
 
 /* </implementing protocol.AgentCommunicator> */
 
-func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
+func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapperInterface) error {
 
 	ag, err := server.DoFindAgent(msg.GetAgentId().String())
 	if err != nil {
@@ -333,7 +333,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 
 	// proto := msg.GetEmitterConn().LocalAddr().Network()
 	// ip := strings.Split(msg.GetEmitterConn().RemoteAddr().String(), ":")[0]
-	// if proto != "tcp" || ip != "TODO:take from agent container struct"
+	// if proto != "tcp" || ip != "TODO(jerome):take from agent container struct"
 	// Problem here: cannot check ip against the one we get from Docker by inspecting the container
 	// as the two addresses do not match
 
@@ -352,7 +352,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent handshake payload for agent " + msg.GetAgentId().String() + "; " + string(msg.GetPayload()))
 			}
 
-			ag, ok := ag.(agent.NetAgent)
+			ag, ok := ag.(agent.NetAgentInterface)
 			if !ok {
 				return errors.New("DispatchAgentMessage: Failed to cast agent to NetAgent during handshake for " + ag.String())
 			}
@@ -368,7 +368,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 				server.OnAgentsReady()
 			}
 
-			// TODO: handle some timeout here if all agents fail to handshake
+			// TODO(sven|jerome): handle some timeout here if all agents fail to handshake
 
 			break
 		}
@@ -493,9 +493,9 @@ func (server *Server) Start() (chan interface{}, error) {
 	server.AddTearDownCall(func() error {
 		utils.Debug("arena", "Publish game state (stopped)")
 
-		err := server.mqClient.Publish("game", "stopped", ArenaStopMessage{
-			Payload: ArenaStopMessagePayload{
-				ArenaServerId: server.UUID,
+		err := server.mqClient.Publish("game", "stopped", GameStopMessage{
+			Payload: GameStopMessagePayload{
+				ArenaServerUUID: server.arenaServerUUID,
 			},
 		})
 
@@ -548,7 +548,7 @@ func (server *Server) Update() {
 	// Collision checks
 	///////////////////////////////////////////////////////////////////////////
 
-	// TODO: parallelism with goroutines where possible
+	// TODO(jerome): parallelism with goroutines where possible
 
 	//
 	// A: Agent/Obstacle
@@ -557,7 +557,7 @@ func (server *Server) Update() {
 	processAgentObstacleCollisions(server, beforeStateAgents)
 	processProjectileObstacleCollisions(server, beforeStateProjectiles)
 
-	// TODO: check for collisions:
+	// TODO(jerome): check for collisions:
 	// * agent / agent
 	// * agent / obstacle
 	// * agent / projectile
@@ -911,14 +911,14 @@ func (server *Server) SendLaunched() {
 
 	server.mqClient.Publish("game", "launched", types.NewMQMessage(
 		"arena-server",
-		"Arena Server "+server.UUID+" launched",
+		"Arena Server "+server.arenaServerUUID+" launched",
 	).SetPayload(types.MQPayload{
-		"arenaserverid": server.UUID,
+		"arenaserveruuid": server.arenaServerUUID,
 	}))
 }
 
-func (server *Server) GetArena() Game {
-	return server.arena
+func (server *Server) GetGame() GameInterface {
+	return server.game
 }
 
 func GetAgentBoundingBox(center vector.Vector2, radius float64) (vector.Vector2, vector.Vector2) {

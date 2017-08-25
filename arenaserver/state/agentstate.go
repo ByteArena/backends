@@ -179,7 +179,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 	}
 
 	if state.ShootEnergy < state.ShootEnergyCost {
-		// TODO: puiser dans le shield ?
+		// TODO(jerome): puiser dans le shield ?
 		return state
 	}
 

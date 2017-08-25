@@ -10,8 +10,8 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-type CommDispatcher interface {
-	DispatchAgentMessage(msg protocol.MessageWrapper) error
+type CommDispatcherInterface interface {
+	DispatchAgentMessage(msg protocol.MessageWrapperInterface) error
 }
 
 type CommServer struct {
@@ -36,7 +36,7 @@ func (s *CommServer) Send(message []byte, conn net.Conn) error {
 	return nil
 }
 
-func (s *CommServer) Listen(dispatcher CommDispatcher) error {
+func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 
 	utils.Debug("commserver", "::Listen")
 	ln, err := net.Listen("tcp4", s.address)

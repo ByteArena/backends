@@ -1,7 +1,6 @@
 package perception
 
 import (
-	"log"
 	"math"
 
 	"github.com/bytearena/bytearena/arenaserver/agent"
@@ -12,7 +11,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.Agent) []state.PerceptionVisionItem {
+func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.AgentInterface) []state.PerceptionVisionItem {
 
 	agentstate := serverstate.GetAgentState(agent.GetId())
 	vision := make([]state.PerceptionVisionItem, 0)
@@ -205,7 +204,7 @@ func viewObstacles(serverstate *state.ServerState, agentstate state.AgentState) 
 			vision = append(vision, obstacleperception)
 
 		} else if len(edges) > 0 {
-			log.Println("NOPE !", edges) // problems with FOV > 180
+			//log.Println("NOPE !", edges) // problems with FOV > 180
 		}
 	}
 

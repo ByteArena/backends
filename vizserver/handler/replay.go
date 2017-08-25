@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Replay(recorder recording.Recorder, basepath string, CDNBaseURL string) func(w http.ResponseWriter, r *http.Request) {
+func Replay(recorder recording.RecorderInterface, basepath string, CDNBaseURL string) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
