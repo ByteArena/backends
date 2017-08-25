@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/ttacon/chalk"
 )
@@ -10,8 +11,8 @@ import (
 func Check(err error, msg string) {
 	if err != nil {
 		fmt.Print(chalk.Red)
-		log.Print(msg, chalk.Reset)
-		log.Panicln(err)
+		log.Print(msg+"; "+err.Error(), chalk.Reset)
+		os.Exit(1)
 	}
 }
 
@@ -19,7 +20,7 @@ func Assert(ok bool, msg string) {
 	if !ok {
 		fmt.Print(chalk.Red)
 		log.Print(msg, chalk.Reset)
-		log.Panic()
+		os.Exit(1)
 	}
 }
 

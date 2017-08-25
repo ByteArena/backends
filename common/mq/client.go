@@ -97,22 +97,27 @@ func (client *Client) waitAndListen() {
 
 		if websocket.IsUnexpectedCloseError(err) {
 			handleUnexepectedClose(client)
-
 			continue
 		}
 
-		utils.Check(err, "Received invalid message")
+		if err != nil {
+			utils.Debug("mqclient", "Received invalid message; "+err.Error())
+			continue
+		}
 
 		var message BrokerMessage
 
 		err = json.Unmarshal(rawData, &message)
-		utils.Check(err, "Received invalid message")
+		if err != nil {
+			utils.Debug("mqclient", "Received invalid message; "+err.Error()+";"+string(rawData))
+			continue
+		}
 
 		subscription := client.subscriptions.Get(message.Channel + ":" + message.Topic)
-		utils.Assert(
-			subscription != nil,
-			"unexpected (unsubscribed) message type "+message.Channel+":"+message.Topic,
-		)
+		if subscription == nil {
+			utils.Debug("mqclient", "unexpected (unsubscribed) message type "+message.Channel+":"+message.Topic)
+			continue
+		}
 
 		subscription(message)
 	}

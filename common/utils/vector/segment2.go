@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 )
 
@@ -226,7 +227,8 @@ var testnum int
 func test(ok bool, testname string) {
 	testnum++
 	if !ok {
-		panic("FAILED #" + strconv.Itoa(testnum) + ": " + testname)
+		fmt.Println("FAILED #" + strconv.Itoa(testnum) + ": " + testname)
+		os.Exit(1)
 	}
 
 	fmt.Println("SUCCESS #" + strconv.Itoa(testnum) + ": " + testname)

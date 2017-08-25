@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
@@ -54,7 +56,8 @@ func main() {
 	}
 
 	if len(agentimages) == 0 {
-		panic("Please, specify at least one agent image using --agent")
+		fmt.Println("Please, specify at least one agent image using --agent")
+		os.Exit(1)
 	}
 
 	game := NewMockGame(*tickspersec)
@@ -123,8 +126,10 @@ func main() {
 
 	if startErr != nil {
 		srv.Stop()
-		log.Panicln("Cannot start server: " + startErr.Error())
+		fmt.Println("Cannot start server: " + startErr.Error())
+		os.Exit(1)
 	}
+
 	<-serverChan
 
 	srv.TearDown()

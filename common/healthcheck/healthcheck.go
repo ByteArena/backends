@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/bytearena/bytearena/common/utils"
 )
@@ -56,7 +57,13 @@ func (server *HealthCheckServer) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	}
 
 	data, err := json.Marshal(res)
-	utils.Check(err, "Failed to marshal response")
+	if err != nil {
+		utils.Debug("healthcheck", "Failed to marshal response")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("ERROR - Failed to marshal response"))
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(res.StatusCode)
@@ -74,7 +81,8 @@ func (server *HealthCheckServer) Start() chan struct{} {
 
 	listener, err := net.Listen("tcp4", ":"+server.port)
 	if err != nil {
-		log.Panicln(err)
+		utils.Debug("healthcheck", err.Error())
+		os.Exit(1)
 	}
 
 	server.listener = &http.Server{

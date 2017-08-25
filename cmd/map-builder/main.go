@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/number"
 
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
@@ -244,7 +245,8 @@ func buildMap(svg SVGNodeInterface, pxperunit float64) mapcontainer.MapContainer
 			}
 		default:
 			{
-				log.Panicln("Unsuported obstacle type", obstacleObject.Type)
+				utils.Debug("map-builder", "Unsuported obstacle type "+obstacleObject.Type)
+				os.Exit(1)
 			}
 		}
 	}
@@ -620,7 +622,8 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNodeInterface
 					args := make([]float64, 2)
 					err := json.Unmarshal(f.Args, &args)
 					if err != nil {
-						panic(err)
+						utils.Debug("map-builder", "randomizeScale error; "+err.Error())
+						os.Exit(1)
 					}
 
 					obj.Diameter = number.Map(rand.Float64(), 0, 1, args[0], args[1])
@@ -630,7 +633,8 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNodeInterface
 					maxdeviation := make([]float64, 1)
 					err := json.Unmarshal(f.Args, &maxdeviation)
 					if err != nil {
-						panic(err)
+						utils.Debug("map-builder", "randomizePosition error; "+err.Error())
+						os.Exit(1)
 					}
 
 					devx := number.Map(rand.Float64(), 0, 1, 0, maxdeviation[0]) * float64(signum(rand.Float64()-rand.Float64()))
@@ -639,16 +643,6 @@ func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNodeInterface
 					obj.Point.X += devx
 					obj.Point.Y += devy
 				}
-			// case "setHeight":
-			// 	{
-			// 		height := make([]float64, 1)
-			// 		err := json.Unmarshal(f.Args, &height)
-			// 		if err != nil {
-			// 			panic(err)
-			// 		}
-
-			// 		obj.Height = height
-			// 	}
 			case "randomizeOrientation":
 				{
 					maxangle := math.Pi * 2
@@ -738,7 +732,8 @@ func PathToMapPolygon(path []PathOperation, pathtransform vector.Matrix2, worldT
 		newpoly := polygonutils.InvertWinding(polyarr)
 		newwinding := polygonutils.GetPolygonWindingForCartesianSystem(newpoly)
 		if !polygonutils.IsCCW(newwinding) {
-			panic("Could not change ground polygon winding from CW to CCW")
+			utils.Debug("map-builder", "Could not change ground polygon winding from CW to CCW")
+			os.Exit(1)
 		}
 
 		newMapPoint := make([]mapcontainer.MapPoint, len(newpoly))
@@ -753,7 +748,8 @@ func PathToMapPolygon(path []PathOperation, pathtransform vector.Matrix2, worldT
 	} else if polygonutils.IsCCW(winding) {
 		log.Println("POLY IS CCW; NOTHING TO DO")
 	} else {
-		panic("Ground polygon is neither CCW nor CW; something's wrong")
+		utils.Debug("map-builder", "Ground polygon is neither CCW nor CW; something's wrong")
+		os.Exit(1)
 	}
 
 	// Calculate (outwards pointing) normal for each polygon edge

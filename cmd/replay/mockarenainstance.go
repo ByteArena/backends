@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver"
 	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
+	"github.com/bytearena/bytearena/common/utils"
 )
 
 type MockGame struct {
@@ -25,7 +25,8 @@ func NewMockGame(tps int) *MockGame {
 	filepath := "../../maps/trainer-map.json"
 	jsonsource, err := os.Open(filepath)
 	if err != nil {
-		log.Panicln("Error opening file:", err)
+		utils.Debug("arena-trainer", "Error opening file: "+err.Error())
+		os.Exit(1)
 	}
 
 	defer jsonsource.Close()
@@ -34,7 +35,8 @@ func NewMockGame(tps int) *MockGame {
 
 	var mapContainer mapcontainer.MapContainer
 	if err := json.Unmarshal(bjsonmap, &mapContainer); err != nil {
-		log.Panicln("Could not load map JSON")
+		utils.Debug("arena-trainer", "Could not load map JSON")
+		os.Exit(1)
 	}
 
 	return &MockGame{

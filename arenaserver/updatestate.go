@@ -165,11 +165,12 @@ func processMovingObjectObstacleCollision(server *Server, beforeState, afterStat
 	}
 
 	bbRegion, err := rtreego.NewRect([]float64{*minX, *minY}, []float64{*maxX - *minX, *maxY - *minY})
-	utils.Check(err, "rtreego Error")
+	if err != nil {
+		utils.Debug("arena-server-updatestate", "Error in processMovingObjectObstacleCollision: vould not define bbRegion in obstacle rTree")
+		return
+	}
 
-	//start := time.Now().UnixNano()
 	matchingObstacles := server.state.MapMemoization.RtreeObstacles.SearchIntersect(bbRegion)
-	//fmt.Println("Took", time.Now().UnixNano()-start, "nanoseconds")
 
 	if len(matchingObstacles) > 0 {
 

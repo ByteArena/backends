@@ -48,9 +48,8 @@ func NewGameGql(game graphqltype.GameType) *GameImpGql {
 	utils.Check(err, "Could not fetch map")
 
 	var mapContainer mapcontainer.MapContainer
-	if err := json.Unmarshal(jsonsource, &mapContainer); err != nil {
-		log.Panicln("Could not load map JSON")
-	}
+	err = json.Unmarshal(jsonsource, &mapContainer)
+	utils.Check(err, "Could not load map JSON")
 
 	return &GameImpGql{
 		mapContainer: &mapContainer,

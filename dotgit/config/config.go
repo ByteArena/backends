@@ -3,8 +3,8 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 )
@@ -87,7 +87,8 @@ func GetConfig() *Config {
 
 	conf, err := loadConfig(configpath)
 	if err != nil {
-		log.Panicln(err) // panic to avoid multiple returns; makes usage of getConfig much easier
+		fmt.Println(err.Error())
+		os.Exit(1)
 	}
 
 	_cnf = conf

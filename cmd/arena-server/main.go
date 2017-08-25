@@ -130,7 +130,8 @@ func startGame(arenaSubmitted messageArenaLaunch, orch container.ContainerOrches
 
 	if startErr != nil {
 		srv.Stop()
-		log.Panicln("Cannot start server: " + startErr.Error())
+		utils.Debug("arena-server", "Cannot start server: "+startErr.Error())
+		os.Exit(1)
 	}
 
 	srv.SendLaunched()

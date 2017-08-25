@@ -50,13 +50,15 @@ func main() {
 		dockerimage,
 	)
 	if err != nil {
-		panic("Failed to create docker container for " + agentid.String() + ": " + err.Error())
+		utils.Debug("debug-server", "Failed to create docker container for "+agentid.String()+": "+err.Error())
+		os.Exit(1)
 	}
 
 	err = orch.StartAgentContainer(container, func(types.TearDownCallback) {})
 
 	if err != nil {
-		panic("Failed to start docker container for " + agentid.String() + ": " + err.Error())
+		utils.Debug("debug-server", "Failed to start docker container for "+agentid.String()+": "+err.Error())
+		os.Exit(1)
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -68,25 +70,22 @@ func main() {
 
 		ln, err := net.Listen("tcp4", listenAddress)
 		if err != nil {
-			panic(fmt.Sprintf("Comm server could not listen on %s; %s", listenAddress, err.Error()))
+			utils.Debug("debug-server", fmt.Sprintf("Comm server could not listen on %s; %s", listenAddress, err.Error()))
+			os.Exit(1)
 		}
-
-		utils.Debug("commserver", "::Listen")
 
 		defer ln.Close()
 		for {
-			utils.Debug("commserver", "::AcceptWaiting")
 			conn, err := ln.Accept()
 			if err != nil {
-				panic(err)
+				utils.Debug("debug-server", err.Error())
+				os.Exit(1)
 			}
-
-			utils.Debug("commserver", "::AcceptED")
 
 			go func() {
 				defer conn.Close()
 				for {
-					utils.Debug("commserver", "::Reading...")
+
 					reader := bufio.NewReader(conn)
 					buf, err := reader.ReadBytes('\n')
 					if err != nil {
@@ -94,8 +93,6 @@ func main() {
 						utils.Debug("commserver", "Connexion closed unexpectedly; "+err.Error())
 						return
 					}
-
-					utils.Debug("commserver", "::RECEIVED bytes"+string(buf))
 
 					// Unmarshal message (unwrapping in an AgentMessage structure)
 					var msg protocol.MessageWrapperImp

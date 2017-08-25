@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
-	"log"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"fmt"
 
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
@@ -108,7 +109,8 @@ func (n *SVGBasicNode) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 							x, err := strconv.ParseFloat(coords[0], 64)
 							y, err2 := strconv.ParseFloat(coords[1], 64)
 							if err != nil || err2 != nil {
-								log.Panicln("Could not parse translate transform", match[2])
+								utils.Debug("svg-parser", "Error: Could not parse translate transform; "+match[2])
+								os.Exit(1)
 							}
 
 							transform = transform.Translate(x, y)
@@ -117,7 +119,8 @@ func (n *SVGBasicNode) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 						{
 							a, err := strconv.ParseFloat(match[2], 64)
 							if err != nil {
-								log.Panicln("Could not parse rotate transform", match[2])
+								utils.Debug("svg-parser", "Error: Could not parse rotate transform; "+match[2])
+								os.Exit(1)
 							}
 
 							transform = transform.Rotate(a)
@@ -132,7 +135,8 @@ func (n *SVGBasicNode) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 							var y float64
 							x, err := strconv.ParseFloat(coords[0], 64)
 							if err != nil {
-								log.Panicln("Could not parse scale transform", match[2])
+								utils.Debug("svg-parser", "Error: Could not parse scale transform; "+match[2])
+								os.Exit(1)
 							}
 
 							if len(coords) == 1 {
@@ -140,7 +144,8 @@ func (n *SVGBasicNode) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 							} else {
 								y, err = strconv.ParseFloat(coords[1], 64)
 								if err != nil {
-									log.Panicln("Could not parse scale transform", match[2])
+									utils.Debug("svg-parser", "Error: Could not parse scale transform; "+match[2])
+									os.Exit(1)
 								}
 							}
 
@@ -148,13 +153,13 @@ func (n *SVGBasicNode) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 						}
 					case "skewX":
 						{
-							log.Panicln("transform skewX not implemented.")
-							// parse scale
+							utils.Debug("svg-parser", "Error: transform skewX not implemented")
+							os.Exit(1)
 						}
 					case "skewY":
 						{
-							log.Panicln("transform skewY not implemented.")
-							// parse scale
+							utils.Debug("svg-parser", "Error: transform skewY not implemented")
+							os.Exit(1)
 						}
 					}
 				}

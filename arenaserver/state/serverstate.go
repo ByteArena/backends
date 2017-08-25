@@ -107,9 +107,9 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 
 		pa, pb := GetBoundingBox([]vector.Vector2{obstacle.A, obstacle.B})
 		r, err := rtreego.NewRect(pa, pb)
-		utils.CheckWithFunc(err, func() string {
-			return "rtreego: NewRect error;" + err.Error()
-		})
+		if err != nil {
+			utils.Debug("rtree-obstacles-init", "rtreego: NewRect error;"+err.Error())
+		}
 
 		var geotype int
 		if obstacle.Type == ObstacleType.Ground {
@@ -147,9 +147,9 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 
 			pa, pb := GetBoundingBox(points[:])
 			r, err := rtreego.NewRect(pa, pb)
-			utils.CheckWithFunc(err, func() string {
-				return "rtreego: NewRect error;" + err.Error()
-			})
+			if err != nil {
+				utils.Debug("rtree-ground-init", "rtreego: NewRect error;"+err.Error())
+			}
 
 			rtSurface.Insert(&TriangleRtreeWrapper{
 				Rect:   r,
@@ -177,9 +177,9 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 
 			pa, pb := GetBoundingBox(points[:])
 			r, err := rtreego.NewRect(pa, pb)
-			utils.CheckWithFunc(err, func() string {
-				return "rtreego: NewRect error;" + err.Error()
-			})
+			if err != nil {
+				utils.Debug("rtree-collision-init", "rtreego: NewRect error;"+err.Error())
+			}
 
 			rtCollisions.Insert(&TriangleRtreeWrapper{
 				Rect:   r,
@@ -252,7 +252,10 @@ func (serverstate *ServerState) ProcessMutations() {
 				{
 					var vec []float64
 					err := json.Unmarshal(mutation.GetArguments(), &vec)
-					utils.Check(err, "Failed to unmarshal JSON arguments for steer mutation, coming from agent "+batch.AgentId.String())
+					if err != nil {
+						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for steer mutation, coming from agent "+batch.AgentId.String()+"; "+err.Error())
+						continue
+					}
 
 					nbmutations++
 					newstate = newstate.mutationSteer(vector.MakeVector2(vec[0], vec[1]))
@@ -263,7 +266,10 @@ func (serverstate *ServerState) ProcessMutations() {
 				{
 					var vec []float64
 					err := json.Unmarshal(mutation.GetArguments(), &vec)
-					utils.Check(err, "Failed to unmarshal JSON arguments for shoot mutation, coming from agent "+batch.AgentId.String())
+					if err != nil {
+						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for shoot mutation, coming from agent "+batch.AgentId.String()+"; "+err.Error())
+						continue
+					}
 
 					nbmutations++
 					newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
@@ -274,9 +280,12 @@ func (serverstate *ServerState) ProcessMutations() {
 				{
 					var rawvecs [][]float64
 					err := json.Unmarshal(mutation.GetArguments(), &rawvecs)
-					utils.Check(err, "Failed to unmarshal JSON arguments for debugvis mutation, coming from agent "+batch.AgentId.String())
+					if err != nil {
+						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for debugvis mutation, coming from agent "+batch.AgentId.String()+"; "+err.Error())
+						continue
+					}
 
-					if len(rawvecs) > 0 {
+					if len(rawvecs) == 2 {
 						vecs := make([]vector.Vector2, len(rawvecs))
 						for i, rawvec := range rawvecs {
 							v := vector.MakeVector2(rawvec[0], rawvec[1])

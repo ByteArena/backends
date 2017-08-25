@@ -170,9 +170,10 @@ func main() {
 		var vizMessage []GameIDVizMessage
 		err := json.Unmarshal([]byte(msg.Data), &vizMessage)
 
-		utils.CheckWithFunc(err, func() string {
-			return "Failed to decode vizmessage: " + err.Error()
-		})
+		if err != nil {
+			utils.Debug("vizserver", "Failes to decode vizmessage: "+err.Error())
+			return
+		}
 
 		gameID := vizMessage[0].GameID
 		arenaServerUUID := vizMessage[0].ArenaServerUUID
@@ -190,10 +191,10 @@ func main() {
 	mqclient.Subscribe("game", "stopped", func(msg mq.BrokerMessage) {
 		var message GameStoppedMessage
 		err := json.Unmarshal(msg.Data, &message)
-
-		utils.CheckWithFunc(err, func() string {
-			return "Failed to decode vizmessage: " + err.Error()
-		})
+		if err != nil {
+			utils.Debug("viz-server", "Failed to game stop message: "+err.Error())
+			return
+		}
 
 		recorder.Close(message.Payload.ArenaServerUUID)
 	})

@@ -2,7 +2,6 @@ package queries
 
 import (
 	"encoding/json"
-	"log"
 
 	"errors"
 
@@ -76,7 +75,6 @@ func FetchGameById(graphqlclient graphql.Client, gameid string) (arenaserver.Gam
 	)
 
 	if err != nil {
-		log.Panicln(err)
 		return nil, errors.New("Could not fetch game '" + gameid + "' from GraphQL")
 	}
 

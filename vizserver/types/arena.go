@@ -50,7 +50,9 @@ func (vizgame *VizGame) SetWatcher(watcher *Watcher) {
 	}
 
 	err := watcher.conn.WriteJSON(initMsg)
-	utils.Check(err, "Could not send VizInitMessage JSON")
+	if err != nil {
+		utils.Debug("viz-server", "Could not send VizInitMessage JSON;"+err.Error())
+	}
 }
 
 func (vizgame *VizGame) RemoveWatcher(watcherid string) {
