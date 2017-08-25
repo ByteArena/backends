@@ -17,7 +17,7 @@ type SingleArenaRecorder struct {
 	recordMetadataFile *os.File
 }
 
-func MakeSingleArenaRecorder(filename string) Recorder {
+func MakeSingleArenaRecorder(filename string) *SingleArenaRecorder {
 	tempBaseFilename := os.TempDir() + "/" + filename
 
 	f, err := os.OpenFile(tempBaseFilename, os.O_RDWR|os.O_CREATE, 0600)

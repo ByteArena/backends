@@ -53,7 +53,7 @@ func main() {
 	fmt.Println(strings.Replace(string(bjsonmap), "\n", "", -1))
 }
 
-func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
+func buildMap(svg SVGNodeInterface, pxperunit float64) mapcontainer.MapContainer {
 	// Path + Fill=groundcolor: ground
 	// Circle/Ellipse + Fill=red: starting spot
 	// Circle/Ellipse + Fill=obstaclecolor: normalized obstacle
@@ -94,12 +94,12 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 
 	worldTransform = worldTransform.Scale(1, -1)
 
-	svggrounds := make([]SVGNode, 0)
-	svgstarts := make([]SVGNode, 0)
-	svgobjects := make([]SVGNode, 0)
-	svgobstacles := make([]SVGNode, 0)
+	svggrounds := make([]SVGNodeInterface, 0)
+	svgstarts := make([]SVGNodeInterface, 0)
+	svgobjects := make([]SVGNodeInterface, 0)
+	svgobstacles := make([]SVGNodeInterface, 0)
 
-	SVGVisit(svg, func(node SVGNode) {
+	SVGVisit(svg, func(node SVGNodeInterface) {
 
 		groups := GetSVGIDs(node)
 
@@ -304,7 +304,7 @@ func buildMap(svg SVGNode, pxperunit float64) mapcontainer.MapContainer {
 	return builtmap
 }
 
-func SVGVisit(node SVGNode, cbk func(node SVGNode)) {
+func SVGVisit(node SVGNodeInterface, cbk func(node SVGNodeInterface)) {
 
 	children := node.GetChildren()
 	for _, child := range children {
@@ -313,7 +313,7 @@ func SVGVisit(node SVGNode, cbk func(node SVGNode)) {
 	cbk(node)
 }
 
-func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapcontainer.MapGround {
+func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNodeInterface) []mapcontainer.MapGround {
 
 	grounds := make([]mapcontainer.MapGround, 0)
 
@@ -485,7 +485,7 @@ func processGrounds(worldTransform vector.Matrix2, svggrounds []SVGNode) []mapco
 	return grounds
 }
 
-func processStarts(worldTransform vector.Matrix2, svgstarts []SVGNode) []mapcontainer.MapStart {
+func processStarts(worldTransform vector.Matrix2, svgstarts []SVGNodeInterface) []mapcontainer.MapStart {
 
 	starts := make([]mapcontainer.MapStart, 0)
 	for _, svgstart := range svgstarts {
@@ -532,11 +532,11 @@ func signum(f float64) int {
 	return 1
 }
 
-func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNode) ([]mapcontainer.MapPrefabObject, []mapcontainer.MapObstacleObject) {
+func processObjects(worldTransform vector.Matrix2, svgobjects []SVGNodeInterface) ([]mapcontainer.MapPrefabObject, []mapcontainer.MapObstacleObject) {
 	prefabObjects := make([]mapcontainer.MapPrefabObject, 0)
 	obstacleObjects := make([]mapcontainer.MapObstacleObject, 0)
 
-	circleProcessor := func(node SVGNode, cx float64, cy float64, radius float64) *mapcontainer.MapPrefabObject {
+	circleProcessor := func(node SVGNodeInterface, cx float64, cy float64, radius float64) *mapcontainer.MapPrefabObject {
 
 		ids := GetSVGIDs(node)
 

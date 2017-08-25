@@ -22,11 +22,11 @@ type VizService struct {
 	webclientpath string
 	fetchGames    FetchArenasCbk
 	listener      *http.Server
-	recorder      recording.Recorder
+	recorder      recording.RecorderInterface
 	pathToAssets  string
 }
 
-func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk, recorder recording.Recorder) *VizService {
+func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk, recorder recording.RecorderInterface) *VizService {
 	return &VizService{
 		addr:          addr,
 		webclientpath: webclientpath,

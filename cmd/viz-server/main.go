@@ -149,7 +149,7 @@ func main() {
 	mqclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: could not connect to messagebroker")
 
-	var recorder recording.Recorder = recording.MakeEmptyRecorder()
+	var recorder recording.RecorderInterface = recording.MakeEmptyRecorder()
 	if *recordDirectory != "" {
 		recorder = recording.MakeMultiArenaRecorder(*recordDirectory)
 	}

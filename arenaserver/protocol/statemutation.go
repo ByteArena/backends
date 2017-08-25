@@ -14,6 +14,6 @@ type StateMutationBatch struct {
 	Mutations []MessageMutationImp
 }
 
-type StateMutationPusher interface {
+type StateMutationPusherInterface interface {
 	PushMutationBatch(batch StateMutationBatch)
 }

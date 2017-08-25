@@ -5,8 +5,8 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/state"
 )
 
-type LocalAgent interface {
-	Agent
+type LocalAgentInterface interface {
+	AgentInterface
 }
 
 type LocalAgentImp struct {
@@ -24,6 +24,6 @@ func (agent LocalAgentImp) String() string {
 	return "<LocalAgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent LocalAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator) error {
+func (agent LocalAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicatorInterface) error {
 	return nil
 }

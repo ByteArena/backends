@@ -15,7 +15,7 @@ type MutliArenaRecorder struct {
 	recordMetadataFileHandles map[string]*os.File
 }
 
-func MakeMultiArenaRecorder(directory string) Recorder {
+func MakeMultiArenaRecorder(directory string) *MutliArenaRecorder {
 
 	return &MutliArenaRecorder{
 		recordFileHandles:         make(map[string]*os.File),

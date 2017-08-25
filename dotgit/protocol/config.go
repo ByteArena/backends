@@ -1,6 +1,6 @@
 package protocol
 
-type Config interface {
+type ConfigInterface interface {
 	GetDatabaseURI() string
 	GitRepositoriesPath() string
 }

@@ -8,9 +8,9 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/state"
 )
 
-type NetAgent interface {
-	Agent
-	SetConn(conn net.Conn) NetAgent
+type NetAgentInterface interface {
+	AgentInterface
+	SetConn(conn net.Conn) NetAgentInterface
 	GetConn() net.Conn
 }
 
@@ -29,13 +29,13 @@ func (agent NetAgentImp) String() string {
 	return "<NetAgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent NetAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicator) error {
+func (agent NetAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicatorInterface) error {
 	perceptionjson, _ := json.Marshal(perception)
 	message := []byte("{\"Method\": \"tick\", \"Arguments\": [0," + string(perceptionjson) + "]}\n") // TODO(jerome): remove 0 (ex turn)
 	return comm.NetSend(message, agent.GetConn())
 }
 
-func (agent NetAgentImp) SetConn(conn net.Conn) NetAgent {
+func (agent NetAgentImp) SetConn(conn net.Conn) NetAgentInterface {
 	agent.conn = conn
 	return agent
 }

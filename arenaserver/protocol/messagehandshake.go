@@ -1,6 +1,6 @@
 package protocol
 
-type MessageHandshake interface {
+type MessageHandshakeInterface interface {
 	GetGreetings() string
 }
 

@@ -11,7 +11,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.Agent) []state.PerceptionVisionItem {
+func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.AgentInterface) []state.PerceptionVisionItem {
 
 	agentstate := serverstate.GetAgentState(agent.GetId())
 	vision := make([]state.PerceptionVisionItem, 0)

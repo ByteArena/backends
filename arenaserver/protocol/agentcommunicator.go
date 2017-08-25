@@ -1,6 +1,6 @@
 package protocol
 
-type AgentCommunicator interface {
-	NetSender
-	StateMutationPusher
+type AgentCommunicatorInterface interface {
+	NetSenderInterface
+	StateMutationPusherInterface
 }

@@ -43,7 +43,7 @@ func main() {
 	log.SetOutput(f)
 	log.Println("Starting a dotgit-ssh session", os.Args, os.Getenv("SSH_ORIGINAL_COMMAND"))
 
-	var db protocol.Database = database.NewGraphQLDatabase()
+	var db protocol.DatabaseInterface = database.NewGraphQLDatabase()
 
 	err = db.Connect(cnf.GetDatabaseURI())
 	errorCheck(err, "Cannot connect to database")

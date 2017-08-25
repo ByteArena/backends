@@ -89,7 +89,7 @@ func main() {
 
 	go protocol.StreamState(srv, brokerclient, "trainer")
 
-	var recorder recording.Recorder = recording.MakeEmptyRecorder()
+	var recorder recording.RecorderInterface = recording.MakeEmptyRecorder()
 	if *recordFile != "" {
 		recorder = recording.MakeSingleArenaRecorder(*recordFile)
 	}

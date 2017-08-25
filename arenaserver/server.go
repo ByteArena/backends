@@ -38,7 +38,7 @@ type Server struct {
 	stopticking           chan bool
 	tickspersec           int
 	containerorchestrator container.ContainerOrchestrator
-	agents                map[uuid.UUID]agent.Agent
+	agents                map[uuid.UUID]agent.AgentInterface
 	agentsmutex           *sync.Mutex
 	state                 *state.ServerState
 	commserver            *comm.CommServer
@@ -86,7 +86,7 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, game
 		stopticking:           make(chan bool),
 		tickspersec:           game.GetTps(),
 		containerorchestrator: orch,
-		agents:                make(map[uuid.UUID]agent.Agent),
+		agents:                make(map[uuid.UUID]agent.AgentInterface),
 		agentsmutex:           &sync.Mutex{},
 		state:                 state.NewServerState(game.GetMapContainer()),
 		commserver:            nil, // initialized in Listen()
@@ -172,7 +172,7 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 	utils.Debug("arena", "Registrer agent "+agentimage)
 }
 
-func (server *Server) setAgent(agent agent.Agent) {
+func (server *Server) setAgent(agent agent.AgentInterface) {
 	server.agentsmutex.Lock()
 	defer server.agentsmutex.Unlock()
 
@@ -235,8 +235,8 @@ func (server *Server) TearDown() {
 	server.tearDownCallbacksMutex.Unlock()
 }
 
-func (server *Server) DoFindAgent(agentid string) (agent.Agent, error) {
-	var emptyagent agent.Agent
+func (server *Server) DoFindAgent(agentid string) (agent.AgentInterface, error) {
+	var emptyagent agent.AgentInterface
 
 	foundkey, err := uuid.FromString(agentid)
 	if err != nil {
@@ -278,7 +278,7 @@ func (server *Server) DoTick() {
 	arenamap := server.game.GetMapContainer()
 
 	for _, ag := range server.agents {
-		go func(server *Server, ag agent.Agent, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
+		go func(server *Server, ag agent.AgentInterface, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
 
 			p := perception.ComputeAgentPerception(arenamap, serverstate, ag)
 
@@ -324,7 +324,7 @@ func (server *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
 
 /* </implementing protocol.AgentCommunicator> */
 
-func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
+func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapperInterface) error {
 
 	ag, err := server.DoFindAgent(msg.GetAgentId().String())
 	if err != nil {
@@ -352,7 +352,7 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapper) error {
 				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent handshake payload for agent " + msg.GetAgentId().String() + "; " + string(msg.GetPayload()))
 			}
 
-			ag, ok := ag.(agent.NetAgent)
+			ag, ok := ag.(agent.NetAgentInterface)
 			if !ok {
 				return errors.New("DispatchAgentMessage: Failed to cast agent to NetAgent during handshake for " + ag.String())
 			}

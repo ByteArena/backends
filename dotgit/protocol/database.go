@@ -1,6 +1,6 @@
 package protocol
 
-type Database interface {
+type DatabaseInterface interface {
 	Connect(connURI string) error
 	ActivateDebug()
 	Close()

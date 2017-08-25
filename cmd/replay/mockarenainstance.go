@@ -7,8 +7,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bytearena/bytearena/arenaserver"
+	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 )
 
@@ -52,6 +54,18 @@ func (ins *MockGame) GetName() string {
 
 func (ins *MockGame) GetTps() int {
 	return ins.tps
+}
+
+func (ins *MockGame) GetRunStatus() int {
+	return gqltypes.GameRunStatus.Running
+}
+
+func (ins *MockGame) GetLaunchedAt() string {
+	return time.Now().Format("2006-01-02T15:04:05-0700")
+}
+
+func (ins *MockGame) GetEndedAt() string {
+	return ""
 }
 
 func (ins *MockGame) AddContestant(agentimage string) {
