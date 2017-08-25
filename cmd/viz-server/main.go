@@ -30,7 +30,7 @@ type GameIDVizMessage struct {
 
 type GameStoppedMessage struct {
 	Payload struct {
-		Id string `json:"id"`
+		ArenaServerUUID string `json:"arenaserveruuid"`
 	} `json:"payload"`
 }
 
@@ -169,15 +169,15 @@ func main() {
 		})
 
 		gameID := vizMessage[0].GameID
-		UUID := vizMessage[0].ArenaServerUUID
+		arenaServerUUID := vizMessage[0].ArenaServerUUID
 		game, ok := gamelist.GetGameById(gameID)
 
 		if ok {
-			recorder.RecordMetadata(UUID, game.GetGame().GetMapContainer())
-			recorder.Record(UUID, string(msg.Data))
+			recorder.RecordMetadata(arenaServerUUID, game.GetGame().GetMapContainer())
+			recorder.Record(arenaServerUUID, string(msg.Data))
 		}
 
-		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena "+UUID)
+		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena server "+arenaServerUUID)
 		notify.PostTimeout("viz:message:"+gameID, string(msg.Data), time.Millisecond)
 	})
 
@@ -189,8 +189,7 @@ func main() {
 			return "Failed to decode vizmessage: " + err.Error()
 		})
 
-		UUID := message.Payload.Id
-		recorder.Close(UUID)
+		recorder.Close(message.Payload.ArenaServerUUID)
 	})
 
 	vizservice.Start()
