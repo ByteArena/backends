@@ -22,9 +22,7 @@ import (
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/dhconnelly/rtreego"
 	uuid "github.com/satori/go.uuid"
 	"github.com/ttacon/chalk"
 )
@@ -46,8 +44,8 @@ type Server struct {
 	currentturn           utils.Tickturn
 	currentturnmutex      *sync.Mutex
 	stateobservers        []chan state.ServerState
-	DebugNbMutations      int
-	DebugNbUpdates        int
+	debugNbMutations      int
+	debugNbUpdates        int
 	mqClient              mq.ClientInterface
 
 	agentimages map[uuid.UUID]string
@@ -56,16 +54,8 @@ type Server struct {
 
 	game GameInterface
 
-	TearDownCallbacks      []types.TearDownCallback
+	tearDownCallbacks      []types.TearDownCallback
 	tearDownCallbacksMutex *sync.Mutex
-}
-
-type GameStopMessagePayload struct {
-	ArenaServerUUID string `json:"arenaserveruuid"`
-}
-
-type GameStopMessage struct {
-	Payload GameStopMessagePayload `json:"payload"`
 }
 
 func NewServer(host string, port int, orch container.ContainerOrchestrator, game GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
@@ -100,54 +90,26 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, game
 
 		game: game,
 
-		TearDownCallbacks:      make([]types.TearDownCallback, 0),
+		tearDownCallbacks:      make([]types.TearDownCallback, 0),
 		tearDownCallbacksMutex: &sync.Mutex{},
 	}
 
 	return s
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// Public API
+///////////////////////////////////////////////////////////////////////////////
+
 func (s *Server) AddTearDownCall(fn types.TearDownCallback) {
 	s.tearDownCallbacksMutex.Lock()
 	defer s.tearDownCallbacksMutex.Unlock()
 
-	s.TearDownCallbacks = append(s.TearDownCallbacks, fn)
+	s.tearDownCallbacks = append(s.tearDownCallbacks, fn)
 }
 
 func (server *Server) GetTicksPerSecond() int {
 	return server.tickspersec
-}
-
-func (server *Server) spawnAgents() error {
-
-	for _, agent := range server.agents {
-		dockerimage := server.agentimages[agent.GetId()]
-
-		arenaHostnameForAgents, err := server.containerorchestrator.GetHost(&server.containerorchestrator)
-		if err != nil {
-			return errors.New("Failed to fetch arena hostname for agents; " + err.Error())
-		}
-
-		container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), arenaHostnameForAgents, server.port, dockerimage)
-
-		if err != nil {
-			return errors.New("Failed to create docker container for " + agent.String() + ": " + err.Error())
-		}
-
-		err = server.containerorchestrator.StartAgentContainer(container, server.AddTearDownCall)
-
-		if err != nil {
-			return errors.New("Failed to start docker container for " + agent.String() + ": " + err.Error())
-		}
-
-		server.AddTearDownCall(func() error {
-			server.containerorchestrator.TearDown(container)
-
-			return nil
-		})
-	}
-
-	return nil
 }
 
 func (server *Server) RegisterAgent(agentimage, agentname string) {
@@ -172,48 +134,6 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 	utils.Debug("arena", "Registrer agent "+agentimage)
 }
 
-func (server *Server) setAgent(agent agent.AgentInterface) {
-	server.agentsmutex.Lock()
-	defer server.agentsmutex.Unlock()
-
-	server.agents[agent.GetId()] = agent
-}
-
-func (s *Server) SetTurn(turn utils.Tickturn) {
-	s.currentturnmutex.Lock()
-	defer s.currentturnmutex.Unlock()
-
-	s.currentturn = turn
-}
-
-func (s *Server) GetTurn() utils.Tickturn {
-	s.currentturnmutex.Lock()
-	defer s.currentturnmutex.Unlock()
-
-	res := s.currentturn
-
-	return res
-}
-
-func (server *Server) Listen() chan interface{} {
-	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
-	server.commserver = comm.NewCommServer(serveraddress)
-
-	utils.Debug("arena", "Server listening on port "+strconv.Itoa(server.port))
-
-	err := server.commserver.Listen(server)
-	utils.Check(err, "Failed to listen on "+serveraddress)
-
-	block := make(chan interface{})
-	notify.Start("app:stopticking", block)
-
-	return block
-}
-
-func (server *Server) GetNbExpectedagents() int {
-	return len(server.game.GetContestants())
-}
-
 func (server *Server) GetState() *state.ServerState {
 	return server.state
 }
@@ -224,91 +144,15 @@ func (server *Server) TearDown() {
 
 	server.tearDownCallbacksMutex.Lock()
 
-	for i := len(server.TearDownCallbacks) - 1; i >= 0; i-- {
+	for i := len(server.tearDownCallbacks) - 1; i >= 0; i-- {
 		utils.Debug("teardown", "Executing TearDownCallback")
-		server.TearDownCallbacks[i]()
+		server.tearDownCallbacks[i]()
 	}
 
 	// Reset to avoid calling teardown callback multiple times
-	server.TearDownCallbacks = make([]types.TearDownCallback, 0)
+	server.tearDownCallbacks = make([]types.TearDownCallback, 0)
 
 	server.tearDownCallbacksMutex.Unlock()
-}
-
-func (server *Server) DoFindAgent(agentid string) (agent.AgentInterface, error) {
-	var emptyagent agent.AgentInterface
-
-	foundkey, err := uuid.FromString(agentid)
-	if err != nil {
-		return emptyagent, err
-	}
-
-	server.agentsmutex.Lock()
-	if foundagent, ok := server.agents[foundkey]; ok {
-		server.agentsmutex.Unlock()
-		return foundagent, nil
-	}
-	server.agentsmutex.Unlock()
-
-	return emptyagent, errors.New("Agent" + agentid + " not found")
-}
-
-func (server *Server) DoTick() {
-
-	turn := server.GetTurn()
-	server.SetTurn(turn.Next())
-
-	dolog := (turn.GetSeq() % server.tickspersec) == 0
-
-	if dolog {
-		fmt.Print(chalk.Yellow)
-		log.Println("######## Tick #####", turn, chalk.Reset)
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	// Updating world state
-	///////////////////////////////////////////////////////////////////////////
-	server.Update()
-
-	///////////////////////////////////////////////////////////////////////////
-	// Refreshing perception for every agent
-	///////////////////////////////////////////////////////////////////////////
-	server.GetState().DebugPoints = make([]vector.Vector2, 0)
-
-	arenamap := server.game.GetMapContainer()
-
-	for _, ag := range server.agents {
-		go func(server *Server, ag agent.AgentInterface, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
-
-			p := perception.ComputeAgentPerception(arenamap, serverstate, ag)
-
-			err := ag.SetPerception(p, server)
-			if err != nil {
-				fmt.Print(chalk.Red)
-				log.Println("ERROR: could not set perception on agent", ag.GetId().String(), chalk.Reset)
-			}
-
-		}(server, ag, server.GetState(), arenamap)
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	// Pushing updated state to viz
-	///////////////////////////////////////////////////////////////////////////
-	serverCloned := *server.state
-
-	for _, subscriber := range server.stateobservers {
-		go func(s chan state.ServerState) {
-			s <- serverCloned
-		}(subscriber)
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-
-	if dolog {
-		// Debug : Nombre de goroutines
-		fmt.Print(chalk.Blue)
-		log.Println("# Nombre de goroutines en vol : "+strconv.Itoa(runtime.NumGoroutine()), chalk.Reset)
-	}
 }
 
 /* <implementing protocol.AgentCommunicator> */
@@ -319,14 +163,14 @@ func (server *Server) NetSend(message []byte, conn net.Conn) error {
 
 func (server *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
 	server.state.PushMutationBatch(batch)
-	server.ProcessMutations()
+	server.processMutations()
 }
 
 /* </implementing protocol.AgentCommunicator> */
 
 func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapperInterface) error {
 
-	ag, err := server.DoFindAgent(msg.GetAgentId().String())
+	ag, err := server.doFindAgent(msg.GetAgentId().String())
 	if err != nil {
 		return errors.New("DispatchAgentMessage: agentid does not match any known agent in received agent message !;" + msg.GetAgentId().String())
 	}
@@ -364,8 +208,8 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapperInterface)
 
 			server.nbhandshaked++
 
-			if server.nbhandshaked == server.GetNbExpectedagents() {
-				server.OnAgentsReady()
+			if server.nbhandshaked == server.getNbExpectedagents() {
+				server.onAgentsReady()
 			}
 
 			// TODO(sven|jerome): handle some timeout here if all agents fail to handshake
@@ -401,6 +245,214 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapperInterface)
 	return nil
 }
 
+func (server *Server) Start() (chan interface{}, error) {
+
+	utils.Debug("arena", "Listen")
+	block := server.listen()
+
+	utils.Debug("arena", "Spawn agents")
+	err := server.spawnAgents()
+
+	if err != nil {
+		return nil, errors.New("Failed to spawn agents: " + err.Error())
+	}
+
+	server.AddTearDownCall(func() error {
+		utils.Debug("arena", "Publish game state (stopped)")
+
+		err := server.mqClient.Publish("game", "stopped", GameStopMessage{
+			Payload: GameStopMessagePayload{
+				ArenaServerUUID: server.arenaServerUUID,
+			},
+		})
+
+		return err
+	})
+
+	return block, nil
+}
+
+func (server *Server) Stop() {
+	log.Println("TearDown from stop")
+
+	server.TearDown()
+}
+
+func (server *Server) SubscribeStateObservation() chan state.ServerState {
+	ch := make(chan state.ServerState)
+	server.stateobservers = append(server.stateobservers, ch)
+	return ch
+}
+
+func (server *Server) SendLaunched() {
+
+	server.mqClient.Publish("game", "launched", types.NewMQMessage(
+		"arena-server",
+		"Arena Server "+server.arenaServerUUID+" launched",
+	).SetPayload(types.MQPayload{
+		"arenaserveruuid": server.arenaServerUUID,
+	}))
+}
+
+func (server *Server) GetGame() GameInterface {
+	return server.game
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Private scope
+///////////////////////////////////////////////////////////////////////////////
+
+func (server *Server) spawnAgents() error {
+
+	for _, agent := range server.agents {
+		dockerimage := server.agentimages[agent.GetId()]
+
+		arenaHostnameForAgents, err := server.containerorchestrator.GetHost(&server.containerorchestrator)
+		if err != nil {
+			return errors.New("Failed to fetch arena hostname for agents; " + err.Error())
+		}
+
+		container, err := server.containerorchestrator.CreateAgentContainer(agent.GetId(), arenaHostnameForAgents, server.port, dockerimage)
+
+		if err != nil {
+			return errors.New("Failed to create docker container for " + agent.String() + ": " + err.Error())
+		}
+
+		err = server.containerorchestrator.StartAgentContainer(container, server.AddTearDownCall)
+
+		if err != nil {
+			return errors.New("Failed to start docker container for " + agent.String() + ": " + err.Error())
+		}
+
+		server.AddTearDownCall(func() error {
+			server.containerorchestrator.TearDown(container)
+
+			return nil
+		})
+	}
+
+	return nil
+}
+
+func (server *Server) setAgent(agent agent.AgentInterface) {
+	server.agentsmutex.Lock()
+	defer server.agentsmutex.Unlock()
+
+	server.agents[agent.GetId()] = agent
+}
+
+func (s *Server) setTurn(turn utils.Tickturn) {
+	s.currentturnmutex.Lock()
+	defer s.currentturnmutex.Unlock()
+
+	s.currentturn = turn
+}
+
+func (s *Server) getTurn() utils.Tickturn {
+	s.currentturnmutex.Lock()
+	defer s.currentturnmutex.Unlock()
+
+	res := s.currentturn
+
+	return res
+}
+
+func (server *Server) listen() chan interface{} {
+	serveraddress := "0.0.0.0:" + strconv.Itoa(server.port)
+	server.commserver = comm.NewCommServer(serveraddress)
+
+	utils.Debug("arena", "Server listening on port "+strconv.Itoa(server.port))
+
+	err := server.commserver.Listen(server)
+	utils.Check(err, "Failed to listen on "+serveraddress)
+
+	block := make(chan interface{})
+	notify.Start("app:stopticking", block)
+
+	return block
+}
+
+func (server *Server) getNbExpectedagents() int {
+	return len(server.game.GetContestants())
+}
+
+func (server *Server) doFindAgent(agentid string) (agent.AgentInterface, error) {
+	var emptyagent agent.AgentInterface
+
+	foundkey, err := uuid.FromString(agentid)
+	if err != nil {
+		return emptyagent, err
+	}
+
+	server.agentsmutex.Lock()
+	if foundagent, ok := server.agents[foundkey]; ok {
+		server.agentsmutex.Unlock()
+		return foundagent, nil
+	}
+	server.agentsmutex.Unlock()
+
+	return emptyagent, errors.New("Agent" + agentid + " not found")
+}
+
+func (server *Server) doTick() {
+
+	turn := server.getTurn()
+	server.setTurn(turn.Next())
+
+	dolog := (turn.GetSeq() % server.tickspersec) == 0
+
+	if dolog {
+		fmt.Print(chalk.Yellow)
+		log.Println("######## Tick #####", turn, chalk.Reset)
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	// Updating world state
+	///////////////////////////////////////////////////////////////////////////
+	server.update()
+
+	///////////////////////////////////////////////////////////////////////////
+	// Refreshing perception for every agent
+	///////////////////////////////////////////////////////////////////////////
+	server.GetState().DebugPoints = make([]vector.Vector2, 0)
+
+	arenamap := server.game.GetMapContainer()
+
+	for _, ag := range server.agents {
+		go func(server *Server, ag agent.AgentInterface, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
+
+			err := ag.SetPerception(
+				perception.ComputeAgentPerception(arenamap, serverstate, ag),
+				server,
+			)
+			if err != nil {
+				fmt.Print(chalk.Red)
+				log.Println("ERROR: could not set perception on agent", ag.GetId().String(), chalk.Reset)
+			}
+
+		}(server, ag, server.GetState(), arenamap)
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	// Pushing updated state to viz
+	///////////////////////////////////////////////////////////////////////////
+	serverCloned := *server.state
+
+	for _, subscriber := range server.stateobservers {
+		go func(s chan state.ServerState) {
+			s <- serverCloned
+		}(subscriber)
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+
+	if dolog {
+		// Debug : Nombre de goroutines
+		fmt.Print(chalk.Blue)
+		log.Println("# Nombre de goroutines en vol : "+strconv.Itoa(runtime.NumGoroutine()), chalk.Reset)
+	}
+}
+
 func (server *Server) monitoring(stopChannel chan bool) {
 	monitorfreq := time.Second
 	debugNbMutations := 0
@@ -416,21 +468,21 @@ func (server *Server) monitoring(stopChannel chan bool) {
 				fmt.Print(chalk.Cyan)
 				log.Println(
 					"-- MONITORING --",
-					/*server.DebugNbMutations, "mutations,", */ server.DebugNbMutations-debugNbMutations, "mutations per", monitorfreq,
+					/*server.DebugNbMutations, "mutations,", */ server.debugNbMutations-debugNbMutations, "mutations per", monitorfreq,
 					";",
-					/*server.DebugNbUpdates, "updates,", */ server.DebugNbUpdates-debugNbUpdates, "updates per", monitorfreq,
+					/*server.DebugNbUpdates, "updates,", */ server.debugNbUpdates-debugNbUpdates, "updates per", monitorfreq,
 					chalk.Reset,
 				)
 
-				debugNbMutations = server.DebugNbMutations
-				debugNbUpdates = server.DebugNbUpdates
+				debugNbMutations = server.debugNbMutations
+				debugNbUpdates = server.debugNbUpdates
 
 			}
 		}
 	}
 }
 
-func (server *Server) OnAgentsReady() {
+func (server *Server) onAgentsReady() {
 	utils.Debug("arena", "Agents are ready; starting in 1 second")
 	time.Sleep(time.Duration(time.Second * 1))
 
@@ -471,60 +523,21 @@ func (server *Server) startTicking() {
 				}
 			case <-ticker:
 				{
-					server.DoTick()
+					server.doTick()
 				}
 			}
 		}
 	}()
 }
 
-func (server *Server) Start() (chan interface{}, error) {
-
-	utils.Debug("arena", "Listen")
-	block := server.Listen()
-
-	utils.Debug("arena", "Spawn agents")
-	err := server.spawnAgents()
-
-	if err != nil {
-		return nil, errors.New("Failed to spawn agents: " + err.Error())
-	}
-
-	server.AddTearDownCall(func() error {
-		utils.Debug("arena", "Publish game state (stopped)")
-
-		err := server.mqClient.Publish("game", "stopped", GameStopMessage{
-			Payload: GameStopMessagePayload{
-				ArenaServerUUID: server.arenaServerUUID,
-			},
-		})
-
-		return err
-	})
-
-	return block, nil
-}
-
-func (server *Server) Stop() {
-	log.Println("TearDown from stop")
-
-	server.TearDown()
-}
-
-func (server *Server) ProcessMutations() {
-	server.DebugNbMutations++
+func (server *Server) processMutations() {
+	server.debugNbMutations++
 	server.state.ProcessMutations()
 }
 
-type movingObjectTemporaryState struct {
-	Position vector.Vector2
-	Velocity vector.Vector2
-	Radius   float64
-}
+func (server *Server) update() {
 
-func (server *Server) Update() {
-
-	server.DebugNbUpdates++
+	server.debugNbUpdates++
 
 	///////////////////////////////////////////////////////////////////////////
 	// Updates physiques, liées au temps qui passe
@@ -563,375 +576,4 @@ func (server *Server) Update() {
 	// * agent / projectile
 	// * projectile / projectile
 	// * projectile / obstacle
-}
-
-func updateProjectiles(server *Server) (beforeStates map[uuid.UUID]movingObjectTemporaryState) {
-
-	server.state.Projectilesmutex.Lock()
-
-	projectilesToRemove := make([]uuid.UUID, 0)
-	for _, projectile := range server.state.Projectiles {
-		if projectile.TTL <= 0 {
-			projectilesToRemove = append(projectilesToRemove, projectile.Id)
-		}
-	}
-
-	for _, projectileToRemoveId := range projectilesToRemove {
-		// has been set to 0 during the previous tick; pruning now (0 TTL projectiles might still have a collision later in this method)
-		// Remove projectile from projectiles array
-		delete(server.state.Projectiles, projectileToRemoveId)
-	}
-
-	before := make(map[uuid.UUID]movingObjectTemporaryState)
-	for _, projectile := range server.state.Projectiles {
-		before[projectile.Id] = movingObjectTemporaryState{
-			Position: projectile.Position,
-			Velocity: projectile.Velocity,
-			Radius:   projectile.Radius,
-		}
-	}
-
-	for _, projectile := range server.state.Projectiles {
-		projectile.Update()
-	}
-
-	server.state.Projectilesmutex.Unlock()
-
-	return before
-}
-
-func updateAgents(server *Server) (beforeStates map[uuid.UUID]movingObjectTemporaryState) {
-
-	before := make(map[uuid.UUID]movingObjectTemporaryState)
-
-	for _, agent := range server.agents {
-		id := agent.GetId()
-		agstate := server.state.GetAgentState(id)
-		before[id] = movingObjectTemporaryState{
-			Position: agstate.Position,
-			Velocity: agstate.Velocity,
-			Radius:   agstate.Radius,
-		}
-	}
-
-	for _, agent := range server.agents {
-		server.state.SetAgentState(
-			agent.GetId(),
-			server.state.GetAgentState(agent.GetId()).Update(),
-		)
-	}
-
-	return before
-}
-
-func processProjectileObstacleCollisions(server *Server, before map[uuid.UUID]movingObjectTemporaryState) {
-	for projectileid, beforestate := range before {
-		projectile := server.state.GetProjectile(projectileid)
-
-		afterstate := movingObjectTemporaryState{
-			Position: projectile.Position,
-			Velocity: projectile.Velocity,
-			Radius:   projectile.Radius,
-		}
-
-		processMovingObjectObstacleCollision(server, beforestate, afterstate, []int{state.GeometryObjectType.ObstacleGround}, func(collisionPoint vector.Vector2) {
-			//log.Println("U blocked, projectile")
-
-			projectile.Position = collisionPoint
-			projectile.Velocity = vector.MakeNullVector2()
-			server.state.SetProjectile(
-				projectileid,
-				projectile,
-			)
-		})
-	}
-}
-
-func processAgentObstacleCollisions(server *Server, before map[uuid.UUID]movingObjectTemporaryState) {
-
-	for agentid, beforestate := range before {
-		agentstate := server.state.GetAgentState(agentid)
-
-		afterstate := movingObjectTemporaryState{
-			Position: agentstate.Position,
-			Velocity: agentstate.Velocity,
-			Radius:   agentstate.Radius,
-		}
-
-		processMovingObjectObstacleCollision(server, beforestate, afterstate, nil, func(collisionPoint vector.Vector2) {
-			//log.Println("U blocked, mothafucka")
-
-			agentstate.Position = collisionPoint
-			agentstate.Velocity = vector.MakeVector2(0.01, 0.01)
-			server.state.SetAgentState(
-				agentid,
-				agentstate,
-			)
-		})
-
-		// if !isInsideSurface(server, agentstate.Position) {
-		// 	log.Println("HE IS OUTSIDE !!!!!!!!!")
-		// 	agentstate.Position = beforestate.Position
-		// 	server.state.SetAgentState(
-		// 		agentid,
-		// 		agentstate,
-		// 	)
-		// } else {
-		// 	log.Println("HE IS NOT OUTSIDE !!!!!!!!!")
-		// }
-	}
-}
-
-func arrayContainsGeotype(needle int, haystack []int) bool {
-	for _, v := range haystack {
-		if v == needle {
-			return true
-		}
-	}
-	return false
-}
-
-func processMovingObjectObstacleCollision(server *Server, beforeState, afterState movingObjectTemporaryState, geotypesIgnored []int, collisionhandler func(collision vector.Vector2)) {
-
-	bbBeforeA, bbBeforeB := GetAgentBoundingBox(beforeState.Position, beforeState.Radius)
-	bbAfterA, bbAfterB := GetAgentBoundingBox(afterState.Position, afterState.Radius)
-
-	var minX, minY *float64
-	var maxX, maxY *float64
-
-	for _, point := range []vector.Vector2{bbBeforeA, bbBeforeB, bbAfterA, bbAfterB} {
-
-		x, y := point.Get()
-
-		if minX == nil || x < *minX {
-			minX = &(x)
-		}
-
-		if minY == nil || y < *minY {
-			minY = &(y)
-		}
-
-		if maxX == nil || x > *maxX {
-			maxX = &(x)
-		}
-
-		if maxY == nil || y > *maxY {
-			maxY = &(y)
-		}
-	}
-
-	bbRegion, err := rtreego.NewRect([]float64{*minX, *minY}, []float64{*maxX - *minX, *maxY - *minY})
-	utils.Check(err, "rtreego Error")
-
-	//start := time.Now().UnixNano()
-	matchingObstacles := server.state.MapMemoization.RtreeObstacles.SearchIntersect(bbRegion)
-	//fmt.Println("Took", time.Now().UnixNano()-start, "nanoseconds")
-
-	if len(matchingObstacles) > 0 {
-
-		// Fine collision checking
-
-		// We determine the surface occupied by the object on it's path
-		// * Corresponds to a "pill", where the two ends are the bounding circles occupied by the agents (position before the move and position after the move)
-		// * And the surface in between is defined the lines between the left and the right tangents of these circles
-		//
-		// * We then have to test collisions with the end circle
-		//
-
-		centerEdge := vector.MakeSegment2(beforeState.Position, afterState.Position)
-		beforeDiameterSegment := centerEdge.OrthogonalToACentered().SetLengthFromCenter(beforeState.Radius * 2)
-		afterDiameterSegment := centerEdge.OrthogonalToBCentered().SetLengthFromCenter(afterState.Radius * 2)
-
-		beforeDiameterSegmentLeftPoint, beforeDiameterSegmentRightPoint := beforeDiameterSegment.Get()
-		afterDiameterSegmentLeftPoint, afterDiameterSegmentRightPoint := afterDiameterSegment.Get()
-
-		leftEdge := vector.MakeSegment2(beforeDiameterSegmentLeftPoint, afterDiameterSegmentLeftPoint)
-		rightEdge := vector.MakeSegment2(beforeDiameterSegmentRightPoint, afterDiameterSegmentRightPoint)
-
-		edgesToTest := []vector.Segment2{
-			leftEdge,
-			centerEdge,
-			rightEdge,
-		}
-
-		type Collision struct {
-			Point    vector.Vector2
-			Obstacle *state.GeometryObject
-		}
-
-		collisions := make([]Collision, 0)
-
-		for _, matchingObstacle := range matchingObstacles {
-			geoObject := matchingObstacle.(*state.GeometryObject)
-			if geotypesIgnored != nil && arrayContainsGeotype(geoObject.Type, geotypesIgnored) {
-				continue
-			}
-
-			circleCollisions := trigo.LineCircleIntersectionPoints(
-				geoObject.PointA,
-				geoObject.PointB,
-				afterState.Position,
-				afterState.Radius,
-			)
-
-			for _, circleCollision := range circleCollisions {
-				collisions = append(collisions, Collision{
-					Point:    circleCollision,
-					Obstacle: geoObject,
-				})
-			}
-
-			for _, edge := range edgesToTest {
-				point1, point2 := edge.Get()
-				if collisionPoint, intersects, colinear, _ := trigo.IntersectionWithLineSegment(
-					geoObject.PointA,
-					geoObject.PointB,
-					point1,
-					point2,
-				); intersects && !colinear {
-					collisions = append(collisions, Collision{
-						Point:    collisionPoint,
-						Obstacle: geoObject,
-					})
-				}
-			}
-		}
-
-		if len(collisions) > 0 {
-
-			//normal := vector.MakeNullVector2()
-			minDist := -1.0
-			for _, collision := range collisions {
-				thisDist := collision.Point.Sub(beforeState.Position).Mag()
-				if minDist < 0 || minDist > thisDist {
-					minDist = thisDist
-					//normal = collision.Obstacle.Normal
-				}
-			}
-
-			//normal = normal.Normalize()
-
-			backoffDistance := beforeState.Radius + 0.001
-			//nextPoint := centerEdge.Vector2().SetMag(maxDist).Sub(normal.SetMag(backoffDistance)).Add(beforeState.Position)
-			nextPoint := centerEdge.Vector2().SetMag(minDist - backoffDistance).Add(beforeState.Position)
-
-			if !isInsideGroundSurface(server, nextPoint) {
-
-				// backtracking position to last not outside
-				backsteps := 10
-				railRel := afterState.Position.Sub(beforeState.Position)
-				for k := 1; k <= backsteps; k++ {
-					nextPointRel := railRel.Scale(1 - float64(k)/float64(backsteps))
-					if isInsideGroundSurface(server, nextPointRel.Add(beforeState.Position)) {
-						collisionhandler(nextPointRel.Add(beforeState.Position))
-						return
-					}
-				}
-
-				//log.Println("NOPE, BEFORESTATE GROUND !")
-				collisionhandler(beforeState.Position)
-
-			} else {
-				if isInsideCollisionMesh(server, nextPoint) {
-					if isInsideCollisionMesh(server, beforeState.Position) {
-						// moving it outside the mesh !!
-						//log.Println("NOPE !!!")
-						railRel := afterState.Position.Sub(beforeState.Position)
-						railRel = railRel.Sub(railRel.SetMag(0.1))
-						collisionhandler(railRel.Add(beforeState.Position))
-
-					} else {
-						// backtracking position to last not in obstacle
-						backsteps := 30
-						railRel := afterState.Position.Sub(beforeState.Position)
-						railRel = railRel.Sub(railRel.SetMag(0.05))
-						for k := 1; k <= backsteps; k++ {
-							nextPointRel := railRel.Scale(1 - float64(k)/float64(backsteps))
-							if !isInsideCollisionMesh(server, nextPointRel.Add(beforeState.Position)) {
-								collisionhandler(nextPointRel.Add(beforeState.Position))
-								return
-							}
-						}
-
-						//log.Println("NOPE, BEFORESTATE OBSTACLE !")
-
-						collisionhandler(beforeState.Position)
-					}
-
-				} else {
-					collisionhandler(nextPoint)
-				}
-			}
-
-		}
-	}
-}
-
-func isInsideGroundSurface(server *Server, point vector.Vector2) bool {
-
-	px, py := point.Get()
-
-	bb, _ := rtreego.NewRect([]float64{px - 0.005, py - 0.005}, []float64{0.01, 0.01})
-	matchingTriangles := server.state.MapMemoization.RtreeSurface.SearchIntersect(bb)
-
-	if len(matchingTriangles) == 0 {
-		return false
-	}
-
-	// On vérifie que le point est bien dans un des triangles
-	for _, spatial := range matchingTriangles {
-		triangle := spatial.(*state.TriangleRtreeWrapper)
-		if trigo.PointIsInTriangle(point, triangle.Points[0], triangle.Points[1], triangle.Points[2]) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func isInsideCollisionMesh(server *Server, point vector.Vector2) bool {
-
-	px, py := point.Get()
-
-	bb, _ := rtreego.NewRect([]float64{px - 0.005, py - 0.005}, []float64{0.01, 0.01})
-	matchingTriangles := server.state.MapMemoization.RtreeCollisions.SearchIntersect(bb)
-
-	if len(matchingTriangles) == 0 {
-		return false
-	}
-
-	// On vérifie que le point est bien dans un des triangles
-	for _, spatial := range matchingTriangles {
-		triangle := spatial.(*state.TriangleRtreeWrapper)
-		if trigo.PointIsInTriangle(point, triangle.Points[0], triangle.Points[1], triangle.Points[2]) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (server *Server) SubscribeStateObservation() chan state.ServerState {
-	ch := make(chan state.ServerState)
-	server.stateobservers = append(server.stateobservers, ch)
-	return ch
-}
-
-func (server *Server) SendLaunched() {
-
-	server.mqClient.Publish("game", "launched", types.NewMQMessage(
-		"arena-server",
-		"Arena Server "+server.arenaServerUUID+" launched",
-	).SetPayload(types.MQPayload{
-		"arenaserveruuid": server.arenaServerUUID,
-	}))
-}
-
-func (server *Server) GetGame() GameInterface {
-	return server.game
-}
-
-func GetAgentBoundingBox(center vector.Vector2, radius float64) (vector.Vector2, vector.Vector2) {
-	x, y := center.Get()
-	return vector.MakeVector2(x-radius, y-radius), vector.MakeVector2(x+radius, y+radius)
 }

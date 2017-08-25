@@ -35,8 +35,8 @@ import (
 // or by simulating moment of inertia.
 
 type AgentState struct {
-	AgentId   uuid.UUID
-	AgentName string
+	agentId   uuid.UUID
+	agentName string
 
 	Radius             float64
 	Mass               float64
@@ -75,8 +75,8 @@ func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapS
 	r := 0.3 // agent diameter=0.6
 
 	return AgentState{
-		AgentId:   agentId,
-		AgentName: agentName,
+		agentId:   agentId,
+		agentName: agentName,
 
 		Position:           vector.MakeVector2(initialx, initialy),
 		Velocity:           vector.MakeNullVector2(),
@@ -104,6 +104,10 @@ func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapS
 		ShootEnergyCost:          0,   // Const
 		LastShot:                 0,   // Number of ticks since last shot; 0 => cannot shoot immediately, must wait for first cooldown
 	}
+}
+
+func (state AgentState) GetName() string {
+	return state.agentName
 }
 
 func (state AgentState) Update() AgentState {
@@ -187,7 +191,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 	state.ShootEnergy -= state.ShootEnergyCost
 
 	projectile := projectile.NewBallisticProjectile()
-	projectile.AgentEmitterId = state.AgentId
+	projectile.AgentEmitterId = state.agentId
 	projectile.Position = state.Position.Add(state.Velocity) // setting at next agent position (which will be updated later in the tick)
 	projectile.JustFired = true
 
