@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"log"
 	"math/rand"
 	"os"
 	"time"
@@ -46,7 +45,7 @@ func main() {
 	utils.Assert((*registryAddr) != "", "Docker registry address must be set")
 	utils.Assert((*arenaAddr) != "", "Arena address must be set")
 
-	log.Println("Byte Arena Server v0.1 ID#" + (*arenaServerUUID))
+	utils.Debug("arena-server", "Byte Arena Server v0.1 ID#"+(*arenaServerUUID))
 
 	// Make GraphQL client
 	graphqlclient := graphql.MakeClient(*apiurl)
@@ -74,8 +73,7 @@ func main() {
 		var payload messageArenaLaunch
 		err := json.Unmarshal(msg.Data, &payload)
 		if err != nil {
-			log.Println(err)
-			log.Println("ERROR:game:launch Invalid payload " + string(msg.Data))
+			utils.Debug("arena-server", "ERROR:game:launch Invalid payload "+string(msg.Data)+"; "+err.Error())
 			return
 		}
 
@@ -87,7 +85,7 @@ func main() {
 
 		srv.AddTearDownCall(func() error {
 			if hc != nil {
-				log.Println("Stop healthcheck")
+				utils.Debug("arena-server", "Stop healthcheck")
 				hc.Stop()
 			}
 
@@ -114,7 +112,7 @@ func startGame(arenaSubmitted messageArenaLaunch, orch container.ContainerOrches
 		<-common.SignalHandler()
 		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 		srv.Stop()
-		log.Println("Stop")
+		utils.Debug("sighandler", "STOPPED server")
 	}()
 
 	// Limit the game in time

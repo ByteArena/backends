@@ -2,12 +2,12 @@ package protocol
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/leakybucket"
 )
 
@@ -40,7 +40,7 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface, arena
 
 				json, err := json.Marshal(msg)
 				if err != nil {
-					log.Println("json error, wtf")
+					utils.Debug("viz-server", "json error, wtf")
 					return
 				}
 

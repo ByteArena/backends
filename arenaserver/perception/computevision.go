@@ -204,7 +204,7 @@ func viewObstacles(serverstate *state.ServerState, agentstate state.AgentState) 
 			vision = append(vision, obstacleperception)
 
 		} else if len(edges) > 0 {
-			//log.Println("NOPE !", edges) // problems with FOV > 180
+			// problems with FOV > 180
 		}
 	}
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"strconv"
 	"time"
 
@@ -37,7 +36,7 @@ func main() {
 
 func sendMapToViz(msg string, debug bool, UUID string) {
 	if debug {
-		log.Println("read buffer of length: ", len(msg))
+		utils.Debug("viz-server", "read buffer of length: "+strconv.Itoa(len(msg)))
 	}
 
 	notify.PostTimeout("viz:map:"+UUID, msg, time.Millisecond)

@@ -3,7 +3,6 @@ package recording
 import (
 	"archive/zip"
 	"io"
-	"log"
 	"os"
 	"time"
 
@@ -72,7 +71,7 @@ func MakeArchive(filename string, files []ArchiveFile) (error, *os.File) {
 		_, err = io.Copy(writer, file.Fd)
 
 		if err != nil {
-			log.Println("copy failed")
+			utils.Debug("recorder", "copy failed")
 			return err, nil
 		}
 	}

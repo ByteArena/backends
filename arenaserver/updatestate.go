@@ -79,7 +79,6 @@ func processProjectileObstacleCollisions(server *Server, before map[uuid.UUID]mo
 		}
 
 		processMovingObjectObstacleCollision(server, beforestate, afterstate, []int{state.GeometryObjectType.ObstacleGround}, func(collisionPoint vector.Vector2) {
-			//log.Println("U blocked, projectile")
 
 			projectile.Position = collisionPoint
 			projectile.Velocity = vector.MakeNullVector2()
@@ -103,8 +102,6 @@ func processAgentObstacleCollisions(server *Server, before map[uuid.UUID]movingO
 		}
 
 		processMovingObjectObstacleCollision(server, beforestate, afterstate, nil, func(collisionPoint vector.Vector2) {
-			//log.Println("U blocked, mothafucka")
-
 			agentstate.Position = collisionPoint
 			agentstate.Velocity = vector.MakeVector2(0.01, 0.01)
 			server.state.SetAgentState(
@@ -112,17 +109,6 @@ func processAgentObstacleCollisions(server *Server, before map[uuid.UUID]movingO
 				agentstate,
 			)
 		})
-
-		// if !isInsideSurface(server, agentstate.Position) {
-		// 	log.Println("HE IS OUTSIDE !!!!!!!!!")
-		// 	agentstate.Position = beforestate.Position
-		// 	server.state.SetAgentState(
-		// 		agentid,
-		// 		agentstate,
-		// 	)
-		// } else {
-		// 	log.Println("HE IS NOT OUTSIDE !!!!!!!!!")
-		// }
 	}
 }
 
@@ -273,14 +259,12 @@ func processMovingObjectObstacleCollision(server *Server, beforeState, afterStat
 					}
 				}
 
-				//log.Println("NOPE, BEFORESTATE GROUND !")
 				collisionhandler(beforeState.Position)
 
 			} else {
 				if isInsideCollisionMesh(server, nextPoint) {
 					if isInsideCollisionMesh(server, beforeState.Position) {
 						// moving it outside the mesh !!
-						//log.Println("NOPE !!!")
 						railRel := afterState.Position.Sub(beforeState.Position)
 						railRel = railRel.Sub(railRel.SetMag(0.1))
 						collisionhandler(railRel.Add(beforeState.Position))
@@ -297,8 +281,6 @@ func processMovingObjectObstacleCollision(server *Server, beforeState, afterStat
 								return
 							}
 						}
-
-						//log.Println("NOPE, BEFORESTATE OBSTACLE !")
 
 						collisionhandler(beforeState.Position)
 					}

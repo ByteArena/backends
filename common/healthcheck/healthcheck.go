@@ -2,7 +2,6 @@ package healthcheck
 
 import (
 	"encoding/json"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -96,7 +95,7 @@ func (server *HealthCheckServer) Start() chan struct{} {
 		close(block)
 
 		if err != nil {
-			log.Println("Failed to listen on :" + server.port + ": " + err.Error())
+			utils.Debug("healthcheck", "Failed to listen on :"+server.port+": "+err.Error())
 		}
 
 	}(block)

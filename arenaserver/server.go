@@ -3,8 +3,6 @@ package arenaserver
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"log"
 	"net"
 	"runtime"
 	"strconv"
@@ -24,7 +22,6 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	uuid "github.com/satori/go.uuid"
-	"github.com/ttacon/chalk"
 )
 
 const debug = false
@@ -236,8 +233,6 @@ func (server *Server) DispatchAgentMessage(msg protocol.MessageWrapperInterface)
 		}
 	default:
 		{
-			log.Print(chalk.Red)
-			log.Println("Unknown message type", msg)
 			return errors.New("DispatchAgentMessage: Unknown message type" + msg.GetType())
 		}
 	}
@@ -273,8 +268,7 @@ func (server *Server) Start() (chan interface{}, error) {
 }
 
 func (server *Server) Stop() {
-	log.Println("TearDown from stop")
-
+	utils.Debug("arena-server", "TearDown from stop")
 	server.TearDown()
 }
 
@@ -402,8 +396,7 @@ func (server *Server) doTick() {
 	dolog := (turn.GetSeq() % server.tickspersec) == 0
 
 	if dolog {
-		fmt.Print(chalk.Yellow)
-		log.Println("######## Tick #####", turn, chalk.Reset)
+		utils.Debug("core-loop", "######## Tick ######## "+strconv.Itoa(turn.GetSeq()))
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -426,8 +419,7 @@ func (server *Server) doTick() {
 				server,
 			)
 			if err != nil {
-				fmt.Print(chalk.Red)
-				log.Println("ERROR: could not set perception on agent", ag.GetId().String(), chalk.Reset)
+				utils.Debug("arenaserver", "ERROR: could not set perception on agent "+ag.GetId().String())
 			}
 
 		}(server, ag, server.GetState(), arenamap)
@@ -448,8 +440,7 @@ func (server *Server) doTick() {
 
 	if dolog {
 		// Debug : Nombre de goroutines
-		fmt.Print(chalk.Blue)
-		log.Println("# Nombre de goroutines en vol : "+strconv.Itoa(runtime.NumGoroutine()), chalk.Reset)
+		utils.Debug("core-loop", "Goroutines in flight : "+strconv.Itoa(runtime.NumGoroutine()))
 	}
 }
 
@@ -465,13 +456,10 @@ func (server *Server) monitoring(stopChannel chan bool) {
 			}
 		case <-time.After(monitorfreq):
 			{
-				fmt.Print(chalk.Cyan)
-				log.Println(
-					"-- MONITORING --",
-					/*server.DebugNbMutations, "mutations,", */ server.debugNbMutations-debugNbMutations, "mutations per", monitorfreq,
-					";",
-					/*server.DebugNbUpdates, "updates,", */ server.debugNbUpdates-debugNbUpdates, "updates per", monitorfreq,
-					chalk.Reset,
+				utils.Debug("monitoring",
+					"-- MONITORING -- "+
+						strconv.Itoa(server.debugNbMutations-debugNbMutations)+" mutations per "+monitorfreq.String()+";"+
+						strconv.Itoa(server.debugNbUpdates-debugNbUpdates)+" updates per "+monitorfreq.String(),
 				)
 
 				debugNbMutations = server.debugNbMutations
@@ -517,7 +505,7 @@ func (server *Server) startTicking() {
 			select {
 			case <-server.stopticking:
 				{
-					log.Println("Received stop ticking signal")
+					utils.Debug("core-loop", "Received stop ticking signal")
 					notify.Post("app:stopticking", nil)
 					break
 				}

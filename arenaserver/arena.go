@@ -3,7 +3,6 @@ package arenaserver
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
@@ -82,7 +81,7 @@ func (a *GameImpGql) GetEndedAt() string {
 }
 
 func (a *GameImpGql) GetContestants() []Contestant {
-	log.Println(a.gqlgame.Contestants)
+
 	res := make([]Contestant, len(a.gqlgame.Contestants))
 	for index, contestant := range a.gqlgame.Contestants {
 		res[index] = Contestant{

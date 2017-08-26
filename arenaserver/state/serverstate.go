@@ -2,7 +2,6 @@ package state
 
 import (
 	"encoding/json"
-	"log"
 	"strconv"
 	"sync"
 
@@ -307,7 +306,7 @@ func (serverstate *ServerState) ProcessMutations() {
 			serverstate.Agents[batch.AgentId] = newstate
 			serverstate.Agentsmutex.Unlock()
 		} else {
-			log.Println("Mutations ILLEGALES " + strconv.Itoa(nbmutations) + ";")
+			utils.Debug("core-loop", "ILLEGAL Mutations "+strconv.Itoa(nbmutations))
 		}
 	}
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -34,12 +33,12 @@ func main() {
 	defer f.Close()
 
 	log.SetOutput(f)
-	log.Println("Starting dotgit-mq-consumer daemon")
+	utils.Debug("dotgit-mq-consumer", "Starting dotgit-mq-consumer daemon")
 
 	var db protocol.DatabaseInterface = database.NewGraphQLDatabase()
 	err = db.Connect(cnf.GetDatabaseURI())
 	if err != nil {
-		fmt.Println("Cannot connect to database")
+		utils.Debug("mq-consumer", "Cannot connect to database")
 		log.Println("Cannot connect to database")
 		f.Close()
 		os.Exit(1)

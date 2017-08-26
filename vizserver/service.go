@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"os"
 
-	"log"
-
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	apphandler "github.com/bytearena/bytearena/vizserver/handler"
@@ -73,7 +71,7 @@ func (viz *VizService) Start() chan struct{} {
 		http.HandlerFunc(apphandler.Websocket(viz.fetchGames, viz.recorder)),
 	)).Methods("GET")
 
-	log.Println("VIZ Listening on " + viz.addr)
+	utils.Debug("viz-server", "VIZ Listening on "+viz.addr)
 
 	listener, err := net.Listen("tcp4", viz.addr)
 	if err != nil {

@@ -4,13 +4,11 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"log"
 
 	commonTypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"github.com/ttacon/chalk"
 )
 
 func getHostLocalOrch(orch *ContainerOrchestrator) (string, error) {
@@ -95,7 +93,7 @@ func localLogsToStdOut(orch *ContainerOrchestrator, container *AgentContainer) e
 		scanner := bufio.NewScanner(r)
 		for scanner.Scan() {
 			text := scanner.Text()
-			log.Println(chalk.Green, container.AgentId, chalk.Reset, text)
+			utils.Debug(container.AgentId.String()+"/"+container.ImageName, text)
 		}
 
 	}(orch, container)

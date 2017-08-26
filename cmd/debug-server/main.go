@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -105,14 +104,14 @@ func main() {
 					msg.EmitterConn = conn
 
 					go func() {
-						log.Println("Dispatching agent message", string(msg.GetPayload()))
+						utils.Debug("arena-trainer", "Dispatching agent message"+string(msg.GetPayload()))
 					}()
 				}
 			}()
 		}
 	}()
 
-	log.Println("RUNNING !")
+	utils.Debug("debug-server", "RUNNING !")
 	time.Sleep(time.Second * 60)
-	log.Println("EXITING")
+	utils.Debug("debug-server", "EXITING !")
 }
