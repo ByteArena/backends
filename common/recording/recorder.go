@@ -57,6 +57,7 @@ func MakeArchive(filename string, files []ArchiveFile) (error, *os.File) {
 	for _, file := range files {
 		header := &zip.FileHeader{
 			Name: file.Name,
+			Method: zip.Deflate,
 		}
 
 		header.SetModTime(time.Now())
