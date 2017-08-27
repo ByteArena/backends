@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bytearena/bytearena/arenaserver/projectile"
+
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/comm"
@@ -546,22 +548,72 @@ func (server *Server) update() {
 	beforeStateAgents := updateAgents(server)
 
 	///////////////////////////////////////////////////////////////////////////
-	// Collision checks
+	// Collision
 	///////////////////////////////////////////////////////////////////////////
 
-	// TODO(jerome): parallelism with goroutines where possible
+	handleCollisions(server, beforeStateAgents, beforeStateProjectiles)
+}
 
-	//
-	// A: Agent/Obstacle
-	//
+func updateProjectiles(server *Server) (beforeStates map[uuid.UUID]movingObjectTemporaryState) {
 
-	processAgentObstacleCollisions(server, beforeStateAgents)
-	processProjectileObstacleCollisions(server, beforeStateProjectiles)
+	server.state.Projectilesmutex.Lock()
 
-	// TODO(jerome): check for collisions:
-	// * agent / agent
-	// * agent / obstacle
-	// * agent / projectile
-	// * projectile / projectile
-	// * projectile / obstacle
+	projectilesToRemove := make([]uuid.UUID, 0)
+	for _, projectile := range server.state.Projectiles {
+		if projectile.TTL <= 0 {
+			projectilesToRemove = append(projectilesToRemove, projectile.Id)
+		}
+	}
+
+	server.state.ProjectilesDeletedThisTick = make(map[uuid.UUID]*projectile.BallisticProjectile)
+	for _, projectileToRemoveId := range projectilesToRemove {
+		// has been set to 0 during the previous tick; pruning now (0 TTL projectiles might still have a collision later in this method)
+
+		// Remove projectile from moving rtree
+		server.state.ProjectilesDeletedThisTick[projectileToRemoveId] = server.state.Projectiles[projectileToRemoveId]
+
+		// Remove projectile from projectiles array
+		delete(server.state.Projectiles, projectileToRemoveId)
+	}
+
+	before := make(map[uuid.UUID]movingObjectTemporaryState)
+	for _, projectile := range server.state.Projectiles {
+		before[projectile.Id] = movingObjectTemporaryState{
+			Position: projectile.Position,
+			Velocity: projectile.Velocity,
+			Radius:   projectile.Radius,
+		}
+	}
+
+	for _, projectile := range server.state.Projectiles {
+		projectile.Update()
+	}
+
+	server.state.Projectilesmutex.Unlock()
+
+	return before
+}
+
+func updateAgents(server *Server) (beforeStates map[uuid.UUID]movingObjectTemporaryState) {
+
+	before := make(map[uuid.UUID]movingObjectTemporaryState)
+
+	for _, agent := range server.agents {
+		id := agent.GetId()
+		agstate := server.state.GetAgentState(id)
+		before[id] = movingObjectTemporaryState{
+			Position: agstate.Position,
+			Velocity: agstate.Velocity,
+			Radius:   agstate.Radius,
+		}
+	}
+
+	for _, agent := range server.agents {
+		server.state.SetAgentState(
+			agent.GetId(),
+			server.state.GetAgentState(agent.GetId()).Update(),
+		)
+	}
+
+	return before
 }
