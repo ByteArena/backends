@@ -2,7 +2,6 @@ package projectile
 
 import (
 	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/dhconnelly/rtreego"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -15,16 +14,19 @@ type BallisticProjectile struct {
 	TTL            int
 	AgentEmitterId uuid.UUID
 	JustFired      bool
-	PreviousBounds *rtreego.Rect
-	Bounds         *rtreego.Rect
 }
 
 func NewBallisticProjectile() *BallisticProjectile {
+
 	return &BallisticProjectile{
 		Id:     uuid.NewV4(), // random uuid
 		TTL:    50,
-		Speed:  6,
-		Radius: 0.3,
+		Speed:  3,
+		Radius: 0.15,
+		//Radius: 0.5,
+
+		// OK: Diameter > speed
+		// KO: Diameter <= speed
 	}
 }
 

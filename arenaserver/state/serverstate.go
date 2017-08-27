@@ -345,6 +345,22 @@ func (geobj GeometryObject) Bounds() *rtreego.Rect {
 	return geobj.Rect
 }
 
+func (geobj *GeometryObject) GetPointA() vector.Vector2 {
+	return geobj.PointA
+}
+
+func (geobj *GeometryObject) GetPointB() vector.Vector2 {
+	return geobj.PointB
+}
+
+func (geobj *GeometryObject) GetType() int {
+	return geobj.Type
+}
+
+func (geobj *GeometryObject) GetID() string {
+	return geobj.ID
+}
+
 type TriangleRtreeWrapper struct {
 	Rect   *rtreego.Rect
 	Points [3]vector.Vector2
