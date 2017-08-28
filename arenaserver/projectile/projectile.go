@@ -22,7 +22,7 @@ func NewBallisticProjectile() *BallisticProjectile {
 		Id:     uuid.NewV4(), // random uuid
 		TTL:    50,
 		Speed:  3,
-		Radius: 0.15,
+		Radius: 0.3,
 		//Radius: 0.5,
 
 		// OK: Diameter > speed

@@ -3,6 +3,7 @@ package arenaserver
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 	"sync"
@@ -288,6 +289,7 @@ func processMovingObjectsCollisions(server *Server, movements []*movementState, 
 					if tEndOther < tBeginOwner || tEndOwner < tBeginOther {
 						// 	// no time intersection, no collision !
 					} else {
+						log.Println("MOVING/MOVING COLLISION !")
 						// they were at the same place at the same time in the tick ! Collision !
 						collisionsMutex.Lock()
 						collisions = append(collisions, collision{
