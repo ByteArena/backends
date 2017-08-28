@@ -353,6 +353,10 @@ func (geobj *GeometryObject) GetPointB() vector.Vector2 {
 	return geobj.PointB
 }
 
+func (geobj *GeometryObject) GetRadius() float64 {
+	return 0
+}
+
 func (geobj *GeometryObject) GetType() int {
 	return geobj.Type
 }

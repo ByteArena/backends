@@ -42,8 +42,6 @@ func handleCollisions(server *Server, beforeStateAgents map[uuid.UUID]movingObje
 	// * projectile / projectile
 	// * projectile / obstacle
 
-	//show := spew.ConfigState{MaxDepth: 5, Indent: "\t"}
-
 	begin := time.Now()
 
 	collisions := make([]collision, 0)
@@ -80,6 +78,7 @@ func handleCollisions(server *Server, beforeStateAgents map[uuid.UUID]movingObje
 
 	go func() {
 
+		//show := spew.ConfigState{MaxDepth: 5, Indent: "    "}
 		movements := make([]*movementState, 0)
 
 		///////////////////////////////////////////////////////////////////////////
@@ -87,33 +86,35 @@ func handleCollisions(server *Server, beforeStateAgents map[uuid.UUID]movingObje
 		///////////////////////////////////////////////////////////////////////////
 
 		// Indexing agents trajectories in rtree
-		// for id, beforeState := range beforeStateAgents {
+		for id, beforeState := range beforeStateAgents {
 
-		// 	agentstate := server.state.GetAgentState(id)
+			agentstate := server.state.GetAgentState(id)
 
-		// 	afterState := movingObjectTemporaryState{
-		// 		Position: agentstate.Position,
-		// 		Velocity: agentstate.Velocity,
-		// 		Radius:   agentstate.Radius,
-		// 	}
+			afterState := movingObjectTemporaryState{
+				Position: agentstate.Position,
+				Velocity: agentstate.Velocity,
+				Radius:   agentstate.Radius,
+			}
 
-		// 	bbRegion, err := getTrajectoryBoundingBox(
-		// 		beforeState.Position, beforeState.Radius,
-		// 		afterState.Position, afterState.Radius,
-		// 	)
-		// 	if err != nil {
-		// 		utils.Debug("arena-server-updatestate", "Error in processMovingObjectsCollisions: could not define bbRegion in moving rTree")
-		// 		return
-		// 	}
+			bbRegion, err := getTrajectoryBoundingBox(
+				beforeState.Position, beforeState.Radius,
+				afterState.Position, afterState.Radius,
+			)
+			if err != nil {
+				utils.Debug("arena-server-updatestate", "Error in processMovingObjectsCollisions: could not define bbRegion in moving rTree")
+				return
+			}
 
-		// 	movements = append(movements, &movementState{
-		// 		Type:   state.GeometryObjectType.Agent,
-		// 		ID:     id.String(),
-		// 		Before: beforeState,
-		// 		After:  afterState,
-		// 		Rect:   bbRegion,
-		// 	})
-		// }
+			//show.Dump(bbRegion)
+
+			movements = append(movements, &movementState{
+				Type:   state.GeometryObjectType.Agent,
+				ID:     id.String(),
+				Before: beforeState,
+				After:  afterState,
+				Rect:   bbRegion,
+			})
+		}
 
 		// Indexing projectiles trajectories in rtree
 		for id, beforeState := range beforeStateProjectiles {
@@ -254,6 +255,8 @@ func handleCollisions(server *Server, beforeStateAgents map[uuid.UUID]movingObje
 
 func processMovingObjectsCollisions(server *Server, movements []*movementState, rtMoving *rtreego.Rtree) []collision {
 
+	//show := spew.ConfigState{MaxDepth: 5, Indent: "    "}
+
 	collisions := make([]collision, 0)
 	collisionsMutex := &sync.Mutex{}
 
@@ -272,7 +275,15 @@ func processMovingObjectsCollisions(server *Server, movements []*movementState, 
 				return
 			}
 
-			fineCollisionChecking(server, movement.Before, movement.After, matchingObjects, nil, func(collisionPoint vector.Vector2, other finelyCollisionable) {
+			//show.Dump("COLLISIONS", matchingObjects)
+			//dump, _ := json.Marshal(matchingObjects)
+			//log.Println("COARSE COLLISIONS", string(dump))
+
+			fineCollisionMovingMovingChecking(server, movement.Before, movement.After, matchingObjects, nil, func(collisionPoint vector.Vector2, other finelyCollisionable) {
+				// if other.GetType() == state.GeometryObjectType.Projectile {
+				// 	// DEBUG; REMOVE THIS EARLY EXIT CONDITION
+				// 	return
+				// }
 
 				// distance à la position initiale du point de collision des deux segments de trajectoire
 				distTravel := movement.After.Position.Sub(movement.Before.Position).Mag()
@@ -283,8 +294,8 @@ func processMovingObjectsCollisions(server *Server, movements []*movementState, 
 					tEndOwner := (distCollisionOwner + movement.After.Radius) / distTravel
 
 					distCollisionOther := collisionPoint.Sub(other.GetPointA()).Mag()
-					tBeginOther := (distCollisionOther - movement.After.Radius) / distTravel // TODO: implement other.Radius()
-					tEndOther := (distCollisionOther + movement.After.Radius) / distTravel
+					tBeginOther := (distCollisionOther - other.GetRadius()) / distTravel
+					tEndOther := (distCollisionOther + other.GetRadius()) / distTravel
 
 					if tEndOther < tBeginOwner || tEndOwner < tBeginOther {
 						// 	// no time intersection, no collision !
@@ -668,20 +679,27 @@ func arrayContainsGeotype(needle int, haystack []int) bool {
 	return false
 }
 
-func getGeometryObjectBoundingBox(position vector.Vector2, radius float64) (topleft vector.Vector2, bottomright vector.Vector2) {
+func getGeometryObjectBoundingBox(position vector.Vector2, radius float64) (bottomLeft vector.Vector2, topRight vector.Vector2) {
 	x, y := position.Get()
 	return vector.MakeVector2(x-radius, y-radius), vector.MakeVector2(x+radius, y+radius)
 }
 
 func getTrajectoryBoundingBox(beginPoint vector.Vector2, beginRadius float64, endPoint vector.Vector2, endRadius float64) (*rtreego.Rect, error) {
-	beginTopLeft, beginBottomRight := getGeometryObjectBoundingBox(beginPoint, beginRadius)
-	endTopLeft, endBottomRight := getGeometryObjectBoundingBox(endPoint, endRadius)
+	beginBottomLeft, beginTopRight := getGeometryObjectBoundingBox(beginPoint, beginRadius)
+	endBottomLeft, endTopRight := getGeometryObjectBoundingBox(endPoint, endRadius)
 
-	bbTopLeft, bbDimensions := state.GetBoundingBox([]vector.Vector2{beginTopLeft, beginBottomRight, endTopLeft, endBottomRight})
+	bbTopLeft, bbDimensions := state.GetBoundingBox([]vector.Vector2{beginBottomLeft, beginTopRight, endBottomLeft, endTopRight})
+
+	//show := spew.ConfigState{MaxDepth: 5, Indent: "    "}
+
 	bbRegion, err := rtreego.NewRect(bbTopLeft, bbDimensions)
 	if err != nil {
 		return nil, errors.New("Error in getTrajectoryBoundingBox: could not define bbRegion in rTree")
 	}
+
+	// fmt.Println("----------------------------------------------------------------")
+	// show.Dump(bbTopLeft, bbDimensions, bbRegion)
+	// fmt.Println("----------------------------------------------------------------")
 
 	return bbRegion, nil
 }
@@ -706,6 +724,10 @@ func (geobj *movementState) GetPointB() vector.Vector2 {
 	return geobj.After.Position
 }
 
+func (geobj *movementState) GetRadius() float64 {
+	return geobj.After.Radius
+}
+
 func (geobj *movementState) GetType() int {
 	return geobj.Type
 }
@@ -724,6 +746,322 @@ func movementStateComparator(obj1, obj2 rtreego.Spatial) bool {
 type finelyCollisionable interface {
 	GetPointA() vector.Vector2
 	GetPointB() vector.Vector2
+	GetRadius() float64
 	GetType() int
 	GetID() string
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func makePoly(centerA, centerB vector.Vector2, radiusA, radiusB float64) []vector.Vector2 {
+	hasMoved := !centerA.Equals(centerB)
+	var poly []vector.Vector2 = nil
+
+	if hasMoved {
+
+		AB := vector.MakeSegment2(centerA, centerB)
+		// on détermine les 4 points formant le rectangle orienté définissant la trajectoire de l'object en movement
+
+		polyASide := AB.OrthogonalToACentered().SetLengthFromCenter(radiusA * 2) // si AB vertical, A à gauche, B à droite
+		polyBSide := AB.OrthogonalToBCentered().SetLengthFromCenter(radiusB * 2) // si AB vertical, A à gauche, B à droite
+
+		/*
+
+			B2*--------------------*A2
+			  |                    |
+			B *                    * A
+			  |                    |
+			B1*--------------------*A1
+
+		*/
+
+		polyA1, polyA2 := polyASide.Get()
+		polyB1, polyB2 := polyBSide.Get()
+
+		poly = []vector.Vector2{polyA1, polyA2, polyB2, polyB1}
+	}
+
+	return poly
+}
+
+func collideOrientedRectangles(polyOne, polyTwo []vector.Vector2) []vector.Vector2 {
+
+	points := make([]vector.Vector2, 0)
+
+	if !trigo.DoClosedConvexPolygonsIntersect(polyOne, polyTwo) {
+		return points
+	}
+
+	/*
+
+	 C*--------------------*B
+	  |                    |
+	  |                    |
+	  |                    |
+	 D*--------------------*A
+
+	*/
+
+	for i := 0; i < 4; i++ {
+		polyOneEdge := vector.MakeSegment2(polyOne[i], polyOne[(i+1)%4])
+		for j := 0; j < 4; j++ {
+			polyTwoEdge := vector.MakeSegment2(polyOne[j], polyOne[(j+1)%4])
+			if collisionPoint, intersects, colinear, _ := trigo.SegmentIntersectionWithLineSegment(
+				polyOneEdge,
+				polyTwoEdge,
+			); intersects && !colinear {
+				points = append(points, collisionPoint)
+			}
+		}
+	}
+
+	if len(points) == 0 {
+		// one is inside the other
+		// compute the area and send the points of the smallest one
+		polyOneHeight := vector.MakeSegment2(polyOne[0], polyOne[1])
+		polyOneWidth := vector.MakeSegment2(polyOne[1], polyOne[2])
+
+		polyTwoHeight := vector.MakeSegment2(polyTwo[0], polyTwo[1])
+		polyTwoWidth := vector.MakeSegment2(polyTwo[1], polyTwo[2])
+
+		polyOneAreaSq := polyOneWidth.LengthSq() * polyOneHeight.LengthSq()
+		polyTwoAreaSq := polyTwoWidth.LengthSq() * polyTwoHeight.LengthSq()
+
+		if polyTwoAreaSq < polyOneAreaSq {
+			return polyTwo
+		}
+
+		return polyOne
+	}
+
+	return points
+}
+
+func collidePolyCircle(poly []vector.Vector2, center vector.Vector2, radius float64) []vector.Vector2 {
+
+	points := make([]vector.Vector2, 0)
+
+	for i := 0; i < 4; i++ {
+		points = append(points, trigo.LineCircleIntersectionPoints(poly[i], poly[(i+1)%4], center, radius)...)
+	}
+
+	if len(points) == 0 {
+		// pas de collision avec les lignes
+		// on vérifie si le polygone est inscrit au cercle
+		for i := 0; i < 4; i++ {
+			if trigo.PointIsInCircle(poly[i], center, radius) {
+				// Si l'un des points du polygone est dans le cercle, comme aucune de ses lignes n'intersecte le cercle, c'est qu'il y est inscrit
+				return poly
+			}
+		}
+
+		// on vérifie si le cercle est inscrit au poly
+		if trigo.PointIsInTriangle(center, poly[0], poly[1], poly[2]) || trigo.PointIsInTriangle(center, poly[2], poly[3], poly[0]) {
+			return []vector.Vector2{center}
+		}
+
+	}
+
+	return points
+}
+
+func collideCirclesCircles(colliderCenterA vector.Vector2, colliderRadiusA float64, collideeCenterA vector.Vector2, collideeRadiusA float64, colliderCenterB vector.Vector2, colliderRadiusB float64, collideeCenterB vector.Vector2, collideeRadiusB float64) []vector.Vector2 {
+
+	points := make([]vector.Vector2, 0)
+
+	// ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+	// ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+
+	// ColliderCircleA/CollideeCircleA
+	intersections, firstContainsSecond, secondContainsFirst := trigo.CircleCircleIntersectionPoints(colliderCenterA, colliderRadiusA, collideeCenterA, collideeRadiusA)
+	if len(intersections) > 0 {
+		points = append(points, intersections...)
+	} else if firstContainsSecond {
+		points = append(points, collideeCenterA)
+	} else if secondContainsFirst {
+		points = append(points, colliderCenterA)
+	}
+
+	// ColliderCircleB/CollideeCircleB
+	intersections, firstContainsSecond, secondContainsFirst = trigo.CircleCircleIntersectionPoints(colliderCenterB, colliderRadiusB, collideeCenterB, collideeRadiusB)
+	if len(intersections) > 0 {
+		points = append(points, intersections...)
+	} else if firstContainsSecond {
+		points = append(points, collideeCenterB)
+	} else if secondContainsFirst {
+		points = append(points, colliderCenterB)
+	}
+
+	// ColliderCircleA/CollideeCircleB
+	intersections, firstContainsSecond, secondContainsFirst = trigo.CircleCircleIntersectionPoints(colliderCenterA, colliderRadiusA, collideeCenterB, collideeRadiusB)
+	if len(intersections) > 0 {
+		points = append(points, intersections...)
+	} else if firstContainsSecond {
+		points = append(points, collideeCenterB)
+	} else if secondContainsFirst {
+		points = append(points, colliderCenterA)
+	}
+
+	// ColliderCircleB/CollideeCircleA
+	intersections, firstContainsSecond, secondContainsFirst = trigo.CircleCircleIntersectionPoints(colliderCenterB, colliderRadiusB, collideeCenterA, collideeRadiusA)
+	if len(intersections) > 0 {
+		points = append(points, intersections...)
+	} else if firstContainsSecond {
+		points = append(points, collideeCenterA)
+	} else if secondContainsFirst {
+		points = append(points, colliderCenterB)
+	}
+
+	return points
+}
+
+func fineCollisionMovingMovingChecking(server *Server, colliderBeforeState, colliderAfterState movingObjectTemporaryState, matchingObstacles []rtreego.Spatial, geotypesIgnored []int, collisionhandler collisionHandlerFunc) {
+
+	// Il faut vérifier l'intersection des (polygones + end circles) de trajectoire de Collider et de Collidee
+
+	// On détermine les end circles de la trajectoire du collider
+	colliderCenterA := colliderBeforeState.Position
+	colliderRadiusA := colliderBeforeState.Radius
+
+	colliderCenterB := colliderAfterState.Position
+	colliderRadiusB := colliderAfterState.Radius
+
+	colliderPoly := makePoly(colliderCenterA, colliderCenterB, colliderRadiusA, colliderRadiusB)
+
+	collisions := make([]collisionWrapper, 0)
+
+	for _, matchingObstacle := range matchingObstacles {
+		points := make([]vector.Vector2, 0)
+
+		geoObject := matchingObstacle.(finelyCollisionable)
+
+		collideeCenterA := geoObject.GetPointA()
+		collideeRadiusA := geoObject.GetRadius()
+
+		collideeCenterB := geoObject.GetPointB()
+		collideeRadiusB := geoObject.GetRadius()
+
+		collideePoly := makePoly(collideeCenterA, collideeCenterB, collideeRadiusA, collideeRadiusB)
+
+		/*
+			Si colliderPoly && collideePoly, check:
+				* ColliderPoly/CollideePoly
+				* ColliderPoly/CollideeCircleA, ColliderPoly/CollideeCircleB
+				* ColliderCircleA/CollideePoly, ColliderCircleB/CollideePoly
+				* ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+				* ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+
+			Si colliderPoly && !collideePoly, check:
+				* ColliderPoly/CollideeCircleA, ColliderPoly/CollideeCircleB
+				* ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+				* ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+
+			Si !colliderPoly && collideePoly, check:
+				* ColliderCircleA/CollideePoly, ColliderCircleB/CollideePoly
+				* ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+				* ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+
+			Si !colliderPoly && !collideePol, check:
+				* ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+				* ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+		*/
+
+		if colliderPoly != nil {
+			if collideePoly != nil {
+				/*
+					Si colliderPoly && collideePoly, check:
+						* ColliderPoly/CollideePoly
+						* ColliderPoly/CollideeCircleA, ColliderPoly/CollideeCircleB
+						* ColliderCircleA/CollideePoly, ColliderCircleB/CollideePoly
+						* ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+						* ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+				*/
+
+				// ColliderPoly/CollideePoly
+				points = append(points, collideOrientedRectangles(colliderPoly, collideePoly)...)
+
+				// ColliderPoly/CollideeCircleA, ColliderPoly/CollideeCircleB
+				points = append(points, collidePolyCircle(colliderPoly, collideeCenterA, collideeRadiusA)...)
+				points = append(points, collidePolyCircle(colliderPoly, collideeCenterB, collideeRadiusB)...)
+
+				// ColliderCircleA/CollideePoly, ColliderCircleB/CollideePoly
+				points = append(points, collidePolyCircle(collideePoly, colliderCenterA, colliderRadiusA)...)
+				points = append(points, collidePolyCircle(collideePoly, colliderCenterB, colliderRadiusB)...)
+
+				// ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+				// ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+				points = append(points, collideCirclesCircles(colliderCenterA, colliderRadiusA, collideeCenterA, collideeRadiusA, colliderCenterB, colliderRadiusB, collideeCenterB, collideeRadiusB)...)
+
+			} else {
+				/*
+					Si colliderPoly && !collideePoly, check:
+						* ColliderPoly/CollideeCircleA, ColliderPoly/CollideeCircleB
+						* ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+						* ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+				*/
+
+				// ColliderPoly/CollideeCircleA, ColliderPoly/CollideeCircleB
+				points = append(points, collidePolyCircle(colliderPoly, collideeCenterA, collideeRadiusA)...)
+				points = append(points, collidePolyCircle(colliderPoly, collideeCenterB, collideeRadiusB)...)
+
+				// ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+				// ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+				points = append(points, collideCirclesCircles(colliderCenterA, colliderRadiusA, collideeCenterA, collideeRadiusA, colliderCenterB, colliderRadiusB, collideeCenterB, collideeRadiusB)...)
+			}
+		} else {
+			if collideePoly != nil {
+				/*
+					Si !colliderPoly && collideePoly, check:
+						* ColliderCircleA/CollideePoly, ColliderCircleB/CollideePoly
+						* ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+						* ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+				*/
+
+				// ColliderCircleA/CollideePoly, ColliderCircleB/CollideePoly
+				points = append(points, collidePolyCircle(collideePoly, colliderCenterA, colliderRadiusA)...)
+				points = append(points, collidePolyCircle(collideePoly, colliderCenterB, colliderRadiusB)...)
+
+				// ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+				// ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+				points = append(points, collideCirclesCircles(colliderCenterA, colliderRadiusA, collideeCenterA, collideeRadiusA, colliderCenterB, colliderRadiusB, collideeCenterB, collideeRadiusB)...)
+			} else {
+				/*
+					Si !colliderPoly && !collideePol, check:
+						* ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+						* ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+				*/
+
+				// ColliderCircleA/CollideeCircleA, ColliderCircleB/CollideeCircleB
+				// ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
+				points = append(points, collideCirclesCircles(colliderCenterA, colliderRadiusA, collideeCenterA, collideeRadiusA, colliderCenterB, colliderRadiusB, collideeCenterB, collideeRadiusB)...)
+			}
+		}
+
+		if len(points) > 0 {
+			minDistSq := -1.0
+			var firstCollision vector.Vector2
+			for _, point := range points {
+				thisDist := point.Sub(colliderBeforeState.Position).MagSq()
+				if minDistSq < 0 || minDistSq > thisDist {
+					minDistSq = thisDist
+					firstCollision = point
+				}
+			}
+
+			collisions = append(collisions, collisionWrapper{
+				Point:    firstCollision,
+				Obstacle: geoObject,
+			})
+		}
+
+	}
+
+	for _, collision := range collisions {
+		collisionhandler(collision.Point, collision.Obstacle)
+	}
+
 }
