@@ -1,6 +1,7 @@
 package trigo
 
 import (
+	"errors"
 	"math"
 
 	"github.com/bytearena/bytearena/common/utils/number"
@@ -291,6 +292,21 @@ func PointIsInCircle(point vector.Vector2, center vector.Vector2, radius float64
 	return squareDist <= math.Pow(radius, 2)
 }
 
+func ComputeCenterOfMass(points []vector.Vector2) (vector.Vector2, error) {
+	if len(points) == 0 {
+		return vector.MakeNullVector2(), errors.New("Cannot compute center of mass on empty list")
+	}
+
+	sumx, sumy := 0.0, 0.0
+	for _, p := range points {
+		sumx += p.GetX()
+		sumy += p.GetY()
+	}
+
+	flen := float64(len(points))
+	return vector.MakeVector2(sumx/flen, sumy/flen), nil
+}
+
 /**
  * Helper function to determine whether there is an intersection between the two polygons described
  * by the lists of vertices. Uses the Separating Axis Theorem
@@ -371,4 +387,19 @@ func DoClosedConvexPolygonsIntersect(a []vector.Vector2, b []vector.Vector2) boo
 	}
 
 	return true
+}
+
+func GetAffineEquationExpressedForY(segment vector.Segment2) (a float64, b float64, vertical bool, xvertical float64) { // y = ax + b
+	pA, pB := segment.Get()
+	pAX, pAY := pA.Get()
+	pBX, pBY := pB.Get()
+
+	if number.IsZero(pBX - pAX) {
+		// line is vertical
+		return 0, 0, true, pAX
+	}
+
+	a = (pBY - pAY) / (pBX - pAX)
+	b = pAY - (a * pAX)
+	return a, b, false, 0
 }

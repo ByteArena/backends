@@ -1,12 +1,16 @@
-hash: 9c6e220281672eb27759249bb2f84429afd2459b51d45d523e4479e628b0c94f
-updated: 2017-08-26T14:08:45.585205067+02:00
+hash: cba5c9fc2121d6e20f109f644d6002ad2ac85bfceb6f0df3c26a9eb248221ca0
+updated: 2017-08-30T00:19:45.018307747+02:00
 imports:
+- name: github.com/akavel/polyclip-go
+  version: 2cfdb71461bde9115450eb65688337e3f8ee715e
 - name: github.com/bitly/go-notify
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
 - name: github.com/cenkalti/backoff
   version: 61153c768f31ee5f130071d08fc82b85208528de
 - name: github.com/davecgh/go-spew
   version: 346938d642f2ec3594ed81d874461961cd0faa76
+  subpackages:
+  - spew
 - name: github.com/dhconnelly/rtreego
   version: 1323b09fe8f32430ea7e16ea1df99e106e3e6250
 - name: github.com/docker/distribution
