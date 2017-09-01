@@ -15,7 +15,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func handleCollisions(server *Server, beforeStateAgents map[uuid.UUID]collision.CollisionMovingObjectState, beforeStateProjectiles map[uuid.UUID]collision.CollisionMovingObjectState) {
+func handleCollisions(server *Server, agentMovements []*collision.MovementState, projectileMovements []*collision.MovementState) {
 
 	// TODO(jerome): check for collisions:
 	// * agent / agent
@@ -40,18 +40,9 @@ func handleCollisions(server *Server, beforeStateAgents map[uuid.UUID]collision.
 		///////////////////////////////////////////////////////////////////////////
 
 		colls := collision.ProcessMovingStaticCollisions(
-			beforeStateAgents,
+			agentMovements,
 			server.GetState().MapMemoization,
-			state.GeometryObjectType.Agent,
 			nil,
-			func(objectid uuid.UUID) collision.CollisionMovingObjectState {
-				object := server.GetState().GetAgentState(objectid)
-				return collision.CollisionMovingObjectState{
-					Position: object.Position,
-					Velocity: object.Velocity,
-					Radius:   object.Radius,
-				}
-			},
 		)
 		collisionsMutex.Lock()
 		collisions = append(collisions, colls...)
@@ -66,18 +57,9 @@ func handleCollisions(server *Server, beforeStateAgents map[uuid.UUID]collision.
 		///////////////////////////////////////////////////////////////////////////
 
 		colls := collision.ProcessMovingStaticCollisions(
-			beforeStateProjectiles,
+			projectileMovements,
 			server.GetState().MapMemoization,
-			state.GeometryObjectType.Projectile,
 			[]int{state.GeometryObjectType.ObstacleGround},
-			func(objectid uuid.UUID) collision.CollisionMovingObjectState {
-				object := server.GetState().GetProjectile(objectid)
-				return collision.CollisionMovingObjectState{
-					Position: object.Position,
-					Velocity: object.Velocity,
-					Radius:   object.Radius,
-				}
-			},
 		)
 
 		collisionsMutex.Lock()
@@ -88,80 +70,22 @@ func handleCollisions(server *Server, beforeStateAgents map[uuid.UUID]collision.
 
 	go func() {
 
-		movements := make([]*collision.MovementState, 0)
-
 		///////////////////////////////////////////////////////////////////////////
 		// Moving / Moving collisions
 		///////////////////////////////////////////////////////////////////////////
 
-		// Indexing agents trajectories in rtree
-		for id, beforeState := range beforeStateAgents {
-
-			agentstate := server.state.GetAgentState(id)
-
-			afterState := collision.CollisionMovingObjectState{
-				Position: agentstate.Position,
-				Velocity: agentstate.Velocity,
-				Radius:   agentstate.Radius,
-			}
-
-			bbRegion, err := collision.GetTrajectoryBoundingBox(
-				beforeState.Position, beforeState.Radius,
-				afterState.Position, afterState.Radius,
-			)
-			if err != nil {
-				utils.Debug("arena-server-updatestate", "Error in processMovingObjectsCollisions: could not define bbRegion in moving rTree")
-				return
-			}
-
-			//show.Dump(bbRegion)
-
-			movements = append(movements, &collision.MovementState{
-				Type:   state.GeometryObjectType.Agent,
-				ID:     id.String(),
-				Before: beforeState,
-				After:  afterState,
-				Rect:   bbRegion,
-			})
-		}
-
-		// Indexing projectiles trajectories in rtree
-		for id, beforeState := range beforeStateProjectiles {
-
-			projectile := server.GetState().GetProjectile(id)
-
-			afterState := collision.CollisionMovingObjectState{
-				Position: projectile.Position,
-				Velocity: projectile.Velocity,
-				Radius:   projectile.Radius,
-			}
-
-			bbRegion, err := collision.GetTrajectoryBoundingBox(
-				beforeState.Position, beforeState.Radius,
-				afterState.Position, afterState.Radius,
-			)
-			if err != nil {
-				utils.Debug("arena-server-updatestate", "Error in processMovingObjectsCollisions: could not define bbRegion in moving rTree")
-				return
-			}
-
-			movements = append(movements, &collision.MovementState{
-				Type:   state.GeometryObjectType.Projectile,
-				ID:     id.String(),
-				Before: beforeState,
-				After:  afterState,
-				Rect:   bbRegion,
-			})
-		}
+		allMovements := make([]*collision.MovementState, 0)
+		allMovements = append(allMovements, agentMovements...)
+		allMovements = append(allMovements, projectileMovements...)
 
 		//rtMoving := server.state.MapMemoization.RtreeMoving
-		spatials := make([]rtreego.Spatial, len(movements))
-		for i, m := range movements {
+		spatials := make([]rtreego.Spatial, len(allMovements))
+		for i, m := range allMovements {
 			spatials[i] = rtreego.Spatial(m)
 		}
 		rtMoving := rtreego.NewTree(2, 25, 50, spatials...) // TODO(jerome): better constants here ? what heuristic to use ?
 
-		colls := collision.ProcessMovingMovingCollisions(movements, rtMoving)
+		colls := collision.ProcessMovingMovingCollisions(allMovements, rtMoving)
 		//show.Dump("RECEIVED HERE", colls)
 		collisionsMutex.Lock()
 		collisions = append(collisions, colls...)
@@ -187,6 +111,7 @@ func handleCollisions(server *Server, beforeStateAgents map[uuid.UUID]collision.
 		if coll.ColliderType == state.GeometryObjectType.Projectile {
 			projuuid, _ := uuid.FromString(coll.ColliderID)
 			proj := server.state.GetProjectile(projuuid)
+
 			if proj.AgentEmitterId.String() == coll.CollideeID {
 				// Projectile cannot shoot emitter agent (happens when the projectile is right out of the agent cannon)
 				continue
@@ -247,7 +172,10 @@ func handleCollisions(server *Server, beforeStateAgents map[uuid.UUID]collision.
 				//log.Println("AGENT TOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOUCHED")
 
 				agentstate := server.GetState().GetAgentState(agentuuid)
-				agentstate.Position = coll.Point
+				agentstate.Position = collision.EnsureValidPositionAfterCollision(
+					server.GetState().MapMemoization,
+					coll,
+				)
 				//agentstate.Orientation++
 				agentstate.Velocity = vector.MakeNullVector2()
 

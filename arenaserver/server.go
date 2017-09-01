@@ -539,23 +539,29 @@ func (server *Server) update() {
 	// Updating projectiles
 	//
 
-	beforeStateProjectiles := updateProjectiles(server)
+	projectilesMovements := updateProjectiles(server)
 
 	//
 	// Updating agents
 	//
 
 	// Keeping position and velocity before update (useful for obstacle detection)
-	beforeStateAgents := updateAgents(server)
+	agentsMovements := updateAgents(server)
 
 	///////////////////////////////////////////////////////////////////////////
 	// Collision
 	///////////////////////////////////////////////////////////////////////////
 
-	handleCollisions(server, beforeStateAgents, beforeStateProjectiles)
+	handleCollisions(server, agentsMovements, projectilesMovements)
 }
 
-func updateProjectiles(server *Server) (beforeStates map[uuid.UUID]collision.CollisionMovingObjectState) {
+func updateProjectiles(server *Server) []*collision.MovementState /*(beforeStates map[uuid.UUID]collision.CollisionMovingObjectState)*/ {
+
+	movements := make([]*collision.MovementState, 0)
+
+	///////////////////////////////////////////////////////////////////////////
+	// On supprime les projectiles en fin de vie
+	///////////////////////////////////////////////////////////////////////////
 
 	server.state.Projectilesmutex.Lock()
 
@@ -577,44 +583,92 @@ func updateProjectiles(server *Server) (beforeStates map[uuid.UUID]collision.Col
 		delete(server.state.Projectiles, projectileToRemoveId)
 	}
 
-	before := make(map[uuid.UUID]collision.CollisionMovingObjectState)
+	///////////////////////////////////////////////////////////////////////////
+	// On conserve les états avant/après
+	///////////////////////////////////////////////////////////////////////////
+
 	for _, projectile := range server.state.Projectiles {
-		before[projectile.Id] = collision.CollisionMovingObjectState{
+		beforeState := collision.CollisionMovingObjectState{
 			Position: projectile.Position,
 			Velocity: projectile.Velocity,
 			Radius:   projectile.Radius,
 		}
-	}
 
-	for _, projectile := range server.state.Projectiles {
 		projectile.Update()
+
+		afterState := collision.CollisionMovingObjectState{
+			Position: projectile.Position,
+			Velocity: projectile.Velocity,
+			Radius:   projectile.Radius,
+		}
+
+		bbRegion, err := collision.GetTrajectoryBoundingBox(
+			beforeState.Position, beforeState.Radius,
+			afterState.Position, afterState.Radius,
+		)
+		if err != nil {
+			utils.Debug("arena-server-updatestate", "Error in updateProjectiles: could not define trajectory bbRegion")
+			continue
+		}
+
+		movements = append(movements, &collision.MovementState{
+			Type:   state.GeometryObjectType.Projectile,
+			ID:     projectile.Id.String(),
+			Before: beforeState,
+			After:  afterState,
+			Rect:   bbRegion,
+		})
 	}
 
 	server.state.Projectilesmutex.Unlock()
 
-	return before
+	return movements
 }
 
-func updateAgents(server *Server) (beforeStates map[uuid.UUID]collision.CollisionMovingObjectState) {
+func updateAgents(server *Server) []*collision.MovementState {
 
-	before := make(map[uuid.UUID]collision.CollisionMovingObjectState)
+	movements := make([]*collision.MovementState, 0)
 
 	for _, agent := range server.agents {
+
 		id := agent.GetId()
-		agstate := server.state.GetAgentState(id)
-		before[id] = collision.CollisionMovingObjectState{
-			Position: agstate.Position,
-			Velocity: agstate.Velocity,
-			Radius:   agstate.Radius,
+		beforeFullState := server.state.GetAgentState(id)
+		beforeState := collision.CollisionMovingObjectState{
+			Position: beforeFullState.Position,
+			Velocity: beforeFullState.Velocity,
+			Radius:   beforeFullState.Radius,
 		}
-	}
 
-	for _, agent := range server.agents {
+		afterFullState := beforeFullState.Update()
+
+		afterState := collision.CollisionMovingObjectState{
+			Position: afterFullState.Position,
+			Velocity: afterFullState.Velocity,
+			Radius:   afterFullState.Radius,
+		}
+
+		bbRegion, err := collision.GetTrajectoryBoundingBox(
+			beforeState.Position, beforeState.Radius,
+			afterState.Position, afterState.Radius,
+		)
+		if err != nil {
+			utils.Debug("arena-server-updatestate", "Error in updateAgents: could not define trajectory bbRegion")
+			continue
+		}
+
+		movements = append(movements, &collision.MovementState{
+			Type:   state.GeometryObjectType.Agent,
+			ID:     id.String(),
+			Before: beforeState,
+			After:  afterState,
+			Rect:   bbRegion,
+		})
+
 		server.state.SetAgentState(
-			agent.GetId(),
-			server.state.GetAgentState(agent.GetId()).Update(),
+			id,
+			afterFullState,
 		)
 	}
 
-	return before
+	return movements
 }

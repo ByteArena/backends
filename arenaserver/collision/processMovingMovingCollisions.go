@@ -191,6 +191,7 @@ func fineCollisionMovingMoving(movement *MovementState, matchingObstacles []rtre
 							Point:             vector.MakeSegment2(firstColliderPositionWhenColliding, lastColliderPositionWhenColliding).Center(),
 							ColliderTimeBegin: tBeginCollider,
 							ColliderTimeEnd:   tEndCollider,
+							ColliderMovement:  movement,
 						}}
 						//memoizedCollisions.add(colls)
 						collisionhandler(colls)
@@ -251,6 +252,7 @@ func fineCollisionMovingMoving(movement *MovementState, matchingObstacles []rtre
 						Point:             vector.MakeSegment2(firstColliderPositionWhenColliding, lastColliderPositionWhenColliding).Center(),
 						ColliderTimeBegin: tBeginCollider,
 						ColliderTimeEnd:   tEndCollider,
+						ColliderMovement:  movement,
 					}}
 					if movement.Type == 3 && other.GetType() == 2 {
 						//show.Dump("PROJECTILE INCOMING ON AGENT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", colls)
@@ -311,6 +313,7 @@ func fineCollisionMovingMoving(movement *MovementState, matchingObstacles []rtre
 							Point:             vector.MakeSegment2(firstColliderPositionWhenColliding, lastColliderPositionWhenColliding).Center(),
 							ColliderTimeBegin: tBeginCollider,
 							ColliderTimeEnd:   tEndCollider,
+							ColliderMovement:  movement,
 						}}
 						//memoizedCollisions.add(colls)
 						collisionhandler(colls)

@@ -30,6 +30,7 @@ type Collision struct {
 	ColliderTimeEnd   float64
 	CollideeTimeBegin float64 // from 0 to 1, 0 = beginning of tick, 1 = end of tick
 	CollideeTimeEnd   float64
+	ColliderMovement  *MovementState
 }
 
 type CollisionByTimeAsc []Collision

@@ -83,8 +83,8 @@ func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapS
 
 		Position:           vector.MakeVector2(initialx, initialy),
 		Velocity:           vector.MakeNullVector2(),
-		MaxSpeed:           1.5,
-		MaxSteeringForce:   0.24,
+		MaxSpeed:           15.0,
+		MaxSteeringForce:   2.4,
 		DragForce:          0.03,
 		MaxAngularVelocity: number.DegreeToRadian(9), // en radians/tick; Pi = 180°
 		Radius:             r,
@@ -211,9 +211,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 
 	projectile.Position = state.Position.Add(projectile.Velocity.Scale(0.25)) // WRONG: causes the aiming to miss; .Add(state.Velocity) // setting at next agent position (which will be updated later in the tick)
 
-	serverstate.Projectilesmutex.Lock()
-	serverstate.Projectiles[projectile.Id] = projectile
-	serverstate.Projectilesmutex.Unlock()
+	serverstate.SetProjectile(projectile.Id, projectile)
 
 	return state
 }
