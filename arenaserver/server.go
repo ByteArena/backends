@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bytearena/bytearena/arenaserver/collision"
 	"github.com/bytearena/bytearena/arenaserver/projectile"
 
 	notify "github.com/bitly/go-notify"
@@ -554,7 +555,7 @@ func (server *Server) update() {
 	handleCollisions(server, beforeStateAgents, beforeStateProjectiles)
 }
 
-func updateProjectiles(server *Server) (beforeStates map[uuid.UUID]movingObjectTemporaryState) {
+func updateProjectiles(server *Server) (beforeStates map[uuid.UUID]collision.CollisionMovingObjectState) {
 
 	server.state.Projectilesmutex.Lock()
 
@@ -576,9 +577,9 @@ func updateProjectiles(server *Server) (beforeStates map[uuid.UUID]movingObjectT
 		delete(server.state.Projectiles, projectileToRemoveId)
 	}
 
-	before := make(map[uuid.UUID]movingObjectTemporaryState)
+	before := make(map[uuid.UUID]collision.CollisionMovingObjectState)
 	for _, projectile := range server.state.Projectiles {
-		before[projectile.Id] = movingObjectTemporaryState{
+		before[projectile.Id] = collision.CollisionMovingObjectState{
 			Position: projectile.Position,
 			Velocity: projectile.Velocity,
 			Radius:   projectile.Radius,
@@ -594,14 +595,14 @@ func updateProjectiles(server *Server) (beforeStates map[uuid.UUID]movingObjectT
 	return before
 }
 
-func updateAgents(server *Server) (beforeStates map[uuid.UUID]movingObjectTemporaryState) {
+func updateAgents(server *Server) (beforeStates map[uuid.UUID]collision.CollisionMovingObjectState) {
 
-	before := make(map[uuid.UUID]movingObjectTemporaryState)
+	before := make(map[uuid.UUID]collision.CollisionMovingObjectState)
 
 	for _, agent := range server.agents {
 		id := agent.GetId()
 		agstate := server.state.GetAgentState(id)
-		before[id] = movingObjectTemporaryState{
+		before[id] = collision.CollisionMovingObjectState{
 			Position: agstate.Position,
 			Velocity: agstate.Velocity,
 			Radius:   agstate.Radius,

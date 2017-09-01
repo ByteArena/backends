@@ -90,7 +90,7 @@ func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapS
 		Radius:             r,
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
-		VisionRadius:       70,
+		VisionRadius:       100,
 		VisionAngle:        number.DegreeToRadian(180),
 
 		MaxLife: 1000, // Const
@@ -103,7 +103,7 @@ func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapS
 		MaxShootEnergy:           200, // Const; When shooting, energy decreases
 		ShootEnergy:              200, // Current energy level
 		ShootEnergyReplenishRate: 5,   // Const; Energy regained every tick
-		ShootCooldown:            1,   // Const; number of ticks to wait between every shot
+		ShootCooldown:            0,   // Const; number of ticks to wait between every shot
 		ShootEnergyCost:          0,   // Const
 		LastShot:                 0,   // Number of ticks since last shot; 0 => cannot shoot immediately, must wait for first cooldown
 
