@@ -83,8 +83,8 @@ func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapS
 
 		Position:           vector.MakeVector2(initialx, initialy),
 		Velocity:           vector.MakeNullVector2(),
-		MaxSpeed:           15.0,
-		MaxSteeringForce:   2.4,
+		MaxSpeed:           1.50,
+		MaxSteeringForce:   0.24,
 		DragForce:          0.03,
 		MaxAngularVelocity: number.DegreeToRadian(9), // en radians/tick; Pi = 180°
 		Radius:             r,
@@ -209,7 +209,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 	absaiming := localAngleToAbsoluteAngleVec(state.Orientation, aiming, nil) // TODO: replace nil here by an actual angle constraint
 	projectile.Velocity = absaiming.SetMag(projectile.Speed)                  // adding the agent position to "absolutize" the target vector
 
-	projectile.Position = state.Position.Add(projectile.Velocity.Scale(0.25)) // WRONG: causes the aiming to miss; .Add(state.Velocity) // setting at next agent position (which will be updated later in the tick)
+	projectile.Position = state.Position
 
 	serverstate.SetProjectile(projectile.Id, projectile)
 

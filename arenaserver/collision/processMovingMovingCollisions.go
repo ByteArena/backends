@@ -3,6 +3,7 @@ package collision
 import (
 	"sync"
 
+	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/dhconnelly/rtreego"
 )
@@ -63,7 +64,22 @@ func fineCollisionMovingMoving(movement *MovementState, matchingObstacles []rtre
 
 	for _, matchingObstacle := range matchingObstacles {
 
-		geoObject := matchingObstacle.(FinelyCollisionable)
+		geoObject := matchingObstacle.(*MovementState)
+
+		if movement.Type == state.GeometryObjectType.Agent && geoObject.GetType() == state.GeometryObjectType.Projectile && geoObject.AgentEmitterID == movement.ID {
+			// Avoiding self-collisions early to save processing power, and because it somehow allows agent to penetrate the geometry if not
+			continue
+		}
+
+		if movement.Type == state.GeometryObjectType.Projectile && geoObject.GetType() == state.GeometryObjectType.Agent && movement.AgentEmitterID == geoObject.ID {
+			// Avoiding self-collisions early to save processing power, and because it somehow allows agent to penetrate the geometry if not
+			continue
+		}
+
+		if movement.Type == state.GeometryObjectType.Projectile && geoObject.GetType() == state.GeometryObjectType.Projectile && movement.AgentEmitterID == geoObject.AgentEmitterID {
+			// Avoiding self-collisions early to save processing power, and because it somehow allows agent to penetrate the geometry if not
+			continue
+		}
 
 		// memoized := memoizedCollisions.get(
 		// 	movement.Type,

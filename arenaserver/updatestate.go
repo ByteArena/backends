@@ -139,12 +139,12 @@ func handleCollisions(server *Server, agentMovements []*collision.MovementState,
 				projectileuuid, _ := uuid.FromString(coll.ColliderID)
 				projectile := server.state.GetProjectile(projectileuuid)
 
-				if projectile.AgentEmitterId.String() == coll.CollideeID {
-					continue
-				}
-
 				//log.Println("PROJECTILE TOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOUCHED")
 
+				// projectile.Position = collision.EnsureValidPositionAfterCollision(
+				// 	server.GetState().MapMemoization,
+				// 	coll,
+				// )
 				projectile.Position = coll.Point
 				projectile.Velocity = vector.MakeNullVector2()
 				projectile.TTL = 0
@@ -161,15 +161,6 @@ func handleCollisions(server *Server, agentMovements []*collision.MovementState,
 		case state.GeometryObjectType.Agent:
 			{
 				agentuuid, _ := uuid.FromString(coll.ColliderID)
-				if coll.CollideeType == state.GeometryObjectType.Projectile {
-					projectileuuid, _ := uuid.FromString(coll.CollideeID)
-					projectile := server.state.GetProjectile(projectileuuid)
-					if projectile.AgentEmitterId.String() == agentuuid.String() {
-						continue
-					}
-				}
-
-				//log.Println("AGENT TOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOUCHED")
 
 				agentstate := server.GetState().GetAgentState(agentuuid)
 				agentstate.Position = collision.EnsureValidPositionAfterCollision(

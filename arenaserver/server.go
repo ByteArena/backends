@@ -612,11 +612,12 @@ func updateProjectiles(server *Server) []*collision.MovementState /*(beforeState
 		}
 
 		movements = append(movements, &collision.MovementState{
-			Type:   state.GeometryObjectType.Projectile,
-			ID:     projectile.Id.String(),
-			Before: beforeState,
-			After:  afterState,
-			Rect:   bbRegion,
+			Type:           state.GeometryObjectType.Projectile,
+			ID:             projectile.Id.String(),
+			Before:         beforeState,
+			After:          afterState,
+			Rect:           bbRegion,
+			AgentEmitterID: projectile.AgentEmitterId.String(),
 		})
 	}
 

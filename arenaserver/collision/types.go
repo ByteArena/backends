@@ -44,11 +44,12 @@ func (a CollisionByTimeAsc) Less(i, j int) bool {
 ////////////////////////////////////////////////////////////////////////////////////////
 
 type MovementState struct {
-	Type   int
-	ID     string
-	Before CollisionMovingObjectState
-	After  CollisionMovingObjectState
-	Rect   *rtreego.Rect
+	Type           int
+	ID             string
+	Before         CollisionMovingObjectState
+	After          CollisionMovingObjectState
+	Rect           *rtreego.Rect
+	AgentEmitterID string
 }
 
 func (geobj MovementState) Bounds() *rtreego.Rect {
