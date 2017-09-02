@@ -20,9 +20,12 @@ type RecorderInterface interface {
 	Record(UUID string, msg string) error
 	Close(UUID string)
 	Stop()
+	RecordStoreInterface
+}
 
-	// Only used for MutliArenaRecorder
-	GetDirectory() string
+type RecordStoreInterface interface {
+	GetFilePathForUUID(UUID string) string
+	RecordExists(UUID string) bool
 }
 
 type ArchiveFile struct {
@@ -55,7 +58,7 @@ func MakeArchive(filename string, files []ArchiveFile) (error, *os.File) {
 
 	for _, file := range files {
 		header := &zip.FileHeader{
-			Name: file.Name,
+			Name:   file.Name,
 			Method: zip.Deflate,
 		}
 

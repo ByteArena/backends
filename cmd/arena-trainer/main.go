@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"strconv"
@@ -37,7 +36,7 @@ func (i *arrayFlags) Set(value string) error {
 func main() {
 
 	rand.Seed(time.Now().UnixNano())
-	log.Println("Byte Arena Trainer v0.1")
+	utils.Debug("arena-trainer", "Byte Arena Trainer v0.1")
 
 	tickspersec := flag.Int("tps", 10, "Number of ticks per second")
 	host := flag.String("host", "", "IP serving the trainer; required")

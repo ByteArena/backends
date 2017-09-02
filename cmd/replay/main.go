@@ -20,11 +20,11 @@ func main() {
 
 	flag.Parse()
 
-	utils.Assert(*filename != "", "file must be set")
+	utils.Assert(*filename != "", "--file must be set")
 
 	game := NewMockGame(10)
 
-	vizserver := NewVizService(*port, game)
+	vizserver := NewVizService(*port, game, *filename)
 
 	vizserver.Start()
 
@@ -42,17 +42,19 @@ func sendMapToViz(msg string, debug bool, UUID string) {
 	notify.PostTimeout("viz:map:"+UUID, msg, time.Millisecond)
 }
 
-func NewVizService(port int, game *MockGame) *vizserver.VizService {
+func NewVizService(port int, game *MockGame, recordFile string) *vizserver.VizService {
 
-	recorder := recording.MakeEmptyRecorder()
+	recordStore := recording.NewSingleFileRecordStore(recordFile)
 
 	// TODO(jerome|sven): refac webclient path / serving
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
+
+	vizgames := make([]*types.VizGame, 1)
+	vizgames[0] = types.NewVizGame(game)
+
 	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(port), webclientpath, func() ([]*types.VizGame, error) {
-		res := make([]*types.VizGame, 1)
-		res[0] = types.NewVizGame(game)
-		return res, nil
-	}, recorder)
+		return vizgames, nil
+	}, recordStore)
 
 	return vizservice
 }
