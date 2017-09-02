@@ -1,15 +1,12 @@
 package arenaserver
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/bytearena/bytearena/arenaserver/collision"
 	"github.com/bytearena/bytearena/arenaserver/state"
-	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/dhconnelly/rtreego"
 	uuid "github.com/satori/go.uuid"
@@ -24,7 +21,7 @@ func handleCollisions(server *Server, agentMovements []*collision.MovementState,
 	// * projectile / projectile
 	// * projectile / obstacle
 
-	begin := time.Now()
+	//begin := time.Now()
 	//show := spew.ConfigState{MaxDepth: 5, Indent: "    "}
 
 	collisions := make([]collision.Collision, 0)
@@ -95,7 +92,7 @@ func handleCollisions(server *Server, agentMovements []*collision.MovementState,
 
 	wait.Wait()
 
-	utils.Debug("collision-detection", fmt.Sprintf("Took %f ms; found %d collisions", time.Now().Sub(begin).Seconds()*1000, len(collisions)))
+	//utils.Debug("collision-detection", fmt.Sprintf("Took %f ms; found %d collisions", time.Now().Sub(begin).Seconds()*1000, len(collisions)))
 
 	// Ordering collisions along time (causality order)
 	sort.Sort(collision.CollisionByTimeAsc(collisions))

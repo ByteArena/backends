@@ -21,7 +21,7 @@ func ProcessMovingMovingCollisions(movements []*MovementState, rtMoving *rtreego
 	memoizedCollisions := NewMemoizedMovingMovingCollisions()
 
 	for _, movement := range movements {
-		func(movement *MovementState) {
+		go func(movement *MovementState) {
 
 			matchingObjects := rtMoving.SearchIntersect(movement.Rect, func(results []rtreego.Spatial, object rtreego.Spatial) (refuse, abort bool) {
 				return object == movement, false // avoid object overlapping itself
@@ -81,17 +81,19 @@ func fineCollisionMovingMoving(movement *MovementState, matchingObstacles []rtre
 			continue
 		}
 
-		// memoized := memoizedCollisions.get(
-		// 	movement.Type,
-		// 	movement.ID,
-		// 	geoObject.GetType(),
-		// 	geoObject.GetID(),
-		// )
-		// if memoized != nil {
-		// 	//log.Println("FROM MEMOIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-		// 	collisionhandler([]Collision{*memoized})
-		// 	continue
-		// }
+		if movement.Type == state.GeometryObjectType.Projectile {
+			memoized := memoizedCollisions.get(
+				movement.Type,
+				movement.ID,
+				geoObject.GetType(),
+				geoObject.GetID(),
+			)
+			if memoized != nil {
+				//log.Println("FROM MEMOIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+				collisionhandler([]Collision{*memoized})
+				continue
+			}
+		}
 
 		collideeCenterA := geoObject.GetPointA()
 		collideeRadiusA := geoObject.GetRadius()
@@ -209,7 +211,7 @@ func fineCollisionMovingMoving(movement *MovementState, matchingObstacles []rtre
 							ColliderTimeEnd:   tEndCollider,
 							ColliderMovement:  movement,
 						}}
-						//memoizedCollisions.add(colls)
+						memoizedCollisions.add(colls)
 						collisionhandler(colls)
 					}
 				}
@@ -274,7 +276,7 @@ func fineCollisionMovingMoving(movement *MovementState, matchingObstacles []rtre
 						//show.Dump("PROJECTILE INCOMING ON AGENT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", colls)
 					}
 					//they were at the same place at the same time in the tick ! Collision !
-					//memoizedCollisions.add(colls)
+					memoizedCollisions.add(colls)
 					collisionhandler(colls)
 				}
 
@@ -331,7 +333,7 @@ func fineCollisionMovingMoving(movement *MovementState, matchingObstacles []rtre
 							ColliderTimeEnd:   tEndCollider,
 							ColliderMovement:  movement,
 						}}
-						//memoizedCollisions.add(colls)
+						memoizedCollisions.add(colls)
 						collisionhandler(colls)
 					}
 				}
