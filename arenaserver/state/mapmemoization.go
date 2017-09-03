@@ -9,4 +9,5 @@ type MapMemoization struct {
 	RtreeObstacles  *rtreego.Rtree
 	RtreeSurface    *rtreego.Rtree
 	RtreeCollisions *rtreego.Rtree
+	RtreeMoving     *rtreego.Rtree
 }

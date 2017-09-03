@@ -24,6 +24,24 @@ func (s Segment2) Get() (Vector2, Vector2) {
 	return s.a, s.b
 }
 
+func (s Segment2) GetPointA() Vector2 {
+	return s.a
+}
+
+func (s Segment2) GetPointB() Vector2 {
+	return s.b
+}
+
+func (s Segment2) SetPointA(v Vector2) Segment2 {
+	s.a = v
+	return s
+}
+
+func (s Segment2) SetPointB(v Vector2) Segment2 {
+	s.b = v
+	return s
+}
+
 func (s Segment2) Equals(s2 Segment2) bool {
 	return s2.a.Equals(s.a) && s2.b.Equals(s.b)
 }

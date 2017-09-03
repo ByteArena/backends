@@ -18,8 +18,9 @@ type ServerState struct {
 	Agents      map[uuid.UUID](AgentState)
 	Agentsmutex *sync.Mutex
 
-	Projectiles      map[uuid.UUID](*projectile.BallisticProjectile)
-	Projectilesmutex *sync.Mutex
+	Projectiles                map[uuid.UUID](*projectile.BallisticProjectile)
+	Projectilesmutex           *sync.Mutex
+	ProjectilesDeletedThisTick map[uuid.UUID](*projectile.BallisticProjectile)
 
 	pendingmutations []protocol.StateMutationBatch
 	mutationsmutex   *sync.Mutex
@@ -40,8 +41,9 @@ func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 		Agents:      make(map[uuid.UUID](AgentState)),
 		Agentsmutex: &sync.Mutex{},
 
-		Projectiles:      make(map[uuid.UUID]*projectile.BallisticProjectile),
-		Projectilesmutex: &sync.Mutex{},
+		Projectiles:                make(map[uuid.UUID]*projectile.BallisticProjectile),
+		Projectilesmutex:           &sync.Mutex{},
+		ProjectilesDeletedThisTick: make(map[uuid.UUID]*projectile.BallisticProjectile),
 
 		pendingmutations: make([]protocol.StateMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
@@ -187,11 +189,18 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 		}
 	}
 
+	///////////////////////////////////////////////////////////////////////////
+	// Moving Rtree
+	///////////////////////////////////////////////////////////////////////////
+
+	rtMoving := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
+
 	return &MapMemoization{
 		Obstacles:       obstacles,
 		RtreeObstacles:  rtObstacles,
 		RtreeSurface:    rtSurface,
 		RtreeCollisions: rtCollisions,
+		RtreeMoving:     rtMoving,
 	}
 }
 
@@ -334,6 +343,26 @@ type GeometryObject struct {
 
 func (geobj GeometryObject) Bounds() *rtreego.Rect {
 	return geobj.Rect
+}
+
+func (geobj *GeometryObject) GetPointA() vector.Vector2 {
+	return geobj.PointA
+}
+
+func (geobj *GeometryObject) GetPointB() vector.Vector2 {
+	return geobj.PointB
+}
+
+func (geobj *GeometryObject) GetRadius() float64 {
+	return 0
+}
+
+func (geobj *GeometryObject) GetType() int {
+	return geobj.Type
+}
+
+func (geobj *GeometryObject) GetID() string {
+	return geobj.ID
 }
 
 type TriangleRtreeWrapper struct {

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"log"
 	"os"
 	"strconv"
 	"sync"
@@ -136,7 +135,7 @@ func main() {
 
 	webclientpath := utils.GetExecutableDir() + "/webclient/"
 
-	log.Println("Byte Arena Viz Server v0.1; serving assets from " + webclientpath)
+	utils.Debug("arena-server", "Byte Arena Viz Server v0.1; serving assets from "+webclientpath)
 
 	port := flag.Int("port", 8081, "Port of the viz server")
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")

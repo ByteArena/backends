@@ -17,11 +17,16 @@ type BallisticProjectile struct {
 }
 
 func NewBallisticProjectile() *BallisticProjectile {
+
 	return &BallisticProjectile{
 		Id:     uuid.NewV4(), // random uuid
-		TTL:    50,
-		Speed:  6,
-		Radius: 0.3,
+		TTL:    80,
+		Speed:  3,
+		Radius: 0.15, // FIXME(jerome): find why projectiles do not collide when their radius is > than the collidee (which is impacted fine by the projectile); happens when collidee is not moving (collideOrientedRectangleCircle)
+		//Radius: 0.5,
+
+		// OK: Diameter > speed
+		// KO: Diameter <= speed
 	}
 }
 
