@@ -30,7 +30,7 @@ func main() {
 
 	vizserver.Start()
 
-	url := "http://0.0.0.0:" + strconv.Itoa(*port) + "/record/1"
+	url := "http://localhost:" + strconv.Itoa(*port) + "/record/1"
 
 	fmt.Println("\033[0;34m\nReplay ready; open " + url + " in your browser.\033[0m\n")
 	open.Run(url)
