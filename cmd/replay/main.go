@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"strconv"
 	"time"
 
 	notify "github.com/bitly/go-notify"
+	"github.com/skratchdot/open-golang/open"
 
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/recording"
@@ -20,13 +22,18 @@ func main() {
 
 	flag.Parse()
 
-	utils.Assert(*filename != "", "file must be set")
+	utils.Assert(*filename != "", "--file must be set")
 
 	game := NewMockGame(10)
 
-	vizserver := NewVizService(*port, game)
+	vizserver := NewVizService(*port, game, *filename)
 
 	vizserver.Start()
+
+	url := "http://localhost:" + strconv.Itoa(*port) + "/record/1"
+
+	fmt.Println("\033[0;34m\nReplay ready; open " + url + " in your browser.\033[0m\n")
+	open.Run(url)
 
 	<-common.SignalHandler()
 
@@ -42,17 +49,19 @@ func sendMapToViz(msg string, debug bool, UUID string) {
 	notify.PostTimeout("viz:map:"+UUID, msg, time.Millisecond)
 }
 
-func NewVizService(port int, game *MockGame) *vizserver.VizService {
+func NewVizService(port int, game *MockGame, recordFile string) *vizserver.VizService {
 
-	recorder := recording.MakeEmptyRecorder()
+	recordStore := recording.NewSingleFileRecordStore(recordFile)
 
 	// TODO(jerome|sven): refac webclient path / serving
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
+
+	vizgames := make([]*types.VizGame, 1)
+	vizgames[0] = types.NewVizGame(game)
+
 	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(port), webclientpath, func() ([]*types.VizGame, error) {
-		res := make([]*types.VizGame, 1)
-		res[0] = types.NewVizGame(game)
-		return res, nil
-	}, recorder)
+		return vizgames, nil
+	}, recordStore)
 
 	return vizservice
 }

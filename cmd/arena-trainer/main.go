@@ -9,6 +9,7 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
+	"github.com/skratchdot/open-golang/open"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
@@ -128,6 +129,11 @@ func main() {
 		fmt.Println("Cannot start server: " + startErr.Error())
 		os.Exit(1)
 	}
+
+	url := "http://localhost:" + strconv.Itoa(*port+1) + "/arena/1"
+
+	fmt.Println("\033[0;34m\nGame running at " + url + ".\033[0m\n")
+	open.Run(url)
 
 	<-serverChan
 

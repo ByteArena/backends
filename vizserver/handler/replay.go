@@ -11,15 +11,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Replay(recorder recording.RecorderInterface, basepath string, CDNBaseURL string) func(w http.ResponseWriter, r *http.Request) {
+func Replay(recordStore recording.RecordStoreInterface, basepath string, CDNBaseURL string) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["recordId"]
 
-		_, err := os.Stat(recorder.GetDirectory() + "/" + id)
-
-		if os.IsNotExist(err) {
+		if !recordStore.RecordExists(id) {
 			w.Write([]byte("Record not found"))
 			return
 		}
@@ -30,6 +28,12 @@ func Replay(recorder recording.RecorderInterface, basepath string, CDNBaseURL st
 			return
 		}
 
+		protocol := "ws"
+
+		if os.Getenv("ENV") == "prod" {
+			protocol = "wss"
+		}
+
 		var vizhtmlTemplate = template.Must(template.New("").Parse(string(vizhtml)))
 		vizhtmlTemplate.Execute(w, struct {
 			WsURL      string
@@ -37,7 +41,7 @@ func Replay(recorder recording.RecorderInterface, basepath string, CDNBaseURL st
 			Rand       int64
 			Tps        int
 		}{
-			WsURL:      "wss://" + r.Host + "/record/" + id + "/ws",
+			WsURL:      protocol + "://" + r.Host + "/record/" + id + "/ws",
 			CDNBaseURL: CDNBaseURL,
 			Rand:       time.Now().Unix(),
 			Tps:        10, // FIXME(sven): get metadata from record

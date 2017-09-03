@@ -1,5 +1,5 @@
-hash: cba5c9fc2121d6e20f109f644d6002ad2ac85bfceb6f0df3c26a9eb248221ca0
-updated: 2017-08-30T00:19:45.018307747+02:00
+hash: 4c935b716e294939a2380438ec05aa7337b6fc993ef5625a65bdc57a11e81f37
+updated: 2017-09-03T13:50:35.569371224+02:00
 imports:
 - name: github.com/akavel/polyclip-go
   version: 2cfdb71461bde9115450eb65688337e3f8ee715e
@@ -79,6 +79,8 @@ imports:
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/Sirupsen/logrus
   version: 55eb11d21d2a31a3cc93838241d04800f52e823d
+- name: github.com/skratchdot/open-golang
+  version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
 - name: github.com/ttacon/chalk
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
 - name: golang.org/x/net
