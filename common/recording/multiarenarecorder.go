@@ -82,8 +82,15 @@ func (r *MultiArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontai
 	return nil
 }
 
-func (r *MultiArenaRecorder) GetDirectory() string {
-	return r.directory
+func (r *MultiArenaRecorder) GetFilePathForUUID(UUID string) string {
+	return r.directory + "/" + UUID
+}
+
+func (r *MultiArenaRecorder) RecordExists(UUID string) bool {
+	recordFile := r.GetFilePathForUUID(UUID)
+	_, err := os.Stat(recordFile)
+
+	return !os.IsNotExist(err)
 }
 
 func (r *MultiArenaRecorder) Close(UUID string) {

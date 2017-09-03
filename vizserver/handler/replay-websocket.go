@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/bytearena/bytearena/common/recording"
@@ -14,20 +13,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func ReplayWebsocket(recorder recording.RecorderInterface, basepath string) func(w http.ResponseWriter, r *http.Request) {
+func ReplayWebsocket(recordStore recording.RecordStoreInterface, basepath string) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		UUID := vars["recordId"]
 
-		recordFile := recorder.GetDirectory() + "/" + UUID
-
-		_, err := os.Stat(recordFile)
-
-		if os.IsNotExist(err) {
+		if !recordStore.RecordExists(UUID) {
 			w.Write([]byte("Record not found"))
 			return
 		}
+
+		recordFile := recordStore.GetFilePathForUUID(UUID)
 
 		upgrader := websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {

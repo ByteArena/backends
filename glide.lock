@@ -1,10 +1,10 @@
-hash: b6085eb1a809bfa73421a99829cd54b76428aa94a5c5e5c59cd8bd238431a54d
-updated: 2017-08-19T15:01:58.965531921+02:00
+hash: 4c935b716e294939a2380438ec05aa7337b6fc993ef5625a65bdc57a11e81f37
+updated: 2017-09-03T13:50:35.569371224+02:00
 imports:
 - name: github.com/bitly/go-notify
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
 - name: github.com/cenkalti/backoff
-  version: 32cd0c5b3aef12c76ed64aaf678f6c79736be7dc
+  version: 61153c768f31ee5f130071d08fc82b85208528de
 - name: github.com/dhconnelly/rtreego
   version: 1323b09fe8f32430ea7e16ea1df99e106e3e6250
 - name: github.com/docker/distribution
@@ -73,6 +73,8 @@ imports:
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/Sirupsen/logrus
   version: 55eb11d21d2a31a3cc93838241d04800f52e823d
+- name: github.com/skratchdot/open-golang
+  version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
 - name: github.com/ttacon/chalk
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
 - name: golang.org/x/net

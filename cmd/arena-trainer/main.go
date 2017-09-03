@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"strconv"
 	"time"
 
 	notify "github.com/bitly/go-notify"
+	"github.com/skratchdot/open-golang/open"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
@@ -37,7 +37,7 @@ func (i *arrayFlags) Set(value string) error {
 func main() {
 
 	rand.Seed(time.Now().UnixNano())
-	log.Println("Byte Arena Trainer v0.1")
+	utils.Debug("arena-trainer", "Byte Arena Trainer v0.1")
 
 	tickspersec := flag.Int("tps", 10, "Number of ticks per second")
 	host := flag.String("host", "", "IP serving the trainer; required")
@@ -129,6 +129,11 @@ func main() {
 		fmt.Println("Cannot start server: " + startErr.Error())
 		os.Exit(1)
 	}
+
+	url := "http://localhost:" + strconv.Itoa(*port+1) + "/arena/1"
+
+	fmt.Println("\033[0;34m\nGame running at " + url + ".\033[0m\n")
+	open.Run(url)
 
 	<-serverChan
 

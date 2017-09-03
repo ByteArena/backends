@@ -20,16 +20,16 @@ type VizService struct {
 	webclientpath string
 	fetchGames    FetchArenasCbk
 	listener      *http.Server
-	recorder      recording.RecorderInterface
+	recordStore   recording.RecordStoreInterface
 	pathToAssets  string
 }
 
-func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk, recorder recording.RecorderInterface) *VizService {
+func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk, recordStore recording.RecordStoreInterface) *VizService {
 	return &VizService{
 		addr:          addr,
 		webclientpath: webclientpath,
 		fetchGames:    fetchArenas,
-		recorder:      recorder,
+		recordStore:   recordStore,
 	}
 }
 
@@ -56,11 +56,11 @@ func (viz *VizService) Start() chan struct{} {
 	)).Methods("GET")
 
 	router.Handle("/record/{recordId:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Replay(viz.recorder, viz.webclientpath, cdnBaseURL)),
+		http.HandlerFunc(apphandler.Replay(viz.recordStore, viz.webclientpath, cdnBaseURL)),
 	)).Methods("GET")
 
 	router.Handle("/record/{recordId:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.ReplayWebsocket(viz.recorder, viz.webclientpath)),
+		http.HandlerFunc(apphandler.ReplayWebsocket(viz.recordStore, viz.webclientpath)),
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
@@ -68,7 +68,7 @@ func (viz *VizService) Start() chan struct{} {
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Websocket(viz.fetchGames, viz.recorder)),
+		http.HandlerFunc(apphandler.Websocket(viz.fetchGames)),
 	)).Methods("GET")
 
 	utils.Debug("viz-server", "VIZ Listening on "+viz.addr)
