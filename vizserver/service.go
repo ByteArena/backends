@@ -48,7 +48,7 @@ func (viz *VizService) Start() chan struct{} {
 
 	if viz.pathToAssets != "" {
 		router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(viz.pathToAssets))))
-		cdnBaseURL = "http://localhost:8081/assets"
+		cdnBaseURL = "/assets"
 	}
 
 	router.Handle("/", handlers.CombinedLoggingHandler(logger,

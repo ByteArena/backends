@@ -27,6 +27,9 @@ func main() {
 	game := NewMockGame(10)
 
 	vizserver := NewVizService(*port, game, *filename)
+	// Below line is used to serve assets locally
+	// TODO(jerome): find a way to bundle the trainer with the assets
+	//vizserver.SetPathToAssets("/Users/jerome/Code/other/assets/")
 
 	vizserver.Start()
 
