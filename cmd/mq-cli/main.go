@@ -60,7 +60,10 @@ func main() {
 		NewMQMessage("mq-cli", "Synthesizing event from cli").
 		SetPayload(payload)
 
-	brokerclient.Publish(channel, topic, mqmessage)
+	err = brokerclient.Publish(channel, topic, mqmessage)
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Print("Message published ")
 	fmt.Print(chalk.Yellow)
