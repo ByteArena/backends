@@ -14,14 +14,14 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 
 	if len(state.idleArenas) > 0 {
 
-		if id, ok := (*payload)["id"].(string); ok {
+		if gameid, ok := (*payload)["id"].(string); ok {
 
 			// Ignore if the game is already running
-			if isGameIdAlreadyRunning(state, id) {
+			if isGameAlreadyRunning(state, gameid) {
 				return
 			}
 
-			var astate ArenaState
+			var astate ArenaServerState
 
 			// Take the first arena
 			for _, value := range state.idleArenas {
@@ -32,21 +32,22 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 			// Remove from idle pool
 			delete(state.idleArenas, astate.id)
 
-			astate.GameId = id
+			astate.GameId = gameid
 
 			// Put it into pending arenas (waiting for arena comfirmation)
 			state.pendingArenas[astate.id] = astate
 
+			// TODO: should be wrapped in types.NewMQMessage
 			mqclient.Publish("game", astate.id+".launch", types.MQPayload{
-				"id": id,
+				"id": gameid,
 			})
 
-			utils.Debug("master", "Launched game "+astate.id+" "+getMasterStatus(state))
+			utils.Debug("master", "Launched game "+gameid+" on server "+astate.id+"; "+getMasterStatus(state))
 
 			go func() {
 				_, err := gql.RequestSync(
 					graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{
-						"id": id,
+						"id": gameid,
 						"game": graphql.Variables{
 							"runStatus":       gqltypes.GameRunStatus.Running,
 							"launchedAt":      time.Now().Format(time.RFC822Z),
@@ -56,9 +57,9 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 				)
 
 				if err != nil {
-					utils.Debug("master", "ERROR: could not set game state to running for Game "+id+" on server "+astate.id)
+					utils.Debug("master", "ERROR: could not set game state to running for Game "+gameid+" on server "+astate.id)
 				} else {
-					utils.Debug("master", "Game state set to running for Game "+id+" on server "+astate.id)
+					utils.Debug("master", "Game state set to running for Game "+gameid+" on server "+astate.id)
 				}
 			}()
 
@@ -69,7 +70,7 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 	}
 }
 
-func waitForLaunchedOrRetry(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client, astate ArenaState) {
+func waitForLaunchedOrRetry(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client, astate ArenaServerState) {
 	timeout := 30
 	timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Second)
 	<-timeoutTimer.C
@@ -87,7 +88,7 @@ func waitForLaunchedOrRetry(state *State, payload *types.MQPayload, mqclient *mq
 	}
 }
 
-func isGameIdAlreadyRunning(state *State, id string) bool {
+func isGameAlreadyRunning(state *State, id string) bool {
 	// FIXME(sven): missing check in pending arenas
 
 	for _, a := range state.runningArenas {
