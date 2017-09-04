@@ -10,8 +10,8 @@ import (
 )
 
 const updateGameStateMutation = `
-mutation ($id: String, $arenaServerUUID: String, $game: GameInputUpdate!) {
-	updateGame(id: $id, arenaServerId: $arenaServerUUID, game: $game) {
+updateGame(id: $id, game: $game) {
+	mutation ($id: String, $game: GameInputUpdate!) {
 		id
 		runStatus
 	}
@@ -26,28 +26,31 @@ func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 		if ok {
 			delete(state.runningArenas, arena.id)
 
-			utils.Debug("master", "Arena running on server "+arenaServerUUID+" stopped "+getMasterStatus(state))
+			gameid, _ := (*payload)["id"].(string)
+
+			utils.Debug("master", "Game "+gameid+" running on server "+arenaServerUUID+" stopped "+getMasterStatus(state))
 
 			go func() {
 				_, err := gql.RequestSync(
 					graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{
-						"arenaServerUUID": arenaServerUUID,
+						"id": gameid,
 						"game": graphql.Variables{
-							"runStatus": gqltypes.GameRunStatus.Finished,
-							"endedAt":   time.Now().Format(time.RFC822Z),
+							"runStatus":       gqltypes.GameRunStatus.Finished,
+							"endedAt":         time.Now().Format(time.RFC822Z),
+							"arenaServerUUID": arenaServerUUID,
 						},
 					}),
 				)
 
 				if err != nil {
-					utils.Debug("master", "ERROR: could not set game state to finished for Game running on arena server "+arenaServerUUID)
+					utils.Debug("master", "ERROR: could not set game state to finished for Game "+gameid+" running on arena server "+arenaServerUUID)
 				} else {
-					utils.Debug("master", "Game state set to finished for Game running on arena server "+arenaServerUUID)
+					utils.Debug("master", "Game state set to finished for Game  "+gameid+" running on arena server "+arenaServerUUID)
 				}
 			}()
 
 		} else {
-			utils.Debug("master", "Arena server "+arenaServerUUID+" is not running an arena")
+			utils.Debug("master", "Arena server "+arenaServerUUID+" is not running any game to our knowledge (arena-master)")
 		}
 	}
 }

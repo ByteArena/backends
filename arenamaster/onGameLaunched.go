@@ -1,7 +1,10 @@
 package arenamaster
 
 import (
+	"time"
+
 	"github.com/bytearena/bytearena/common/graphql"
+	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -9,14 +12,35 @@ import (
 
 func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
 	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
-		if arena, ok := state.pendingArenas[arenaServerUUID]; ok {
+		if arenaServer, ok := state.pendingArenas[arenaServerUUID]; ok {
 
 			// Put it into running arenas, now that we're sure
-			state.runningArenas[arena.id] = arena
+			state.runningArenas[arenaServer.id] = arenaServer
 
-			delete(state.pendingArenas, arena.id)
+			delete(state.pendingArenas, arenaServer.id)
 
 			utils.Debug("master", arenaServerUUID+" launched "+getMasterStatus(state))
+
+			// syncing state in graphql db
+			go func() {
+				gameid, _ := (*payload)["id"].(string)
+				_, err := gql.RequestSync(
+					graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{
+						"id": gameid,
+						"game": graphql.Variables{
+							"runStatus":       gqltypes.GameRunStatus.Running,
+							"launchedAt":      time.Now().Format(time.RFC822Z),
+							"arenaServerUUID": arenaServerUUID,
+						},
+					}),
+				)
+
+				if err != nil {
+					utils.Debug("master", "ERROR: could not set game state to running for Game "+gameid+" on server "+arenaServerUUID)
+				} else {
+					utils.Debug("master", "Game state set to running for Game "+gameid+" on server "+arenaServerUUID)
+				}
+			}()
 		}
 	}
 }

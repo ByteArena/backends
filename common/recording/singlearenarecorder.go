@@ -102,6 +102,13 @@ func (r *SingleArenaRecorder) Record(UUID string, msg string) error {
 	return err
 }
 
-func (r *SingleArenaRecorder) GetDirectory() string {
+func (r *SingleArenaRecorder) GetFilePathForUUID(UUID string) string {
 	return ""
+}
+
+func (r *SingleArenaRecorder) RecordExists(UUID string) bool {
+	recordFile := r.GetFilePathForUUID(UUID)
+	_, err := os.Stat(recordFile)
+
+	return !os.IsNotExist(err)
 }

@@ -1,11 +1,18 @@
 package trigo
 
 import (
+	"errors"
 	"math"
 
 	"github.com/bytearena/bytearena/common/utils/number"
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
+
+func SegmentIntersectionWithLineSegment(p, q vector.Segment2) (intersection vector.Vector2, intersects bool, colinear bool, parallel bool) {
+	p1, p2 := p.Get()
+	q1, q2 := q.Get()
+	return IntersectionWithLineSegment(p1, p2, q1, q2)
+}
 
 func IntersectionWithLineSegment(p vector.Vector2, p2 vector.Vector2, q vector.Vector2, q2 vector.Vector2) (intersection vector.Vector2, intersects bool, colinear bool, parallel bool) {
 
@@ -158,6 +165,73 @@ func LineCircleIntersectionPoints(LineP1 vector.Vector2, LineP2 vector.Vector2, 
 	return res
 }
 
+// Taken from https://stackoverflow.com/a/12221389
+// Initially from Tim Voght, http://paulbourke.net/geometry/circlesphere/tvoght.c
+func CircleCircleIntersectionPoints(center0 vector.Vector2, radius0 float64, center1 vector.Vector2, radius1 float64) (intersections []vector.Vector2, firstContainsSecond bool, secondContainsFirst bool) {
+	// var a, dx, dy, d, h, rx, ry;
+	// var x2, y2;
+
+	x0, y0 := center0.Get()
+	x1, y1 := center1.Get()
+
+	/* dx and dy are the vertical and horizontal distances between
+	 * the circle centers.
+	 */
+	dx := x1 - x0
+	dy := y1 - y0
+
+	/* Determine the straight-line distance between the centers. */
+	d := math.Sqrt((dy * dy) + (dx * dx))
+
+	/* Check for solvability. */
+	if d > (radius0 + radius1) {
+		/* no solution. circles do not intersect. */
+		return []vector.Vector2{}, false, false
+	}
+
+	if d < math.Abs(radius0-radius1) {
+		/* no solution. one circle is contained in the other */
+		if radius0 > radius1 {
+			// first contains second
+			return []vector.Vector2{}, true, false
+		}
+
+		// second contains first
+		return []vector.Vector2{}, false, true
+	}
+
+	/* 'point 2' is the point where the line through the circle
+	 * intersection points crosses the line between the circle
+	 * centers.
+	 */
+
+	/* Determine the distance from point 0 to point 2. */
+	a := (math.Pow(radius0, 2) - math.Pow(radius1, 2) + math.Pow(d, 2)) / (2.0 * d)
+
+	/* Determine the coordinates of point 2. */
+	x2 := x0 + (dx * a / d)
+	y2 := y0 + (dy * a / d)
+
+	/* Determine the distance from point 2 to either of the
+	 * intersection points.
+	 */
+	h := math.Sqrt(math.Pow(radius0, 2) - math.Pow(a, 2))
+
+	/* Now determine the offsets of the intersection points from
+	 * point 2.
+	 */
+	rx := -dy * (h / d)
+	ry := dx * (h / d)
+
+	/* Determine the absolute intersection points. */
+	xi := x2 + rx
+	xiPrime := x2 - rx
+	yi := y2 + ry
+	yiPrime := y2 - ry
+
+	return []vector.Vector2{vector.MakeVector2(xi, yi), vector.MakeVector2(xiPrime, yiPrime)}, false, false
+}
+
 func PointOnLineSegment(p vector.Vector2, a vector.Vector2, b vector.Vector2) bool {
 	t := 0.0001
 
@@ -211,4 +285,121 @@ func PointIsInTriangle(point, p0, p1, p2 vector.Vector2) bool {
 	t := 1 / (2 * Area) * (p0x*p1y - p0y*p1x + (p0y-p1y)*px + (p1x-p0x)*py)
 
 	return (s > 0 && t > 0 && 1-s-t > 0)
+}
+
+func PointIsInCircle(point vector.Vector2, center vector.Vector2, radius float64) bool {
+	squareDist := math.Pow(center.GetX()-point.GetX(), 2) + math.Pow(center.GetY()-point.GetY(), 2)
+	return squareDist <= math.Pow(radius, 2)
+}
+
+func ComputeCenterOfMass(points []vector.Vector2) (vector.Vector2, error) {
+	if len(points) == 0 {
+		return vector.MakeNullVector2(), errors.New("Cannot compute center of mass on empty list")
+	}
+
+	sumx, sumy := 0.0, 0.0
+	for _, p := range points {
+		sumx += p.GetX()
+		sumy += p.GetY()
+	}
+
+	flen := float64(len(points))
+	return vector.MakeVector2(sumx/flen, sumy/flen), nil
+}
+
+/**
+ * Helper function to determine whether there is an intersection between the two polygons described
+ * by the lists of vertices. Uses the Separating Axis Theorem
+ *
+ * @param a an array of connected points [{x:, y:}, {x:, y:},...] that form a closed polygon
+ * @param b an array of connected points [{x:, y:}, {x:, y:},...] that form a closed polygon
+ * @return true if there is any intersection between the 2 polygons, false otherwise
+ */
+// taken from https://stackoverflow.com/a/12414951
+
+func DoClosedConvexPolygonsIntersect(a []vector.Vector2, b []vector.Vector2) bool {
+	polygons := []([]vector.Vector2){a, b}
+
+	var minA *float64 /* = nil*/
+	var maxA *float64 /* = nil*/
+	var minB *float64 /* = nil*/
+	var maxB *float64 /* = nil*/
+
+	for _, polygon := range polygons {
+
+		// for each polygon, look at each edge of the polygon, and determine if it separates
+		// the two shapes
+
+		polylen := len(polygon)
+
+		for i1 := 0; i1 < len(polygon); i1++ {
+			// grab 2 vertices to create an edge
+
+			i2 := (i1 + 1) % polylen
+
+			p1 := polygon[i1]
+			p2 := polygon[i2]
+
+			// find the line perpendicular to this edge
+			normalX := p2.GetY() - p1.GetY()
+			normalY := p1.GetX() - p2.GetX()
+
+			minA = nil
+			maxA = nil
+
+			// for each vertex in the first shape, project it onto the line perpendicular to the edge
+			// and keep track of the min and max of these values
+
+			for j := 0; j < len(a); j++ {
+				projected := normalX*a[j].GetX() + normalY*a[j].GetY()
+				if minA == nil || projected < *minA {
+					minA = &projected
+				}
+
+				if maxA == nil || projected > *maxA {
+					maxA = &projected
+				}
+			}
+
+			// for each vertex in the second shape, project it onto the line perpendicular to the edge
+			// and keep track of the min and max of these values
+
+			minB = nil
+			maxB = nil
+
+			for j := 0; j < len(b); j++ {
+				projected := normalX*b[j].GetX() + normalY*b[j].GetY()
+				if minB == nil || projected < *minB {
+					minB = &projected
+				}
+
+				if maxB == nil || projected > *maxB {
+					maxB = &projected
+				}
+			}
+
+			// if there is no overlap between the projects, the edge we are looking at separates the two
+			// polygons, and we know there is no overlap
+			if *maxA < *minB || *maxB < *minA {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func GetAffineEquationExpressedForY(segment vector.Segment2) (a float64, b float64, vertical bool, xvertical float64) { // y = ax + b
+	pA, pB := segment.Get()
+	pAX, pAY := pA.Get()
+	pBX, pBY := pB.Get()
+
+	if number.IsZero(pBX - pAX) {
+		// line is vertical
+		return 0, 0, true, pAX
+	}
+
+	a = (pBY - pAY) / (pBX - pAX)
+	b = pAY - (a * pAX)
+	return a, b, false, 0
 }

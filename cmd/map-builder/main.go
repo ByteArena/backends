@@ -262,7 +262,16 @@ func buildMap(svg SVGNodeInterface, pxperunit float64) mapcontainer.MapContainer
 	for _, obstacle := range obstacles {
 		contour := make([]*poly2tri.Point, 0)
 
-		for _, point := range obstacle.Polygon.Points[:len(obstacle.Polygon.Points)-1] {
+		firstPoint := obstacle.Polygon.Points[0]
+		lastPoint := obstacle.Polygon.Points[len(obstacle.Polygon.Points)-1]
+
+		sliceLength := len(obstacle.Polygon.Points)
+
+		if firstPoint.X == lastPoint.X && firstPoint.Y == lastPoint.Y {
+			sliceLength -= 1
+		}
+
+		for _, point := range obstacle.Polygon.Points[:sliceLength] {
 			contour = append(contour, poly2tri.NewPoint(point.X, point.Y))
 		}
 

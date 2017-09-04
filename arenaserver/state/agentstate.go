@@ -66,13 +66,16 @@ type AgentState struct {
 	ShootEnergyCost          float64 // Const; Energy consumed by a shot
 	ShootCooldown            int     // Const; number of ticks to wait between every shot
 	LastShot                 int     // Number of ticks since last shot
+
+	DebugNbHits int    // Number of ticks since last shot
+	DebugMsg    string // Number of ticks since last shot
 }
 
 func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapStart) AgentState {
 	initialx := start.Point.X
 	initialy := start.Point.Y
 
-	r := 0.3 // agent diameter=0.6
+	r := 0.5 // agent diameter=1.0
 
 	return AgentState{
 		agentId:   agentId,
@@ -80,14 +83,14 @@ func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapS
 
 		Position:           vector.MakeVector2(initialx, initialy),
 		Velocity:           vector.MakeNullVector2(),
-		MaxSpeed:           1.5,
-		MaxSteeringForce:   0.24,
-		DragForce:          0.03,
+		MaxSpeed:           0.75,
+		MaxSteeringForce:   0.12,
+		DragForce:          0.015,
 		MaxAngularVelocity: number.DegreeToRadian(9), // en radians/tick; Pi = 180°
 		Radius:             r,
 		Mass:               math.Pi * r * r,
 		Tag:                "agent",
-		VisionRadius:       40,
+		VisionRadius:       100,
 		VisionAngle:        number.DegreeToRadian(180),
 
 		MaxLife: 1000, // Const
@@ -100,14 +103,21 @@ func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapS
 		MaxShootEnergy:           200, // Const; When shooting, energy decreases
 		ShootEnergy:              200, // Current energy level
 		ShootEnergyReplenishRate: 5,   // Const; Energy regained every tick
-		ShootCooldown:            0,   // Const; number of ticks to wait between every shot
+		ShootCooldown:            5,   // Const; number of ticks to wait between every shot
 		ShootEnergyCost:          0,   // Const
 		LastShot:                 0,   // Number of ticks since last shot; 0 => cannot shoot immediately, must wait for first cooldown
+
+		DebugNbHits: 0,
 	}
 }
 
 func (state AgentState) GetName() string {
 	return state.agentName
+}
+
+func (state AgentState) SetName(name string) AgentState {
+	state.agentName = name
+	return state
 }
 
 func (state AgentState) Update() AgentState {
@@ -155,6 +165,7 @@ func (state AgentState) Update() AgentState {
 }
 
 func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
+	//return state
 
 	prevmag := state.Velocity.Mag()
 	diff := steering.Mag() - prevmag
@@ -192,16 +203,15 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 
 	projectile := projectile.NewBallisticProjectile()
 	projectile.AgentEmitterId = state.agentId
-	projectile.Position = state.Position.Add(state.Velocity) // setting at next agent position (which will be updated later in the tick)
 	projectile.JustFired = true
 
 	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
 	absaiming := localAngleToAbsoluteAngleVec(state.Orientation, aiming, nil) // TODO: replace nil here by an actual angle constraint
 	projectile.Velocity = absaiming.SetMag(projectile.Speed)                  // adding the agent position to "absolutize" the target vector
 
-	serverstate.Projectilesmutex.Lock()
-	serverstate.Projectiles[projectile.Id] = projectile
-	serverstate.Projectilesmutex.Unlock()
+	projectile.Position = state.Position
+
+	serverstate.SetProjectile(projectile.Id, projectile)
 
 	return state
 }

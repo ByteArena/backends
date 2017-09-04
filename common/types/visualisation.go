@@ -23,6 +23,7 @@ type VizAgentMessage struct {
 	Radius       float64
 	Kind         string
 	Orientation  float64
+	DebugMsg     string
 }
 
 type VizProjectileMessage struct {

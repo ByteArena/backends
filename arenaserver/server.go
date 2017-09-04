@@ -9,6 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bytearena/bytearena/arenaserver/collision"
+	"github.com/bytearena/bytearena/arenaserver/projectile"
+
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/comm"
@@ -255,11 +258,15 @@ func (server *Server) Start() (chan interface{}, error) {
 	server.AddTearDownCall(func() error {
 		utils.Debug("arena", "Publish game state (stopped)")
 
-		err := server.mqClient.Publish("game", "stopped", GameStopMessage{
-			Payload: GameStopMessagePayload{
-				ArenaServerUUID: server.arenaServerUUID,
-			},
-		})
+		game := server.GetGame()
+
+		err := server.mqClient.Publish("game", "stopped", types.NewMQMessage(
+			"arena-server",
+			"Arena Server "+server.arenaServerUUID+", game "+game.GetId()+" stopped",
+		).SetPayload(types.MQPayload{
+			"id":              game.GetId(),
+			"arenaserveruuid": server.arenaServerUUID,
+		}))
 
 		return err
 	})
@@ -284,6 +291,7 @@ func (server *Server) SendLaunched() {
 		"arena-server",
 		"Arena Server "+server.arenaServerUUID+" launched",
 	).SetPayload(types.MQPayload{
+		"id":              server.GetGame().GetId(),
 		"arenaserveruuid": server.arenaServerUUID,
 	}))
 }
@@ -536,32 +544,137 @@ func (server *Server) update() {
 	// Updating projectiles
 	//
 
-	beforeStateProjectiles := updateProjectiles(server)
+	projectilesMovements := updateProjectiles(server)
 
 	//
 	// Updating agents
 	//
 
 	// Keeping position and velocity before update (useful for obstacle detection)
-	beforeStateAgents := updateAgents(server)
+	agentsMovements := updateAgents(server)
 
 	///////////////////////////////////////////////////////////////////////////
-	// Collision checks
+	// Collision
 	///////////////////////////////////////////////////////////////////////////
 
-	// TODO(jerome): parallelism with goroutines where possible
+	handleCollisions(server, agentsMovements, projectilesMovements)
+}
 
-	//
-	// A: Agent/Obstacle
-	//
+func updateProjectiles(server *Server) []*collision.MovementState /*(beforeStates map[uuid.UUID]collision.CollisionMovingObjectState)*/ {
 
-	processAgentObstacleCollisions(server, beforeStateAgents)
-	processProjectileObstacleCollisions(server, beforeStateProjectiles)
+	movements := make([]*collision.MovementState, 0)
 
-	// TODO(jerome): check for collisions:
-	// * agent / agent
-	// * agent / obstacle
-	// * agent / projectile
-	// * projectile / projectile
-	// * projectile / obstacle
+	///////////////////////////////////////////////////////////////////////////
+	// On supprime les projectiles en fin de vie
+	///////////////////////////////////////////////////////////////////////////
+
+	server.state.Projectilesmutex.Lock()
+
+	projectilesToRemove := make([]uuid.UUID, 0)
+	for _, projectile := range server.state.Projectiles {
+		if projectile.TTL <= 0 {
+			projectilesToRemove = append(projectilesToRemove, projectile.Id)
+		}
+	}
+
+	server.state.ProjectilesDeletedThisTick = make(map[uuid.UUID]*projectile.BallisticProjectile)
+	for _, projectileToRemoveId := range projectilesToRemove {
+		// has been set to 0 during the previous tick; pruning now (0 TTL projectiles might still have a collision later in this method)
+
+		// Remove projectile from moving rtree
+		server.state.ProjectilesDeletedThisTick[projectileToRemoveId] = server.state.Projectiles[projectileToRemoveId]
+
+		// Remove projectile from projectiles array
+		delete(server.state.Projectiles, projectileToRemoveId)
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	// On conserve les états avant/après
+	///////////////////////////////////////////////////////////////////////////
+
+	for _, projectile := range server.state.Projectiles {
+		beforeState := collision.CollisionMovingObjectState{
+			Position: projectile.Position,
+			Velocity: projectile.Velocity,
+			Radius:   projectile.Radius,
+		}
+
+		projectile.Update()
+
+		afterState := collision.CollisionMovingObjectState{
+			Position: projectile.Position,
+			Velocity: projectile.Velocity,
+			Radius:   projectile.Radius,
+		}
+
+		bbRegion, err := collision.GetTrajectoryBoundingBox(
+			beforeState.Position, beforeState.Radius,
+			afterState.Position, afterState.Radius,
+		)
+		if err != nil {
+			utils.Debug("arena-server-updatestate", "Error in updateProjectiles: could not define trajectory bbRegion")
+			continue
+		}
+
+		movements = append(movements, &collision.MovementState{
+			Type:           state.GeometryObjectType.Projectile,
+			ID:             projectile.Id.String(),
+			Before:         beforeState,
+			After:          afterState,
+			Rect:           bbRegion,
+			AgentEmitterID: projectile.AgentEmitterId.String(),
+		})
+	}
+
+	server.state.Projectilesmutex.Unlock()
+
+	return movements
+}
+
+func updateAgents(server *Server) []*collision.MovementState {
+
+	movements := make([]*collision.MovementState, 0)
+
+	for _, agent := range server.agents {
+
+		id := agent.GetId()
+		beforeFullState := server.state.GetAgentState(id)
+		beforeState := collision.CollisionMovingObjectState{
+			Position: beforeFullState.Position,
+			Velocity: beforeFullState.Velocity,
+			Radius:   beforeFullState.Radius,
+		}
+
+		afterFullState := beforeFullState.Update()
+
+		afterState := collision.CollisionMovingObjectState{
+			Position: afterFullState.Position,
+			Velocity: afterFullState.Velocity,
+			Radius:   afterFullState.Radius,
+		}
+
+		bbRegion, err := collision.GetTrajectoryBoundingBox(
+			beforeState.Position, beforeState.Radius,
+			afterState.Position, afterState.Radius,
+		)
+		if err != nil {
+			utils.Debug("arena-server-updatestate", "Error in updateAgents: could not define trajectory bbRegion")
+			continue
+		}
+
+		movements = append(movements, &collision.MovementState{
+			Type:   state.GeometryObjectType.Agent,
+			ID:     id.String(),
+			Before: beforeState,
+			After:  afterState,
+			Rect:   bbRegion,
+		})
+
+		server.state.SetAgentState(
+			id,
+			afterFullState,
+		)
+	}
+
+	return movements
 }

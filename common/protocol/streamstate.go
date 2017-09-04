@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/state"
@@ -41,6 +42,22 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface, arena
 				json, err := json.Marshal(msg)
 				if err != nil {
 					utils.Debug("viz-server", "json error, wtf")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println(err)
+					fmt.Println(msg)
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
 					return
 				}
 
@@ -81,6 +98,7 @@ func transformServerStateToVizMessage(game arenaserver.GameInterface, state stat
 			Orientation:  agent.Orientation,
 			VisionRadius: agent.VisionRadius,
 			VisionAngle:  agent.VisionAngle,
+			DebugMsg:     agent.DebugMsg,
 		})
 	}
 	state.Agentsmutex.Unlock()

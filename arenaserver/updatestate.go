@@ -1,344 +1,177 @@
 package arenaserver
 
 import (
+	"sort"
+	"strconv"
+	"sync"
+
+	"github.com/bytearena/bytearena/arenaserver/collision"
 	"github.com/bytearena/bytearena/arenaserver/state"
-	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/dhconnelly/rtreego"
 	uuid "github.com/satori/go.uuid"
 )
 
-func updateProjectiles(server *Server) (beforeStates map[uuid.UUID]movingObjectTemporaryState) {
+func handleCollisions(server *Server, agentMovements []*collision.MovementState, projectileMovements []*collision.MovementState) {
 
-	server.state.Projectilesmutex.Lock()
+	// TODO(jerome): check for collisions:
+	// * agent / agent
+	// * agent / obstacle
+	// * agent / projectile
+	// * projectile / projectile
+	// * projectile / obstacle
 
-	projectilesToRemove := make([]uuid.UUID, 0)
-	for _, projectile := range server.state.Projectiles {
-		if projectile.TTL <= 0 {
-			projectilesToRemove = append(projectilesToRemove, projectile.Id)
-		}
-	}
+	//begin := time.Now()
+	//show := spew.ConfigState{MaxDepth: 5, Indent: "    "}
 
-	for _, projectileToRemoveId := range projectilesToRemove {
-		// has been set to 0 during the previous tick; pruning now (0 TTL projectiles might still have a collision later in this method)
-		// Remove projectile from projectiles array
-		delete(server.state.Projectiles, projectileToRemoveId)
-	}
+	collisions := make([]collision.Collision, 0)
+	collisionsMutex := &sync.Mutex{}
 
-	before := make(map[uuid.UUID]movingObjectTemporaryState)
-	for _, projectile := range server.state.Projectiles {
-		before[projectile.Id] = movingObjectTemporaryState{
-			Position: projectile.Position,
-			Velocity: projectile.Velocity,
-			Radius:   projectile.Radius,
-		}
-	}
+	wait := &sync.WaitGroup{}
+	wait.Add(3)
 
-	for _, projectile := range server.state.Projectiles {
-		projectile.Update()
-	}
+	go func() {
 
-	server.state.Projectilesmutex.Unlock()
+		///////////////////////////////////////////////////////////////////////////
+		// Agents / static collisions
+		///////////////////////////////////////////////////////////////////////////
 
-	return before
-}
-
-func updateAgents(server *Server) (beforeStates map[uuid.UUID]movingObjectTemporaryState) {
-
-	before := make(map[uuid.UUID]movingObjectTemporaryState)
-
-	for _, agent := range server.agents {
-		id := agent.GetId()
-		agstate := server.state.GetAgentState(id)
-		before[id] = movingObjectTemporaryState{
-			Position: agstate.Position,
-			Velocity: agstate.Velocity,
-			Radius:   agstate.Radius,
-		}
-	}
-
-	for _, agent := range server.agents {
-		server.state.SetAgentState(
-			agent.GetId(),
-			server.state.GetAgentState(agent.GetId()).Update(),
+		colls := collision.ProcessMovingStaticCollisions(
+			agentMovements,
+			server.GetState().MapMemoization,
+			nil,
 		)
-	}
+		collisionsMutex.Lock()
+		collisions = append(collisions, colls...)
+		collisionsMutex.Unlock()
+		wait.Done()
+	}()
 
-	return before
-}
+	go func() {
 
-func processProjectileObstacleCollisions(server *Server, before map[uuid.UUID]movingObjectTemporaryState) {
-	for projectileid, beforestate := range before {
-		projectile := server.state.GetProjectile(projectileid)
+		///////////////////////////////////////////////////////////////////////////
+		// Projectiles / static collisions
+		///////////////////////////////////////////////////////////////////////////
 
-		afterstate := movingObjectTemporaryState{
-			Position: projectile.Position,
-			Velocity: projectile.Velocity,
-			Radius:   projectile.Radius,
+		colls := collision.ProcessMovingStaticCollisions(
+			projectileMovements,
+			server.GetState().MapMemoization,
+			[]int{state.GeometryObjectType.ObstacleGround},
+		)
+
+		collisionsMutex.Lock()
+		collisions = append(collisions, colls...)
+		collisionsMutex.Unlock()
+		wait.Done()
+	}()
+
+	go func() {
+
+		///////////////////////////////////////////////////////////////////////////
+		// Moving / Moving collisions
+		///////////////////////////////////////////////////////////////////////////
+
+		allMovements := make([]*collision.MovementState, 0)
+		allMovements = append(allMovements, agentMovements...)
+		allMovements = append(allMovements, projectileMovements...)
+
+		//rtMoving := server.state.MapMemoization.RtreeMoving
+		spatials := make([]rtreego.Spatial, len(allMovements))
+		for i, m := range allMovements {
+			spatials[i] = rtreego.Spatial(m)
 		}
+		rtMoving := rtreego.NewTree(2, 25, 50, spatials...) // TODO(jerome): better constants here ? what heuristic to use ?
 
-		processMovingObjectObstacleCollision(server, beforestate, afterstate, []int{state.GeometryObjectType.ObstacleGround}, func(collisionPoint vector.Vector2) {
+		colls := collision.ProcessMovingMovingCollisions(allMovements, rtMoving)
+		//show.Dump("RECEIVED HERE", colls)
+		collisionsMutex.Lock()
+		collisions = append(collisions, colls...)
+		collisionsMutex.Unlock()
+		wait.Done()
+	}()
 
-			projectile.Position = collisionPoint
-			projectile.Velocity = vector.MakeNullVector2()
-			server.state.SetProjectile(
-				projectileid,
-				projectile,
-			)
-		})
-	}
-}
+	wait.Wait()
 
-func processAgentObstacleCollisions(server *Server, before map[uuid.UUID]movingObjectTemporaryState) {
+	//utils.Debug("collision-detection", fmt.Sprintf("Took %f ms; found %d collisions", time.Now().Sub(begin).Seconds()*1000, len(collisions)))
 
-	for agentid, beforestate := range before {
-		agentstate := server.state.GetAgentState(agentid)
+	// Ordering collisions along time (causality order)
+	sort.Sort(collision.CollisionByTimeAsc(collisions))
 
-		afterstate := movingObjectTemporaryState{
-			Position: agentstate.Position,
-			Velocity: agentstate.Velocity,
-			Radius:   agentstate.Radius,
-		}
+	//show.Dump("RESOLVED sorted", collisions)
 
-		processMovingObjectObstacleCollision(server, beforestate, afterstate, nil, func(collisionPoint vector.Vector2) {
-			agentstate.Position = collisionPoint
-			agentstate.Velocity = vector.MakeVector2(0.01, 0.01)
-			server.state.SetAgentState(
-				agentid,
-				agentstate,
-			)
-		})
-	}
-}
+	collisionsThatHappened := make([]collision.Collision, 0)
+	hasAlreadyCollided := make(map[string]struct{})
 
-func arrayContainsGeotype(needle int, haystack []int) bool {
-	for _, v := range haystack {
-		if v == needle {
-			return true
-		}
-	}
-	return false
-}
+	for _, coll := range collisions {
+		hashkey := strconv.Itoa(coll.ColliderType) + ":" + coll.ColliderID
 
-func processMovingObjectObstacleCollision(server *Server, beforeState, afterState movingObjectTemporaryState, geotypesIgnored []int, collisionhandler func(collision vector.Vector2)) {
+		if coll.ColliderType == state.GeometryObjectType.Projectile {
+			projuuid, _ := uuid.FromString(coll.ColliderID)
+			proj := server.state.GetProjectile(projuuid)
 
-	bbBeforeA, bbBeforeB := GetAgentBoundingBox(beforeState.Position, beforeState.Radius)
-	bbAfterA, bbAfterB := GetAgentBoundingBox(afterState.Position, afterState.Radius)
-
-	var minX, minY *float64
-	var maxX, maxY *float64
-
-	for _, point := range []vector.Vector2{bbBeforeA, bbBeforeB, bbAfterA, bbAfterB} {
-
-		x, y := point.Get()
-
-		if minX == nil || x < *minX {
-			minX = &(x)
-		}
-
-		if minY == nil || y < *minY {
-			minY = &(y)
-		}
-
-		if maxX == nil || x > *maxX {
-			maxX = &(x)
-		}
-
-		if maxY == nil || y > *maxY {
-			maxY = &(y)
-		}
-	}
-
-	bbRegion, err := rtreego.NewRect([]float64{*minX, *minY}, []float64{*maxX - *minX, *maxY - *minY})
-	if err != nil {
-		utils.Debug("arena-server-updatestate", "Error in processMovingObjectObstacleCollision: vould not define bbRegion in obstacle rTree")
-		return
-	}
-
-	matchingObstacles := server.state.MapMemoization.RtreeObstacles.SearchIntersect(bbRegion)
-
-	if len(matchingObstacles) > 0 {
-
-		// Fine collision checking
-
-		// We determine the surface occupied by the object on it's path
-		// * Corresponds to a "pill", where the two ends are the bounding circles occupied by the agents (position before the move and position after the move)
-		// * And the surface in between is defined the lines between the left and the right tangents of these circles
-		//
-		// * We then have to test collisions with the end circle
-		//
-
-		centerEdge := vector.MakeSegment2(beforeState.Position, afterState.Position)
-		beforeDiameterSegment := centerEdge.OrthogonalToACentered().SetLengthFromCenter(beforeState.Radius * 2)
-		afterDiameterSegment := centerEdge.OrthogonalToBCentered().SetLengthFromCenter(afterState.Radius * 2)
-
-		beforeDiameterSegmentLeftPoint, beforeDiameterSegmentRightPoint := beforeDiameterSegment.Get()
-		afterDiameterSegmentLeftPoint, afterDiameterSegmentRightPoint := afterDiameterSegment.Get()
-
-		leftEdge := vector.MakeSegment2(beforeDiameterSegmentLeftPoint, afterDiameterSegmentLeftPoint)
-		rightEdge := vector.MakeSegment2(beforeDiameterSegmentRightPoint, afterDiameterSegmentRightPoint)
-
-		edgesToTest := []vector.Segment2{
-			leftEdge,
-			centerEdge,
-			rightEdge,
-		}
-
-		type Collision struct {
-			Point    vector.Vector2
-			Obstacle *state.GeometryObject
-		}
-
-		collisions := make([]Collision, 0)
-
-		for _, matchingObstacle := range matchingObstacles {
-			geoObject := matchingObstacle.(*state.GeometryObject)
-			if geotypesIgnored != nil && arrayContainsGeotype(geoObject.Type, geotypesIgnored) {
+			if proj.AgentEmitterId.String() == coll.CollideeID {
+				// Projectile cannot shoot emitter agent (happens when the projectile is right out of the agent cannon)
 				continue
 			}
-
-			circleCollisions := trigo.LineCircleIntersectionPoints(
-				geoObject.PointA,
-				geoObject.PointB,
-				afterState.Position,
-				afterState.Radius,
-			)
-
-			for _, circleCollision := range circleCollisions {
-				collisions = append(collisions, Collision{
-					Point:    circleCollision,
-					Obstacle: geoObject,
-				})
-			}
-
-			for _, edge := range edgesToTest {
-				point1, point2 := edge.Get()
-				if collisionPoint, intersects, colinear, _ := trigo.IntersectionWithLineSegment(
-					geoObject.PointA,
-					geoObject.PointB,
-					point1,
-					point2,
-				); intersects && !colinear {
-					collisions = append(collisions, Collision{
-						Point:    collisionPoint,
-						Obstacle: geoObject,
-					})
-				}
-			}
 		}
 
-		if len(collisions) > 0 {
-
-			//normal := vector.MakeNullVector2()
-			minDist := -1.0
-			for _, collision := range collisions {
-				thisDist := collision.Point.Sub(beforeState.Position).Mag()
-				if minDist < 0 || minDist > thisDist {
-					minDist = thisDist
-					//normal = collision.Obstacle.Normal
-				}
-			}
-
-			//normal = normal.Normalize()
-
-			backoffDistance := beforeState.Radius + 0.001
-			//nextPoint := centerEdge.Vector2().SetMag(maxDist).Sub(normal.SetMag(backoffDistance)).Add(beforeState.Position)
-			nextPoint := centerEdge.Vector2().SetMag(minDist - backoffDistance).Add(beforeState.Position)
-
-			if !isInsideGroundSurface(server, nextPoint) {
-
-				// backtracking position to last not outside
-				backsteps := 10
-				railRel := afterState.Position.Sub(beforeState.Position)
-				for k := 1; k <= backsteps; k++ {
-					nextPointRel := railRel.Scale(1 - float64(k)/float64(backsteps))
-					if isInsideGroundSurface(server, nextPointRel.Add(beforeState.Position)) {
-						collisionhandler(nextPointRel.Add(beforeState.Position))
-						return
-					}
-				}
-
-				collisionhandler(beforeState.Position)
-
-			} else {
-				if isInsideCollisionMesh(server, nextPoint) {
-					if isInsideCollisionMesh(server, beforeState.Position) {
-						// moving it outside the mesh !!
-						railRel := afterState.Position.Sub(beforeState.Position)
-						railRel = railRel.Sub(railRel.SetMag(0.1))
-						collisionhandler(railRel.Add(beforeState.Position))
-
-					} else {
-						// backtracking position to last not in obstacle
-						backsteps := 30
-						railRel := afterState.Position.Sub(beforeState.Position)
-						railRel = railRel.Sub(railRel.SetMag(0.05))
-						for k := 1; k <= backsteps; k++ {
-							nextPointRel := railRel.Scale(1 - float64(k)/float64(backsteps))
-							if !isInsideCollisionMesh(server, nextPointRel.Add(beforeState.Position)) {
-								collisionhandler(nextPointRel.Add(beforeState.Position))
-								return
-							}
-						}
-
-						collisionhandler(beforeState.Position)
-					}
-
-				} else {
-					collisionhandler(nextPoint)
-				}
-			}
-
-		}
-	}
-}
-
-func isInsideGroundSurface(server *Server, point vector.Vector2) bool {
-
-	px, py := point.Get()
-
-	bb, _ := rtreego.NewRect([]float64{px - 0.005, py - 0.005}, []float64{0.01, 0.01})
-	matchingTriangles := server.state.MapMemoization.RtreeSurface.SearchIntersect(bb)
-
-	if len(matchingTriangles) == 0 {
-		return false
-	}
-
-	// On vérifie que le point est bien dans un des triangles
-	for _, spatial := range matchingTriangles {
-		triangle := spatial.(*state.TriangleRtreeWrapper)
-		if trigo.PointIsInTriangle(point, triangle.Points[0], triangle.Points[1], triangle.Points[2]) {
-			return true
+		if _, ok := hasAlreadyCollided[hashkey]; ok {
+			// owner has already collided (or been collided) by another object earlier in the tick
+			// this collision cannot happen (that is, if we trust causality)
+			//log.Println("CAUSALITY BITCH !")
+			continue
+		} else {
+			hasAlreadyCollided[hashkey] = struct{}{}
+			collisionsThatHappened = append(collisionsThatHappened, coll)
 		}
 	}
 
-	return false
-}
+	//show.Dump(collisionsThatHappened)
+	//log.Println("EFFECTIVE COLLISIONS", len(collisionsThatHappened))
 
-func isInsideCollisionMesh(server *Server, point vector.Vector2) bool {
+	for _, coll := range collisionsThatHappened {
+		switch coll.ColliderType {
+		case state.GeometryObjectType.Projectile:
+			{
+				projectileuuid, _ := uuid.FromString(coll.ColliderID)
+				projectile := server.state.GetProjectile(projectileuuid)
 
-	px, py := point.Get()
+				//log.Println("PROJECTILE TOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOUCHED")
 
-	bb, _ := rtreego.NewRect([]float64{px - 0.005, py - 0.005}, []float64{0.01, 0.01})
-	matchingTriangles := server.state.MapMemoization.RtreeCollisions.SearchIntersect(bb)
+				// projectile.Position = collision.EnsureValidPositionAfterCollision(
+				// 	server.GetState().MapMemoization,
+				// 	coll,
+				// )
+				projectile.Position = coll.Point
+				projectile.Velocity = vector.MakeNullVector2()
+				projectile.TTL = 0
 
-	if len(matchingTriangles) == 0 {
-		return false
-	}
+				// if coll.otherType == state.GeometryObjectType.Projectile {
+				// 	utils.Debug("collision-detection", "BOOOOOOOOOOOOOOOOOOOOOOOOOOOOOM PROJECTILES")
+				// }
 
-	// On vérifie que le point est bien dans un des triangles
-	for _, spatial := range matchingTriangles {
-		triangle := spatial.(*state.TriangleRtreeWrapper)
-		if trigo.PointIsInTriangle(point, triangle.Points[0], triangle.Points[1], triangle.Points[2]) {
-			return true
+				server.state.SetProjectile(
+					projectileuuid,
+					projectile,
+				)
+			}
+		case state.GeometryObjectType.Agent:
+			{
+				agentuuid, _ := uuid.FromString(coll.ColliderID)
+
+				agentstate := server.GetState().GetAgentState(agentuuid)
+				agentstate.Position = collision.EnsureValidPositionAfterCollision(
+					server.GetState().MapMemoization,
+					coll,
+				)
+				//agentstate.Orientation++
+				agentstate.Velocity = vector.MakeNullVector2()
+
+				server.state.SetAgentState(
+					agentuuid,
+					agentstate,
+				)
+			}
 		}
 	}
-
-	return false
-}
-
-func GetAgentBoundingBox(center vector.Vector2, radius float64) (vector.Vector2, vector.Vector2) {
-	x, y := center.Get()
-	return vector.MakeVector2(x-radius, y-radius), vector.MakeVector2(x+radius, y+radius)
 }
