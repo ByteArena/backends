@@ -171,8 +171,6 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 }
 
 func (client *Client) Publish(channel, topic string, payload interface{}) error {
-	waitChannel := make(chan struct{})
-
 	channelName := channelAndTopicToString(channel, topic)
 
 	client.mu.Lock()
@@ -185,21 +183,14 @@ func (client *Client) Publish(channel, topic string, payload interface{}) error 
 
 	fmt.Println("publishing", channelName, string(jsonPayload))
 
-	go func() {
-		defer client.mu.Unlock()
+	res := client.conn.Publish(channelName, string(jsonPayload))
+	client.mu.Unlock()
 
-		res := client.conn.Publish(channelName, string(jsonPayload))
+	if res.Err() != nil {
+		return res.Err()
+	}
 
-		close(waitChannel)
-
-		if res.Err() != nil {
-			panic(err)
-		}
-
-		fmt.Println("publish message", channelName, string(jsonPayload))
-	}()
-
-	<-waitChannel
+	fmt.Println("publish message", channelName, string(jsonPayload))
 
 	return nil
 }
