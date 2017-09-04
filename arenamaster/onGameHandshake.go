@@ -9,7 +9,7 @@ func onGameHandshake(state *State, payload *types.MQPayload) {
 	id, ok := (*payload)["id"].(string)
 
 	if ok {
-		state.idleArenas[id] = ArenaState{
+		state.idleArenas[id] = ArenaServerState{
 			id: id,
 		}
 
