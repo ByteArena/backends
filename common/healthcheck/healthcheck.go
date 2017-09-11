@@ -28,7 +28,7 @@ type HealthCheckHttpResponse struct {
 
 type HealthCheckHandler func() error
 
-func (server *HealthCheckServer) /* @manglo:ignore */ ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (server *HealthCheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res := HealthCheckHttpResponse{
 		Checks:     make([]HealthChecks, 0),
 		StatusCode: 200,
