@@ -3,7 +3,6 @@ package mq
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/bytearena/bytearena/common/utils"
