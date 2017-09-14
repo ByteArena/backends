@@ -58,11 +58,11 @@ func (server *Server) startStateReporting(addr, db string) {
 			<-time.NewTicker(5 * time.Second).C
 
 			// Create a point and add to batch
-			tags := map[string]string{"cpu": "cpu-total"}
+			tags := map[string]string{"arenamaster": "arenamaster"}
 			fields := map[string]interface{}{
-				"idle":    server.state.idleArenas,
-				"running": server.state.runningArenas,
-				"pending": server.state.pendingArenas,
+				"arenamaster.state.idle":    server.state.idleArenas,
+				"arenamaster.state.running": server.state.runningArenas,
+				"arenamaster.state.pending": server.state.pendingArenas,
 			}
 
 			utils.Debug("arenamaster", "Reporting state")
