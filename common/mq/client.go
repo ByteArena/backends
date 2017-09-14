@@ -156,17 +156,19 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 	*/
 	go func() {
 		for {
-			fmt.Println("Polling", channelName, "...")
-
 			msg, err := pubsub.ReceiveMessage()
+
 			if err != nil {
 				panic(err)
 			}
 
 			var mqMessage BrokerMessage
+
 			err = json.Unmarshal([]byte(msg.Payload), &mqMessage)
+
 			if err != nil {
-				panic(err)
+				utils.Debug("mqclient", "Received invalid message; "+err.Error()+";"+msg.Payload)
+				continue
 			}
 
 			onmessage(mqMessage)
@@ -181,13 +183,18 @@ func (client *Client) Publish(channel, topic string, payload interface{}) error 
 
 	client.mu.Lock()
 
-	jsonPayload, err := json.Marshal(payload)
+	brokerAction := brokerAction{
+		Action:  "pub",
+		Channel: channel,
+		Topic:   topic,
+		Data:    payload,
+	}
+
+	jsonPayload, err := json.Marshal(brokerAction)
 
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("publishing", channelName, string(jsonPayload))
 
 	res := client.conn.Publish(channelName, string(jsonPayload))
 	client.mu.Unlock()
@@ -195,8 +202,6 @@ func (client *Client) Publish(channel, topic string, payload interface{}) error 
 	if res.Err() != nil {
 		return res.Err()
 	}
-
-	fmt.Println("publish message", channelName, string(jsonPayload))
 
 	return nil
 }
