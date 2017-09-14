@@ -1,5 +1,5 @@
-hash: 28a22cc55003d44e7aa37f0f5d4c0898f6989e8112d7d9728b9c48fa4a035e34
-updated: 2017-09-04T16:39:21.947496215+02:00
+hash: 6912a3393b848a7f67cec212dfe6056326778d22a3c86a71f4ec2dbe818346bb
+updated: 2017-09-14T19:19:05.705234467+02:00
 imports:
 - name: github.com/akavel/polyclip-go
   version: 2cfdb71461bde9115450eb65688337e3f8ee715e
@@ -51,7 +51,13 @@ imports:
 - name: github.com/docker/libtrust
   version: fa567046d9b14f6aa788882a950d69651d230b21
 - name: github.com/go-redis/redis
-  version: 74d5147d860804ea34633071d0c91a7f4b0b5c3a
+  version: fdafb11e5fa5d52d965e12073c8a58468c98ebe2
+  subpackages:
+  - internal
+  - internal/consistenthash
+  - internal/hashtag
+  - internal/pool
+  - internal/proto
 - name: github.com/gorilla/context
   version: 14f550f51af52180c2eefed15e5fd18d63c0a64a
 - name: github.com/gorilla/handlers
@@ -60,6 +66,12 @@ imports:
   version: bcd8bc72b08df0f70df986b97f95590779502d31
 - name: github.com/gorilla/websocket
   version: ea4d1f681babbce9545c9c5f3d5194a789c89f5b
+- name: github.com/influxdata/influxdb
+  version: 9d9001036d3585cf21925c13a57881bc6c8dcc7e
+  subpackages:
+  - client/v2
+  - models
+  - pkg/escape
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/Microsoft/go-winio
