@@ -2,11 +2,15 @@ package arenamaster
 
 import (
 	"encoding/json"
+	"os"
+	"time"
 
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
+
+	"github.com/influxdata/influxdb/client/v2"
 )
 
 type ListeningChanStruct chan struct{}
@@ -18,11 +22,62 @@ type Server struct {
 }
 
 func NewServer(mq *mq.Client, gql *graphql.Client) *Server {
-	return &Server{
+	s := &Server{
 		brokerclient:  mq,
 		graphqlclient: gql,
 		state:         NewState(),
 	}
+
+	if os.Getenv("INFLUXDB_ADDR") != "" {
+		s.startStateReporting(os.Getenv("INFLUXDB_ADDR"), os.Getenv("INFLUXDB_DB"))
+	}
+
+	return s
+}
+
+func (server *Server) startStateReporting(addr, db string) {
+	c, err := client.NewHTTPClient(client.HTTPConfig{
+		Addr: addr,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
+		Database:  db,
+		Precision: "s",
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	go func() {
+		for {
+			<-time.NewTicker(5 * time.Second).C
+
+			// Create a point and add to batch
+			tags := map[string]string{"cpu": "cpu-total"}
+			fields := map[string]interface{}{
+				"idle":    server.state.idleArenas,
+				"running": server.state.runningArenas,
+				"pending": server.state.pendingArenas,
+			}
+
+			utils.Debug("arenamaster", "Reporting state")
+
+			pt, err := client.NewPoint("cpu_usage", tags, fields, time.Now())
+
+			if err != nil {
+				panic(err.Error())
+			}
+
+			bp.AddPoint(pt)
+
+			c.Write(bp)
+		}
+	}()
 }
 
 func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
