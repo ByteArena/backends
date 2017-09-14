@@ -1,5 +1,5 @@
-hash: 399cdbf24c334772dcad8c300644ca7a911326bcbe379f84b7e10ecffb171711
-updated: 2017-09-03T14:09:39.428915481+02:00
+hash: 28a22cc55003d44e7aa37f0f5d4c0898f6989e8112d7d9728b9c48fa4a035e34
+updated: 2017-09-04T16:39:21.947496215+02:00
 imports:
 - name: github.com/akavel/polyclip-go
   version: 2cfdb71461bde9115450eb65688337e3f8ee715e
@@ -50,6 +50,8 @@ imports:
   version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
 - name: github.com/docker/libtrust
   version: fa567046d9b14f6aa788882a950d69651d230b21
+- name: github.com/go-redis/redis
+  version: 74d5147d860804ea34633071d0c91a7f4b0b5c3a
 - name: github.com/gorilla/context
   version: 14f550f51af52180c2eefed15e5fd18d63c0a64a
 - name: github.com/gorilla/handlers
