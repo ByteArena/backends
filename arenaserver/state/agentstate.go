@@ -3,8 +3,10 @@ package state
 import (
 	"math"
 
+	b2common "github.com/bytearena/box2d/box2d/common"
+	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
+
 	"github.com/bytearena/bytearena/arenaserver/projectile"
-	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/number"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
@@ -38,11 +40,8 @@ type AgentState struct {
 	agentId   uuid.UUID
 	agentName string
 
-	Radius             float64
-	Mass               float64
-	Position           vector.Vector2
-	Velocity           vector.Vector2
-	Orientation        float64 // heading angle in radian (degree ?) relative to arena north
+	PhysicalBody *b2dynamics.B2Body // replaces Radius, Mass, Position, Velocity, Orientation
+
 	MaxSteeringForce   float64 // maximum magnitude the steering force applied to current velocity
 	MaxSpeed           float64 // maximum magnitude of the agent velocity
 	MaxAngularVelocity float64
@@ -71,27 +70,22 @@ type AgentState struct {
 	DebugMsg    string // Number of ticks since last shot
 }
 
-func MakeAgentState(agentId uuid.UUID, agentName string, start mapcontainer.MapStart) AgentState {
-	initialx := start.Point.X
-	initialy := start.Point.Y
-
-	r := 0.5 // agent diameter=1.0
+func MakeAgentState(agentId uuid.UUID, agentName string, physicalbody *b2dynamics.B2Body) AgentState {
 
 	return AgentState{
 		agentId:   agentId,
 		agentName: agentName,
 
-		Position:           vector.MakeVector2(initialx, initialy),
-		Velocity:           vector.MakeNullVector2(),
+		PhysicalBody: physicalbody,
+
 		MaxSpeed:           0.75,
 		MaxSteeringForce:   0.12,
 		DragForce:          0.015,
 		MaxAngularVelocity: number.DegreeToRadian(9), // en radians/tick; Pi = 180°
-		Radius:             r,
-		Mass:               math.Pi * r * r,
-		Tag:                "agent",
-		VisionRadius:       100,
-		VisionAngle:        number.DegreeToRadian(180),
+
+		Tag:          "agent",
+		VisionRadius: 100,
+		VisionAngle:  number.DegreeToRadian(180),
 
 		MaxLife: 1000, // Const
 		Life:    1000, // Current life level
@@ -121,24 +115,17 @@ func (state AgentState) SetName(name string) AgentState {
 }
 
 func (state AgentState) Update() AgentState {
-	//newPosition := state.Position.Add(state.Velocity)
-	//x, y := newPosition.Get()
-	// if x < 0 || y < 0 || x > 1000 || y > 1000 {
-	// 	// nothing
-	// } else {
-	// 	state.Position = state.Position.Add(state.Velocity)
-	// }
 
 	//
 	// Apply drag to velocity
 	//
-	if state.DragForce > state.Velocity.Mag() {
-		state.Velocity = vector.MakeNullVector2()
-	} else {
-		state.Velocity = state.Velocity.Sub(state.Velocity.Clone().SetMag(state.DragForce))
-		state.Position = state.Position.Add(state.Velocity)
-		state.Orientation = state.Velocity.Angle()
-	}
+	// if state.DragForce > state.GetVelocity().Mag() {
+	// 	state.SetVelocity(vector.MakeNullVector2())
+	// } else {
+	// 	state.SetVelocity(state.GetVelocity().Sub(state.GetVelocity().Clone().SetMag(state.DragForce)))
+	// 	state.SetPosition(state.GetPosition().Add(state.GetVelocity()))
+	// 	state.SetOrientation(state.GetVelocity().Angle())
+	// }
 
 	//
 	// Levels replenishment
@@ -167,7 +154,7 @@ func (state AgentState) Update() AgentState {
 func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
 	//return state
 
-	prevmag := state.Velocity.Mag()
+	prevmag := state.GetVelocity().Mag()
 	diff := steering.Mag() - prevmag
 	if math.Abs(diff) > state.MaxSteeringForce {
 		if diff > 0 {
@@ -176,8 +163,8 @@ func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
 			steering = steering.SetMag(prevmag - state.MaxSteeringForce)
 		}
 	}
-	abssteering := localAngleToAbsoluteAngleVec(state.Orientation, steering, &state.MaxAngularVelocity)
-	state.Velocity = abssteering.Limit(state.MaxSpeed)
+	abssteering := localAngleToAbsoluteAngleVec(state.GetOrientation(), steering, &state.MaxAngularVelocity)
+	state.SetVelocity(abssteering.Limit(state.MaxSpeed))
 
 	return state
 }
@@ -206,10 +193,10 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 	projectile.JustFired = true
 
 	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
-	absaiming := localAngleToAbsoluteAngleVec(state.Orientation, aiming, nil) // TODO: replace nil here by an actual angle constraint
-	projectile.Velocity = absaiming.SetMag(projectile.Speed)                  // adding the agent position to "absolutize" the target vector
+	absaiming := localAngleToAbsoluteAngleVec(state.GetOrientation(), aiming, nil) // TODO: replace nil here by an actual angle constraint
+	projectile.Velocity = absaiming.SetMag(projectile.Speed)                       // adding the agent position to "absolutize" the target vector
 
-	projectile.Position = state.Position
+	projectile.Position = state.GetPosition()
 
 	serverstate.SetProjectile(projectile.Id, projectile)
 
@@ -246,4 +233,39 @@ func (state AgentState) validate() bool {
 
 func (state AgentState) validateTransition(fromstate AgentState) bool {
 	return true
+}
+
+func (state *AgentState) SetVelocity(velocity vector.Vector2) {
+	state.PhysicalBody.SetLinearVelocity(
+		b2common.MakeB2Vec2(velocity.GetX(), velocity.GetY()),
+	)
+}
+
+func (state AgentState) GetVelocity() vector.Vector2 {
+	v := state.PhysicalBody.GetLinearVelocity()
+	return vector.MakeVector2(v.X, v.Y)
+}
+
+func (state *AgentState) SetPosition(position vector.Vector2) {
+	b2p := b2common.MakeB2Vec2(position.GetX(), position.GetY())
+	state.PhysicalBody.SetTransform(b2p, state.PhysicalBody.GetAngle())
+}
+
+func (state AgentState) GetPosition() vector.Vector2 {
+	v := state.PhysicalBody.GetPosition()
+	return vector.MakeVector2(v.X, v.Y)
+}
+
+func (state *AgentState) SetOrientation(angle float64) {
+	// Could also be implemented using torque; see http://www.iforce2d.net/b2dtut/rotate-to-angle
+	state.PhysicalBody.SetTransform(state.PhysicalBody.GetPosition(), angle)
+}
+
+func (state AgentState) GetOrientation() float64 {
+	return state.PhysicalBody.GetAngle()
+}
+
+func (state AgentState) GetRadius() float64 {
+	// FIXME(jerome): here we suppose that the agent is always a circle
+	return state.PhysicalBody.GetFixtureList().GetShape().GetRadius()
 }

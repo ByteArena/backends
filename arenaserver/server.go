@@ -9,6 +9,10 @@ import (
 	"sync"
 	"time"
 
+	b2collision "github.com/bytearena/box2d/box2d/collision"
+	b2common "github.com/bytearena/box2d/box2d/common"
+	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
+
 	"github.com/bytearena/bytearena/arenaserver/collision"
 	"github.com/bytearena/bytearena/arenaserver/projectile"
 
@@ -56,6 +60,8 @@ type Server struct {
 
 	tearDownCallbacks      []types.TearDownCallback
 	tearDownCallbacksMutex *sync.Mutex
+
+	physicalWorld *b2dynamics.B2World
 }
 
 func NewServer(host string, port int, orch container.ContainerOrchestrator, game GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
@@ -92,6 +98,8 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, game
 
 		tearDownCallbacks:      make([]types.TearDownCallback, 0),
 		tearDownCallbacksMutex: &sync.Mutex{},
+
+		physicalWorld: buildPhysicalWorld(game.GetMapContainer()),
 	}
 
 	return s
@@ -123,8 +131,30 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 
 	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
 
+	///////////////////////////////////////////////////////////////////////////
+	// Building the physical body of the agent
+	///////////////////////////////////////////////////////////////////////////
+
+	bodydef := dynamics.MakeB2BodyDef()
+	bodydef.Position.Set(agentSpawningPos.Point.X, agentSpawningPos.Point.Y)
+	bodydef.Type = b2dynamics.B2BodyType.B2_dynamicBody
+	bodydef.AllowSleep = false
+
+	body := world.CreateBody(&bodydef)
+
+	shape := b2collision.MakeB2CircleShape()
+	shape.SetRadius(0.5)
+
+	fixturedef := b2dynamics.MakeB2FixtureDef()
+	fixturedef.Shape = &shape
+	fixturedef.Density = 20.0
+	body.CreateFixture(&fixturedef)
+
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
 	agent := agent.MakeNetAgentImp()
-	agentstate := state.MakeAgentState(agent.GetId(), agentname, agentSpawningPos)
+	agentstate := state.MakeAgentState(agent.GetId(), agentname, body)
 
 	server.setAgent(agent)
 	server.state.SetAgentState(agent.GetId(), agentstate)
@@ -535,29 +565,37 @@ func (server *Server) update() {
 
 	server.debugNbUpdates++
 
-	///////////////////////////////////////////////////////////////////////////
-	// Updates physiques, liées au temps qui passe
-	// Avant de récuperer les mutations de chaque tour, et même avant de constituer la perception de chaque agent
-	///////////////////////////////////////////////////////////////////////////
+	// ///////////////////////////////////////////////////////////////////////////
+	// // Updates physiques, liées au temps qui passe
+	// // Avant de récuperer les mutations de chaque tour, et même avant de constituer la perception de chaque agent
+	// ///////////////////////////////////////////////////////////////////////////
 
-	//
-	// Updating projectiles
-	//
+	// //
+	// // Updating projectiles
+	// //
 
-	projectilesMovements := updateProjectiles(server)
+	// projectilesMovements := updateProjectiles(server)
 
-	//
-	// Updating agents
-	//
+	// //
+	// // Updating agents
+	// //
 
-	// Keeping position and velocity before update (useful for obstacle detection)
-	agentsMovements := updateAgents(server)
+	// // Keeping position and velocity before update (useful for obstacle detection)
+	// agentsMovements := updateAgents(server)
 
-	///////////////////////////////////////////////////////////////////////////
-	// Collision
-	///////////////////////////////////////////////////////////////////////////
+	// ///////////////////////////////////////////////////////////////////////////
+	// // Collision
+	// ///////////////////////////////////////////////////////////////////////////
 
-	handleCollisions(server, agentsMovements, projectilesMovements)
+	// handleCollisions(server, agentsMovements, projectilesMovements)
+
+	timeStep := 1.0 / server.GetTicksPerSecond()
+
+	server.physicalWorld.Step(
+		timeStep,
+		8, // velocityIterations; higher improves stability; default 8 in testbed
+		3, // positionIterations; higher improve overlap resolution; default 3 in testbed
+	)
 }
 
 func updateProjectiles(server *Server) []*collision.MovementState /*(beforeStates map[uuid.UUID]collision.CollisionMovingObjectState)*/ {
@@ -677,4 +715,34 @@ func updateAgents(server *Server) []*collision.MovementState {
 	}
 
 	return movements
+}
+
+func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *b2dynamics.B2World {
+	// Define the gravity vector.
+	gravity := b2common.MakeB2Vec2(0.0, 0.0) // 0: the simulation is seen from the top
+
+	// Construct a world object, which will hold and simulate the rigid bodies.
+	world := b2dynamics.MakeB2World(gravity)
+
+	// Static obstacles formed by the grounds
+	for _, ground := range arenaMap.Data.Grounds {
+		for _, polygon := range ground.Outline {
+
+			bodydef := b2dynamics.MakeB2BodyDef()
+			bodydef.Type = b2dynamics.B2BodyType.B2_staticBody
+
+			body := world.CreateBody(&bodydef)
+			vertices := make([]b2common.B2Vec2, len(polygon.Points)) // a polygon has as many edges as points
+
+			for i := 0; i < len(polygon.Points)-1; i++ {
+				vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
+			}
+
+			shape := b2collision.MakeB2ChainShape()
+			shape.CreateLoop(vertices, len(vertices))
+			body.CreateFixtureFromShapeAndDensity(&shape, 0.0)
+		}
+	}
+
+	return &world
 }

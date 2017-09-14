@@ -10,10 +10,10 @@ func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *st
 	p := state.Perception{}
 	agentstate := serverstate.GetAgentState(agent.GetId())
 
-	orientation := agentstate.Orientation
+	orientation := agentstate.GetOrientation()
 
-	p.Internal.Velocity = agentstate.Velocity.Clone().SetAngle(agentstate.Velocity.Angle() - orientation)
-	p.Internal.Proprioception = agentstate.Radius
+	p.Internal.Velocity = agentstate.GetVelocity().Clone().SetAngle(agentstate.GetVelocity().Angle() - orientation)
+	p.Internal.Proprioception = agentstate.GetRadius()
 	p.Internal.Magnetoreception = orientation // l'angle d'orientation de l'agent par rapport au "Nord" de l'arène
 
 	p.Specs.MaxSpeed = agentstate.MaxSpeed

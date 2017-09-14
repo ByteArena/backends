@@ -14,12 +14,8 @@ import (
 
 func handleCollisions(server *Server, agentMovements []*collision.MovementState, projectileMovements []*collision.MovementState) {
 
-	// TODO(jerome): check for collisions:
-	// * agent / agent
-	// * agent / obstacle
-	// * agent / projectile
-	// * projectile / projectile
-	// * projectile / obstacle
+	handleCollisionsBox2D(server, agentMovements, projectileMovements)
+	return
 
 	//begin := time.Now()
 	//show := spew.ConfigState{MaxDepth: 5, Indent: "    "}

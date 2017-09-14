@@ -28,7 +28,7 @@ type ServerState struct {
 	DebugPoints      []vector.Vector2
 	debugPointsMutex *sync.Mutex
 
-	MapMemoization *MapMemoization
+	//MapMemoization *MapMemoization
 }
 
 /* ***************************************************************************/
@@ -51,11 +51,11 @@ func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 		DebugPoints:      make([]vector.Vector2, 0),
 		debugPointsMutex: &sync.Mutex{},
 
-		MapMemoization: InitializeMapMemoization(arenaMap),
+		//MapMemoization: initializeMapMemoization(arenaMap),
 	}
 }
 
-func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoization {
+func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoization {
 
 	///////////////////////////////////////////////////////////////////////////
 	// Obstacles
@@ -189,18 +189,11 @@ func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 		}
 	}
 
-	///////////////////////////////////////////////////////////////////////////
-	// Moving Rtree
-	///////////////////////////////////////////////////////////////////////////
-
-	rtMoving := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
-
 	return &MapMemoization{
 		Obstacles:       obstacles,
 		RtreeObstacles:  rtObstacles,
 		RtreeSurface:    rtSurface,
 		RtreeCollisions: rtCollisions,
-		RtreeMoving:     rtMoving,
 	}
 }
 
@@ -297,7 +290,7 @@ func (serverstate *ServerState) ProcessMutations() {
 						vecs := make([]vector.Vector2, len(rawvecs))
 						for i, rawvec := range rawvecs {
 							v := vector.MakeVector2(rawvec[0], rawvec[1])
-							vecs[i] = v.SetAngle(v.Angle() + agentstate.Orientation).Add(agentstate.Position)
+							vecs[i] = v.SetAngle(v.Angle() + agentstate.GetOrientation()).Add(agentstate.GetPosition())
 						}
 
 						serverstate.debugPointsMutex.Lock()
