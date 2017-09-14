@@ -67,7 +67,7 @@ func (server *Server) startStateReporting(addr, db string) {
 
 			utils.Debug("arenamaster", "Reporting state")
 
-			pt, err := client.NewPoint("cpu_usage", tags, fields, time.Now())
+			pt, err := client.NewPoint("arenamaster", tags, fields, time.Now())
 
 			if err != nil {
 				panic(err.Error())
