@@ -7,3 +7,9 @@
 ```sh
 GITHUB_API_TOKEN=TOKEN ./scripts/make-release-trainer.sh RELEASE
 ```
+
+### mq-cli release
+
+```sh
+./scripts/make-mq-cli.sh
+```
