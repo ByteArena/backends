@@ -163,7 +163,13 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 				panic(err)
 			}
 
-			fmt.Println("message", msg.Channel, msg.Payload)
+			var mqMessage BrokerMessage
+			err = json.Unmarshal([]byte(msg.Payload), &mqMessage)
+			if err != nil {
+				panic(err)
+			}
+
+			onmessage(mqMessage)
 		}
 	}()
 
