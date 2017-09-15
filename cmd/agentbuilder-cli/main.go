@@ -155,6 +155,14 @@ func assertAgentCodeIsLegit(absBuildDir string) {
 	}
 }
 
+func orString(value, defaultValue string) string {
+	if value == "" {
+		return defaultValue
+	}
+
+	return value
+}
+
 func buildImage(absBuildDir string, name string) {
 
 	assertAgentCodeIsLegit(absBuildDir)
@@ -164,11 +172,11 @@ func buildImage(absBuildDir string, name string) {
 		msgOut("Error: docker command not found in path")
 	}
 
-	dockerBuildMemoryLimit := os.Getenv("DOCKER_BUILD_MEMORY_LIMIT")
-	dockerBuildSwapLimit := os.Getenv("DOCKER_BUILD_SWAP_LIMIT")
-	dockerBuildNetwork := os.Getenv("DOCKER_BUILD_NETWORK")
-	dockerBuildNoCache := os.Getenv("DOCKER_BUILD_NO_CACHE")
-	dockerBuildCpuPeriod := os.Getenv("DOCKER_BUILD_CPU_PERIOD")
+	dockerBuildMemoryLimit := orString(os.Getenv("DOCKER_BUILD_MEMORY_LIMIT"), "100m")
+	dockerBuildSwapLimit := orString(os.Getenv("DOCKER_BUILD_SWAP_LIMIT"), "100m")
+	dockerBuildNetwork := orString(os.Getenv("DOCKER_BUILD_NETWORK"), "bridge")
+	dockerBuildNoCache := orString(os.Getenv("DOCKER_BUILD_NO_CACHE"), "true")
+	dockerBuildCpuPeriod := orString(os.Getenv("DOCKER_BUILD_CPU_PERIOD"), "5000")
 
 	dockargs := []string{
 		"build",
