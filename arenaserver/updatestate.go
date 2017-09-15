@@ -1,21 +1,7 @@
 package arenaserver
 
-import (
-	"sort"
-	"strconv"
-	"sync"
-
-	"github.com/bytearena/bytearena/arenaserver/collision"
-	"github.com/bytearena/bytearena/arenaserver/state"
-	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/dhconnelly/rtreego"
-	uuid "github.com/satori/go.uuid"
-)
-
+/*
 func handleCollisions(server *Server, agentMovements []*collision.MovementState, projectileMovements []*collision.MovementState) {
-
-	handleCollisionsBox2D(server, agentMovements, projectileMovements)
-	return
 
 	//begin := time.Now()
 	//show := spew.ConfigState{MaxDepth: 5, Indent: "    "}
@@ -171,3 +157,4 @@ func handleCollisions(server *Server, agentMovements []*collision.MovementState,
 		}
 	}
 }
+*/

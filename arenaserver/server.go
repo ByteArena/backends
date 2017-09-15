@@ -13,9 +13,6 @@ import (
 	b2common "github.com/bytearena/box2d/box2d/common"
 	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
 
-	"github.com/bytearena/bytearena/arenaserver/collision"
-	"github.com/bytearena/bytearena/arenaserver/projectile"
-
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/comm"
@@ -135,15 +132,16 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 	// Building the physical body of the agent
 	///////////////////////////////////////////////////////////////////////////
 
-	bodydef := dynamics.MakeB2BodyDef()
+	bodydef := b2dynamics.MakeB2BodyDef()
 	bodydef.Position.Set(agentSpawningPos.Point.X, agentSpawningPos.Point.Y)
 	bodydef.Type = b2dynamics.B2BodyType.B2_dynamicBody
 	bodydef.AllowSleep = false
+	bodydef.FixedRotation = true
 
-	body := world.CreateBody(&bodydef)
+	body := server.physicalWorld.CreateBody(&bodydef)
 
 	shape := b2collision.MakeB2CircleShape()
-	shape.SetRadius(0.5)
+	shape.SetRadius(0.3)
 
 	fixturedef := b2dynamics.MakeB2FixtureDef()
 	fixturedef.Shape = &shape
@@ -589,7 +587,17 @@ func (server *Server) update() {
 
 	// handleCollisions(server, agentsMovements, projectilesMovements)
 
-	timeStep := 1.0 / server.GetTicksPerSecond()
+	for _, agent := range server.agents {
+		id := agent.GetId()
+		agentstate := server.state.GetAgentState(id)
+		agentstate = agentstate.Update()
+		server.state.SetAgentState(
+			id,
+			agentstate,
+		)
+	}
+
+	timeStep := 1.0 / float64(server.GetTicksPerSecond())
 
 	server.physicalWorld.Step(
 		timeStep,
@@ -598,7 +606,56 @@ func (server *Server) update() {
 	)
 }
 
-func updateProjectiles(server *Server) []*collision.MovementState /*(beforeStates map[uuid.UUID]collision.CollisionMovingObjectState)*/ {
+func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *b2dynamics.B2World {
+	// Define the gravity vector.
+	gravity := b2common.MakeB2Vec2(0.0, 0.0) // 0: the simulation is seen from the top
+
+	// Construct a world object, which will hold and simulate the rigid bodies.
+	world := b2dynamics.MakeB2World(gravity)
+
+	// Static obstacles formed by the grounds
+	for _, ground := range arenaMap.Data.Grounds {
+		for _, polygon := range ground.Outline {
+
+			bodydef := b2dynamics.MakeB2BodyDef()
+			bodydef.Type = b2dynamics.B2BodyType.B2_staticBody
+
+			body := world.CreateBody(&bodydef)
+			vertices := make([]b2common.B2Vec2, len(polygon.Points)-1) // -1: avoid last point because the last point of the loop should not be repeated
+
+			for i := 0; i < len(polygon.Points)-1; i++ {
+				vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
+			}
+
+			shape := b2collision.MakeB2ChainShape()
+			shape.CreateLoop(vertices, len(vertices))
+			body.CreateFixtureFromShapeAndDensity(&shape, 0.0)
+		}
+	}
+
+	// Explicit obstacles
+	for _, obstacle := range arenaMap.Data.Obstacles {
+		polygon := obstacle.Polygon
+		bodydef := b2dynamics.MakeB2BodyDef()
+		bodydef.Type = b2dynamics.B2BodyType.B2_staticBody
+
+		body := world.CreateBody(&bodydef)
+		vertices := make([]b2common.B2Vec2, len(polygon.Points)-1) // a polygon has as many edges as points
+
+		for i := 0; i < len(polygon.Points)-1; i++ {
+			vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
+		}
+
+		shape := b2collision.MakeB2ChainShape()
+		shape.CreateLoop(vertices, len(vertices))
+		body.CreateFixtureFromShapeAndDensity(&shape, 0.0)
+	}
+
+	return &world
+}
+
+/*
+func updateProjectiles(server *Server) []*collision.MovementState {
 
 	movements := make([]*collision.MovementState, 0)
 
@@ -716,33 +773,4 @@ func updateAgents(server *Server) []*collision.MovementState {
 
 	return movements
 }
-
-func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *b2dynamics.B2World {
-	// Define the gravity vector.
-	gravity := b2common.MakeB2Vec2(0.0, 0.0) // 0: the simulation is seen from the top
-
-	// Construct a world object, which will hold and simulate the rigid bodies.
-	world := b2dynamics.MakeB2World(gravity)
-
-	// Static obstacles formed by the grounds
-	for _, ground := range arenaMap.Data.Grounds {
-		for _, polygon := range ground.Outline {
-
-			bodydef := b2dynamics.MakeB2BodyDef()
-			bodydef.Type = b2dynamics.B2BodyType.B2_staticBody
-
-			body := world.CreateBody(&bodydef)
-			vertices := make([]b2common.B2Vec2, len(polygon.Points)) // a polygon has as many edges as points
-
-			for i := 0; i < len(polygon.Points)-1; i++ {
-				vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
-			}
-
-			shape := b2collision.MakeB2ChainShape()
-			shape.CreateLoop(vertices, len(vertices))
-			body.CreateFixtureFromShapeAndDensity(&shape, 0.0)
-		}
-	}
-
-	return &world
-}
+*/

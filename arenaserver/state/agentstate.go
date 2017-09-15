@@ -78,8 +78,8 @@ func MakeAgentState(agentId uuid.UUID, agentName string, physicalbody *b2dynamic
 
 		PhysicalBody: physicalbody,
 
-		MaxSpeed:           0.75,
-		MaxSteeringForce:   0.12,
+		MaxSpeed:           9,
+		MaxSteeringForce:   3,
 		DragForce:          0.015,
 		MaxAngularVelocity: number.DegreeToRadian(9), // en radians/tick; Pi = 180°
 
@@ -119,13 +119,13 @@ func (state AgentState) Update() AgentState {
 	//
 	// Apply drag to velocity
 	//
-	// if state.DragForce > state.GetVelocity().Mag() {
-	// 	state.SetVelocity(vector.MakeNullVector2())
-	// } else {
-	// 	state.SetVelocity(state.GetVelocity().Sub(state.GetVelocity().Clone().SetMag(state.DragForce)))
-	// 	state.SetPosition(state.GetPosition().Add(state.GetVelocity()))
-	// 	state.SetOrientation(state.GetVelocity().Angle())
-	// }
+	if state.DragForce > state.GetVelocity().Mag() {
+		state.SetVelocity(vector.MakeNullVector2())
+	} else {
+		state.SetVelocity(state.GetVelocity().Sub(state.GetVelocity().Clone().SetMag(state.DragForce)))
+		//state.SetPosition(state.GetPosition().Add(state.GetVelocity()))
+		state.SetOrientation(state.GetVelocity().Angle())
+	}
 
 	//
 	// Levels replenishment
@@ -166,10 +166,13 @@ func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
 	abssteering := localAngleToAbsoluteAngleVec(state.GetOrientation(), steering, &state.MaxAngularVelocity)
 	state.SetVelocity(abssteering.Limit(state.MaxSpeed))
 
+	//spew.Dump(state.GetVelocity())
+
 	return state
 }
 
 func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Vector2) AgentState {
+	return state
 
 	//
 	// Levels consumption
