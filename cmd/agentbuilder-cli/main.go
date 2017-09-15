@@ -103,7 +103,7 @@ func buildAndDeploy(cloneurl, registryHost, imageName, deploymentid string) erro
 
 	dir := cloneRepo(cloneurl, fmt.Sprintf("%s-%d", imageName, time.Now().UnixNano()))
 
-	buildImage(dir, imageName)
+	buildImage(dir, imageName, registryHost)
 
 	deployImage(imageName, deploymentid, registryHost)
 
@@ -112,11 +112,12 @@ func buildAndDeploy(cloneurl, registryHost, imageName, deploymentid string) erro
 	return nil
 }
 
-func assertAgentCodeIsLegit(absBuildDir string) {
+func assertAgentCodeIsLegit(absBuildDir, registryHost string) {
 
 	maxDockerfileSizeInByte := 8192
 	agentImageNamespace := "bytearena/agent/"
 	systemImageNamespace := "bytearena/"
+	registryImageNamespace := registryHost
 
 	dockerfilePath := absBuildDir + "/Dockerfile"
 
@@ -163,6 +164,10 @@ func assertAgentCodeIsLegit(absBuildDir string) {
 		if strings.HasPrefix(from, systemImageNamespace) {
 			msgOut("Error: Your agent Dockerfile cannot extend images from the namespace " + systemImageNamespace)
 		}
+
+		if strings.HasPrefix(from, registryImageNamespace) {
+			msgOut("Error: Your agent Dockerfile cannot extend images from the namespace " + registryImageNamespace)
+		}
 	}
 
 	forbiddenInstructions, err := agentbuilder.DockerfileFindForbiddenInstructions(bytes.NewReader(dockerfileContent))
@@ -188,9 +193,9 @@ func orString(value, defaultValue string) string {
 	return value
 }
 
-func buildImage(absBuildDir string, name string) {
+func buildImage(absBuildDir, name, registryHost string) {
 
-	assertAgentCodeIsLegit(absBuildDir)
+	assertAgentCodeIsLegit(absBuildDir, registryHost)
 
 	dockerbin, err := exec.LookPath("docker")
 	if err != nil {
