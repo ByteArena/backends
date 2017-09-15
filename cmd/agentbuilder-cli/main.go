@@ -90,8 +90,6 @@ func pingRegistry(host string) error {
 
 func buildAndDeploy(cloneurl, registryHost, imageName string) error {
 
-	//utils.Debug("agentbuilder-cli", "build and deploy image: "+imageName)
-
 	welcomeBanner()
 
 	dir := cloneRepo(cloneurl, fmt.Sprintf("%s-%d", imageName, time.Now().UnixNano()))
@@ -108,9 +106,8 @@ func buildAndDeploy(cloneurl, registryHost, imageName string) error {
 func assertAgentCodeIsLegit(absBuildDir string) {
 
 	maxDockerfileSizeInByte := 8192
-	agentImageNamespace := "bytearena-agent/"
-
-	//utils.Debug("agentbuilder-cli", "Building agent")
+	agentImageNamespace := "bytearena/agent/"
+	systemImageNamespace := "bytearena/"
 
 	dockerfilePath := absBuildDir + "/Dockerfile"
 
@@ -151,6 +148,10 @@ func assertAgentCodeIsLegit(absBuildDir string) {
 	for _, from := range froms {
 		if strings.HasPrefix(from, agentImageNamespace) {
 			msgOut("Error: Your agent Dockerfile cannot extend images from the namespace " + agentImageNamespace)
+		}
+
+		if strings.HasPrefix(from, systemImageNamespace) {
+			msgOut("Error: Your agent Dockerfile cannot extend images from the namespace " + systemImageNamespace)
 		}
 	}
 }
@@ -212,7 +213,6 @@ func buildImage(absBuildDir string, name string) {
 }
 
 func deployImage(name string, imageVersion string, registryhost string) {
-	//utils.Debug("agentbuilder-cli", "Deploying to docker registry")
 
 	dockerbin, err := exec.LookPath("docker")
 	if err != nil {
@@ -228,9 +228,6 @@ func deployImage(name string, imageVersion string, registryhost string) {
 		imageurl,
 	)
 	cmd.Env = nil
-	// cmd.Stdin = os.Stdin
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
 		msgOut("Error: could not tag image")
@@ -246,9 +243,6 @@ func deployImage(name string, imageVersion string, registryhost string) {
 		imageurl,
 	)
 	cmd2.Env = nil
-	// cmd2.Stdin = os.Stdin
-	// cmd2.Stdout = os.Stdout
-	// cmd2.Stderr = os.Stderr
 
 	if err := cmd2.Start(); err != nil {
 		msgOut("Error: could not push image to registry")
@@ -268,7 +262,6 @@ func cloneRepo(url string, hash string) string {
 
 	dir := "/tmp/" + hash
 	os.RemoveAll(dir)
-	//utils.Debug("agentbuilder-cli", "Cloning "+url+" into "+dir)
 
 	cmd := exec.Command(
 		gitbin,

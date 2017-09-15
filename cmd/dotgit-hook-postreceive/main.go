@@ -30,6 +30,8 @@ mutation($id: String!, $agentDeployment: AgentDeploymentInputUpdate!) {
 }
 `
 
+const imageprefix = "bytearena/agent/"
+
 func privateMsg(msg string) {
 	log.Println(msg)
 }
@@ -196,7 +198,7 @@ func build(message, repourl, imagename string) error {
 	cmd2 := exec.Command(
 		builderbin,
 		"--repourl", repourl,
-		"--imagename", imagename,
+		"--imagename", imageprefix+imagename,
 	)
 	cmd2.Env = os.Environ()
 

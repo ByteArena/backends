@@ -14,7 +14,7 @@ func DockerfileParserGetFroms(source io.Reader) ([]string, error) {
 	}
 
 	fromValues := make([]string, 0)
-	visit(result.AST, func(node *dockerfileparser.Node) {
+	visitRow(result.AST, func(node *dockerfileparser.Node) {
 		if node.Value == "from" {
 			fromValues = append(fromValues, node.Next.Value)
 		}
@@ -23,21 +23,8 @@ func DockerfileParserGetFroms(source io.Reader) ([]string, error) {
 	return fromValues, nil
 }
 
-func visit(node *dockerfileparser.Node, cbk func(n *dockerfileparser.Node)) {
-
-	//DockerFileRow
+func visitRow(node *dockerfileparser.Node, cbk func(n *dockerfileparser.Node)) {
 	for _, n := range node.Children {
 		cbk(n)
 	}
-
-	/*
-		for n := node.Next; n != nil; n = n.Next {
-			if len(n.Children) > 0 {
-				//str += " " + n.Dump()
-				//			visit(n, cbk)
-			} else {
-				//		str += " " + strconv.Quote(n.Value)
-			}
-		}
-	*/
 }
