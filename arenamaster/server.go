@@ -30,19 +30,23 @@ func NewServer(mq *mq.Client, gql *graphql.Client) *Server {
 
 	if os.Getenv("INFLUXDB_ADDR") != "" {
 		utils.Debug("arenamaster", "State reporting activated")
-		s.startStateReporting(os.Getenv("INFLUXDB_ADDR"), os.Getenv("INFLUXDB_DB"))
+		err := s.startStateReporting(os.Getenv("INFLUXDB_ADDR"), os.Getenv("INFLUXDB_DB"))
+
+		utils.CheckWithFunc(err, func() string {
+			panic("Could not start state reporting: " + err.Error())
+		})
 	}
 
 	return s
 }
 
-func (server *Server) startStateReporting(addr, db string) {
+func (server *Server) startStateReporting(addr, db string) error {
 	influxdbClient, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr: addr,
 	})
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
@@ -50,19 +54,18 @@ func (server *Server) startStateReporting(addr, db string) {
 	})
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	go func() {
 		for {
 			<-time.NewTicker(5 * time.Second).C
 
-			// Create a point and add to batch
-			tags := map[string]string{"arenamaster": "arenamaster"}
+			tags := map[string]string{"app": "arenamaster"}
 			fields := map[string]interface{}{
-				"arenamaster.state.idle":    len(server.state.idleArenas),
-				"arenamaster.state.running": len(server.state.runningArenas),
-				"arenamaster.state.pending": len(server.state.pendingArenas),
+				"state-idle":    len(server.state.idleArenas),
+				"state-running": len(server.state.runningArenas),
+				"state-pending": len(server.state.pendingArenas),
 			}
 
 			pt, err := client.NewPoint("arenamaster", tags, fields, time.Now())
@@ -77,6 +80,8 @@ func (server *Server) startStateReporting(addr, db string) {
 			influxdbClient.Write(bp)
 		}
 	}()
+
+	return nil
 }
 
 func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
