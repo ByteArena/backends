@@ -10,7 +10,6 @@ import (
 	"time"
 
 	b2collision "github.com/bytearena/box2d/box2d/collision"
-	b2common "github.com/bytearena/box2d/box2d/common"
 	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
 
 	notify "github.com/bitly/go-notify"
@@ -18,6 +17,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/comm"
 	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/arenaserver/perception"
+	"github.com/bytearena/bytearena/arenaserver/projectile"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/mq"
@@ -58,7 +58,7 @@ type Server struct {
 	tearDownCallbacks      []types.TearDownCallback
 	tearDownCallbacksMutex *sync.Mutex
 
-	physicalWorld *b2dynamics.B2World
+	collisionListener *CollisionListener
 }
 
 func NewServer(host string, port int, orch container.ContainerOrchestrator, game GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
@@ -95,9 +95,12 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, game
 
 		tearDownCallbacks:      make([]types.TearDownCallback, 0),
 		tearDownCallbacksMutex: &sync.Mutex{},
-
-		physicalWorld: buildPhysicalWorld(game.GetMapContainer()),
 	}
+
+	s.collisionListener = newCollisionListener(s)
+	s.state.PhysicalWorld.SetContactListener(s.collisionListener)
+
+	s.state.PhysicalWorld.SetContactFilter(newCollisionFilter(s))
 
 	return s
 }
@@ -128,6 +131,8 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 
 	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
 
+	agent := agent.MakeNetAgentImp()
+
 	///////////////////////////////////////////////////////////////////////////
 	// Building the physical body of the agent
 	///////////////////////////////////////////////////////////////////////////
@@ -138,7 +143,7 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 	bodydef.AllowSleep = false
 	bodydef.FixedRotation = true
 
-	body := server.physicalWorld.CreateBody(&bodydef)
+	body := server.state.PhysicalWorld.CreateBody(&bodydef)
 
 	shape := b2collision.MakeB2CircleShape()
 	shape.SetRadius(0.3)
@@ -147,11 +152,11 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 	fixturedef.Shape = &shape
 	fixturedef.Density = 20.0
 	body.CreateFixture(&fixturedef)
+	body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Agent, agent.GetId().String()))
 
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 
-	agent := agent.MakeNetAgentImp()
 	agentstate := state.MakeAgentState(agent.GetId(), agentname, body)
 
 	server.setAgent(agent)
@@ -191,7 +196,6 @@ func (server *Server) NetSend(message []byte, conn net.Conn) error {
 
 func (server *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
 	server.state.PushMutationBatch(batch)
-	server.processMutations()
 }
 
 /* </implementing protocol.AgentCommunicator> */
@@ -587,81 +591,11 @@ func (server *Server) update() {
 
 	// handleCollisions(server, agentsMovements, projectilesMovements)
 
-	for _, agent := range server.agents {
-		id := agent.GetId()
-		agentstate := server.state.GetAgentState(id)
-		agentstate = agentstate.Update()
-		server.state.SetAgentState(
-			id,
-			agentstate,
-		)
-	}
-
-	timeStep := 1.0 / float64(server.GetTicksPerSecond())
-
-	server.physicalWorld.Step(
-		timeStep,
-		8, // velocityIterations; higher improves stability; default 8 in testbed
-		3, // positionIterations; higher improve overlap resolution; default 3 in testbed
-	)
-}
-
-func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *b2dynamics.B2World {
-	// Define the gravity vector.
-	gravity := b2common.MakeB2Vec2(0.0, 0.0) // 0: the simulation is seen from the top
-
-	// Construct a world object, which will hold and simulate the rigid bodies.
-	world := b2dynamics.MakeB2World(gravity)
-
-	// Static obstacles formed by the grounds
-	for _, ground := range arenaMap.Data.Grounds {
-		for _, polygon := range ground.Outline {
-
-			bodydef := b2dynamics.MakeB2BodyDef()
-			bodydef.Type = b2dynamics.B2BodyType.B2_staticBody
-
-			body := world.CreateBody(&bodydef)
-			vertices := make([]b2common.B2Vec2, len(polygon.Points)-1) // -1: avoid last point because the last point of the loop should not be repeated
-
-			for i := 0; i < len(polygon.Points)-1; i++ {
-				vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
-			}
-
-			shape := b2collision.MakeB2ChainShape()
-			shape.CreateLoop(vertices, len(vertices))
-			body.CreateFixtureFromShapeAndDensity(&shape, 0.0)
-		}
-	}
-
-	// Explicit obstacles
-	for _, obstacle := range arenaMap.Data.Obstacles {
-		polygon := obstacle.Polygon
-		bodydef := b2dynamics.MakeB2BodyDef()
-		bodydef.Type = b2dynamics.B2BodyType.B2_staticBody
-
-		body := world.CreateBody(&bodydef)
-		vertices := make([]b2common.B2Vec2, len(polygon.Points)-1) // a polygon has as many edges as points
-
-		for i := 0; i < len(polygon.Points)-1; i++ {
-			vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
-		}
-
-		shape := b2collision.MakeB2ChainShape()
-		shape.CreateLoop(vertices, len(vertices))
-		body.CreateFixtureFromShapeAndDensity(&shape, 0.0)
-	}
-
-	return &world
-}
-
-/*
-func updateProjectiles(server *Server) []*collision.MovementState {
-
-	movements := make([]*collision.MovementState, 0)
-
 	///////////////////////////////////////////////////////////////////////////
 	// On supprime les projectiles en fin de vie
 	///////////////////////////////////////////////////////////////////////////
+
+	server.processMutations()
 
 	server.state.Projectilesmutex.Lock()
 
@@ -676,101 +610,216 @@ func updateProjectiles(server *Server) []*collision.MovementState {
 	for _, projectileToRemoveId := range projectilesToRemove {
 		// has been set to 0 during the previous tick; pruning now (0 TTL projectiles might still have a collision later in this method)
 
+		projectile := server.state.Projectiles[projectileToRemoveId]
+
 		// Remove projectile from moving rtree
 		server.state.ProjectilesDeletedThisTick[projectileToRemoveId] = server.state.Projectiles[projectileToRemoveId]
+
+		server.state.PhysicalWorld.DestroyBody(projectile.PhysicalBody)
 
 		// Remove projectile from projectiles array
 		delete(server.state.Projectiles, projectileToRemoveId)
 	}
 
 	///////////////////////////////////////////////////////////////////////////
-	// On conserve les états avant/après
+	// On met l'état des projectiles à jour
 	///////////////////////////////////////////////////////////////////////////
 
 	for _, projectile := range server.state.Projectiles {
-		beforeState := collision.CollisionMovingObjectState{
-			Position: projectile.Position,
-			Velocity: projectile.Velocity,
-			Radius:   projectile.Radius,
-		}
-
 		projectile.Update()
-
-		afterState := collision.CollisionMovingObjectState{
-			Position: projectile.Position,
-			Velocity: projectile.Velocity,
-			Radius:   projectile.Radius,
-		}
-
-		bbRegion, err := collision.GetTrajectoryBoundingBox(
-			beforeState.Position, beforeState.Radius,
-			afterState.Position, afterState.Radius,
-		)
-		if err != nil {
-			utils.Debug("arena-server-updatestate", "Error in updateProjectiles: could not define trajectory bbRegion")
-			continue
-		}
-
-		movements = append(movements, &collision.MovementState{
-			Type:           state.GeometryObjectType.Projectile,
-			ID:             projectile.Id.String(),
-			Before:         beforeState,
-			After:          afterState,
-			Rect:           bbRegion,
-			AgentEmitterID: projectile.AgentEmitterId.String(),
-		})
 	}
 
 	server.state.Projectilesmutex.Unlock()
 
-	return movements
-}
-
-func updateAgents(server *Server) []*collision.MovementState {
-
-	movements := make([]*collision.MovementState, 0)
+	///////////////////////////////////////////////////////////////////////////
+	// On met l'état des agents à jour
+	///////////////////////////////////////////////////////////////////////////
 
 	for _, agent := range server.agents {
-
 		id := agent.GetId()
-		beforeFullState := server.state.GetAgentState(id)
-		beforeState := collision.CollisionMovingObjectState{
-			Position: beforeFullState.Position,
-			Velocity: beforeFullState.Velocity,
-			Radius:   beforeFullState.Radius,
-		}
-
-		afterFullState := beforeFullState.Update()
-
-		afterState := collision.CollisionMovingObjectState{
-			Position: afterFullState.Position,
-			Velocity: afterFullState.Velocity,
-			Radius:   afterFullState.Radius,
-		}
-
-		bbRegion, err := collision.GetTrajectoryBoundingBox(
-			beforeState.Position, beforeState.Radius,
-			afterState.Position, afterState.Radius,
-		)
-		if err != nil {
-			utils.Debug("arena-server-updatestate", "Error in updateAgents: could not define trajectory bbRegion")
-			continue
-		}
-
-		movements = append(movements, &collision.MovementState{
-			Type:   state.GeometryObjectType.Agent,
-			ID:     id.String(),
-			Before: beforeState,
-			After:  afterState,
-			Rect:   bbRegion,
-		})
-
+		agentstate := server.state.GetAgentState(id)
+		agentstate = agentstate.Update()
 		server.state.SetAgentState(
 			id,
-			afterFullState,
+			agentstate,
 		)
 	}
 
-	return movements
+	///////////////////////////////////////////////////////////////////////////
+	// On simule le monde physique
+	///////////////////////////////////////////////////////////////////////////
+
+	timeStep := 1.0 / float64(server.GetTicksPerSecond())
+
+	server.state.PhysicalWorld.Step(
+		timeStep,
+		8, // velocityIterations; higher improves stability; default 8 in testbed
+		3, // positionIterations; higher improve overlap resolution; default 3 in testbed
+	)
+
+	///////////////////////////////////////////////////////////////////////////
+	// On réagit aux contacts
+	///////////////////////////////////////////////////////////////////////////
+
+	for _, collision := range server.collisionListener.PopCollisions() {
+
+		descriptorCollider, ok := collision.GetFixtureA().GetBody().GetUserData().(types.PhysicalBodyDescriptor)
+		if !ok {
+			continue
+		}
+
+		descriptorCollidee, ok := collision.GetFixtureB().GetBody().GetUserData().(types.PhysicalBodyDescriptor)
+		if !ok {
+			continue
+		}
+
+		if descriptorCollider.Type == types.PhysicalBodyDescriptorType.Projectile {
+			// on impacte le collider
+			projectileuuid, _ := uuid.FromString(descriptorCollider.ID)
+			projectile := server.state.GetProjectile(projectileuuid)
+
+			projectile.TTL = 0
+
+			server.state.SetProjectile(
+				projectileuuid,
+				projectile,
+			)
+		}
+
+		if descriptorCollidee.Type == types.PhysicalBodyDescriptorType.Projectile {
+			// on impacte le collider
+			projectileuuid, _ := uuid.FromString(descriptorCollidee.ID)
+			projectile := server.state.GetProjectile(projectileuuid)
+
+			projectile.TTL = 0
+
+			server.state.SetProjectile(
+				projectileuuid,
+				projectile,
+			)
+		}
+	}
 }
-*/
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Collision Handling
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+type CollisionFilter struct { /* implements b2dynamics.B2World.B2ContactFilterInterface */
+	server *Server
+}
+
+func (filter *CollisionFilter) ShouldCollide(fixtureA *b2dynamics.B2Fixture, fixtureB *b2dynamics.B2Fixture) bool {
+	// Si projectile, ne pas collisionner agent émetteur
+	// Si projectile, ne pas collisionner ground
+
+	descriptorA, ok := fixtureA.GetBody().GetUserData().(types.PhysicalBodyDescriptor)
+	if !ok {
+		return false
+	}
+
+	descriptorB, ok := fixtureB.GetBody().GetUserData().(types.PhysicalBodyDescriptor)
+	if !ok {
+		return false
+	}
+
+	aIsProjectile := descriptorA.Type == types.PhysicalBodyDescriptorType.Projectile
+	bIsProjectile := descriptorB.Type == types.PhysicalBodyDescriptorType.Projectile
+
+	if !aIsProjectile && !bIsProjectile {
+		return true
+	}
+
+	if aIsProjectile && bIsProjectile {
+		return true
+	}
+
+	var projectile *types.PhysicalBodyDescriptor
+	var other *types.PhysicalBodyDescriptor
+
+	if aIsProjectile {
+		projectile = &descriptorA
+		other = &descriptorB
+	} else {
+		projectile = &descriptorB
+		other = &descriptorA
+	}
+
+	if other.Type == types.PhysicalBodyDescriptorType.Obstacle {
+		return true
+	}
+
+	if other.Type == types.PhysicalBodyDescriptorType.Ground {
+		return false
+	}
+
+	if other.Type == types.PhysicalBodyDescriptorType.Agent {
+		// fetch projectile
+		projectileid, _ := uuid.FromString(projectile.ID)
+		p := filter.server.GetState().GetProjectile(projectileid)
+		return p.AgentEmitterId.String() != other.ID
+	}
+
+	return true
+}
+
+func newCollisionFilter(server *Server) *CollisionFilter {
+	return &CollisionFilter{
+		server: server,
+	}
+}
+
+type CollisionListener struct { /* implements b2dynamics.B2World.B2ContactListenerInterface */
+	server          *Server
+	collisionbuffer []b2dynamics.B2ContactInterface
+}
+
+func (listener *CollisionListener) PopCollisions() []b2dynamics.B2ContactInterface {
+	defer func() { listener.collisionbuffer = make([]b2dynamics.B2ContactInterface, 0) }()
+	return listener.collisionbuffer
+}
+
+/// Called when two fixtures begin to touch.
+func (listener *CollisionListener) BeginContact(contact b2dynamics.B2ContactInterface) { // contact has to be backed by a pointer
+	listener.collisionbuffer = append(listener.collisionbuffer, contact)
+}
+
+/// Called when two fixtures cease to touch.
+func (listener *CollisionListener) EndContact(contact b2dynamics.B2ContactInterface) { // contact has to be backed by a pointer
+	//log.Println("END:COLLISION !!!!!!!!!!!!!!")
+}
+
+/// This is called after a contact is updated. This allows you to inspect a
+/// contact before it goes to the solver. If you are careful, you can modify the
+/// contact manifold (e.g. disable contact).
+/// A copy of the old manifold is provided so that you can detect changes.
+/// Note: this is called only for awake bodies.
+/// Note: this is called even when the number of contact points is zero.
+/// Note: this is not called for sensors.
+/// Note: if you set the number of contact points to zero, you will not
+/// get an EndContact callback. However, you may get a BeginContact callback
+/// the next step.
+func (listener *CollisionListener) PreSolve(contact b2dynamics.B2ContactInterface, oldManifold b2collision.B2Manifold) { // contact has to be backed by a pointer
+	//log.Println("PRESOLVE !!!!!!!!!!!!!!")
+}
+
+/// This lets you inspect a contact after the solver is finished. This is useful
+/// for inspecting impulses.
+/// Note: the contact manifold does not include time of impact impulses, which can be
+/// arbitrarily large if the sub-step is small. Hence the impulse is provided explicitly
+/// in a separate data structure.
+/// Note: this is only called for contacts that are touching, solid, and awake.
+func (listener *CollisionListener) PostSolve(contact b2dynamics.B2ContactInterface, impulse *b2dynamics.B2ContactImpulse) { // contact has to be backed by a pointer
+	//log.Println("POSTSOLVE !!!!!!!!!!!!!!")
+}
+
+func newCollisionListener(server *Server) *CollisionListener {
+	return &CollisionListener{
+		server: server,
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////

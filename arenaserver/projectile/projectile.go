@@ -1,33 +1,39 @@
 package projectile
 
 import (
+	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
 
 type BallisticProjectile struct {
 	Id             uuid.UUID
-	Position       vector.Vector2
-	Velocity       vector.Vector2
-	Speed          float64
-	Radius         float64
 	TTL            int
 	AgentEmitterId uuid.UUID
 	JustFired      bool
+	PhysicalBody   *b2dynamics.B2Body // replaces Radius, Mass, Position, Velocity, Orientation
 }
 
-func NewBallisticProjectile() *BallisticProjectile {
-
+func NewBallisticProjectile(Id uuid.UUID, body *b2dynamics.B2Body) *BallisticProjectile {
 	return &BallisticProjectile{
-		Id:     uuid.NewV4(), // random uuid
-		TTL:    80,
-		Speed:  3,
-		Radius: 0.15, // FIXME(jerome): find why projectiles do not collide when their radius is > than the collidee (which is impacted fine by the projectile); happens when collidee is not moving (collideOrientedRectangleCircle)
-		//Radius: 0.5,
-
-		// OK: Diameter > speed
-		// KO: Diameter <= speed
+		Id:           Id, // random uuid
+		PhysicalBody: body,
 	}
+}
+
+func (p BallisticProjectile) GetPosition() vector.Vector2 {
+	v := p.PhysicalBody.GetPosition()
+	return vector.MakeVector2(v.X, v.Y)
+}
+
+func (p BallisticProjectile) GetVelocity() vector.Vector2 {
+	v := p.PhysicalBody.GetLinearVelocity()
+	return vector.MakeVector2(v.X, v.Y)
+}
+
+func (p BallisticProjectile) GetRadius() float64 {
+	// FIXME(jerome): here we suppose that the agent is always a circle
+	return p.PhysicalBody.GetFixtureList().GetShape().GetRadius()
 }
 
 func (p *BallisticProjectile) Update() {
@@ -35,6 +41,5 @@ func (p *BallisticProjectile) Update() {
 		p.JustFired = false
 	} else {
 		p.TTL--
-		p.Position = p.Position.Add(p.Velocity)
 	}
 }

@@ -3,10 +3,12 @@ package state
 import (
 	"math"
 
+	b2collision "github.com/bytearena/box2d/box2d/collision"
 	b2common "github.com/bytearena/box2d/box2d/common"
 	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
 
 	"github.com/bytearena/bytearena/arenaserver/projectile"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils/number"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
@@ -152,7 +154,6 @@ func (state AgentState) Update() AgentState {
 }
 
 func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
-	//return state
 
 	prevmag := state.GetVelocity().Mag()
 	diff := steering.Mag() - prevmag
@@ -172,7 +173,6 @@ func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
 }
 
 func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Vector2) AgentState {
-	return state
 
 	//
 	// Levels consumption
@@ -191,15 +191,46 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 	state.LastShot = 0
 	state.ShootEnergy -= state.ShootEnergyCost
 
-	projectile := projectile.NewBallisticProjectile()
-	projectile.AgentEmitterId = state.agentId
-	projectile.JustFired = true
+	projectileId := uuid.NewV4()
+
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	// Make physical body for projectile
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
+	agentpos := state.GetPosition()
+
+	bodydef := b2dynamics.MakeB2BodyDef()
+	bodydef.Type = b2dynamics.B2BodyType.B2_dynamicBody
+	bodydef.AllowSleep = false
+	bodydef.FixedRotation = true
+
+	bodydef.Position.Set(agentpos.GetX(), agentpos.GetY())
 
 	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
 	absaiming := localAngleToAbsoluteAngleVec(state.GetOrientation(), aiming, nil) // TODO: replace nil here by an actual angle constraint
-	projectile.Velocity = absaiming.SetMag(projectile.Speed)                       // adding the agent position to "absolutize" the target vector
+	pvel := absaiming.SetMag(20)                                                   // projectile speed
+	bodydef.LinearVelocity = b2common.MakeB2Vec2(pvel.GetX(), pvel.GetY())
 
-	projectile.Position = state.GetPosition()
+	body := serverstate.PhysicalWorld.CreateBody(&bodydef)
+
+	shape := b2collision.MakeB2CircleShape()
+	shape.SetRadius(0.3)
+
+	fixturedef := b2dynamics.MakeB2FixtureDef()
+	fixturedef.Shape = &shape
+	fixturedef.Density = 20.0
+	body.CreateFixture(&fixturedef)
+	body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Projectile, projectileId.String()))
+
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
+	projectile := projectile.NewBallisticProjectile(projectileId, body)
+	projectile.AgentEmitterId = state.agentId
+	projectile.JustFired = true
+	projectile.TTL = 60
 
 	serverstate.SetProjectile(projectile.Id, projectile)
 

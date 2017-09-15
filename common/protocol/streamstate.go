@@ -79,8 +79,8 @@ func transformServerStateToVizMessage(game arenaserver.GameInterface, state stat
 	for _, projectile := range state.Projectiles {
 		msg.Projectiles = append(msg.Projectiles, types.VizProjectileMessage{
 			Id:       projectile.Id,
-			Position: projectile.Position,
-			Velocity: projectile.Velocity,
+			Position: projectile.GetPosition(),
+			Velocity: projectile.GetVelocity(),
 			Kind:     "projectile",
 		})
 	}
