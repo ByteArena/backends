@@ -17,8 +17,12 @@ import (
 )
 
 func msgOut(msg string) {
-	fmt.Println("🛑  " + msg)
+	msgOutNoExit(msg)
 	os.Exit(1)
+}
+
+func msgOutNoExit(msg string) {
+	fmt.Println("🛑  " + msg)
 }
 
 func welcomeBanner() {
@@ -150,6 +154,7 @@ func assertAgentCodeIsLegit(absBuildDir string) {
 	if err != nil {
 		msgOut("Error: Your agent's Dockerfile cannot be parsed.")
 	}
+
 	for _, from := range froms {
 		if strings.HasPrefix(from, agentImageNamespace) {
 			msgOut("Error: Your agent Dockerfile cannot extend images from the namespace " + agentImageNamespace)
@@ -158,6 +163,20 @@ func assertAgentCodeIsLegit(absBuildDir string) {
 		if strings.HasPrefix(from, systemImageNamespace) {
 			msgOut("Error: Your agent Dockerfile cannot extend images from the namespace " + systemImageNamespace)
 		}
+	}
+
+	forbiddenInstructions, err := agentbuilder.DockerfileFindForbiddenInstructions(bytes.NewReader(dockerfileContent))
+
+	if err != nil {
+		msgOut("Error: Your agent's Dockerfile cannot be parsed.")
+	}
+
+	for name, _ := range forbiddenInstructions {
+		msgOutNoExit("Error: forbidden instruction in Dockerfile: `" + name.String() + "`.")
+	}
+
+	if len(forbiddenInstructions) > 0 {
+		msgOut("Agent was not built because the Dockerfile is not valid.")
 	}
 }
 
