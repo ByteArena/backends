@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-type CommDispatcher interface {
-	DispatchAgentMessage(msg protocol.MessageWrapper) error
+type CommDispatcherInterface interface {
+	DispatchAgentMessage(msg protocol.MessageWrapperInterface) error
 }
 
 type CommServer struct {
@@ -37,57 +36,66 @@ func (s *CommServer) Send(message []byte, conn net.Conn) error {
 	return nil
 }
 
-func (s *CommServer) Listen(dispatcher CommDispatcher) error {
+func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 
+	utils.Debug("commserver", "::Listen")
 	ln, err := net.Listen("tcp4", s.address)
 	if err != nil {
 		return fmt.Errorf("Comm server could not listen on %s; %s", s.address, err.Error())
 	}
 
 	s.listener = ln
-	defer s.listener.Close()
-	for {
 
-		conn, err := s.listener.Accept()
-		if err != nil {
-			return err
-		}
-
-		conn.SetReadDeadline(time.Now().Add(time.Second * 10))
-
-		go func() {
-			defer conn.Close()
-			for {
-				reader := bufio.NewReader(conn)
-				buf, err := reader.ReadBytes('\n')
-				if err != nil {
-					// Avoid crashes when agent crashes Issue #108
-					utils.Debug("commserver", "Connexion closed unexpectedly; "+err.Error())
-					return
-				}
-
-				// no more read deadline
-				conn.SetReadDeadline(time.Time{})
-
-				// Unmarshal message (unwrapping in an AgentMessage structure)
-				var msg protocol.MessageWrapperImp
-				err = json.Unmarshal(buf, &msg)
-				if err != nil {
-					utils.Debug("commserver", "Failed to unmarshal incoming JSON in CommServer::Listen(); "+string(buf)+";"+err.Error())
-					return
-				}
-
-				msg.EmitterConn = conn
-
-				go func() {
-					err := dispatcher.DispatchAgentMessage(msg)
-					if err != nil {
-						utils.Debug("commserver", "Failed to dispatch agent message; "+err.Error())
-					}
-				}()
+	go func() {
+		defer s.listener.Close()
+		for {
+			utils.Debug("commserver", "::Accept")
+			conn, err := s.listener.Accept()
+			if err != nil {
+				utils.Debug("commserver", "ERROR !! "+err.Error())
+				continue
 			}
-		}()
-	}
+
+			utils.Debug("commserver", "::AcceptED")
+
+			//conn.SetReadDeadline(time.Now().Add(time.Second * 10))
+
+			go func() {
+				defer conn.Close()
+				for {
+					//utils.Debug("commserver", "::Reading...")
+					reader := bufio.NewReader(conn)
+					buf, err := reader.ReadBytes('\n')
+					if err != nil {
+						// Avoid crashes when agent crashes Issue #108
+						utils.Debug("commserver", "Connexion closed unexpectedly; "+err.Error())
+						return
+					}
+
+					//utils.Debug("commserver", "::RECEIVED bytes"+string(buf))
+
+					// no more read deadline
+					//conn.SetReadDeadline(time.Time{})
+
+					// Unmarshal message (unwrapping in an AgentMessage structure)
+					var msg protocol.MessageWrapperImp
+					err = json.Unmarshal(buf, &msg)
+					if err != nil {
+						utils.Debug("commserver", "Failed to unmarshal incoming JSON in CommServer::Listen(); "+string(buf)+";"+err.Error())
+					} else {
+						msg.EmitterConn = conn
+
+						go func() {
+							err := dispatcher.DispatchAgentMessage(msg)
+							if err != nil {
+								utils.Debug("commserver", "Failed to dispatch agent message; "+err.Error())
+							}
+						}()
+					}
+				}
+			}()
+		}
+	}()
 
 	return nil
 }

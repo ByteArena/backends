@@ -6,7 +6,7 @@ import (
 
 type EmptyRecorder struct{}
 
-func MakeEmptyRecorder() Recorder {
+func MakeEmptyRecorder() EmptyRecorder {
 	return EmptyRecorder{}
 }
 
@@ -21,6 +21,10 @@ func (r EmptyRecorder) RecordMetadata(UUID string, mapcontainer *mapcontainer.Ma
 func (r EmptyRecorder) Close(UUID string) {}
 func (r EmptyRecorder) Stop()             {}
 
-func (r EmptyRecorder) GetDirectory() string {
+func (r EmptyRecorder) GetFilePathForUUID(UUID string) string {
 	return ""
+}
+
+func (r EmptyRecorder) RecordExists(UUID string) bool {
+	return false
 }

@@ -3,6 +3,8 @@ package vector
 import (
 	"fmt"
 	"math"
+
+	"github.com/bytearena/bytearena/common/utils/number"
 )
 
 type Matrix2 [6]float64
@@ -46,7 +48,8 @@ func (m Matrix2) Scale(x, y float64) Matrix2 {
 	})
 }
 
-func (m Matrix2) Rotate(rad float64) Matrix2 {
+func (m Matrix2) Rotate(deg float64) Matrix2 {
+	rad := number.DegreeToRadian(deg)
 	sina := math.Sin(rad)
 	cosa := math.Cos(rad)
 	return m.Mul(Matrix2{

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 )
 
@@ -21,6 +22,24 @@ func MakeSegment2(a Vector2, b Vector2) Segment2 {
 
 func (s Segment2) Get() (Vector2, Vector2) {
 	return s.a, s.b
+}
+
+func (s Segment2) GetPointA() Vector2 {
+	return s.a
+}
+
+func (s Segment2) GetPointB() Vector2 {
+	return s.b
+}
+
+func (s Segment2) SetPointA(v Vector2) Segment2 {
+	s.a = v
+	return s
+}
+
+func (s Segment2) SetPointB(v Vector2) Segment2 {
+	s.b = v
+	return s
 }
 
 func (s Segment2) Equals(s2 Segment2) bool {
@@ -209,12 +228,25 @@ func (s Segment2) MoveCenterTo(newcenterpos Vector2) Segment2 {
 	return s.Translate(translation)
 }
 
+func (s Segment2) ToRectangleCentered(height float64) []Vector2 {
+	a1, a2 := s.OrthogonalToACentered().SetLengthFromCenter(height).Get()
+	b1, b2 := s.OrthogonalToBCentered().SetLengthFromCenter(height).Get()
+
+	return []Vector2{
+		a1,
+		b1,
+		b2,
+		a2,
+	}
+}
+
 var testnum int
 
 func test(ok bool, testname string) {
 	testnum++
 	if !ok {
-		panic("FAILED #" + strconv.Itoa(testnum) + ": " + testname)
+		fmt.Println("FAILED #" + strconv.Itoa(testnum) + ": " + testname)
+		os.Exit(1)
 	}
 
 	fmt.Println("SUCCESS #" + strconv.Itoa(testnum) + ": " + testname)

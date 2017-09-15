@@ -1,10 +1,16 @@
-hash: 9608144f5c5f5403aff086fa330530e313fba9e1447e9323c7f24d004e1b2ef2
-updated: 2017-07-16T18:40:00.804945582+02:00
+hash: 6912a3393b848a7f67cec212dfe6056326778d22a3c86a71f4ec2dbe818346bb
+updated: 2017-09-14T19:19:05.705234467+02:00
 imports:
+- name: github.com/akavel/polyclip-go
+  version: 2cfdb71461bde9115450eb65688337e3f8ee715e
 - name: github.com/bitly/go-notify
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
 - name: github.com/cenkalti/backoff
-  version: 32cd0c5b3aef12c76ed64aaf678f6c79736be7dc
+  version: 61153c768f31ee5f130071d08fc82b85208528de
+- name: github.com/davecgh/go-spew
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
+- name: github.com/dhconnelly/rtreego
+  version: 1323b09fe8f32430ea7e16ea1df99e106e3e6250
 - name: github.com/docker/distribution
   version: f86db6b22663a27ba4d278220b7e34be528b1e79
   subpackages:
@@ -44,6 +50,14 @@ imports:
   version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
 - name: github.com/docker/libtrust
   version: fa567046d9b14f6aa788882a950d69651d230b21
+- name: github.com/go-redis/redis
+  version: fdafb11e5fa5d52d965e12073c8a58468c98ebe2
+  subpackages:
+  - internal
+  - internal/consistenthash
+  - internal/hashtag
+  - internal/pool
+  - internal/proto
 - name: github.com/gorilla/context
   version: 14f550f51af52180c2eefed15e5fd18d63c0a64a
 - name: github.com/gorilla/handlers
@@ -52,6 +66,12 @@ imports:
   version: bcd8bc72b08df0f70df986b97f95590779502d31
 - name: github.com/gorilla/websocket
   version: ea4d1f681babbce9545c9c5f3d5194a789c89f5b
+- name: github.com/influxdata/influxdb
+  version: 9d9001036d3585cf21925c13a57881bc6c8dcc7e
+  subpackages:
+  - client/v2
+  - models
+  - pkg/escape
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/Microsoft/go-winio
@@ -71,6 +91,10 @@ imports:
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/Sirupsen/logrus
   version: 55eb11d21d2a31a3cc93838241d04800f52e823d
+- name: github.com/skratchdot/open-golang
+  version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
+  subpackages:
+  - open
 - name: github.com/ttacon/chalk
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
 - name: golang.org/x/net

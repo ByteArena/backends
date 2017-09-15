@@ -3,7 +3,6 @@ package arenaserver
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
@@ -11,16 +10,18 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-type Game interface {
-	//Setup(srv *Server)
+type GameInterface interface {
 	GetId() string
 	GetName() string
 	GetTps() int
+	GetRunStatus() int
+	GetLaunchedAt() string
+	GetEndedAt() string
 	GetContestants() []Contestant
 	GetMapContainer() *mapcontainer.MapContainer
 }
 
-type GameGql struct {
+type GameImpGql struct {
 	gqlgame      graphqltype.GameType
 	mapContainer *mapcontainer.MapContainer
 }
@@ -39,44 +40,48 @@ func FetchUrl(url string) ([]byte, error) {
 	return body, nil
 }
 
-func NewGameGql(game graphqltype.GameType) *GameGql {
+func NewGameGql(game graphqltype.GameType) *GameImpGql {
 
-	// filepath := "../../maps/trainer-map.json"
-	// jsonsource, err := os.Open(filepath)
-	// if err != nil {
-	// 	log.Panicln("Error opening file:", err)
-	// }
-
-	// defer jsonsource.Close()
-
-	jsonsource, err := FetchUrl("http://bytearena.com/maps/deathmatch/desert/death-valley/map.json")
+	// TODO(jerome): parametrize this
+	jsonsource, err := FetchUrl("https://static.bytearena.com/assets/bytearena/maps/deathmatch/desert/death-valley/map.json")
 	utils.Check(err, "Could not fetch map")
 
 	var mapContainer mapcontainer.MapContainer
-	if err := json.Unmarshal(jsonsource, &mapContainer); err != nil {
-		log.Panicln("Could not load map JSON")
-	}
+	err = json.Unmarshal(jsonsource, &mapContainer)
+	utils.Check(err, "Could not load map JSON")
 
-	return &GameGql{
+	return &GameImpGql{
 		mapContainer: &mapContainer,
 		gqlgame:      game,
 	}
 }
 
-func (a *GameGql) GetId() string {
+func (a *GameImpGql) GetId() string {
 	return a.gqlgame.Id
 }
 
-func (a *GameGql) GetName() string {
+func (a *GameImpGql) GetName() string {
 	return a.gqlgame.Arena.Name
 }
 
-func (a *GameGql) GetTps() int {
+func (a *GameImpGql) GetTps() int {
 	return a.gqlgame.Tps
 }
 
-func (a *GameGql) GetContestants() []Contestant {
-	log.Println(a.gqlgame.Contestants)
+func (a *GameImpGql) GetRunStatus() int {
+	return a.gqlgame.RunStatus
+}
+
+func (a *GameImpGql) GetLaunchedAt() string {
+	return a.gqlgame.LaunchedAt
+}
+
+func (a *GameImpGql) GetEndedAt() string {
+	return a.gqlgame.EndedAt
+}
+
+func (a *GameImpGql) GetContestants() []Contestant {
+
 	res := make([]Contestant, len(a.gqlgame.Contestants))
 	for index, contestant := range a.gqlgame.Contestants {
 		res[index] = Contestant{
@@ -90,15 +95,6 @@ func (a *GameGql) GetContestants() []Contestant {
 	return res
 }
 
-// func (a *GameGql) Setup(srv *Server) {
-// 	for _, obstacle := range a.gqlgame.Arena.Obstacles {
-// 		srv.SetObstacle(state.MakeObstacle(
-// 			vector.MakeVector2(obstacle.A.X, obstacle.A.Y),
-// 			vector.MakeVector2(obstacle.B.X, obstacle.B.Y),
-// 		))
-// 	}
-// }
-
-func (a *GameGql) GetMapContainer() *mapcontainer.MapContainer {
+func (a *GameImpGql) GetMapContainer() *mapcontainer.MapContainer {
 	return a.mapContainer
 }

@@ -47,11 +47,16 @@ func main() {
 	repoURL := flag.String("repourl", "", "URL of the git repository to build")
 	registryHost := flag.String("registry", "registry.net.bytearena.com", "Base URL of the docker registry where to push image")
 	imageName := flag.String("imagename", "", "Name of the image on the docker registry; example johndoe/happybot")
+	deploymentid := flag.String("deploymentid", "", "Deploiement identifier")
 
 	flag.Parse()
 
 	if *repoURL == "" {
 		msgOut("RECEIVED SHUTDOWN SIGNAL; closing.")
+	}
+
+	if *deploymentid == "" {
+		msgOut("Missing deploymentid")
 	}
 
 	if *registryHost == "" {
@@ -66,14 +71,14 @@ func main() {
 		msgOut("Docker registry is unreachable; tried " + *registryHost)
 	}
 
-	if err := buildAndDeploy(*repoURL, *registryHost, *imageName); err != nil {
+	if err := buildAndDeploy(*repoURL, *registryHost, *imageName, *deploymentid); err != nil {
 		msgOut("Could not build/deploy agent; " + err.Error())
 		os.Exit(1)
 	}
 }
 
 func pingRegistry(host string) error {
-	resp, err := http.Get("http://" + host + "/v2/")
+	resp, err := http.Get("https://" + host + "/v2/")
 
 	if err != nil {
 		return err
@@ -88,7 +93,7 @@ func pingRegistry(host string) error {
 	return nil
 }
 
-func buildAndDeploy(cloneurl, registryHost, imageName string) error {
+func buildAndDeploy(cloneurl, registryHost, imageName, deploymentid string) error {
 
 	welcomeBanner()
 
@@ -96,7 +101,7 @@ func buildAndDeploy(cloneurl, registryHost, imageName string) error {
 
 	buildImage(dir, imageName)
 
-	deployImage(imageName, "latest", registryHost)
+	deployImage(imageName, deploymentid, registryHost)
 
 	successBanner()
 

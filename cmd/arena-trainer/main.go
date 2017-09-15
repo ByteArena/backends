@@ -2,12 +2,14 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
 	notify "github.com/bitly/go-notify"
+	"github.com/skratchdot/open-golang/open"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
@@ -18,6 +20,7 @@ import (
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/vizserver"
+	"github.com/bytearena/bytearena/vizserver/types"
 )
 
 type arrayFlags []string
@@ -34,7 +37,7 @@ func (i *arrayFlags) Set(value string) error {
 func main() {
 
 	rand.Seed(time.Now().UnixNano())
-	log.Println("Byte Arena Trainer v0.1")
+	utils.Debug("arena-trainer", "Byte Arena Trainer v0.1")
 
 	tickspersec := flag.Int("tps", 10, "Number of ticks per second")
 	host := flag.String("host", "", "IP serving the trainer; required")
@@ -53,7 +56,8 @@ func main() {
 	}
 
 	if len(agentimages) == 0 {
-		panic("Please, specify at least one agent image using --agent")
+		fmt.Println("Please, specify at least one agent image using --agent")
+		os.Exit(1)
 	}
 
 	game := NewMockGame(*tickspersec)
@@ -65,7 +69,7 @@ func main() {
 	brokerclient, err := arenatrainer.NewMemoryMessageClient()
 	utils.Check(err, "ERROR: Could not connect to messagebroker")
 
-	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(), game)
+	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(*host), game, "", brokerclient)
 
 	for _, contestant := range game.GetContestants() {
 		var image string
@@ -76,7 +80,7 @@ func main() {
 			image = contestant.AgentRegistry + "/" + contestant.AgentImage
 		}
 
-		srv.RegisterAgent(image)
+		srv.RegisterAgent(image, image)
 	}
 
 	// handling signals
@@ -88,7 +92,7 @@ func main() {
 
 	go protocol.StreamState(srv, brokerclient, "trainer")
 
-	var recorder recording.Recorder = recording.MakeEmptyRecorder()
+	var recorder recording.RecorderInterface = recording.MakeEmptyRecorder()
 	if *recordFile != "" {
 		recorder = recording.MakeSingleArenaRecorder(*recordFile)
 	}
@@ -102,17 +106,37 @@ func main() {
 		notify.PostTimeout("viz:message:"+gameId, string(msg.Data), time.Millisecond)
 	})
 
-	// TODO: refac webclient path / serving
+	// TODO(jerome): refac webclient path / serving
+
+	vizgames := make([]*types.VizGame, 1)
+	vizgames[0] = types.NewVizGame(game)
+
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
-	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]arenaserver.Game, error) {
-		res := make([]arenaserver.Game, 1)
-		res[0] = game
-		return res, nil
+	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]*types.VizGame, error) {
+		return vizgames, nil
 	}, recorder)
+
+	// Below line is used to serve assets locally
+	// TODO(jerome): find a way to bundle the trainer with the assets
+	vizservice.SetPathToAssets("/Users/jerome/Code/other/assets/")
 
 	vizservice.Start()
 
-	<-srv.Start()
+	serverChan, startErr := srv.Start()
+
+	if startErr != nil {
+		srv.Stop()
+		fmt.Println("Cannot start server: " + startErr.Error())
+		os.Exit(1)
+	}
+
+	url := "http://localhost:" + strconv.Itoa(*port+1) + "/arena/1"
+
+	fmt.Println("\033[0;34m\nGame running at " + url + ".\033[0m\n")
+	open.Run(url)
+
+	<-serverChan
+
 	srv.TearDown()
 
 	recorder.Close(game.GetId())

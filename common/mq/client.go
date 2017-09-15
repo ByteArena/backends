@@ -3,13 +3,11 @@ package mq
 import (
 	"encoding/json"
 	"errors"
-	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/cenkalti/backoff"
-	"github.com/gorilla/websocket"
+
+	"github.com/go-redis/redis"
 )
 
 type brokerAction struct {
@@ -27,8 +25,8 @@ type BrokerMessage struct {
 }
 
 type Client struct {
-	conn          *websocket.Conn
-	subscriptions *SubscriptionMap
+	conn          *redis.Client
+	subscriptions map[string]*redis.PubSub
 	mu            sync.Mutex
 	host          string
 }
@@ -36,22 +34,28 @@ type Client struct {
 func NewClient(host string) (*Client, error) {
 	c := &Client{
 		conn:          nil,
-		subscriptions: NewSubscriptionMap(),
+		subscriptions: make(map[string]*redis.PubSub, 0),
 		host:          host,
 	}
 
 	hasConnected := c.connect()
 	utils.Assert(hasConnected, "Error: cannot connect to messagebroker host "+host)
 
-	go c.waitAndListen()
-
 	return c, nil
 }
 
+func channelAndTopicToString(channel, topic string) string {
+	return channel + "." + topic
+}
+
 func (client *Client) connect() bool {
-	dialer := websocket.DefaultDialer
-	conn, _, err := dialer.Dial("ws://"+client.host, http.Header{})
-	if err != nil {
+	conn := redis.NewClient(&redis.Options{
+		Addr:     client.host + ":6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+
+	if conn == nil {
 		return false
 	}
 
@@ -60,100 +64,151 @@ func (client *Client) connect() bool {
 	return true
 }
 
-func handleUnexepectedClose(client *Client) {
-	utils.Debug("mq-client", "Unexpected close")
+// func handleUnexepectedClose(client *Client) {
+// 	utils.Debug("mq-client", "Unexpected close")
 
-	f := func() error {
-		utils.Debug("mq-client", "Try to reconnect")
-		hasConnected := client.connect()
+// 	f := func() error {
+// 		utils.Debug("mq-client", "Try to reconnect")
+// 		hasConnected := client.connect()
 
-		if hasConnected {
-			utils.Debug("mq-client", "Reconnected")
-			for _, subscriptionLane := range client.subscriptions.GetKeys() {
-				subscriptionCbk := client.subscriptions.Get(subscriptionLane)
-				parts := strings.Split(subscriptionLane, ":")
-				utils.Debug("mq-client", "Re-subscribing to "+subscriptionLane)
-				client.Subscribe(parts[0], parts[1], subscriptionCbk)
-			}
-			return nil
-		}
+// 		if hasConnected {
+// 			utils.Debug("mq-client", "Reconnected")
+// 			for _, subscriptionLane := range client.subscriptions.GetKeys() {
+// 				subscriptionCbk := client.subscriptions.Get(subscriptionLane)
+// 				parts := strings.Split(subscriptionLane, ":")
+// 				utils.Debug("mq-client", "Re-subscribing to "+subscriptionLane)
+// 				client.Subscribe(parts[0], parts[1], subscriptionCbk)
+// 			}
+// 			return nil
+// 		}
 
-		return errors.New("connection failed")
-	}
+// 		return errors.New("connection failed")
+// 	}
 
-	backoff.Retry(f, backoff.NewExponentialBackOff())
-}
+// 	backoff.Retry(f, backoff.NewExponentialBackOff())
+// }
 
-func (client *Client) waitAndListen() {
-	for {
-		_, rawData, err := client.conn.ReadMessage()
+// func (client *Client) waitAndListen() {
 
-		if websocket.IsUnexpectedCloseError(err) {
-			handleUnexepectedClose(client)
+// 	for {
+// 		_, rawData, err := client.conn.ReadMessage()
 
-			continue
-		}
+// 		if websocket.IsUnexpectedCloseError(err) {
+// 			handleUnexepectedClose(client)
+// 			continue
+// 		}
 
-		utils.Check(err, "Received invalid message")
+// 		if err != nil {
+// 			utils.Debug("mqclient", "Received invalid message; "+err.Error())
+// 			continue
+// 		}
 
-		var message BrokerMessage
+// 		var message BrokerMessage
 
-		err = json.Unmarshal(rawData, &message)
-		utils.Check(err, "Received invalid message")
+// 		err = json.Unmarshal(rawData, &message)
+// 		if err != nil {
+// 			utils.Debug("mqclient", "Received invalid message; "+err.Error()+";"+string(rawData))
+// 			continue
+// 		}
 
-		subscription := client.subscriptions.Get(message.Channel + ":" + message.Topic)
-		utils.Assert(
-			subscription != nil,
-			"unexpected (unsubscribed) message type "+message.Channel+":"+message.Topic,
-		)
+// 		subscription := client.subscriptions.Get(message.Channel + ":" + message.Topic)
+// 		if subscription == nil {
+// 			utils.Debug("mqclient", "unexpected (unsubscribed) message type "+message.Channel+":"+message.Topic)
+// 			continue
+// 		}
 
-		subscription(message)
-	}
-}
+// 		subscription(message)
+// 	}
+// }
 
 /* <mq.MessageBrokerClientInterface> */
 func (client *Client) Subscribe(channel string, topic string, onmessage SubscriptionCallback) error {
 	client.mu.Lock()
 
-	err := client.conn.WriteJSON(brokerAction{
-		Action:  "sub",
-		Channel: channel,
-		Topic:   topic,
-	})
+	// err := client.conn.WriteJSON(brokerAction{
+	// 	Action:  "sub",
+	// 	Channel: channel,
+	// 	Topic:   topic,
+	// })
+
+	channelName := channelAndTopicToString(channel, topic)
+
+	pubsub := client.conn.Subscribe(channelName)
 
 	client.mu.Unlock()
 
-	if err != nil {
-		return errors.New("Error: cannot subscribe to message broker (" + channel + ", " + topic + ")")
+	if pubsub == nil {
+		return errors.New("Could not subscribe to channel " + channelName)
 	}
 
-	client.subscriptions.Set(channel+":"+topic, onmessage)
+	utils.Debug("mq", "Subscribed to bus "+channelName)
+
+	// if err != nil {
+	// 	return errors.New("Error: cannot subscribe to message broker (" + channel + ", " + topic + ")")
+	// }
+
+	// client.subscriptions.Set(channel+":"+topic, onmessage)
+	client.subscriptions[channelName] = pubsub
+
+	/*
+		Handle message loop
+	*/
+	go func() {
+		for {
+			msg, err := pubsub.ReceiveMessage()
+
+			if err != nil {
+				panic(err)
+			}
+
+			var mqMessage BrokerMessage
+
+			err = json.Unmarshal([]byte(msg.Payload), &mqMessage)
+
+			if err != nil {
+				utils.Debug("mqclient", "Received invalid message; "+err.Error()+";"+msg.Payload)
+				continue
+			}
+
+			onmessage(mqMessage)
+		}
+	}()
 
 	return nil
 }
 
-func (client *Client) Publish(channel string, topic string, payload interface{}) error {
+func (client *Client) Publish(channel, topic string, payload interface{}) error {
+	channelName := channelAndTopicToString(channel, topic)
+
 	client.mu.Lock()
 
-	err := client.conn.WriteJSON(brokerAction{
+	brokerAction := brokerAction{
 		Action:  "pub",
 		Channel: channel,
 		Topic:   topic,
 		Data:    payload,
-	})
+	}
 
-	client.mu.Unlock()
+	jsonPayload, err := json.Marshal(brokerAction)
 
 	if err != nil {
-		return errors.New("Error: cannot publish to message broker (" + channel + ", " + topic + ")")
+		return err
+	}
+
+	res := client.conn.Publish(channelName, string(jsonPayload))
+	client.mu.Unlock()
+
+	if res.Err() != nil {
+		return res.Err()
 	}
 
 	return nil
 }
 
-func (client *Client) Ping() (err error) {
-	var data interface{}
-	return client.Publish("ping", "ping", data)
+func (client *Client) Ping() error {
+	_, err := client.conn.Ping().Result()
+
+	return err
 }
 
 /* </mq.MessageBrokerClientInterface> */

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"log"
 
 	"github.com/bytearena/bytearena/common/utils"
 )
@@ -107,7 +106,7 @@ func (r *Replayer) Read() chan *ReplayMessage {
 }
 
 func (r *Replayer) Stop() {
-	log.Println("stop replayer")
+	utils.Debug("recorder", "stop replayer")
 	r.stopChannel <- true
 }
 

@@ -3,7 +3,6 @@ package recording
 import (
 	"archive/zip"
 	"io"
-	"log"
 	"os"
 	"time"
 
@@ -16,14 +15,17 @@ type RecordMetadata struct {
 	Date         string                     `json:"date"`
 }
 
-type Recorder interface {
+type RecorderInterface interface {
 	RecordMetadata(UUID string, mapcontainer *mapcontainer.MapContainer) error
 	Record(UUID string, msg string) error
 	Close(UUID string)
 	Stop()
+	RecordStoreInterface
+}
 
-	// Only used for MutliArenaRecorder
-	GetDirectory() string
+type RecordStoreInterface interface {
+	GetFilePathForUUID(UUID string) string
+	RecordExists(UUID string) bool
 }
 
 type ArchiveFile struct {
@@ -56,7 +58,8 @@ func MakeArchive(filename string, files []ArchiveFile) (error, *os.File) {
 
 	for _, file := range files {
 		header := &zip.FileHeader{
-			Name: file.Name,
+			Name:   file.Name,
+			Method: zip.Deflate,
 		}
 
 		header.SetModTime(time.Now())
@@ -71,7 +74,7 @@ func MakeArchive(filename string, files []ArchiveFile) (error, *os.File) {
 		_, err = io.Copy(writer, file.Fd)
 
 		if err != nil {
-			log.Println("copy failed")
+			utils.Debug("recorder", "copy failed")
 			return err, nil
 		}
 	}

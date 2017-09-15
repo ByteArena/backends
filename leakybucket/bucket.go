@@ -35,7 +35,6 @@ func (bucket *Bucket) AddFrame(payload string) {
 	bucket.framenum++
 
 	if bucket.batchInTheMaking.size() >= bucket.framesPerBatch {
-		//log.Println("ici", len(bucket.batchInTheMaking.frames), bucket.batchInTheMaking.frames)
 		newbatch := *bucket.batchInTheMaking // copy content
 		bucket.batchInTheMaking = newBatch(bucket.batchnum, bucket.framesPerBatch)
 		bucket.batchnum++

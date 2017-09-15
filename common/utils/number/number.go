@@ -18,6 +18,9 @@ func ToFixed(val float64, places int) (newVal float64) {
 		round = math.Floor(digit)
 	}
 	newVal = round / pow
+	if newVal == -0.0 {
+		newVal = 0.0
+	}
 	return
 }
 
@@ -49,6 +52,10 @@ var epsilon float64 = 0.0000000001
 
 func IsZero(f float64) bool {
 	return math.Abs(f) < epsilon
+}
+
+func FloatEquals(a, b float64) bool {
+	return IsZero(b - a)
 }
 
 func Round(val float64) int {

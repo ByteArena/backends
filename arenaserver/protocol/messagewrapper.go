@@ -7,7 +7,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-type MessageWrapper interface {
+type MessageWrapperInterface interface {
 	GetAgentId() uuid.UUID
 	GetType() string
 	GetPayload() json.RawMessage

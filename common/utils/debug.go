@@ -2,13 +2,15 @@ package utils
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"os"
+	"time"
 )
 
 type Context map[string]interface{}
 
 type Message struct {
+	Time    string  `json:"time"`
 	Service string  `json:"service"`
 	Message string  `json:"message"`
 	Context Context `json:"context"`
@@ -22,6 +24,7 @@ func Debug(service string, message string) {
 	}
 
 	messageStruct := Message{
+		Time:    time.Now().Format(time.RFC3339),
 		Service: service,
 		Message: message,
 		Context: context,
@@ -29,5 +32,5 @@ func Debug(service string, message string) {
 
 	data, _ := json.Marshal(messageStruct)
 
-	log.Println(string(data))
+	fmt.Println(string(data))
 }

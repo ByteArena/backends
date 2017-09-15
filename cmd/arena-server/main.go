@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"log"
 	"math/rand"
 	"os"
 	"time"
@@ -31,14 +30,14 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano())
 
-	host := flag.String("host", "", "IP serving the arena; required")
+	host := flag.String("host", "", "IP serving the arena (TCP listen); required")
 	arenaServerUUID := flag.String("id", "", "ID of the arena; required")
 	port := flag.Int("port", 8080, "Port serving the arena")
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
-	apiurl := flag.String("apiurl", "http://graphql.net.bytearena.com", "GQL API URL")
+	apiurl := flag.String("apiurl", "https://graphql.net.bytearena.com", "GQL API URL")
 	timeout := flag.Int("timeout", 60, "Limit the time of the game (in minutes)")
 	registryAddr := flag.String("registryAddr", "", "Docker registry address")
-	arenaAddr := flag.String("arenaAddr", "", "Address of the arena")
+	arenaAddr := flag.String("arenaAddr", "", "Address of this arena server, resolvable by the agent")
 
 	flag.Parse()
 
@@ -46,7 +45,7 @@ func main() {
 	utils.Assert((*registryAddr) != "", "Docker registry address must be set")
 	utils.Assert((*arenaAddr) != "", "Arena address must be set")
 
-	log.Println("Byte Arena Server v0.1 ID#" + (*arenaServerUUID))
+	utils.Debug("arena-server", "Byte Arena Server v0.1 ID#"+(*arenaServerUUID))
 
 	// Make GraphQL client
 	graphqlclient := graphql.MakeClient(*apiurl)
@@ -62,84 +61,81 @@ func main() {
 		"id": (*arenaServerUUID),
 	}))
 
-	streamArenaLaunched := make(chan interface{})
-	notify.Start("game:launch", streamArenaLaunched)
-
-	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
-
-		log.Println(string(msg.Data))
-
-		var payload messageArenaLaunch
-		err := json.Unmarshal(msg.Data, &payload)
-		if err != nil {
-			log.Println(err)
-			log.Println("ERROR:game:launch Invalid payload " + string(msg.Data))
-			return
-		}
-
-		log.Println("INFO:game:launch Received from MESSAGEBROKER", payload)
-
-		notify.PostTimeout("game:launch", payload, time.Millisecond)
-	})
-
 	var hc *healthcheck.HealthCheckServer
 	if env == "prod" {
 		hc = NewHealthCheck(brokerclient, graphqlclient)
 		hc.Start()
 	}
 
-	go func() {
-		for {
-			select {
-			case payload := <-streamArenaLaunched:
-				{
-					if arenaSubmitted, ok := payload.(messageArenaLaunch); ok {
+	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
+		utils.Debug("arenamaster", "Received launching order")
 
-						// Fetch game from GraphQL
-						arena, err := apiqueries.FetchGameById(graphqlclient, arenaSubmitted.Id)
-						utils.Check(err, "Could not fetch game "+arenaSubmitted.Id)
-
-						orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
-						srv := arenaserver.NewServer(*host, *port, orch, arena)
-
-						for _, contestant := range arena.GetContestants() {
-							srv.RegisterAgent(contestant.AgentRegistry + "/" + contestant.AgentImage)
-						}
-
-						// handling signals
-						go func() {
-							<-common.SignalHandler()
-							utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
-							srv.Stop()
-						}()
-
-						go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
-
-						// Limit the game in time
-						timeoutTimer := time.NewTimer(time.Duration(*timeout) * time.Minute)
-						go func() {
-							<-timeoutTimer.C
-
-							srv.Stop()
-							utils.Debug("timer", "Timeout, stop the arena")
-						}()
-
-						<-srv.Start()
-						srv.TearDown()
-
-						notify.PostTimeout("game:stopped", nil, time.Millisecond)
-					}
-				}
-			}
+		var payload messageArenaLaunch
+		err := json.Unmarshal(msg.Data, &payload)
+		if err != nil {
+			utils.Debug("arena-server", "ERROR:game:launch Invalid payload "+string(msg.Data)+"; "+err.Error())
+			return
 		}
-	}()
+
+		arena, err := apiqueries.FetchGameById(graphqlclient, payload.Id)
+		utils.Check(err, "Could not fetch game "+payload.Id)
+
+		orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
+		srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID, brokerclient)
+
+		srv.AddTearDownCall(func() error {
+			if hc != nil {
+				utils.Debug("arena-server", "Stop healthcheck")
+				hc.Stop()
+			}
+
+			return nil
+		})
+
+		go startGame(payload, orch, arena, srv, *timeout)
+		go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
+	})
 
 	streamArenaStopped := make(chan interface{})
 	notify.Start("game:stopped", streamArenaStopped)
 
 	<-streamArenaStopped
+}
 
-	if hc != nil {
-		hc.Stop()
+func startGame(arenaSubmitted messageArenaLaunch, orch container.ContainerOrchestrator, arena arenaserver.GameInterface, srv *arenaserver.Server, timeout int) {
+	for _, contestant := range arena.GetContestants() {
+		srv.RegisterAgent(contestant.AgentRegistry+"/"+contestant.AgentImage, contestant.Username)
 	}
+
+	// handling signals
+	go func() {
+		<-common.SignalHandler()
+		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
+		srv.Stop()
+		utils.Debug("sighandler", "STOPPED server")
+	}()
+
+	// Limit the game in time
+	timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Minute)
+	go func() {
+		<-timeoutTimer.C
+
+		srv.Stop()
+		utils.Debug("timer", "Timeout, stop the arena")
+	}()
+
+	serverChan, startErr := srv.Start()
+
+	if startErr != nil {
+		srv.Stop()
+		utils.Debug("arena-server", "Cannot start server: "+startErr.Error())
+		os.Exit(1)
+	}
+
+	srv.SendLaunched()
+
+	<-serverChan
+	srv.Stop()
+
+	notify.PostTimeout("game:stopped", nil, time.Millisecond)
 }

@@ -17,7 +17,7 @@ type SingleArenaRecorder struct {
 	recordMetadataFile *os.File
 }
 
-func MakeSingleArenaRecorder(filename string) Recorder {
+func MakeSingleArenaRecorder(filename string) *SingleArenaRecorder {
 	tempBaseFilename := os.TempDir() + "/" + filename
 
 	f, err := os.OpenFile(tempBaseFilename, os.O_RDWR|os.O_CREATE, 0600)
@@ -102,6 +102,13 @@ func (r *SingleArenaRecorder) Record(UUID string, msg string) error {
 	return err
 }
 
-func (r *SingleArenaRecorder) GetDirectory() string {
+func (r *SingleArenaRecorder) GetFilePathForUUID(UUID string) string {
 	return ""
+}
+
+func (r *SingleArenaRecorder) RecordExists(UUID string) bool {
+	recordFile := r.GetFilePathForUUID(UUID)
+	_, err := os.Stat(recordFile)
+
+	return !os.IsNotExist(err)
 }

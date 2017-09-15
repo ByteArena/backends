@@ -1,7 +1,6 @@
 package perception
 
 import (
-	"log"
 	"math"
 
 	"github.com/bytearena/bytearena/arenaserver/agent"
@@ -9,33 +8,34 @@ import (
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	uuid "github.com/satori/go.uuid"
 )
 
-func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.Agent) []state.PerceptionVisionItem {
+func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.AgentInterface) []state.PerceptionVisionItem {
 
 	agentstate := serverstate.GetAgentState(agent.GetId())
+	vision := make([]state.PerceptionVisionItem, 0)
+
+	// Vision: Les autres agents
+	vision = append(vision, viewAgents(serverstate, agentstate, agent.GetId())...)
+
+	// Vision: les obstacles
+	vision = append(vision, viewObstacles(serverstate, agentstate)...)
+
+	return vision
+}
+
+func viewAgents(serverstate *state.ServerState, agentstate state.AgentState, agentid uuid.UUID) []state.PerceptionVisionItem {
 
 	vision := make([]state.PerceptionVisionItem, 0)
 
-	absoluteposition := agentstate.Position
 	orientation := agentstate.Orientation
-
-	// On détermine les bords gauche et droit du cône de vision de l'agent
-	halfvisionangle := agentstate.VisionAngle / 2
-	leftvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle*-1)
-	rightvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle)
-
-	// On détermine la perception visuelle de l'agent
-
-	///////////////////////////////////////////////////////////////////////////
-	// Vision: Les autres agents
-	///////////////////////////////////////////////////////////////////////////
+	radiussq := agentstate.VisionRadius * agentstate.VisionRadius
 
 	serverstate.Agentsmutex.Lock()
-	radiussq := agentstate.VisionRadius * agentstate.VisionRadius
 	for otheragentid, otheragentstate := range serverstate.Agents {
 
-		if otheragentid == agent.GetId() {
+		if otheragentid == agentid {
 			continue // one cannot see itself
 		}
 
@@ -54,8 +54,7 @@ func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.
 				Center:    centervec,
 				FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - orientation), // perpendicular to relative position vector, right side
 				Velocity:  otheragentstate.Velocity.Clone().SetAngle(otheragentstate.Velocity.Angle() - orientation),
-				//Tag:       otheragentstate.Tag,
-				Tag: "agent",
+				Tag:       "agent",
 			}
 
 			vision = append(vision, visionitem)
@@ -63,51 +62,27 @@ func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.
 	}
 	serverstate.Agentsmutex.Unlock()
 
-	///////////////////////////////////////////////////////////////////////////
-	// Vision: les obstacles
-	///////////////////////////////////////////////////////////////////////////
+	return vision
+}
 
-	if serverstate.MapMemoization == nil {
-		// We have to initialize the Obstacle list
+func viewObstacles(serverstate *state.ServerState, agentstate state.AgentState) []state.PerceptionVisionItem {
 
-		obstacles := make([]state.Obstacle, 0)
+	vision := make([]state.PerceptionVisionItem, 0)
 
-		// Les sols
-		for _, ground := range arenaMap.Data.Grounds {
-			for _, polygon := range ground.Outline {
-				for i := 0; i < len(polygon.Points)-1; i++ {
-					a := polygon.Points[i]
-					b := polygon.Points[i+1]
-					obstacles = append(obstacles, state.MakeObstacle(
-						vector.MakeVector2(a.X, a.Y),
-						vector.MakeVector2(b.X, b.Y),
-					))
-				}
-			}
-		}
+	absoluteposition := agentstate.Position
+	orientation := agentstate.Orientation
 
-		// Les obstacles explicites
-		for _, obstacle := range arenaMap.Data.Obstacles {
-			polygon := obstacle.Polygon
-			for i := 0; i < len(polygon.Points)-1; i++ {
-				a := polygon.Points[i]
-				b := polygon.Points[i+1]
-				obstacles = append(obstacles, state.MakeObstacle(
-					vector.MakeVector2(a.X, a.Y),
-					vector.MakeVector2(b.X, b.Y),
-				))
-			}
-		}
+	radiussq := agentstate.VisionRadius * agentstate.VisionRadius
 
-		serverstate.MapMemoization = &state.MapMemoization{
-			Obstacles: obstacles,
-		}
-	}
+	// On détermine les bords gauche et droit du cône de vision de l'agent
+	halfvisionangle := agentstate.VisionAngle / 2
+	leftvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle*-1)
+	rightvisionrelvec := vector.MakeVector2(1, 1).SetMag(agentstate.VisionRadius).SetAngle(orientation + halfvisionangle)
 
 	for _, obstacle := range serverstate.MapMemoization.Obstacles {
 
 		edges := make([]vector.Vector2, 0)
-		rejectededges := make([]vector.Vector2, 0)
+		//rejectededges := make([]vector.Vector2, 0)
 
 		relvecA := obstacle.A.Sub(absoluteposition)
 		relvecB := obstacle.B.Sub(absoluteposition)
@@ -229,15 +204,7 @@ func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.
 			vision = append(vision, obstacleperception)
 
 		} else if len(edges) > 0 {
-			log.Println("NOPE !", edges) // problems with FOV > 180
-		}
-
-		for _, edge := range edges {
-			serverstate.DebugIntersects = append(serverstate.DebugIntersects, edge)
-		}
-
-		for _, edge := range rejectededges {
-			serverstate.DebugIntersectsRejected = append(serverstate.DebugIntersectsRejected, edge)
+			// problems with FOV > 180
 		}
 	}
 

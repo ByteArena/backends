@@ -3,9 +3,11 @@ package main
 // Regexes from https://github.com/jkroso/parse-svg-path
 
 import (
-	"log"
+	"os"
 	"regexp"
 	"strconv"
+
+	"github.com/bytearena/bytearena/common/utils"
 )
 
 type PathOperation struct {
@@ -52,7 +54,8 @@ func parseNumbers(value string) []float64 {
 	for _, match := range reg.FindAllStringSubmatch(value, -1) {
 		f, err := strconv.ParseFloat(match[0], 64)
 		if err != nil {
-			log.Panicln("Error: cannot parse float value", match[0])
+			utils.Debug("svg-parser", "Error: cannot parse float value"+match[0])
+			os.Exit(1)
 		}
 
 		res = append(res, f)

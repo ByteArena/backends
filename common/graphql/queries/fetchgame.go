@@ -2,7 +2,6 @@ package queries
 
 import (
 	"encoding/json"
-	"log"
 
 	"errors"
 
@@ -45,7 +44,7 @@ query ($gameid: String = null) {
 }
 `
 
-func FetchGames(graphqlclient graphql.Client) ([]arenaserver.Game, error) {
+func FetchGames(graphqlclient graphql.Client) ([]arenaserver.GameInterface, error) {
 	data, err := graphqlclient.RequestSync(
 		graphql.NewQuery(gameQuery),
 	)
@@ -59,7 +58,7 @@ func FetchGames(graphqlclient graphql.Client) ([]arenaserver.Game, error) {
 	}
 	json.Unmarshal(data, &apiresponse)
 
-	res := make([]arenaserver.Game, 0)
+	res := make([]arenaserver.GameInterface, 0)
 	for _, game := range apiresponse.Games {
 		res = append(res, arenaserver.NewGameGql(game))
 	}
@@ -67,7 +66,7 @@ func FetchGames(graphqlclient graphql.Client) ([]arenaserver.Game, error) {
 	return res, nil
 }
 
-func FetchGameById(graphqlclient graphql.Client, gameid string) (arenaserver.Game, error) {
+func FetchGameById(graphqlclient graphql.Client, gameid string) (arenaserver.GameInterface, error) {
 
 	data, err := graphqlclient.RequestSync(
 		graphql.NewQuery(gameQuery).SetVariables(graphql.Variables{
@@ -76,7 +75,6 @@ func FetchGameById(graphqlclient graphql.Client, gameid string) (arenaserver.Gam
 	)
 
 	if err != nil {
-		log.Panicln(err)
 		return nil, errors.New("Could not fetch game '" + gameid + "' from GraphQL")
 	}
 

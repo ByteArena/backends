@@ -19,7 +19,7 @@ func InitBareGitRepository(repo protocol.GitRepository) error {
 		return errors.New("Error: git not found in $PATH")
 	}
 
-	// TODO: use git template here
+	// TODO(sven|jerome): use git template here
 	cmd := exec.Command(
 		gitbin,
 		"init", "--bare", "--template", "/home/git/template",

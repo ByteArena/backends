@@ -173,7 +173,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = build(message, envGitRepoPath, envGitRepoOwner+"/"+envGitRepoName)
+	err = build(message, envGitRepoPath, envGitRepoOwner+"/"+envGitRepoName, deploymentID)
 	if err != nil {
 		privateMsg("Error: could not build agent; " + err.Error())
 		updateDeployment(deploymentID, gqltypes.AgentDeployBuildStatus.Finished, true)
@@ -187,7 +187,7 @@ func main() {
 	}
 }
 
-func build(message, repourl, imagename string) error {
+func build(message, repourl, imagename, deploymentID string) error {
 
 	// On lance le build
 	builderbin, err := exec.LookPath("agentbuilder-cli")
@@ -199,6 +199,7 @@ func build(message, repourl, imagename string) error {
 		builderbin,
 		"--repourl", repourl,
 		"--imagename", imageprefix+imagename,
+		"--deploymentid", deploymentID,
 	)
 	cmd2.Env = os.Environ()
 

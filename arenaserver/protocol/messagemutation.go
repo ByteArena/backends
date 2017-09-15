@@ -2,18 +2,16 @@ package protocol
 
 import "encoding/json"
 
-type MessageMutations interface {
-	//GetTickTurnSeq() int
-	GetMutations() []MessageMutation
+type MessageMutationsInterface interface {
+	GetMutations() []MessageMutationInterface
 }
 
-type MessageMutation interface {
+type MessageMutationInterface interface {
 	GetMethod() string
 	GetArguments() json.RawMessage
 }
 
 type MessageMutationsImp struct {
-	//Turn      int
 	Mutations []MessageMutationImp
 }
 

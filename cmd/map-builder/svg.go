@@ -1,29 +1,31 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
-	"log"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"fmt"
 
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
-func ParseSVG(source []byte) SVGNode {
+func ParseSVG(source []byte) SVGNodeInterface {
 	root := NewSVGRoot()
 	xml.Unmarshal(source, &root)
 	return root
 }
 
-type SVGNode interface {
-	GetParent() SVGNode
-	GetChildren() []SVGNode
+type SVGNodeInterface interface {
+	GetParent() SVGNodeInterface
+	GetChildren() []SVGNodeInterface
 	GetTransform() vector.Matrix2
 	GetFullTransform() vector.Matrix2
-	AddChild(child SVGNode)
+	AddChild(child SVGNodeInterface)
 	GetId() string
 	GetFill() string
 }
@@ -31,15 +33,15 @@ type SVGNode interface {
 type SVGBasicNode struct {
 	id        string
 	fill      string
-	parent    SVGNode
-	children  []SVGNode
+	parent    SVGNodeInterface
+	children  []SVGNodeInterface
 	transform vector.Matrix2
 }
 
-func NewSVGBasicNode(parent SVGNode) *SVGBasicNode {
+func NewSVGBasicNode(parent SVGNodeInterface) *SVGBasicNode {
 	return &SVGBasicNode{
 		parent:    parent,
-		children:  make([]SVGNode, 0),
+		children:  make([]SVGNodeInterface, 0),
 		transform: vector.IdentityMatrix2(),
 	}
 }
@@ -107,7 +109,8 @@ func (n *SVGBasicNode) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 							x, err := strconv.ParseFloat(coords[0], 64)
 							y, err2 := strconv.ParseFloat(coords[1], 64)
 							if err != nil || err2 != nil {
-								log.Panicln("Could not parse translate transform", match[2])
+								utils.Debug("svg-parser", "Error: Could not parse translate transform; "+match[2])
+								os.Exit(1)
 							}
 
 							transform = transform.Translate(x, y)
@@ -116,7 +119,8 @@ func (n *SVGBasicNode) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 						{
 							a, err := strconv.ParseFloat(match[2], 64)
 							if err != nil {
-								log.Panicln("Could not parse rotate transform", match[2])
+								utils.Debug("svg-parser", "Error: Could not parse rotate transform; "+match[2])
+								os.Exit(1)
 							}
 
 							transform = transform.Rotate(a)
@@ -131,7 +135,8 @@ func (n *SVGBasicNode) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 							var y float64
 							x, err := strconv.ParseFloat(coords[0], 64)
 							if err != nil {
-								log.Panicln("Could not parse scale transform", match[2])
+								utils.Debug("svg-parser", "Error: Could not parse scale transform; "+match[2])
+								os.Exit(1)
 							}
 
 							if len(coords) == 1 {
@@ -139,7 +144,8 @@ func (n *SVGBasicNode) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 							} else {
 								y, err = strconv.ParseFloat(coords[1], 64)
 								if err != nil {
-									log.Panicln("Could not parse scale transform", match[2])
+									utils.Debug("svg-parser", "Error: Could not parse scale transform; "+match[2])
+									os.Exit(1)
 								}
 							}
 
@@ -147,13 +153,13 @@ func (n *SVGBasicNode) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 						}
 					case "skewX":
 						{
-							log.Panicln("transform skewX not implemented.")
-							// parse scale
+							utils.Debug("svg-parser", "Error: transform skewX not implemented")
+							os.Exit(1)
 						}
 					case "skewY":
 						{
-							log.Panicln("transform skewY not implemented.")
-							// parse scale
+							utils.Debug("svg-parser", "Error: transform skewY not implemented")
+							os.Exit(1)
 						}
 					}
 				}
@@ -173,7 +179,7 @@ Loop:
 		switch typedtoken := tok.(type) {
 		case xml.StartElement:
 			{
-				var node SVGNode
+				var node SVGNodeInterface
 				add := false
 				tagname := typedtoken.Name.Local
 
@@ -217,10 +223,10 @@ Loop:
 	return nil
 }
 
-func (n *SVGBasicNode) GetParent() SVGNode     { return n.parent }
-func (n *SVGBasicNode) GetChildren() []SVGNode { return n.children }
-func (n *SVGBasicNode) AddChild(child SVGNode) { n.children = append(n.children, child) }
-func (n *SVGBasicNode) GetId() string          { return n.id }
+func (n *SVGBasicNode) GetParent() SVGNodeInterface     { return n.parent }
+func (n *SVGBasicNode) GetChildren() []SVGNodeInterface { return n.children }
+func (n *SVGBasicNode) AddChild(child SVGNodeInterface) { n.children = append(n.children, child) }
+func (n *SVGBasicNode) GetId() string                   { return n.id }
 func (n *SVGBasicNode) GetFill() string {
 	if n.fill != "" {
 		return n.fill
@@ -238,7 +244,7 @@ func (n *SVGBasicNode) SetTransform(transform vector.Matrix2) { n.transform = tr
 func (n *SVGBasicNode) GetFullTransform() vector.Matrix2 {
 	t := vector.IdentityMatrix2()
 
-	var node SVGNode = n
+	var node SVGNodeInterface = n
 	for node != nil {
 		t = t.Mul(node.GetTransform())
 		node = node.GetParent()
@@ -247,9 +253,9 @@ func (n *SVGBasicNode) GetFullTransform() vector.Matrix2 {
 	return t
 }
 
-func GetSVGIDs(n SVGNode) SVGIDCollection {
+func GetSVGIDs(n SVGNodeInterface) SVGIDCollection {
 
-	var node SVGNode = n
+	var node SVGNodeInterface = n
 
 	res := make(SVGIDCollection, 0)
 	for node != nil {
@@ -289,7 +295,34 @@ func (c SVGIDCollection) Contains(search string) int {
 	return -1
 }
 
-func NewSVGGroup(parent SVGNode) *SVGGroup {
+type SVGIDFunction struct {
+	Function string
+	Args     json.RawMessage
+	Original string
+}
+
+func (c SVGIDCollection) GetFunctions() []SVGIDFunction {
+	funcs := make([]SVGIDFunction, 0)
+	r := regexp.MustCompile("^ba:([a-zA-Z]+)\\((.*?)\\)$")
+	for _, group := range c {
+		parts := strings.Split(group, "-")
+		for _, part := range parts {
+			if r.MatchString(part) {
+				matches := r.FindStringSubmatch(part)
+
+				funcs = append(funcs, SVGIDFunction{
+					Function: matches[1],
+					Args:     json.RawMessage("[" + matches[2] + "]"),
+					Original: part,
+				})
+			}
+		}
+	}
+
+	return funcs
+}
+
+func NewSVGGroup(parent SVGNodeInterface) *SVGGroup {
 	return &SVGGroup{
 		SVGBasicNode: NewSVGBasicNode(parent),
 	}
@@ -311,7 +344,7 @@ func (n *SVGPath) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) err
 	return n.SVGBasicNode.UnmarshalXML(decoder, start)
 }
 
-func NewSVGPath(parent SVGNode) *SVGPath {
+func NewSVGPath(parent SVGNodeInterface) *SVGPath {
 	return &SVGPath{
 		SVGBasicNode: NewSVGBasicNode(parent),
 	}
@@ -328,7 +361,7 @@ type SVGCircle struct {
 	r  float64
 }
 
-func NewSVGCircle(parent SVGNode) *SVGCircle {
+func NewSVGCircle(parent SVGNodeInterface) *SVGCircle {
 	return &SVGCircle{
 		SVGBasicNode: NewSVGBasicNode(parent),
 	}
@@ -384,7 +417,7 @@ func (n *SVGEllipse) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) 
 	return n.SVGBasicNode.UnmarshalXML(decoder, start)
 }
 
-func NewSVGEllipse(parent SVGNode) *SVGEllipse {
+func NewSVGEllipse(parent SVGNodeInterface) *SVGEllipse {
 	return &SVGEllipse{
 		SVGBasicNode: NewSVGBasicNode(parent),
 	}
@@ -403,7 +436,7 @@ type SVGPolygon struct {
 	points string
 }
 
-func NewSVGPolygon(parent SVGNode) *SVGPolygon {
+func NewSVGPolygon(parent SVGNodeInterface) *SVGPolygon {
 	return &SVGPolygon{
 		SVGBasicNode: NewSVGBasicNode(parent),
 	}
@@ -420,7 +453,7 @@ func (n *SVGPolygon) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) 
 	return n.SVGBasicNode.UnmarshalXML(decoder, start)
 }
 
-func SVGDebug(node SVGNode, depth int) string {
+func SVGDebug(node SVGNodeInterface, depth int) string {
 	var res []string
 	var nodename string
 

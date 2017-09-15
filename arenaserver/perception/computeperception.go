@@ -6,7 +6,7 @@ import (
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 )
 
-func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.Agent) state.Perception {
+func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.AgentInterface) state.Perception {
 	p := state.Perception{}
 	agentstate := serverstate.GetAgentState(agent.GetId())
 
@@ -21,6 +21,7 @@ func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *st
 	p.Specs.MaxAngularVelocity = agentstate.MaxAngularVelocity
 	p.Specs.VisionRadius = agentstate.VisionRadius
 	p.Specs.VisionAngle = agentstate.VisionAngle
+	p.Specs.DragForce = agentstate.DragForce
 
 	p.External.Vision = ComputeAgentVision(arenaMap, serverstate, agent)
 

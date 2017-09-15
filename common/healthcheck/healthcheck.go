@@ -2,9 +2,9 @@ package healthcheck
 
 import (
 	"encoding/json"
-	"log"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/bytearena/bytearena/common/utils"
 )
@@ -28,7 +28,7 @@ type HealthCheckHttpResponse struct {
 
 type HealthCheckHandler func() error
 
-func (server *HealthCheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (server *HealthCheckServer) /* @manglo:ignore */ ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res := HealthCheckHttpResponse{
 		Checks:     make([]HealthChecks, 0),
 		StatusCode: 200,
@@ -56,7 +56,13 @@ func (server *HealthCheckServer) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	}
 
 	data, err := json.Marshal(res)
-	utils.Check(err, "Failed to marshal response")
+	if err != nil {
+		utils.Debug("healthcheck", "Failed to marshal response")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("ERROR - Failed to marshal response"))
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(res.StatusCode)
@@ -74,7 +80,8 @@ func (server *HealthCheckServer) Start() chan struct{} {
 
 	listener, err := net.Listen("tcp4", ":"+server.port)
 	if err != nil {
-		log.Panicln(err)
+		utils.Debug("healthcheck", err.Error())
+		os.Exit(1)
 	}
 
 	server.listener = &http.Server{
@@ -85,8 +92,12 @@ func (server *HealthCheckServer) Start() chan struct{} {
 
 	go func(block chan struct{}) {
 		err := server.listener.Serve(listener)
-		utils.Check(err, "Failed to listen on :"+server.port)
 		close(block)
+
+		if err != nil {
+			utils.Debug("healthcheck", "Failed to listen on :"+server.port+": "+err.Error())
+		}
+
 	}(block)
 
 	return block

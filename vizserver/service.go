@@ -5,9 +5,6 @@ import (
 	"net/http"
 	"os"
 
-	"log"
-
-	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	apphandler "github.com/bytearena/bytearena/vizserver/handler"
@@ -16,65 +13,65 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type FetchArenasCbk func() ([]arenaserver.Game, error)
+type FetchArenasCbk func() ([]*types.VizGame, error)
 
 type VizService struct {
 	addr          string
 	webclientpath string
-	fetchArenas   FetchArenasCbk
+	fetchGames    FetchArenasCbk
 	listener      *http.Server
-	recorder      recording.Recorder
+	recordStore   recording.RecordStoreInterface
+	pathToAssets  string
 }
 
-func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk, recorder recording.Recorder) *VizService {
+func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk, recordStore recording.RecordStoreInterface) *VizService {
 	return &VizService{
 		addr:          addr,
 		webclientpath: webclientpath,
-		fetchArenas:   fetchArenas,
-		recorder:      recorder,
+		fetchGames:    fetchArenas,
+		recordStore:   recordStore,
 	}
+}
+
+func (viz *VizService) SetPathToAssets(path string) {
+	viz.pathToAssets = path
 }
 
 func (viz *VizService) Start() chan struct{} {
 
-	games, err := viz.fetchArenas()
-	utils.Check(err, "VizService: Could not fetch arenas")
-
-	vizarenas := types.NewVizArenaMap()
-	for _, game := range games {
-		vizarenas.Set(
-			game.GetId(),
-			types.NewVizArena(game),
-		)
-	}
-
 	logger := os.Stdout
 	router := mux.NewRouter()
+
+	// Les assets de la viz (js, modèles, textures)
+	router.PathPrefix("/lib/").Handler(http.StripPrefix("/lib/", http.FileServer(http.Dir(viz.webclientpath+"/lib/"))))
+	cdnBaseURL := "https://static.bytearena.com/assets/bytearena"
+
+	if viz.pathToAssets != "" {
+		router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(viz.pathToAssets))))
+		cdnBaseURL = "/assets"
+	}
+
 	router.Handle("/", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Home(vizarenas)),
+		http.HandlerFunc(apphandler.Home(viz.fetchGames)),
 	)).Methods("GET")
 
 	router.Handle("/record/{recordId:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Replay(viz.recorder, viz.webclientpath)),
+		http.HandlerFunc(apphandler.Replay(viz.recordStore, viz.webclientpath, cdnBaseURL)),
 	)).Methods("GET")
 
 	router.Handle("/record/{recordId:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.ReplayWebsocket(viz.recorder, viz.webclientpath)),
+		http.HandlerFunc(apphandler.ReplayWebsocket(viz.recordStore, viz.webclientpath)),
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Arena(vizarenas, viz.webclientpath)),
+		http.HandlerFunc(apphandler.Game(viz.fetchGames, viz.webclientpath, cdnBaseURL)),
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Websocket(vizarenas, viz.recorder)),
+		http.HandlerFunc(apphandler.Websocket(viz.fetchGames)),
 	)).Methods("GET")
 
-	// Les assets de la viz (js, modèles, textures)
-	router.PathPrefix("/lib/").Handler(http.FileServer(http.Dir(viz.webclientpath)))
-	router.PathPrefix("/res/").Handler(http.FileServer(http.Dir(viz.webclientpath)))
-
-	log.Println("VIZ Listening on " + viz.addr)
+	utils.Debug("viz-server", "VIZ Listening on "+viz.addr)
 
 	listener, err := net.Listen("tcp4", viz.addr)
 	if err != nil {

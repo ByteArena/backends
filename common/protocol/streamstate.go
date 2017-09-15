@@ -2,16 +2,17 @@ package protocol
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/leakybucket"
 )
 
-func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface, UUID string) {
+func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface, arenaServerUUID string) {
 
 	buk := leakybucket.NewBucket(
 		srv.GetTicksPerSecond(),
@@ -33,14 +34,30 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface, UUID 
 		case serverstate := <-stateobserver:
 			{
 				msg := transformServerStateToVizMessage(
-					srv.GetArena(),
+					srv.GetGame(),
 					serverstate,
-					UUID,
+					arenaServerUUID,
 				)
 
 				json, err := json.Marshal(msg)
 				if err != nil {
-					log.Println("json error, wtf")
+					utils.Debug("viz-server", "json error, wtf")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println(err)
+					fmt.Println(msg)
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
+					fmt.Println("")
 					return
 				}
 
@@ -51,22 +68,20 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface, UUID 
 
 }
 
-func transformServerStateToVizMessage(game arenaserver.Game, state state.ServerState, UUID string) types.VizMessage {
+func transformServerStateToVizMessage(game arenaserver.GameInterface, state state.ServerState, arenaServerUUID string) types.VizMessage {
 
 	msg := types.VizMessage{
-		ArenaId: game.GetId(),
-		UUID:    UUID,
+		GameID:          game.GetId(),
+		ArenaServerUUID: arenaServerUUID,
 	}
 
 	state.Projectilesmutex.Lock()
 	for _, projectile := range state.Projectiles {
 		msg.Projectiles = append(msg.Projectiles, types.VizProjectileMessage{
-			Position: projectile.Velocity,
-			Radius:   projectile.Radius,
-			Kind:     "projectiles",
-			From: types.VizAgentMessage{
-				Position: projectile.Position,
-			},
+			Id:       projectile.Id,
+			Position: projectile.Position,
+			Velocity: projectile.Velocity,
+			Kind:     "projectile",
 		})
 	}
 	state.Projectilesmutex.Unlock()
@@ -75,6 +90,7 @@ func transformServerStateToVizMessage(game arenaserver.Game, state state.ServerS
 	for id, agent := range state.Agents {
 		msg.Agents = append(msg.Agents, types.VizAgentMessage{
 			Id:           id,
+			Name:         agent.GetName(),
 			Kind:         "agent",
 			Position:     agent.Position,
 			Velocity:     agent.Velocity,
@@ -82,12 +98,11 @@ func transformServerStateToVizMessage(game arenaserver.Game, state state.ServerS
 			Orientation:  agent.Orientation,
 			VisionRadius: agent.VisionRadius,
 			VisionAngle:  agent.VisionAngle,
+			DebugMsg:     agent.DebugMsg,
 		})
 	}
 	state.Agentsmutex.Unlock()
 
-	msg.DebugIntersects = state.DebugIntersects
-	msg.DebugIntersectsRejected = state.DebugIntersectsRejected
 	msg.DebugPoints = state.DebugPoints
 
 	return msg

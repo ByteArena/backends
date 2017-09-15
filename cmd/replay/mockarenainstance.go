@@ -3,13 +3,15 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bytearena/bytearena/arenaserver"
+	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
+	"github.com/bytearena/bytearena/common/utils"
 )
 
 type MockGame struct {
@@ -23,7 +25,8 @@ func NewMockGame(tps int) *MockGame {
 	filepath := "../../maps/trainer-map.json"
 	jsonsource, err := os.Open(filepath)
 	if err != nil {
-		log.Panicln("Error opening file:", err)
+		utils.Debug("replay", "Error opening file: "+err.Error())
+		os.Exit(1)
 	}
 
 	defer jsonsource.Close()
@@ -32,7 +35,8 @@ func NewMockGame(tps int) *MockGame {
 
 	var mapContainer mapcontainer.MapContainer
 	if err := json.Unmarshal(bjsonmap, &mapContainer); err != nil {
-		log.Panicln("Could not load map JSON")
+		utils.Debug("replay", "Could not load map JSON")
+		os.Exit(1)
 	}
 
 	return &MockGame{
@@ -42,19 +46,31 @@ func NewMockGame(tps int) *MockGame {
 	}
 }
 
-func (ins *MockGame) GetId() string {
-	return "2"
+func (game *MockGame) GetId() string {
+	return "1"
 }
 
-func (ins *MockGame) GetName() string {
-	return "Trainer game"
+func (game *MockGame) GetName() string {
+	return "Replay game"
 }
 
-func (ins *MockGame) GetTps() int {
-	return ins.tps
+func (game *MockGame) GetTps() int {
+	return game.tps
 }
 
-func (ins *MockGame) AddContestant(agentimage string) {
+func (game *MockGame) GetRunStatus() int {
+	return gqltypes.GameRunStatus.Running
+}
+
+func (game *MockGame) GetLaunchedAt() string {
+	return time.Now().Format("2006-01-02T15:04:05-0700")
+}
+
+func (game *MockGame) GetEndedAt() string {
+	return ""
+}
+
+func (game *MockGame) AddContestant(agentimage string) {
 
 	parts := strings.Split(agentimage, "/")
 	var registry string
@@ -68,19 +84,19 @@ func (ins *MockGame) AddContestant(agentimage string) {
 		imagename = agentimage
 	}
 
-	ins.contestants = append(ins.contestants, arenaserver.Contestant{
-		Id:            strconv.Itoa(len(ins.contestants) + 1),
-		Username:      "trainer-user",
-		AgentName:     "Trainee " + agentimage,
+	game.contestants = append(game.contestants, arenaserver.Contestant{
+		Id:            strconv.Itoa(len(game.contestants) + 1),
+		Username:      "replay-user",
+		AgentName:     "Replay of " + agentimage,
 		AgentRegistry: registry,
 		AgentImage:    imagename,
 	})
 }
 
-func (ins *MockGame) GetContestants() []arenaserver.Contestant {
-	return ins.contestants
+func (game *MockGame) GetContestants() []arenaserver.Contestant {
+	return game.contestants
 }
 
-func (ins *MockGame) GetMapContainer() *mapcontainer.MapContainer {
-	return ins.mapContainer
+func (game *MockGame) GetMapContainer() *mapcontainer.MapContainer {
+	return game.mapContainer
 }
