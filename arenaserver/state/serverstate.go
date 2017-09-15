@@ -34,7 +34,7 @@ type ServerState struct {
 
 	PhysicalWorld *b2dynamics.B2World
 
-	//MapMemoization *MapMemoization
+	MapMemoization *MapMemoization
 }
 
 /* ***************************************************************************/
@@ -56,8 +56,8 @@ func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 
 		DebugPoints:      make([]vector.Vector2, 0),
 		debugPointsMutex: &sync.Mutex{},
-		//MapMemoization: initializeMapMemoization(arenaMap),
-		PhysicalWorld: buildPhysicalWorld(arenaMap),
+		MapMemoization:   initializeMapMemoization(arenaMap),
+		PhysicalWorld:    buildPhysicalWorld(arenaMap),
 	}
 }
 
@@ -270,7 +270,6 @@ func GetBoundingBox(points []vector.Vector2) (rtreego.Point, rtreego.Point) {
 	return []float64{minX, minY}, []float64{width, height}
 }
 
-/*
 func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoization {
 
 	///////////////////////////////////////////////////////////////////////////
@@ -314,105 +313,10 @@ func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 		}
 	}
 
-	///////////////////////////////////////////////////////////////////////////
-	// Initialize Obstacle RTree
-	///////////////////////////////////////////////////////////////////////////
-
-	rtObstacles := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
-
-	for _, obstacle := range obstacles {
-
-		pa, pb := GetBoundingBox([]vector.Vector2{obstacle.A, obstacle.B})
-		r, err := rtreego.NewRect(pa, pb)
-		if err != nil {
-			utils.Debug("rtree-obstacles-init", "rtreego: NewRect error;"+err.Error())
-		}
-
-		var geotype int
-		if obstacle.Type == ObstacleType.Ground {
-			geotype = GeometryObjectType.ObstacleGround
-		} else {
-			geotype = GeometryObjectType.ObstacleObject
-		}
-
-		rtObstacles.Insert(&GeometryObject{
-			Type:   geotype,
-			ID:     obstacle.Id,
-			Rect:   r,
-			PointA: obstacle.A,
-			PointB: obstacle.B,
-			Normal: obstacle.Normal,
-		})
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	// Initialize Ground Surface RTree
-	///////////////////////////////////////////////////////////////////////////
-
-	rtSurface := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
-
-	for _, ground := range arenaMap.Data.Grounds {
-
-		for i := 0; i < len(ground.Mesh.Vertices); i += 9 {
-
-			// Skipping Height dimension
-			points := [3]vector.Vector2{
-				vector.MakeVector2(ground.Mesh.Vertices[i], ground.Mesh.Vertices[i+2]),
-				vector.MakeVector2(ground.Mesh.Vertices[i+3], ground.Mesh.Vertices[i+5]),
-				vector.MakeVector2(ground.Mesh.Vertices[i+6], ground.Mesh.Vertices[i+8]),
-			}
-
-			pa, pb := GetBoundingBox(points[:])
-			r, err := rtreego.NewRect(pa, pb)
-			if err != nil {
-				utils.Debug("rtree-ground-init", "rtreego: NewRect error;"+err.Error())
-			}
-
-			rtSurface.Insert(&TriangleRtreeWrapper{
-				Rect:   r,
-				Points: points,
-			})
-		}
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	// Initialize Collision Meshes RTree
-	///////////////////////////////////////////////////////////////////////////
-
-	rtCollisions := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
-
-	for _, collisionmesh := range arenaMap.Data.CollisionMeshes {
-
-		for i := 0; i < len(collisionmesh.Vertices); i += 9 {
-
-			// Skipping Height dimension
-			points := [3]vector.Vector2{
-				vector.MakeVector2(collisionmesh.Vertices[i], collisionmesh.Vertices[i+2]),
-				vector.MakeVector2(collisionmesh.Vertices[i+3], collisionmesh.Vertices[i+5]),
-				vector.MakeVector2(collisionmesh.Vertices[i+6], collisionmesh.Vertices[i+8]),
-			}
-
-			pa, pb := GetBoundingBox(points[:])
-			r, err := rtreego.NewRect(pa, pb)
-			if err != nil {
-				utils.Debug("rtree-collision-init", "rtreego: NewRect error;"+err.Error())
-			}
-
-			rtCollisions.Insert(&TriangleRtreeWrapper{
-				Rect:   r,
-				Points: points,
-			})
-		}
-	}
-
 	return &MapMemoization{
-		Obstacles:       obstacles,
-		RtreeObstacles:  rtObstacles,
-		RtreeSurface:    rtSurface,
-		RtreeCollisions: rtCollisions,
+		Obstacles: obstacles,
 	}
 }
-*/
 
 func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *b2dynamics.B2World {
 

@@ -1,7 +1,6 @@
-package collision
+package trigo
 
 import (
-	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
@@ -9,7 +8,7 @@ func collideOrientedRectangles(polyOne, polyTwo []vector.Vector2) []vector.Vecto
 
 	points := make([]vector.Vector2, 0)
 
-	if !trigo.DoClosedConvexPolygonsIntersect(polyOne, polyTwo) {
+	if !DoClosedConvexPolygonsIntersect(polyOne, polyTwo) {
 		return points
 	}
 
@@ -27,7 +26,7 @@ func collideOrientedRectangles(polyOne, polyTwo []vector.Vector2) []vector.Vecto
 		polyOneEdge := vector.MakeSegment2(polyOne[i], polyOne[(i+1)%4])
 		for j := 0; j < 4; j++ {
 			polyTwoEdge := vector.MakeSegment2(polyOne[j], polyOne[(j+1)%4])
-			if collisionPoint, intersects, colinear, _ := trigo.SegmentIntersectionWithLineSegment(
+			if collisionPoint, intersects, colinear, _ := SegmentIntersectionWithLineSegment(
 				polyOneEdge,
 				polyTwoEdge,
 			); intersects {
@@ -39,24 +38,24 @@ func collideOrientedRectangles(polyOne, polyTwo []vector.Vector2) []vector.Vecto
 
 					a1, a2 := polyOneEdge.Get()
 					b1, b2 := polyTwoEdge.Get()
-					if trigo.PointOnLineSegment(a1, b1, b2) {
+					if PointOnLineSegment(a1, b1, b2) {
 						colinearIntersections = append(colinearIntersections, a1)
 					}
 
-					if trigo.PointOnLineSegment(a2, b1, b2) {
+					if PointOnLineSegment(a2, b1, b2) {
 						colinearIntersections = append(colinearIntersections, a2)
 					}
 
-					if trigo.PointOnLineSegment(b1, a1, a2) {
+					if PointOnLineSegment(b1, a1, a2) {
 						colinearIntersections = append(colinearIntersections, b1)
 					}
 
-					if trigo.PointOnLineSegment(b2, a1, a2) {
+					if PointOnLineSegment(b2, a1, a2) {
 						colinearIntersections = append(colinearIntersections, b2)
 					}
 
 					if len(colinearIntersections) > 0 {
-						centerOfMass, _ := trigo.ComputeCenterOfMass(colinearIntersections)
+						centerOfMass, _ := ComputeCenterOfMass(colinearIntersections)
 						points = append(points, centerOfMass)
 					}
 				}

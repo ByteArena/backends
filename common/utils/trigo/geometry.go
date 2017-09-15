@@ -1,11 +1,9 @@
-package collision
+package trigo
 
 import (
 	"errors"
 
 	polyclip "github.com/akavel/polyclip-go"
-	"github.com/bytearena/bytearena/arenaserver/state"
-	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/dhconnelly/rtreego"
 )
@@ -77,7 +75,7 @@ func GetTrajectoryBoundingBox(beginPoint vector.Vector2, beginRadius float64, en
 	beginBottomLeft, beginTopRight := getGeometryObjectBoundingBox(beginPoint, beginRadius)
 	endBottomLeft, endTopRight := getGeometryObjectBoundingBox(endPoint, endRadius)
 
-	bbTopLeft, bbDimensions := state.GetBoundingBox([]vector.Vector2{beginBottomLeft, beginTopRight, endBottomLeft, endTopRight})
+	bbTopLeft, bbDimensions := GetBoundingBox([]vector.Vector2{beginBottomLeft, beginTopRight, endBottomLeft, endTopRight})
 
 	//show := spew.ConfigState{MaxDepth: 5, Indent: "    "}
 
@@ -93,46 +91,41 @@ func GetTrajectoryBoundingBox(beginPoint vector.Vector2, beginRadius float64, en
 	return bbRegion, nil
 }
 
-func isInsideGroundSurface(mapmemoization *state.MapMemoization, point vector.Vector2) bool {
+func GetBoundingBox(points []vector.Vector2) (rtreego.Point, rtreego.Point) {
 
-	px, py := point.Get()
+	var minX = 10000000000.0
+	var minY = 10000000000.0
+	var maxX = -10000000000.0
+	var maxY = -10000000000.0
 
-	bb, _ := rtreego.NewRect([]float64{px - 0.005, py - 0.005}, []float64{0.01, 0.01})
-	matchingTriangles := mapmemoization.RtreeSurface.SearchIntersect(bb)
+	for _, point := range points {
+		x, y := point.Get()
+		if x < minX {
+			minX = x
+		}
 
-	if len(matchingTriangles) == 0 {
-		return false
-	}
+		if y < minY {
+			minY = y
+		}
 
-	// On vérifie que le point est bien dans un des triangles
-	for _, spatial := range matchingTriangles {
-		triangle := spatial.(*state.TriangleRtreeWrapper)
-		if trigo.PointIsInTriangle(point, triangle.Points[0], triangle.Points[1], triangle.Points[2]) {
-			return true
+		if x > maxX {
+			maxX = x
+		}
+
+		if y > maxY {
+			maxY = y
 		}
 	}
 
-	return false
-}
-
-func isInsideCollisionMesh(mapmemoization *state.MapMemoization, point vector.Vector2) bool {
-
-	px, py := point.Get()
-
-	bb, _ := rtreego.NewRect([]float64{px - 0.005, py - 0.005}, []float64{0.01, 0.01})
-	matchingTriangles := mapmemoization.RtreeCollisions.SearchIntersect(bb)
-
-	if len(matchingTriangles) == 0 {
-		return false
+	width := maxX - minX
+	if width <= 0 {
+		width = 0.00001
 	}
 
-	// On vérifie que le point est bien dans un des triangles
-	for _, spatial := range matchingTriangles {
-		triangle := spatial.(*state.TriangleRtreeWrapper)
-		if trigo.PointIsInTriangle(point, triangle.Points[0], triangle.Points[1], triangle.Points[2]) {
-			return true
-		}
+	height := maxY - minY
+	if height <= 0 {
+		height = 0.00001
 	}
 
-	return false
+	return []float64{minX, minY}, []float64{width, height}
 }

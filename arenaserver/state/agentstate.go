@@ -118,14 +118,7 @@ func (state AgentState) SetName(name string) AgentState {
 
 func (state AgentState) Update() AgentState {
 
-	//
-	// Apply drag to velocity
-	//
-	if state.DragForce > state.GetVelocity().Mag() {
-		state.SetVelocity(vector.MakeNullVector2())
-	} else {
-		state.SetVelocity(state.GetVelocity().Sub(state.GetVelocity().Clone().SetMag(state.DragForce)))
-		//state.SetPosition(state.GetPosition().Add(state.GetVelocity()))
+	if state.GetVelocity().Mag() > 0.01 {
 		state.SetOrientation(state.GetVelocity().Angle())
 	}
 
@@ -166,8 +159,6 @@ func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
 	}
 	abssteering := localAngleToAbsoluteAngleVec(state.GetOrientation(), steering, &state.MaxAngularVelocity)
 	state.SetVelocity(abssteering.Limit(state.MaxSpeed))
-
-	//spew.Dump(state.GetVelocity())
 
 	return state
 }

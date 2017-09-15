@@ -1,7 +1,6 @@
-package collision
+package trigo
 
 import (
-	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
@@ -21,7 +20,7 @@ func collideCirclesCircles(colliderCenterA vector.Vector2, colliderRadiusA float
 	// ColliderCircleA/CollideeCircleB, ColliderCircleB/CollideeCircleA
 
 	// ColliderCircleA/CollideeCircleA
-	intersections, firstContainsSecond, secondContainsFirst := trigo.CircleCircleIntersectionPoints(colliderCenterA, colliderRadiusA, collideeCenterA, collideeRadiusA)
+	intersections, firstContainsSecond, secondContainsFirst := CircleCircleIntersectionPoints(colliderCenterA, colliderRadiusA, collideeCenterA, collideeRadiusA)
 	if len(intersections) > 0 {
 		points = append(points, intersections...)
 	} else if firstContainsSecond {
@@ -31,7 +30,7 @@ func collideCirclesCircles(colliderCenterA vector.Vector2, colliderRadiusA float
 	}
 
 	// ColliderCircleB/CollideeCircleB
-	intersections, firstContainsSecond, secondContainsFirst = trigo.CircleCircleIntersectionPoints(colliderCenterB, colliderRadiusB, collideeCenterB, collideeRadiusB)
+	intersections, firstContainsSecond, secondContainsFirst = CircleCircleIntersectionPoints(colliderCenterB, colliderRadiusB, collideeCenterB, collideeRadiusB)
 	if len(intersections) > 0 {
 		points = append(points, intersections...)
 	} else if firstContainsSecond {
@@ -41,7 +40,7 @@ func collideCirclesCircles(colliderCenterA vector.Vector2, colliderRadiusA float
 	}
 
 	// ColliderCircleA/CollideeCircleB
-	intersections, firstContainsSecond, secondContainsFirst = trigo.CircleCircleIntersectionPoints(colliderCenterA, colliderRadiusA, collideeCenterB, collideeRadiusB)
+	intersections, firstContainsSecond, secondContainsFirst = CircleCircleIntersectionPoints(colliderCenterA, colliderRadiusA, collideeCenterB, collideeRadiusB)
 	if len(intersections) > 0 {
 		points = append(points, intersections...)
 	} else if firstContainsSecond {
@@ -51,7 +50,7 @@ func collideCirclesCircles(colliderCenterA vector.Vector2, colliderRadiusA float
 	}
 
 	// ColliderCircleB/CollideeCircleA
-	intersections, firstContainsSecond, secondContainsFirst = trigo.CircleCircleIntersectionPoints(colliderCenterB, colliderRadiusB, collideeCenterA, collideeRadiusA)
+	intersections, firstContainsSecond, secondContainsFirst = CircleCircleIntersectionPoints(colliderCenterB, colliderRadiusB, collideeCenterA, collideeRadiusA)
 	if len(intersections) > 0 {
 		points = append(points, intersections...)
 	} else if firstContainsSecond {

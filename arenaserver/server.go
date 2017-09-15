@@ -558,44 +558,16 @@ func (server *Server) startTicking() {
 	}()
 }
 
-func (server *Server) processMutations() {
-	server.debugNbMutations++
-	server.state.ProcessMutations()
-}
-
 func (server *Server) update() {
 
 	server.debugNbUpdates++
+	server.debugNbMutations++
 
-	// ///////////////////////////////////////////////////////////////////////////
-	// // Updates physiques, liées au temps qui passe
-	// // Avant de récuperer les mutations de chaque tour, et même avant de constituer la perception de chaque agent
-	// ///////////////////////////////////////////////////////////////////////////
-
-	// //
-	// // Updating projectiles
-	// //
-
-	// projectilesMovements := updateProjectiles(server)
-
-	// //
-	// // Updating agents
-	// //
-
-	// // Keeping position and velocity before update (useful for obstacle detection)
-	// agentsMovements := updateAgents(server)
-
-	// ///////////////////////////////////////////////////////////////////////////
-	// // Collision
-	// ///////////////////////////////////////////////////////////////////////////
-
-	// handleCollisions(server, agentsMovements, projectilesMovements)
+	server.state.ProcessMutations()
 
 	///////////////////////////////////////////////////////////////////////////
 	// On supprime les projectiles en fin de vie
 	///////////////////////////////////////////////////////////////////////////
-
-	server.processMutations()
 
 	server.state.Projectilesmutex.Lock()
 
