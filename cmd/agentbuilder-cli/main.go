@@ -1,20 +1,28 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/bytearena/bytearena/agentbuilder"
 	"github.com/bytearena/bytearena/common"
 )
 
 func msgOut(msg string) {
-	fmt.Println("🛑  " + msg)
+	msgOutNoExit(msg)
 	os.Exit(1)
+}
+
+func msgOutNoExit(msg string) {
+	fmt.Println("🛑  " + msg)
 }
 
 func welcomeBanner() {
@@ -91,8 +99,6 @@ func pingRegistry(host string) error {
 
 func buildAndDeploy(cloneurl, registryHost, imageName, deploymentid string) error {
 
-	//utils.Debug("agentbuilder-cli", "build and deploy image: "+imageName)
-
 	welcomeBanner()
 
 	dir := cloneRepo(cloneurl, fmt.Sprintf("%s-%d", imageName, time.Now().UnixNano()))
@@ -106,19 +112,96 @@ func buildAndDeploy(cloneurl, registryHost, imageName, deploymentid string) erro
 	return nil
 }
 
+func assertAgentCodeIsLegit(absBuildDir string) {
+
+	maxDockerfileSizeInByte := 8192
+	agentImageNamespace := "bytearena/agent/"
+	systemImageNamespace := "bytearena/"
+
+	dockerfilePath := absBuildDir + "/Dockerfile"
+
+	// on vérifie que le chemin contient bien un Dockerfile
+	dockerfileStat, err := os.Stat(dockerfilePath)
+
+	if os.IsNotExist(err) {
+		msgOut("Error: Your agent code does not contain the required Dockerfile.")
+	}
+
+	if !dockerfileStat.Mode().IsRegular() {
+		msgOut("Error: Your agent's Dockerfile is not a valid file.")
+	}
+
+	if dockerfileStat.Size() > int64(maxDockerfileSizeInByte) {
+		msgOut("Error: Your agent's Dockerfile is bigger than the limit of " + strconv.Itoa(maxDockerfileSizeInByte) + " bytes.")
+	}
+
+	dockerfilePointer, err := os.OpenFile(dockerfilePath, os.O_RDONLY, 0666)
+	if err != nil {
+		msgOut("Error: Could not read your agent's Dockerfile.")
+	}
+	defer dockerfilePointer.Close()
+
+	dockerfileContent := make([]byte, maxDockerfileSizeInByte)
+	size, err := dockerfilePointer.Read(dockerfileContent)
+	if err != nil {
+		msgOut("Error: Could not read your agent's Dockerfile.")
+	}
+
+	dockerfileContent = dockerfileContent[:size]
+
+	// on vérifie que le Dockerfile ne contient que des FROM légitimes
+	froms, err := agentbuilder.DockerfileParserGetFroms(bytes.NewReader(dockerfileContent))
+	if err != nil {
+		msgOut("Error: Your agent's Dockerfile cannot be parsed.")
+	}
+
+	for _, from := range froms {
+		if strings.HasPrefix(from, agentImageNamespace) {
+			msgOut("Error: Your agent Dockerfile cannot extend images from the namespace " + agentImageNamespace)
+		}
+
+		if strings.HasPrefix(from, systemImageNamespace) {
+			msgOut("Error: Your agent Dockerfile cannot extend images from the namespace " + systemImageNamespace)
+		}
+	}
+
+	forbiddenInstructions, err := agentbuilder.DockerfileFindForbiddenInstructions(bytes.NewReader(dockerfileContent))
+
+	if err != nil {
+		msgOut("Error: Your agent's Dockerfile cannot be parsed.")
+	}
+
+	for name, _ := range forbiddenInstructions {
+		msgOutNoExit("Error: forbidden instruction in Dockerfile: `" + name.String() + "`.")
+	}
+
+	if len(forbiddenInstructions) > 0 {
+		msgOut("Agent was not built because the Dockerfile is not valid.")
+	}
+}
+
+func orString(value, defaultValue string) string {
+	if value == "" {
+		return defaultValue
+	}
+
+	return value
+}
+
 func buildImage(absBuildDir string, name string) {
-	//utils.Debug("agentbuilder-cli", "Building agent")
+
+	assertAgentCodeIsLegit(absBuildDir)
 
 	dockerbin, err := exec.LookPath("docker")
 	if err != nil {
 		msgOut("Error: docker command not found in path")
 	}
 
-	dockerBuildMemoryLimit := os.Getenv("DOCKER_BUILD_MEMORY_LIMIT")
-	dockerBuildSwapLimit := os.Getenv("DOCKER_BUILD_SWAP_LIMIT")
-	dockerBuildNetwork := os.Getenv("DOCKER_BUILD_NETWORK")
-	dockerBuildNoCache := os.Getenv("DOCKER_BUILD_NO_CACHE")
-	dockerBuildCpuPeriod := os.Getenv("DOCKER_BUILD_CPU_PERIOD")
+	dockerBuildMemoryLimit := orString(os.Getenv("DOCKER_BUILD_MEMORY_LIMIT"), "100m")
+	dockerBuildSwapLimit := orString(os.Getenv("DOCKER_BUILD_SWAP_LIMIT"), "100m")
+	dockerBuildNetwork := orString(os.Getenv("DOCKER_BUILD_NETWORK"), "bridge")
+	dockerBuildNoCache := orString(os.Getenv("DOCKER_BUILD_NO_CACHE"), "true")
+	dockerBuildCpuPeriod := orString(os.Getenv("DOCKER_BUILD_CPU_PERIOD"), "5000")
 
 	dockargs := []string{
 		"build",
@@ -154,7 +237,6 @@ func buildImage(absBuildDir string, name string) {
 }
 
 func deployImage(name string, imageVersion string, registryhost string) {
-	//utils.Debug("agentbuilder-cli", "Deploying to docker registry")
 
 	dockerbin, err := exec.LookPath("docker")
 	if err != nil {
@@ -170,9 +252,6 @@ func deployImage(name string, imageVersion string, registryhost string) {
 		imageurl,
 	)
 	cmd.Env = nil
-	// cmd.Stdin = os.Stdin
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
 		msgOut("Error: could not tag image")
@@ -188,9 +267,6 @@ func deployImage(name string, imageVersion string, registryhost string) {
 		imageurl,
 	)
 	cmd2.Env = nil
-	// cmd2.Stdin = os.Stdin
-	// cmd2.Stdout = os.Stdout
-	// cmd2.Stderr = os.Stderr
 
 	if err := cmd2.Start(); err != nil {
 		msgOut("Error: could not push image to registry")
@@ -210,7 +286,6 @@ func cloneRepo(url string, hash string) string {
 
 	dir := "/tmp/" + hash
 	os.RemoveAll(dir)
-	//utils.Debug("agentbuilder-cli", "Cloning "+url+" into "+dir)
 
 	cmd := exec.Command(
 		gitbin,
