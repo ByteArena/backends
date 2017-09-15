@@ -72,8 +72,6 @@ func (server *Server) startStateReporting(addr, db string) error {
 
 			if err != nil {
 				panic(err.Error())
-			} else {
-				utils.Debug("state-reporting", "New point: "+pt.String())
 			}
 
 			bp.AddPoint(pt)
