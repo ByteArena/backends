@@ -13,9 +13,7 @@ import (
 func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
 
 	if len(state.idleArenas) > 0 {
-
 		state.LockState()
-		defer state.UnlockState()
 
 		if gameid, ok := (*payload)["id"].(string); ok {
 
@@ -68,6 +66,9 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 
 			go waitForLaunchedOrRetry(state, payload, mqclient, gql, astate)
 		}
+
+		state.UnlockState()
+
 	} else {
 		utils.Debug("master", "No game available")
 	}
@@ -77,6 +78,9 @@ func waitForLaunchedOrRetry(state *State, payload *types.MQPayload, mqclient *mq
 	timeout := 30
 	timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Second)
 	<-timeoutTimer.C
+
+	state.LockState()
+	defer state.UnlockState()
 
 	_, isPending := state.pendingArenas[astate.id]
 
