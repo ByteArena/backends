@@ -21,6 +21,10 @@ updateGame(id: $id, game: $game) {
 func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 
 	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
+
+		state.LockState()
+		defer state.UnlockState()
+
 		arena, ok := state.runningArenas[arenaServerUUID]
 
 		if ok {

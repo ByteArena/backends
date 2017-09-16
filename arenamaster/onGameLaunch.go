@@ -14,6 +14,9 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 
 	if len(state.idleArenas) > 0 {
 
+		state.LockState()
+		defer state.UnlockState()
+
 		if gameid, ok := (*payload)["id"].(string); ok {
 
 			// Ignore if the game is already running

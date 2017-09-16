@@ -61,6 +61,8 @@ func (server *Server) startStateReporting(addr, db string) error {
 		for {
 			<-time.NewTicker(5 * time.Second).C
 
+			server.state.LockState()
+
 			tags := map[string]string{"app": "arenamaster"}
 			fields := map[string]interface{}{
 				"state-idle":    len(server.state.idleArenas),
@@ -76,6 +78,8 @@ func (server *Server) startStateReporting(addr, db string) error {
 
 			bp.AddPoint(pt)
 			influxdbClient.Write(bp)
+
+			server.state.UnlockState()
 		}
 	}()
 
