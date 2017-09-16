@@ -12,6 +12,10 @@ import (
 
 func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
 	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
+
+		state.LockState()
+		defer state.UnlockState()
+
 		if arenaServer, ok := state.pendingArenas[arenaServerUUID]; ok {
 
 			// Put it into running arenas, now that we're sure
