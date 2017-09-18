@@ -9,7 +9,7 @@ import (
 	t "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
+	"github.com/docker/docker/api/client"
 )
 
 // TODO(jerome): parametrize this
