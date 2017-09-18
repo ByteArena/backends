@@ -103,7 +103,6 @@ func (server *Server) Start() ListeningChanStruct {
 
 		if err != nil {
 			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-			return
 		} else {
 			onGameLaunch(server.state, message.Payload, server.brokerclient, server.graphqlclient)
 		}
@@ -114,7 +113,6 @@ func (server *Server) Start() ListeningChanStruct {
 
 		if err != nil {
 			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-			return
 		} else {
 			onGameLaunched(server.state, message.Payload, server.brokerclient, server.graphqlclient)
 		}
@@ -125,7 +123,6 @@ func (server *Server) Start() ListeningChanStruct {
 
 		if err != nil {
 			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-			return
 		} else {
 			onGameHandshake(server.state, message.Payload)
 		}
@@ -136,7 +133,6 @@ func (server *Server) Start() ListeningChanStruct {
 
 		if err != nil {
 			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-			return
 		} else {
 			onGameStop(server.state, message.Payload, server.graphqlclient)
 		}
