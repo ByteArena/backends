@@ -11,8 +11,8 @@ import (
 )
 
 const updateGameStateMutation = `
-updateGame(id: $id, game: $game) {
-	mutation ($id: String, $game: GameInputUpdate!) {
+mutation(id: $id, game: $game) {
+	updateGame($id: String, $game: GameInputUpdate!) {
 		id
 		runStatus
 	}
