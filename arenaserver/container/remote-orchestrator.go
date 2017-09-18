@@ -62,6 +62,8 @@ func MakeRemoteContainerOrchestrator(arenaAddr string, registryAddr string) Cont
 	cli, err := client.NewEnvClient()
 	utils.Check(err, "Failed to initialize docker client environment")
 
+	utils.Debug("orch", "docker client version: "+cli.ClientVersion())
+
 	registryAuth := registryLogin(registryAddr, ctx, cli)
 
 	return ContainerOrchestrator{

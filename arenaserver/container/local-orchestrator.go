@@ -57,6 +57,8 @@ func MakeLocalContainerOrchestrator(host string) ContainerOrchestrator {
 	cli, err := client.NewEnvClient()
 	utils.Check(err, "Failed to initialize docker client environment")
 
+	utils.Debug("orch", "docker client version: "+cli.ClientVersion())
+
 	registryAuth := ""
 
 	return ContainerOrchestrator{
