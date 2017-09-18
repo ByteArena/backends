@@ -12,13 +12,17 @@ import (
 
 func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
 
-	if len(state.idleArenas) > 0 {
+	if gameid, ok := (*payload)["id"].(string); ok {
+
 		state.LockState()
 
-		if gameid, ok := (*payload)["id"].(string); ok {
+		if len(state.idleArenas) > 0 {
 
 			// Ignore if the game is already running
 			if isGameAlreadyRunning(state, gameid) {
+				state.UnlockState()
+
+				utils.Debug("master", "ERROR: game "+gameid+" is already running "+getMasterStatus(state))
 				return
 			}
 
@@ -65,12 +69,11 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 			}()
 
 			go waitForLaunchedOrRetry(state, payload, mqclient, gql, astate)
+		} else {
+			utils.Debug("master", "No arena available for game "+gameid)
 		}
 
 		state.UnlockState()
-
-	} else {
-		utils.Debug("master", "No game available")
 	}
 }
 

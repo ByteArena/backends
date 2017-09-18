@@ -54,7 +54,7 @@ func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 			}()
 
 		} else {
-			utils.Debug("master", "Arena server "+arenaServerUUID+" is not running any game to our knowledge (arena-master)")
+			utils.Debug("master", "Arena ("+arenaServerUUID+") was stopped but was not in the running state")
 		}
 	}
 }

@@ -21,6 +21,7 @@ func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client,
 			// Put it into running arenas, now that we're sure
 			state.runningArenas[arenaServer.id] = arenaServer
 
+			// Remove it from pending arenas
 			delete(state.pendingArenas, arenaServer.id)
 
 			utils.Debug("master", arenaServerUUID+" launched "+getMasterStatus(state))
@@ -45,6 +46,8 @@ func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client,
 					utils.Debug("master", "Game state set to running for Game "+gameid+" on server "+arenaServerUUID)
 				}
 			}()
+		} else {
+			utils.Debug("master", "ERROR: arena ("+arenaServerUUID+") has been launched but wasn't in pending state")
 		}
 	}
 }
