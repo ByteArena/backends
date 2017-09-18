@@ -1,6 +1,7 @@
 package arenamaster
 
 import (
+	"log"
 	"time"
 
 	"github.com/bytearena/bytearena/common/graphql"
@@ -19,6 +20,7 @@ updateGame(id: $id, game: $game) {
 `
 
 func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
+	log.Println(*payload)
 
 	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
 

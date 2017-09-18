@@ -1,6 +1,7 @@
 package arenamaster
 
 import (
+	"log"
 	"time"
 
 	"github.com/bytearena/bytearena/common/graphql"
@@ -11,6 +12,8 @@ import (
 )
 
 func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
+	log.Println(*payload)
+
 	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
 
 		state.LockState()
