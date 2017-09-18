@@ -20,7 +20,6 @@ updateGame(id: $id, game: $game) {
 `
 
 func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
-	log.Println(*payload)
 
 	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
 
@@ -60,5 +59,6 @@ func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 		}
 	} else {
 		utils.Debug("master", "Received game stop event but payload is not parsable")
+		log.Println(*payload)
 	}
 }

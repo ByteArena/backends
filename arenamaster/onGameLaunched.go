@@ -12,7 +12,6 @@ import (
 )
 
 func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
-	log.Println(*payload)
 
 	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
 
@@ -54,5 +53,6 @@ func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client,
 		}
 	} else {
 		utils.Debug("master", "Received game launched event but payload is not parsable")
+		log.Println(*payload)
 	}
 }
