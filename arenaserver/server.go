@@ -256,7 +256,7 @@ func (server *Server) Start() (chan interface{}, error) {
 	}
 
 	server.AddTearDownCall(func() error {
-		utils.Debug("arena", "Publish game state (stopped)")
+		utils.Debug("arena", "Publish game state ("+server.arenaServerUUID+"stopped)")
 
 		game := server.GetGame()
 
