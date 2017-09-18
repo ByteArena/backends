@@ -17,5 +17,7 @@ func onGameHandshake(state *State, payload *types.MQPayload) {
 		}
 
 		utils.Debug("master", id+" joined "+getMasterStatus(state))
+	} else {
+		utils.Debug("master", "Received handshake event but payload is not parsable")
 	}
 }

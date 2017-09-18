@@ -49,5 +49,7 @@ func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client,
 		} else {
 			utils.Debug("master", "ERROR: arena ("+arenaServerUUID+") has been launched but wasn't in pending state")
 		}
+	} else {
+		utils.Debug("master", "Received game launched event but payload is not parsable")
 	}
 }

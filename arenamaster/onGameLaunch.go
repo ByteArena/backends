@@ -74,6 +74,8 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 		}
 
 		state.UnlockState()
+	} else {
+		utils.Debug("master", "Received game launch event but payload is not parsable")
 	}
 }
 

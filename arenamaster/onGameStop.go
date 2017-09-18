@@ -56,5 +56,7 @@ func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 		} else {
 			utils.Debug("master", "Arena ("+arenaServerUUID+") was stopped but was not in the running state")
 		}
+	} else {
+		utils.Debug("master", "Received game stop event but payload is not parsable")
 	}
 }
