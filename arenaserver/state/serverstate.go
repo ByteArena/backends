@@ -5,9 +5,7 @@ import (
 	"strconv"
 	"sync"
 
-	b2collision "github.com/bytearena/box2d/box2d/collision"
-	b2common "github.com/bytearena/box2d/box2d/common"
-	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
+	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/projectile"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/common/types"
@@ -32,7 +30,7 @@ type ServerState struct {
 	DebugPoints      []vector.Vector2
 	debugPointsMutex *sync.Mutex
 
-	PhysicalWorld *b2dynamics.B2World
+	PhysicalWorld *box2d.B2World
 
 	MapMemoization *MapMemoization
 }
@@ -307,31 +305,31 @@ func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 	}
 }
 
-func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *b2dynamics.B2World {
+func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *box2d.B2World {
 
 	// Define the gravity vector.
-	gravity := b2common.MakeB2Vec2(0.0, 0.0) // 0: the simulation is seen from the top
+	gravity := box2d.MakeB2Vec2(0.0, 0.0) // 0: the simulation is seen from the top
 
 	// Construct a world object, which will hold and simulate the rigid bodies.
-	world := b2dynamics.MakeB2World(gravity)
+	world := box2d.MakeB2World(gravity)
 
 	// Static obstacles formed by the grounds
 	for _, ground := range arenaMap.Data.Grounds {
 		for _, polygon := range ground.Outline {
 
-			bodydef := b2dynamics.MakeB2BodyDef()
-			bodydef.Type = b2dynamics.B2BodyType.B2_staticBody
+			bodydef := box2d.MakeB2BodyDef()
+			bodydef.Type = box2d.B2BodyType.B2_staticBody
 
 			body := world.CreateBody(&bodydef)
-			vertices := make([]b2common.B2Vec2, len(polygon.Points)-1) // -1: avoid last point because the last point of the loop should not be repeated
+			vertices := make([]box2d.B2Vec2, len(polygon.Points)-1) // -1: avoid last point because the last point of the loop should not be repeated
 
 			for i := 0; i < len(polygon.Points)-1; i++ {
 				vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
 			}
 
-			shape := b2collision.MakeB2ChainShape()
+			shape := box2d.MakeB2ChainShape()
 			shape.CreateLoop(vertices, len(vertices))
-			body.CreateFixtureFromShapeAndDensity(&shape, 0.0)
+			body.CreateFixture(&shape, 0.0)
 			body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Ground, ground.Id))
 		}
 	}
@@ -339,19 +337,19 @@ func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *b2dynamics.B2World
 	// Explicit obstacles
 	for _, obstacle := range arenaMap.Data.Obstacles {
 		polygon := obstacle.Polygon
-		bodydef := b2dynamics.MakeB2BodyDef()
-		bodydef.Type = b2dynamics.B2BodyType.B2_staticBody
+		bodydef := box2d.MakeB2BodyDef()
+		bodydef.Type = box2d.B2BodyType.B2_staticBody
 
 		body := world.CreateBody(&bodydef)
-		vertices := make([]b2common.B2Vec2, len(polygon.Points)-1) // a polygon has as many edges as points
+		vertices := make([]box2d.B2Vec2, len(polygon.Points)-1) // a polygon has as many edges as points
 
 		for i := 0; i < len(polygon.Points)-1; i++ {
 			vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
 		}
 
-		shape := b2collision.MakeB2ChainShape()
+		shape := box2d.MakeB2ChainShape()
 		shape.CreateLoop(vertices, len(vertices))
-		body.CreateFixtureFromShapeAndDensity(&shape, 0.0)
+		body.CreateFixture(&shape, 0.0)
 		body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Obstacle, obstacle.Id))
 	}
 

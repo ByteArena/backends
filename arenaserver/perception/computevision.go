@@ -11,8 +11,7 @@ import (
 	"github.com/bytearena/bytearena/common/utils/vector"
 	uuid "github.com/satori/go.uuid"
 
-	b2common "github.com/bytearena/box2d/box2d/common"
-	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
+	"github.com/bytearena/box2d"
 )
 
 func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.AgentInterface) []state.PerceptionVisionItem {
@@ -49,7 +48,7 @@ func viewAgents(serverstate *state.ServerState, agentstate state.AgentState, age
 
 		// raycast between two the agents to determine if they can see each other
 		serverstate.PhysicalWorld.RayCast(
-			func(fixture *b2dynamics.B2Fixture, point b2common.B2Vec2, normal b2common.B2Vec2, fraction float64) float64 {
+			func(fixture *box2d.B2Fixture, point box2d.B2Vec2, normal box2d.B2Vec2, fraction float64) float64 {
 				bodyDescriptor, ok := fixture.GetBody().GetUserData().(types.PhysicalBodyDescriptor)
 				if !ok {
 					return 1.0 // continue the ray

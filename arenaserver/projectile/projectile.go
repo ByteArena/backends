@@ -1,7 +1,7 @@
 package projectile
 
 import (
-	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
+	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
@@ -11,10 +11,10 @@ type BallisticProjectile struct {
 	TTL            int
 	AgentEmitterId uuid.UUID
 	JustFired      bool
-	PhysicalBody   *b2dynamics.B2Body // replaces Radius, Mass, Position, Velocity, Orientation
+	PhysicalBody   *box2d.B2Body // replaces Radius, Mass, Position, Velocity, Orientation
 }
 
-func NewBallisticProjectile(Id uuid.UUID, body *b2dynamics.B2Body) *BallisticProjectile {
+func NewBallisticProjectile(Id uuid.UUID, body *box2d.B2Body) *BallisticProjectile {
 	return &BallisticProjectile{
 		Id:           Id, // random uuid
 		PhysicalBody: body,

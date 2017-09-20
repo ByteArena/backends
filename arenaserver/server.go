@@ -9,9 +9,7 @@ import (
 	"sync"
 	"time"
 
-	b2collision "github.com/bytearena/box2d/box2d/collision"
-	b2common "github.com/bytearena/box2d/box2d/common"
-	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
+	"github.com/bytearena/box2d"
 
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/arenaserver/agent"
@@ -138,21 +136,21 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 	// Building the physical body of the agent
 	///////////////////////////////////////////////////////////////////////////
 
-	bodydef := b2dynamics.MakeB2BodyDef()
+	bodydef := box2d.MakeB2BodyDef()
 	bodydef.Position.Set(agentSpawningPos.Point.X, agentSpawningPos.Point.Y)
-	bodydef.Type = b2dynamics.B2BodyType.B2_dynamicBody
+	bodydef.Type = box2d.B2BodyType.B2_dynamicBody
 	bodydef.AllowSleep = false
 	bodydef.FixedRotation = true
 
 	body := server.state.PhysicalWorld.CreateBody(&bodydef)
 
-	shape := b2collision.MakeB2CircleShape()
+	shape := box2d.MakeB2CircleShape()
 	shape.SetRadius(0.5)
 
-	fixturedef := b2dynamics.MakeB2FixtureDef()
+	fixturedef := box2d.MakeB2FixtureDef()
 	fixturedef.Shape = &shape
 	fixturedef.Density = 20.0
-	body.CreateFixture(&fixturedef)
+	body.CreateFixtureFromDef(&fixturedef)
 	body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Agent, agent.GetId().String()))
 
 	///////////////////////////////////////////////////////////////////////////
@@ -662,11 +660,11 @@ func (server *Server) update() {
 			projectileuuid, _ := uuid.FromString(descriptorCollider.ID)
 			projectile := server.state.GetProjectile(projectileuuid)
 
-			worldManifold := b2collision.MakeB2WorldManifold()
+			worldManifold := box2d.MakeB2WorldManifold()
 			collision.GetWorldManifold(&worldManifold)
 
 			projectile.TTL = 0
-			projectile.PhysicalBody.SetLinearVelocity(b2common.MakeB2Vec2(0, 0))
+			projectile.PhysicalBody.SetLinearVelocity(box2d.MakeB2Vec2(0, 0))
 			projectile.PhysicalBody.SetTransform(worldManifold.Points[0], projectile.PhysicalBody.GetAngle())
 
 			server.state.SetProjectile(
@@ -680,11 +678,11 @@ func (server *Server) update() {
 			projectileuuid, _ := uuid.FromString(descriptorCollidee.ID)
 			projectile := server.state.GetProjectile(projectileuuid)
 
-			worldManifold := b2collision.MakeB2WorldManifold()
+			worldManifold := box2d.MakeB2WorldManifold()
 			collision.GetWorldManifold(&worldManifold)
 
 			projectile.TTL = 0
-			projectile.PhysicalBody.SetLinearVelocity(b2common.MakeB2Vec2(0, 0))
+			projectile.PhysicalBody.SetLinearVelocity(box2d.MakeB2Vec2(0, 0))
 			projectile.PhysicalBody.SetTransform(worldManifold.Points[0], projectile.PhysicalBody.GetAngle())
 
 			server.state.SetProjectile(
@@ -701,11 +699,11 @@ func (server *Server) update() {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-type CollisionFilter struct { /* implements b2dynamics.B2World.B2ContactFilterInterface */
+type CollisionFilter struct { /* implements box2d.B2World.B2ContactFilterInterface */
 	server *Server
 }
 
-func (filter *CollisionFilter) ShouldCollide(fixtureA *b2dynamics.B2Fixture, fixtureB *b2dynamics.B2Fixture) bool {
+func (filter *CollisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB *box2d.B2Fixture) bool {
 	// Si projectile, ne pas collisionner agent émetteur
 	// Si projectile, ne pas collisionner ground
 
@@ -765,23 +763,23 @@ func newCollisionFilter(server *Server) *CollisionFilter {
 	}
 }
 
-type CollisionListener struct { /* implements b2dynamics.B2World.B2ContactListenerInterface */
+type CollisionListener struct { /* implements box2d.B2World.B2ContactListenerInterface */
 	server          *Server
-	collisionbuffer []b2dynamics.B2ContactInterface
+	collisionbuffer []box2d.B2ContactInterface
 }
 
-func (listener *CollisionListener) PopCollisions() []b2dynamics.B2ContactInterface {
-	defer func() { listener.collisionbuffer = make([]b2dynamics.B2ContactInterface, 0) }()
+func (listener *CollisionListener) PopCollisions() []box2d.B2ContactInterface {
+	defer func() { listener.collisionbuffer = make([]box2d.B2ContactInterface, 0) }()
 	return listener.collisionbuffer
 }
 
 /// Called when two fixtures begin to touch.
-func (listener *CollisionListener) BeginContact(contact b2dynamics.B2ContactInterface) { // contact has to be backed by a pointer
+func (listener *CollisionListener) BeginContact(contact box2d.B2ContactInterface) { // contact has to be backed by a pointer
 	listener.collisionbuffer = append(listener.collisionbuffer, contact)
 }
 
 /// Called when two fixtures cease to touch.
-func (listener *CollisionListener) EndContact(contact b2dynamics.B2ContactInterface) { // contact has to be backed by a pointer
+func (listener *CollisionListener) EndContact(contact box2d.B2ContactInterface) { // contact has to be backed by a pointer
 	//log.Println("END:COLLISION !!!!!!!!!!!!!!")
 }
 
@@ -795,7 +793,7 @@ func (listener *CollisionListener) EndContact(contact b2dynamics.B2ContactInterf
 /// Note: if you set the number of contact points to zero, you will not
 /// get an EndContact callback. However, you may get a BeginContact callback
 /// the next step.
-func (listener *CollisionListener) PreSolve(contact b2dynamics.B2ContactInterface, oldManifold b2collision.B2Manifold) { // contact has to be backed by a pointer
+func (listener *CollisionListener) PreSolve(contact box2d.B2ContactInterface, oldManifold box2d.B2Manifold) { // contact has to be backed by a pointer
 	//log.Println("PRESOLVE !!!!!!!!!!!!!!")
 }
 
@@ -805,7 +803,7 @@ func (listener *CollisionListener) PreSolve(contact b2dynamics.B2ContactInterfac
 /// arbitrarily large if the sub-step is small. Hence the impulse is provided explicitly
 /// in a separate data structure.
 /// Note: this is only called for contacts that are touching, solid, and awake.
-func (listener *CollisionListener) PostSolve(contact b2dynamics.B2ContactInterface, impulse *b2dynamics.B2ContactImpulse) { // contact has to be backed by a pointer
+func (listener *CollisionListener) PostSolve(contact box2d.B2ContactInterface, impulse *box2d.B2ContactImpulse) { // contact has to be backed by a pointer
 	//log.Println("POSTSOLVE !!!!!!!!!!!!!!")
 }
 

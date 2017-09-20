@@ -3,9 +3,7 @@ package state
 import (
 	"math"
 
-	b2collision "github.com/bytearena/box2d/box2d/collision"
-	b2common "github.com/bytearena/box2d/box2d/common"
-	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
+	"github.com/bytearena/box2d"
 
 	"github.com/bytearena/bytearena/arenaserver/projectile"
 	"github.com/bytearena/bytearena/common/types"
@@ -42,7 +40,7 @@ type AgentState struct {
 	agentId   uuid.UUID
 	agentName string
 
-	PhysicalBody *b2dynamics.B2Body // replaces Radius, Mass, Position, Velocity, Orientation
+	PhysicalBody *box2d.B2Body // replaces Radius, Mass, Position, Velocity, Orientation
 
 	MaxSteeringForce   float64 // maximum magnitude the steering force applied to current velocity
 	MaxSpeed           float64 // maximum magnitude of the agent velocity
@@ -72,7 +70,7 @@ type AgentState struct {
 	DebugMsg    string // Number of ticks since last shot
 }
 
-func MakeAgentState(agentId uuid.UUID, agentName string, physicalbody *b2dynamics.B2Body) AgentState {
+func MakeAgentState(agentId uuid.UUID, agentName string, physicalbody *box2d.B2Body) AgentState {
 
 	return AgentState{
 		agentId:   agentId,
@@ -193,8 +191,8 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 
 	agentpos := state.GetPosition()
 
-	bodydef := b2dynamics.MakeB2BodyDef()
-	bodydef.Type = b2dynamics.B2BodyType.B2_dynamicBody
+	bodydef := box2d.MakeB2BodyDef()
+	bodydef.Type = box2d.B2BodyType.B2_dynamicBody
 	bodydef.AllowSleep = false
 	bodydef.FixedRotation = true
 
@@ -205,18 +203,18 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 
 	// FIXME(jerome): handle proper Box2D <=> BA velocity conversion
 	pvel := absaiming.SetMag(60) // projectile speed; 60 is 3u/tick
-	bodydef.LinearVelocity = b2common.MakeB2Vec2(pvel.GetX(), pvel.GetY())
+	bodydef.LinearVelocity = box2d.MakeB2Vec2(pvel.GetX(), pvel.GetY())
 
 	body := serverstate.PhysicalWorld.CreateBody(&bodydef)
 	body.SetLinearDamping(0.0) // no aerodynamic drag
 
-	shape := b2collision.MakeB2CircleShape()
+	shape := box2d.MakeB2CircleShape()
 	shape.SetRadius(0.3)
 
-	fixturedef := b2dynamics.MakeB2FixtureDef()
+	fixturedef := box2d.MakeB2FixtureDef()
 	fixturedef.Shape = &shape
 	fixturedef.Density = 20.0
-	body.CreateFixture(&fixturedef)
+	body.CreateFixtureFromDef(&fixturedef)
 	body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Projectile, projectileId.String()))
 
 	///////////////////////////////////////////////////////////////////////////
@@ -266,7 +264,7 @@ func (state AgentState) validateTransition(fromstate AgentState) bool {
 
 func (state *AgentState) SetVelocity(velocity vector.Vector2) {
 	state.PhysicalBody.SetLinearVelocity(
-		b2common.MakeB2Vec2(velocity.GetX(), velocity.GetY()),
+		box2d.MakeB2Vec2(velocity.GetX(), velocity.GetY()),
 	)
 }
 
@@ -276,7 +274,7 @@ func (state AgentState) GetVelocity() vector.Vector2 {
 }
 
 func (state *AgentState) SetPosition(position vector.Vector2) {
-	b2p := b2common.MakeB2Vec2(position.GetX(), position.GetY())
+	b2p := box2d.MakeB2Vec2(position.GetX(), position.GetY())
 	state.PhysicalBody.SetTransform(b2p, state.PhysicalBody.GetAngle())
 }
 
