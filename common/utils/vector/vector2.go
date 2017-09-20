@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 
+	b2common "github.com/bytearena/box2d/box2d/common"
 	"github.com/bytearena/bytearena/common/utils/number"
 )
 
@@ -218,6 +219,10 @@ func (a Vector2) Equals(b Vector2) bool {
 
 func (a Vector2) String() string {
 	return "<Vector2(" + number.FloatToStr(a.x, 5) + ", " + number.FloatToStr(a.y, 5) + ")>"
+}
+
+func (a Vector2) ToB2Vec2() b2common.B2Vec2 {
+	return b2common.MakeB2Vec2(a.GetX(), a.GetY())
 }
 
 var epsilon float64 = 0.000001

@@ -160,6 +160,8 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 
 	agentstate := state.MakeAgentState(agent.GetId(), agentname, body)
 
+	body.SetLinearDamping(agentstate.DragForce * float64(server.tickspersec)) // aerodynamic drag
+
 	server.setAgent(agent)
 	server.state.SetAgentState(agent.GetId(), agentstate)
 
@@ -622,6 +624,8 @@ func (server *Server) update() {
 	// On simule le monde physique
 	///////////////////////////////////////////////////////////////////////////
 
+	//before := time.Now()
+
 	timeStep := 1.0 / float64(server.GetTicksPerSecond())
 
 	server.state.PhysicalWorld.Step(
@@ -629,6 +633,8 @@ func (server *Server) update() {
 		8, // velocityIterations; higher improves stability; default 8 in testbed
 		3, // positionIterations; higher improve overlap resolution; default 3 in testbed
 	)
+
+	//log.Println("Physical world step took ", float64(time.Now().UnixNano()-before.UnixNano())/1000000.0, "ms")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On réagit aux contacts

@@ -80,8 +80,9 @@ func MakeAgentState(agentId uuid.UUID, agentName string, physicalbody *b2dynamic
 
 		PhysicalBody: physicalbody,
 
-		MaxSpeed:           9,
-		MaxSteeringForce:   3,
+		// FIXME(jerome): Handle proper conversion between Box2D velocities (u/s) and BA velocities (u/tick)
+		MaxSpeed:           15.0, // 15 is 0.75/tick expressed per second (supposing 20 TPS)
+		MaxSteeringForce:   2.4,  // 2.4 is 0.12/tick expressed per second (supposing 20 TPS)
 		DragForce:          0.015,
 		MaxAngularVelocity: number.DegreeToRadian(9), // en radians/tick; Pi = 180°
 
@@ -99,7 +100,7 @@ func MakeAgentState(agentId uuid.UUID, agentName string, physicalbody *b2dynamic
 		MaxShootEnergy:           200, // Const; When shooting, energy decreases
 		ShootEnergy:              200, // Current energy level
 		ShootEnergyReplenishRate: 5,   // Const; Energy regained every tick
-		ShootCooldown:            5,   // Const; number of ticks to wait between every shot
+		ShootCooldown:            0,   // Const; number of ticks to wait between every shot
 		ShootEnergyCost:          0,   // Const
 		LastShot:                 0,   // Number of ticks since last shot; 0 => cannot shoot immediately, must wait for first cooldown
 
@@ -201,10 +202,13 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 
 	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
 	absaiming := localAngleToAbsoluteAngleVec(state.GetOrientation(), aiming, nil) // TODO: replace nil here by an actual angle constraint
-	pvel := absaiming.SetMag(20)                                                   // projectile speed
+
+	// FIXME(jerome): handle proper Box2D <=> BA velocity conversion
+	pvel := absaiming.SetMag(60) // projectile speed; 60 is 3u/tick
 	bodydef.LinearVelocity = b2common.MakeB2Vec2(pvel.GetX(), pvel.GetY())
 
 	body := serverstate.PhysicalWorld.CreateBody(&bodydef)
+	body.SetLinearDamping(0.0) // no aerodynamic drag
 
 	shape := b2collision.MakeB2CircleShape()
 	shape.SetRadius(0.3)

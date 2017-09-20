@@ -5,10 +5,14 @@ import (
 
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/state"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	uuid "github.com/satori/go.uuid"
+
+	b2common "github.com/bytearena/box2d/box2d/common"
+	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
 )
 
 func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.AgentInterface) []state.PerceptionVisionItem {
@@ -27,6 +31,8 @@ func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.
 
 func viewAgents(serverstate *state.ServerState, agentstate state.AgentState, agentid uuid.UUID) []state.PerceptionVisionItem {
 
+	agentposition := agentstate.GetPosition()
+
 	vision := make([]state.PerceptionVisionItem, 0)
 
 	orientation := agentstate.GetOrientation()
@@ -37,6 +43,31 @@ func viewAgents(serverstate *state.ServerState, agentstate state.AgentState, age
 
 		if otheragentid == agentid {
 			continue // one cannot see itself
+		}
+
+		occulted := false
+
+		// raycast between two the agents to determine if they can see each other
+		serverstate.PhysicalWorld.RayCast(
+			func(fixture *b2dynamics.B2Fixture, point b2common.B2Vec2, normal b2common.B2Vec2, fraction float64) float64 {
+				bodyDescriptor, ok := fixture.GetBody().GetUserData().(types.PhysicalBodyDescriptor)
+				if !ok {
+					return 1.0 // continue the ray
+				}
+
+				if bodyDescriptor.Type == types.PhysicalBodyDescriptorType.Obstacle {
+					occulted = true
+					return 0.0 // terminate the ray
+				}
+
+				return 1.0 // continue the ray
+			},
+			agentposition.ToB2Vec2(),
+			otheragentstate.GetPosition().ToB2Vec2(),
+		)
+
+		if occulted {
+			continue // cannot see through obstacles
 		}
 
 		centervec := otheragentstate.GetPosition().Sub(agentstate.GetPosition())
@@ -53,8 +84,9 @@ func viewAgents(serverstate *state.ServerState, agentstate state.AgentState, age
 				CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - orientation), // perpendicular to relative position vector, left side
 				Center:    centervec,
 				FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - orientation), // perpendicular to relative position vector, right side
-				Velocity:  otheragentstate.GetVelocity().Clone().SetAngle(otheragentstate.GetVelocity().Angle() - orientation),
-				Tag:       "agent",
+				// FIXME(jerome): /20 here is to convert velocity per second in velocity per tick; should probably handle velocities in m/s everywhere ?
+				Velocity: otheragentstate.GetVelocity().Clone().SetAngle(otheragentstate.GetVelocity().Angle() - orientation).Scale(1 / 20),
+				Tag:      "agent",
 			}
 
 			vision = append(vision, visionitem)
