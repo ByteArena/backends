@@ -58,7 +58,7 @@ func main() {
 		"arena-server",
 		"Arena Server "+(*arenaServerUUID)+" reporting for duty.",
 	).SetPayload(types.MQPayload{
-		"id": (*arenaServerUUID),
+		"arenaserveruuid": (*arenaServerUUID),
 	}))
 
 	var hc *healthcheck.HealthCheckServer

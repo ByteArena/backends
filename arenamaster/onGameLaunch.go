@@ -1,6 +1,7 @@
 package arenamaster
 
 import (
+	"log"
 	"time"
 
 	"github.com/bytearena/bytearena/common/graphql"
@@ -12,12 +13,17 @@ import (
 
 func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
 
-	if len(state.idleArenas) > 0 {
+	if gameid, ok := (*payload)["id"].(string); ok {
 
-		if gameid, ok := (*payload)["id"].(string); ok {
+		state.LockState()
+
+		if len(state.idleArenas) > 0 {
 
 			// Ignore if the game is already running
 			if isGameAlreadyRunning(state, gameid) {
+				state.UnlockState()
+
+				utils.Debug("master", "ERROR: game "+gameid+" is already running "+getMasterStatus(state))
 				return
 			}
 
@@ -64,9 +70,14 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 			}()
 
 			go waitForLaunchedOrRetry(state, payload, mqclient, gql, astate)
+		} else {
+			utils.Debug("master", "No arena available for game "+gameid)
 		}
+
+		state.UnlockState()
 	} else {
-		utils.Debug("master", "No game available")
+		utils.Debug("master", "Received game launch event but payload is not parsable")
+		log.Println(*payload)
 	}
 }
 
@@ -74,6 +85,9 @@ func waitForLaunchedOrRetry(state *State, payload *types.MQPayload, mqclient *mq
 	timeout := 30
 	timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Second)
 	<-timeoutTimer.C
+
+	state.LockState()
+	defer state.UnlockState()
 
 	_, isPending := state.pendingArenas[astate.id]
 

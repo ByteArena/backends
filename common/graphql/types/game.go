@@ -7,7 +7,7 @@ type GameType struct {
 	EndedAt         string           `json:"endedAt"`
 	Arena           *ArenaType       `json:"arena"`
 	Contestants     []ContestantType `json:"contestants"`
-	ArenaServerUUID string           `json:"arenaServerId"`
+	ArenaServerUUID string           `json:"arenaServerUUID"`
 	RunStatus       int              `json:"runStatus"`
 	RunError        string           `json:"runError"`
 }

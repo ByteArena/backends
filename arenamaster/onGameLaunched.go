@@ -1,6 +1,7 @@
 package arenamaster
 
 import (
+	"log"
 	"time"
 
 	"github.com/bytearena/bytearena/common/graphql"
@@ -11,12 +12,18 @@ import (
 )
 
 func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
+
 	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
+
+		state.LockState()
+		defer state.UnlockState()
+
 		if arenaServer, ok := state.pendingArenas[arenaServerUUID]; ok {
 
 			// Put it into running arenas, now that we're sure
 			state.runningArenas[arenaServer.id] = arenaServer
 
+			// Remove it from pending arenas
 			delete(state.pendingArenas, arenaServer.id)
 
 			utils.Debug("master", arenaServerUUID+" launched "+getMasterStatus(state))
@@ -41,6 +48,11 @@ func onGameLaunched(state *State, payload *types.MQPayload, mqclient *mq.Client,
 					utils.Debug("master", "Game state set to running for Game "+gameid+" on server "+arenaServerUUID)
 				}
 			}()
+		} else {
+			utils.Debug("master", "ERROR: arena ("+arenaServerUUID+") has been launched but wasn't in pending state")
 		}
+	} else {
+		utils.Debug("master", "Received game launched event but payload is not parsable")
+		log.Println(*payload)
 	}
 }

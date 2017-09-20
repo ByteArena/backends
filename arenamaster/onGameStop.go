@@ -1,6 +1,7 @@
 package arenamaster
 
 import (
+	"log"
 	"time"
 
 	"github.com/bytearena/bytearena/common/graphql"
@@ -10,8 +11,8 @@ import (
 )
 
 const updateGameStateMutation = `
-updateGame(id: $id, game: $game) {
-	mutation ($id: String, $game: GameInputUpdate!) {
+mutation($id: String, $game: GameInputUpdate!) {
+	updateGame(id: $id, game: $game) {
 		id
 		runStatus
 	}
@@ -21,6 +22,10 @@ updateGame(id: $id, game: $game) {
 func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 
 	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
+
+		state.LockState()
+		defer state.UnlockState()
+
 		arena, ok := state.runningArenas[arenaServerUUID]
 
 		if ok {
@@ -50,7 +55,10 @@ func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 			}()
 
 		} else {
-			utils.Debug("master", "Arena server "+arenaServerUUID+" is not running any game to our knowledge (arena-master)")
+			utils.Debug("master", "Arena ("+arenaServerUUID+") was stopped but was not in the running state")
 		}
+	} else {
+		utils.Debug("master", "Received game stop event but payload is not parsable")
+		log.Println(*payload)
 	}
 }

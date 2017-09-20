@@ -291,7 +291,7 @@ func (server *Server) Start() (chan interface{}, error) {
 	}
 
 	server.AddTearDownCall(func() error {
-		utils.Debug("arena", "Publish game state (stopped)")
+		utils.Debug("arena", "Publish game state ("+server.arenaServerUUID+"stopped)")
 
 		game := server.GetGame()
 
@@ -321,14 +321,19 @@ func (server *Server) SubscribeStateObservation() chan state.ServerState {
 }
 
 func (server *Server) SendLaunched() {
+	payload := types.MQPayload{
+		"id":              server.GetGame().GetId(),
+		"arenaserveruuid": server.arenaServerUUID,
+	}
 
 	server.mqClient.Publish("game", "launched", types.NewMQMessage(
 		"arena-server",
 		"Arena Server "+server.arenaServerUUID+" launched",
-	).SetPayload(types.MQPayload{
-		"id":              server.GetGame().GetId(),
-		"arenaserveruuid": server.arenaServerUUID,
-	}))
+	).SetPayload(payload))
+
+	payloadJson, _ := json.Marshal(payload)
+
+	utils.Debug("arena-server", "Send game launched: "+string(payloadJson))
 }
 
 func (server *Server) GetGame() GameInterface {

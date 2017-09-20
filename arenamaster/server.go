@@ -29,43 +29,46 @@ func NewServer(mq *mq.Client, gql *graphql.Client) *Server {
 	}
 
 	if os.Getenv("INFLUXDB_ADDR") != "" {
-		s.startStateReporting(os.Getenv("INFLUXDB_ADDR"), os.Getenv("INFLUXDB_DB"))
+		utils.Debug("arenamaster", "State reporting activated")
+		err := s.startStateReporting(os.Getenv("INFLUXDB_ADDR"), os.Getenv("INFLUXDB_DB"))
+
+		utils.CheckWithFunc(err, func() string {
+			panic("Could not start state reporting: " + err.Error())
+		})
 	}
 
 	return s
 }
 
-func (server *Server) startStateReporting(addr, db string) {
-	c, err := client.NewHTTPClient(client.HTTPConfig{
+func (server *Server) startStateReporting(addr, db string) error {
+	influxdbClient, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr: addr,
 	})
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
-		Database:  db,
-		Precision: "s",
+		Database: db,
 	})
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	go func() {
 		for {
 			<-time.NewTicker(5 * time.Second).C
 
-			// Create a point and add to batch
-			tags := map[string]string{"arenamaster": "arenamaster"}
-			fields := map[string]interface{}{
-				"arenamaster.state.idle":    server.state.idleArenas,
-				"arenamaster.state.running": server.state.runningArenas,
-				"arenamaster.state.pending": server.state.pendingArenas,
-			}
+			server.state.LockState()
 
-			utils.Debug("arenamaster", "Reporting state")
+			tags := map[string]string{"app": "arenamaster"}
+			fields := map[string]interface{}{
+				"state-idle":    len(server.state.idleArenas),
+				"state-running": len(server.state.runningArenas),
+				"state-pending": len(server.state.pendingArenas),
+			}
 
 			pt, err := client.NewPoint("arenamaster", tags, fields, time.Now())
 
@@ -74,10 +77,13 @@ func (server *Server) startStateReporting(addr, db string) {
 			}
 
 			bp.AddPoint(pt)
+			influxdbClient.Write(bp)
 
-			c.Write(bp)
+			server.state.UnlockState()
 		}
 	}()
+
+	return nil
 }
 
 func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
@@ -97,7 +103,6 @@ func (server *Server) Start() ListeningChanStruct {
 
 		if err != nil {
 			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-			return
 		} else {
 			onGameLaunch(server.state, message.Payload, server.brokerclient, server.graphqlclient)
 		}
@@ -108,7 +113,6 @@ func (server *Server) Start() ListeningChanStruct {
 
 		if err != nil {
 			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-			return
 		} else {
 			onGameLaunched(server.state, message.Payload, server.brokerclient, server.graphqlclient)
 		}
@@ -119,7 +123,6 @@ func (server *Server) Start() ListeningChanStruct {
 
 		if err != nil {
 			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-			return
 		} else {
 			onGameHandshake(server.state, message.Payload)
 		}
@@ -130,7 +133,6 @@ func (server *Server) Start() ListeningChanStruct {
 
 		if err != nil {
 			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-			return
 		} else {
 			onGameStop(server.state, message.Payload, server.graphqlclient)
 		}
