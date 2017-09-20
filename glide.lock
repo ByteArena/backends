@@ -1,10 +1,12 @@
-hash: 6912a3393b848a7f67cec212dfe6056326778d22a3c86a71f4ec2dbe818346bb
-updated: 2017-09-14T19:19:05.705234467+02:00
+hash: 6f810c1e8cce5881e9052d7e176a9e33bf750bb3b2ba819dd5199968902330c6
+updated: 2017-09-20T22:24:38.440037298+02:00
 imports:
 - name: github.com/akavel/polyclip-go
   version: 2cfdb71461bde9115450eb65688337e3f8ee715e
 - name: github.com/bitly/go-notify
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
+- name: github.com/bytearena/box2d
+  version: 6a120bfe0653a6b77776488137fb5bcf364d27af
 - name: github.com/cenkalti/backoff
   version: 61153c768f31ee5f130071d08fc82b85208528de
 - name: github.com/davecgh/go-spew
@@ -34,6 +36,8 @@ imports:
   - api/types/time
   - api/types/versions
   - api/types/volume
+  - builder/dockerfile/command
+  - builder/dockerfile/parser
   - client
   - pkg/ioutils
   - pkg/longpath
@@ -49,7 +53,7 @@ imports:
 - name: github.com/docker/go-units
   version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
 - name: github.com/docker/libtrust
-  version: fa567046d9b14f6aa788882a950d69651d230b21
+  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
 - name: github.com/go-redis/redis
   version: fdafb11e5fa5d52d965e12073c8a58468c98ebe2
   subpackages:
@@ -59,7 +63,7 @@ imports:
   - internal/pool
   - internal/proto
 - name: github.com/gorilla/context
-  version: 14f550f51af52180c2eefed15e5fd18d63c0a64a
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/handlers
   version: a4043c62cc2329bacda331d33fc908ab11ef0ec3
 - name: github.com/gorilla/mux
@@ -75,36 +79,40 @@ imports:
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/Microsoft/go-winio
-  version: f533f7a102197536779ea3a8cb881d639e21ec5a
+  version: 78439966b38d69bf38227fbf57ac8a6fee70f69a
 - name: github.com/netgusto/poly2tri-go
   version: d102ad91854fea433a859be7b7de879439911aeb
 - name: github.com/opencontainers/go-digest
   version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
 - name: github.com/opencontainers/image-spec
-  version: 634a86b04874f256845e768b29b252053272b229
+  version: ebd93fd0782379ca3d821f0fa74f0651a9347a3e
   subpackages:
   - specs-go
   - specs-go/v1
 - name: github.com/pkg/errors
-  version: c605e284fe17294bda444b34710735b29d1a9d90
+  version: 2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/Sirupsen/logrus
-  version: 55eb11d21d2a31a3cc93838241d04800f52e823d
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/skratchdot/open-golang
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
   - open
 - name: github.com/ttacon/chalk
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
+- name: golang.org/x/crypto
+  version: 9477e0b78b9ac3d0b03822fd95422e2fe07627cd
+  subpackages:
+  - ssh/terminal
 - name: golang.org/x/net
-  version: 4876518f9e71663000c348837735820161a42df7
+  version: 8351a756f30f1297fe94bbf4b767ec589c6ea6d0
   subpackages:
   - context
   - context/ctxhttp
   - proxy
 - name: golang.org/x/sys
-  version: 94b76065f2d2081d0fef24a6e67c571f51a6408a
+  version: 062cd7e4e68206d8bab9b18396626e855c992658
   subpackages:
   - unix
   - windows
