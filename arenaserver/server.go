@@ -10,6 +10,7 @@ import (
 	"time"
 
 	b2collision "github.com/bytearena/box2d/box2d/collision"
+	b2common "github.com/bytearena/box2d/box2d/common"
 	b2dynamics "github.com/bytearena/box2d/box2d/dynamics"
 
 	notify "github.com/bitly/go-notify"
@@ -146,7 +147,7 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 	body := server.state.PhysicalWorld.CreateBody(&bodydef)
 
 	shape := b2collision.MakeB2CircleShape()
-	shape.SetRadius(0.3)
+	shape.SetRadius(0.5)
 
 	fixturedef := b2dynamics.MakeB2FixtureDef()
 	fixturedef.Shape = &shape
@@ -650,7 +651,12 @@ func (server *Server) update() {
 			projectileuuid, _ := uuid.FromString(descriptorCollider.ID)
 			projectile := server.state.GetProjectile(projectileuuid)
 
+			worldManifold := b2collision.MakeB2WorldManifold()
+			collision.GetWorldManifold(&worldManifold)
+
 			projectile.TTL = 0
+			projectile.PhysicalBody.SetLinearVelocity(b2common.MakeB2Vec2(0, 0))
+			projectile.PhysicalBody.SetTransform(worldManifold.Points[0], projectile.PhysicalBody.GetAngle())
 
 			server.state.SetProjectile(
 				projectileuuid,
@@ -663,7 +669,12 @@ func (server *Server) update() {
 			projectileuuid, _ := uuid.FromString(descriptorCollidee.ID)
 			projectile := server.state.GetProjectile(projectileuuid)
 
+			worldManifold := b2collision.MakeB2WorldManifold()
+			collision.GetWorldManifold(&worldManifold)
+
 			projectile.TTL = 0
+			projectile.PhysicalBody.SetLinearVelocity(b2common.MakeB2Vec2(0, 0))
+			projectile.PhysicalBody.SetTransform(worldManifold.Points[0], projectile.PhysicalBody.GetAngle())
 
 			server.state.SetProjectile(
 				projectileuuid,

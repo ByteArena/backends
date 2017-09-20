@@ -111,6 +111,32 @@ func (serverstate *ServerState) ProcessMutations() {
 		newstate := agentstate.clone()
 		serverstate.Agentsmutex.Unlock()
 
+		// Ordering actions
+		// This is important because operations like shooting are taken from the previous position of the agent
+		// 1. Non-movement actions (shoot, etc.)
+		// 2. Movement actions
+
+		// 1. No movement actions
+		for _, mutation := range batch.Mutations {
+			switch mutation.GetMethod() {
+			case "shoot":
+				{
+					var vec []float64
+					err := json.Unmarshal(mutation.GetArguments(), &vec)
+					if err != nil {
+						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for shoot mutation, coming from agent "+batch.AgentId.String()+"; "+err.Error())
+						continue
+					}
+
+					nbmutations++
+					newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
+
+					break
+				}
+			}
+		}
+
+		// 2. Movement actions
 		for _, mutation := range batch.Mutations {
 			switch mutation.GetMethod() {
 			case "steer":
@@ -126,43 +152,6 @@ func (serverstate *ServerState) ProcessMutations() {
 					newstate = newstate.mutationSteer(vector.MakeVector2(vec[0], vec[1]))
 
 					break
-				}
-			case "shoot":
-				{
-					var vec []float64
-					err := json.Unmarshal(mutation.GetArguments(), &vec)
-					if err != nil {
-						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for shoot mutation, coming from agent "+batch.AgentId.String()+"; "+err.Error())
-						continue
-					}
-
-					nbmutations++
-					newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
-
-					break
-				}
-			case "debugvis":
-				{
-					var rawvecs [][]float64
-					err := json.Unmarshal(mutation.GetArguments(), &rawvecs)
-					if err != nil {
-						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for debugvis mutation, coming from agent "+batch.AgentId.String()+"; "+err.Error())
-						continue
-					}
-
-					if len(rawvecs) == 2 {
-						vecs := make([]vector.Vector2, len(rawvecs))
-						for i, rawvec := range rawvecs {
-							v := vector.MakeVector2(rawvec[0], rawvec[1])
-							vecs[i] = v.SetAngle(v.Angle() + agentstate.GetOrientation()).Add(agentstate.GetPosition())
-						}
-
-						serverstate.debugPointsMutex.Lock()
-						for _, vec := range vecs {
-							serverstate.DebugPoints = append(serverstate.DebugPoints, vec)
-						}
-						serverstate.debugPointsMutex.Unlock()
-					}
 				}
 			}
 		}
