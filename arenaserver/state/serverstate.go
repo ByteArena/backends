@@ -5,8 +5,10 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/projectile"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
@@ -27,6 +29,8 @@ type ServerState struct {
 
 	DebugPoints      []vector.Vector2
 	debugPointsMutex *sync.Mutex
+
+	PhysicalWorld *box2d.B2World
 
 	MapMemoization *MapMemoization
 }
@@ -50,157 +54,8 @@ func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 
 		DebugPoints:      make([]vector.Vector2, 0),
 		debugPointsMutex: &sync.Mutex{},
-
-		MapMemoization: InitializeMapMemoization(arenaMap),
-	}
-}
-
-func InitializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoization {
-
-	///////////////////////////////////////////////////////////////////////////
-	// Obstacles
-	///////////////////////////////////////////////////////////////////////////
-
-	obstacles := make([]Obstacle, 0)
-
-	// Obstacles formed by the grounds
-	for _, ground := range arenaMap.Data.Grounds {
-		for _, polygon := range ground.Outline {
-			for i := 0; i < len(polygon.Points)-1; i++ {
-				a := polygon.Points[i]
-				b := polygon.Points[i+1]
-				normal := polygon.Normals[i]
-				obstacles = append(obstacles, MakeObstacle(
-					ground.Id,
-					ObstacleType.Ground,
-					vector.MakeVector2(a.X, a.Y),
-					vector.MakeVector2(b.X, b.Y),
-					vector.MakeVector2(normal.X, normal.Y),
-				))
-			}
-		}
-	}
-
-	// Explicit obstacles
-	for _, obstacle := range arenaMap.Data.Obstacles {
-		polygon := obstacle.Polygon
-		for i := 0; i < len(polygon.Points)-1; i++ {
-			a := polygon.Points[i]
-			b := polygon.Points[i+1]
-			normal := polygon.Normals[i]
-			obstacles = append(obstacles, MakeObstacle(
-				obstacle.Id,
-				ObstacleType.Object,
-				vector.MakeVector2(a.X, a.Y),
-				vector.MakeVector2(b.X, b.Y),
-				vector.MakeVector2(normal.X, normal.Y),
-			))
-		}
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	// Initialize Obstacle RTree
-	///////////////////////////////////////////////////////////////////////////
-
-	rtObstacles := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
-
-	for _, obstacle := range obstacles {
-
-		pa, pb := GetBoundingBox([]vector.Vector2{obstacle.A, obstacle.B})
-		r, err := rtreego.NewRect(pa, pb)
-		if err != nil {
-			utils.Debug("rtree-obstacles-init", "rtreego: NewRect error;"+err.Error())
-		}
-
-		var geotype int
-		if obstacle.Type == ObstacleType.Ground {
-			geotype = GeometryObjectType.ObstacleGround
-		} else {
-			geotype = GeometryObjectType.ObstacleObject
-		}
-
-		rtObstacles.Insert(&GeometryObject{
-			Type:   geotype,
-			ID:     obstacle.Id,
-			Rect:   r,
-			PointA: obstacle.A,
-			PointB: obstacle.B,
-			Normal: obstacle.Normal,
-		})
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	// Initialize Ground Surface RTree
-	///////////////////////////////////////////////////////////////////////////
-
-	rtSurface := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
-
-	for _, ground := range arenaMap.Data.Grounds {
-
-		for i := 0; i < len(ground.Mesh.Vertices); i += 9 {
-
-			// Skipping Height dimension
-			points := [3]vector.Vector2{
-				vector.MakeVector2(ground.Mesh.Vertices[i], ground.Mesh.Vertices[i+2]),
-				vector.MakeVector2(ground.Mesh.Vertices[i+3], ground.Mesh.Vertices[i+5]),
-				vector.MakeVector2(ground.Mesh.Vertices[i+6], ground.Mesh.Vertices[i+8]),
-			}
-
-			pa, pb := GetBoundingBox(points[:])
-			r, err := rtreego.NewRect(pa, pb)
-			if err != nil {
-				utils.Debug("rtree-ground-init", "rtreego: NewRect error;"+err.Error())
-			}
-
-			rtSurface.Insert(&TriangleRtreeWrapper{
-				Rect:   r,
-				Points: points,
-			})
-		}
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	// Initialize Collision Meshes RTree
-	///////////////////////////////////////////////////////////////////////////
-
-	rtCollisions := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
-
-	for _, collisionmesh := range arenaMap.Data.CollisionMeshes {
-
-		for i := 0; i < len(collisionmesh.Vertices); i += 9 {
-
-			// Skipping Height dimension
-			points := [3]vector.Vector2{
-				vector.MakeVector2(collisionmesh.Vertices[i], collisionmesh.Vertices[i+2]),
-				vector.MakeVector2(collisionmesh.Vertices[i+3], collisionmesh.Vertices[i+5]),
-				vector.MakeVector2(collisionmesh.Vertices[i+6], collisionmesh.Vertices[i+8]),
-			}
-
-			pa, pb := GetBoundingBox(points[:])
-			r, err := rtreego.NewRect(pa, pb)
-			if err != nil {
-				utils.Debug("rtree-collision-init", "rtreego: NewRect error;"+err.Error())
-			}
-
-			rtCollisions.Insert(&TriangleRtreeWrapper{
-				Rect:   r,
-				Points: points,
-			})
-		}
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	// Moving Rtree
-	///////////////////////////////////////////////////////////////////////////
-
-	rtMoving := rtreego.NewTree(2, 25, 50) // TODO(jerome): better constants here ? what heuristic to use ?
-
-	return &MapMemoization{
-		Obstacles:       obstacles,
-		RtreeObstacles:  rtObstacles,
-		RtreeSurface:    rtSurface,
-		RtreeCollisions: rtCollisions,
-		RtreeMoving:     rtMoving,
+		MapMemoization:   initializeMapMemoization(arenaMap),
+		PhysicalWorld:    buildPhysicalWorld(arenaMap),
 	}
 }
 
@@ -254,6 +109,32 @@ func (serverstate *ServerState) ProcessMutations() {
 		newstate := agentstate.clone()
 		serverstate.Agentsmutex.Unlock()
 
+		// Ordering actions
+		// This is important because operations like shooting are taken from the previous position of the agent
+		// 1. Non-movement actions (shoot, etc.)
+		// 2. Movement actions
+
+		// 1. No movement actions
+		for _, mutation := range batch.Mutations {
+			switch mutation.GetMethod() {
+			case "shoot":
+				{
+					var vec []float64
+					err := json.Unmarshal(mutation.GetArguments(), &vec)
+					if err != nil {
+						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for shoot mutation, coming from agent "+batch.AgentId.String()+"; "+err.Error())
+						continue
+					}
+
+					nbmutations++
+					newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
+
+					break
+				}
+			}
+		}
+
+		// 2. Movement actions
 		for _, mutation := range batch.Mutations {
 			switch mutation.GetMethod() {
 			case "steer":
@@ -269,43 +150,6 @@ func (serverstate *ServerState) ProcessMutations() {
 					newstate = newstate.mutationSteer(vector.MakeVector2(vec[0], vec[1]))
 
 					break
-				}
-			case "shoot":
-				{
-					var vec []float64
-					err := json.Unmarshal(mutation.GetArguments(), &vec)
-					if err != nil {
-						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for shoot mutation, coming from agent "+batch.AgentId.String()+"; "+err.Error())
-						continue
-					}
-
-					nbmutations++
-					newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
-
-					break
-				}
-			case "debugvis":
-				{
-					var rawvecs [][]float64
-					err := json.Unmarshal(mutation.GetArguments(), &rawvecs)
-					if err != nil {
-						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for debugvis mutation, coming from agent "+batch.AgentId.String()+"; "+err.Error())
-						continue
-					}
-
-					if len(rawvecs) == 2 {
-						vecs := make([]vector.Vector2, len(rawvecs))
-						for i, rawvec := range rawvecs {
-							v := vector.MakeVector2(rawvec[0], rawvec[1])
-							vecs[i] = v.SetAngle(v.Angle() + agentstate.Orientation).Add(agentstate.Position)
-						}
-
-						serverstate.debugPointsMutex.Lock()
-						for _, vec := range vecs {
-							serverstate.DebugPoints = append(serverstate.DebugPoints, vec)
-						}
-						serverstate.debugPointsMutex.Unlock()
-					}
 				}
 			}
 		}
@@ -411,4 +255,103 @@ func GetBoundingBox(points []vector.Vector2) (rtreego.Point, rtreego.Point) {
 	}
 
 	return []float64{minX, minY}, []float64{width, height}
+}
+
+func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoization {
+
+	///////////////////////////////////////////////////////////////////////////
+	// Obstacles
+	///////////////////////////////////////////////////////////////////////////
+
+	obstacles := make([]Obstacle, 0)
+
+	// Obstacles formed by the grounds
+	for _, ground := range arenaMap.Data.Grounds {
+		for _, polygon := range ground.Outline {
+			for i := 0; i < len(polygon.Points)-1; i++ {
+				a := polygon.Points[i]
+				b := polygon.Points[i+1]
+				normal := polygon.Normals[i]
+				obstacles = append(obstacles, MakeObstacle(
+					ground.Id,
+					ObstacleType.Ground,
+					vector.MakeVector2(a.X, a.Y),
+					vector.MakeVector2(b.X, b.Y),
+					vector.MakeVector2(normal.X, normal.Y),
+				))
+			}
+		}
+	}
+
+	// Explicit obstacles
+	for _, obstacle := range arenaMap.Data.Obstacles {
+		polygon := obstacle.Polygon
+		for i := 0; i < len(polygon.Points)-1; i++ {
+			a := polygon.Points[i]
+			b := polygon.Points[i+1]
+			normal := polygon.Normals[i]
+			obstacles = append(obstacles, MakeObstacle(
+				obstacle.Id,
+				ObstacleType.Object,
+				vector.MakeVector2(a.X, a.Y),
+				vector.MakeVector2(b.X, b.Y),
+				vector.MakeVector2(normal.X, normal.Y),
+			))
+		}
+	}
+
+	return &MapMemoization{
+		Obstacles: obstacles,
+	}
+}
+
+func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *box2d.B2World {
+
+	// Define the gravity vector.
+	gravity := box2d.MakeB2Vec2(0.0, 0.0) // 0: the simulation is seen from the top
+
+	// Construct a world object, which will hold and simulate the rigid bodies.
+	world := box2d.MakeB2World(gravity)
+
+	// Static obstacles formed by the grounds
+	for _, ground := range arenaMap.Data.Grounds {
+		for _, polygon := range ground.Outline {
+
+			bodydef := box2d.MakeB2BodyDef()
+			bodydef.Type = box2d.B2BodyType.B2_staticBody
+
+			body := world.CreateBody(&bodydef)
+			vertices := make([]box2d.B2Vec2, len(polygon.Points)-1) // -1: avoid last point because the last point of the loop should not be repeated
+
+			for i := 0; i < len(polygon.Points)-1; i++ {
+				vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
+			}
+
+			shape := box2d.MakeB2ChainShape()
+			shape.CreateLoop(vertices, len(vertices))
+			body.CreateFixture(&shape, 0.0)
+			body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Ground, ground.Id))
+		}
+	}
+
+	// Explicit obstacles
+	for _, obstacle := range arenaMap.Data.Obstacles {
+		polygon := obstacle.Polygon
+		bodydef := box2d.MakeB2BodyDef()
+		bodydef.Type = box2d.B2BodyType.B2_staticBody
+
+		body := world.CreateBody(&bodydef)
+		vertices := make([]box2d.B2Vec2, len(polygon.Points)-1) // a polygon has as many edges as points
+
+		for i := 0; i < len(polygon.Points)-1; i++ {
+			vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
+		}
+
+		shape := box2d.MakeB2ChainShape()
+		shape.CreateLoop(vertices, len(vertices))
+		body.CreateFixture(&shape, 0.0)
+		body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Obstacle, obstacle.Id))
+	}
+
+	return &world
 }

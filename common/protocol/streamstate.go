@@ -79,8 +79,8 @@ func transformServerStateToVizMessage(game arenaserver.GameInterface, state stat
 	for _, projectile := range state.Projectiles {
 		msg.Projectiles = append(msg.Projectiles, types.VizProjectileMessage{
 			Id:       projectile.Id,
-			Position: projectile.Position,
-			Velocity: projectile.Velocity,
+			Position: projectile.GetPosition(),
+			Velocity: projectile.GetVelocity(),
 			Kind:     "projectile",
 		})
 	}
@@ -92,10 +92,10 @@ func transformServerStateToVizMessage(game arenaserver.GameInterface, state stat
 			Id:           id,
 			Name:         agent.GetName(),
 			Kind:         "agent",
-			Position:     agent.Position,
-			Velocity:     agent.Velocity,
-			Radius:       agent.Radius,
-			Orientation:  agent.Orientation,
+			Position:     agent.GetPosition(),
+			Velocity:     agent.GetVelocity(),
+			Radius:       agent.GetRadius(),
+			Orientation:  agent.GetOrientation(),
 			VisionRadius: agent.VisionRadius,
 			VisionAngle:  agent.VisionAngle,
 			DebugMsg:     agent.DebugMsg,

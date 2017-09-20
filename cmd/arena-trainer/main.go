@@ -132,7 +132,7 @@ func main() {
 
 	url := "http://localhost:" + strconv.Itoa(*port+1) + "/arena/1"
 
-	fmt.Println("\033[0;34m\nGame running at " + url + ".\033[0m\n")
+	fmt.Println("\033[0;34m\nGame running at " + url + "\033[0m\n")
 	open.Run(url)
 
 	<-serverChan

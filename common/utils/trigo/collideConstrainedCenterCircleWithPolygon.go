@@ -1,10 +1,9 @@
-package collision
+package trigo
 
 import (
 	"math"
 
 	"github.com/bytearena/bytearena/common/utils/number"
-	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
@@ -24,10 +23,10 @@ func collideConstrainedCenterCircleWithPolygon(crossingPoly []vector.Vector2, ce
 	*/
 
 	// 1. On biaise les droites exactement verticales pour pouvoir toujours les décrire avec une équation affine
-	colliderAffineSlope, _ /*colliderAffineYIntersect*/, colliderAffineIsVertical, _ /*colliderAffineVerticalX*/ := trigo.GetAffineEquationExpressedForY(centerSegment)
+	colliderAffineSlope, _ /*colliderAffineYIntersect*/, colliderAffineIsVertical, _ /*colliderAffineVerticalX*/ := GetAffineEquationExpressedForY(centerSegment)
 	if colliderAffineIsVertical {
 		centerSegment = centerSegment.SetPointB(centerSegment.GetPointB().Add(vector.MakeVector2(0.0001, 0)))
-		colliderAffineSlope, _ /*colliderAffineYIntersect*/, colliderAffineIsVertical, _ /*colliderAffineVerticalX*/ = trigo.GetAffineEquationExpressedForY(centerSegment)
+		colliderAffineSlope, _ /*colliderAffineYIntersect*/, colliderAffineIsVertical, _ /*colliderAffineVerticalX*/ = GetAffineEquationExpressedForY(centerSegment)
 		if colliderAffineIsVertical {
 			// no collision will be processed !
 			// may never happen
@@ -54,7 +53,7 @@ func collideConstrainedCenterCircleWithPolygon(crossingPoly []vector.Vector2, ce
 
 		// Il s'agit bien d'une intersection de lignes et pas de segments
 		// Car le collider peut entre en collision avec la ligne formée par le segment même si son centre n'entre pas en collision avec le segment (le radius du collider est non nul)
-		if point, parallel := trigo.LinesIntersectionPoint(p1, p2, centerSegmentPointA, centerSegmentPointB); !parallel {
+		if point, parallel := LinesIntersectionPoint(p1, p2, centerSegmentPointA, centerSegmentPointB); !parallel {
 			touchingSegments = append(touchingSegments, intersectingSegmentWrapper{
 				point:   point,
 				segment: vector.MakeSegment2(p1, p2),
@@ -72,11 +71,11 @@ func collideConstrainedCenterCircleWithPolygon(crossingPoly []vector.Vector2, ce
 	// avec le polygone obtenu par le clipping du rectangle orienté de trajectoire du collider avec le rectangle orienté de trajectoire du collidee.
 	for _, touchingSegment := range touchingSegments {
 		// On détermine l'équation affine de la droite passant entre les deux points du segment
-		segmentAffineSlope, _ /*segmentAffineYIntersect*/, segmentAffineIsVertical, _ /*segmentAffineVerticalX*/ := trigo.GetAffineEquationExpressedForY(touchingSegment.segment)
+		segmentAffineSlope, _ /*segmentAffineYIntersect*/, segmentAffineIsVertical, _ /*segmentAffineVerticalX*/ := GetAffineEquationExpressedForY(touchingSegment.segment)
 		if segmentAffineIsVertical {
 			//panic("segmentAffineIsVertical !! what should we do ???")
 			touchingSegment.segment = touchingSegment.segment.SetPointB(touchingSegment.segment.GetPointB().Add(vector.MakeVector2(0.0001, 0)))
-			segmentAffineSlope, _ /*colliderAffineYIntersect*/, segmentAffineIsVertical, _ /*colliderAffineVerticalX*/ = trigo.GetAffineEquationExpressedForY(touchingSegment.segment)
+			segmentAffineSlope, _ /*colliderAffineYIntersect*/, segmentAffineIsVertical, _ /*colliderAffineVerticalX*/ = GetAffineEquationExpressedForY(touchingSegment.segment)
 			if segmentAffineIsVertical {
 				// no collision will be processed !
 				// may never happen
@@ -166,7 +165,7 @@ func collideConstrainedCenterCircleWithPolygon(crossingPoly []vector.Vector2, ce
 			tangentRadiusPrimePointY := tangentRadiusSlope*tangentRadiusPrimePointX + tangentRadiusAffineYIntersect
 
 			// on détermine le point d'intersection du rayon de tangente
-			tangentPoint, _ := trigo.LinesIntersectionPoint(
+			tangentPoint, _ := LinesIntersectionPoint(
 				touchingSegment.segment.GetPointA(), touchingSegment.segment.GetPointB(),
 				tangentCircleCenter, vector.MakeVector2(tangentRadiusPrimePointX, tangentRadiusPrimePointY),
 			)
