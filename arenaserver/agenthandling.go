@@ -5,9 +5,9 @@ import (
 
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/agent"
-	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/bytearena/game/entities"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -49,7 +49,7 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 
-	agentstate := state.MakeAgentState(agent.GetId(), agentname, body)
+	agentstate := entities.MakeAgentState(agent.GetId(), agentname, body)
 
 	body.SetLinearDamping(agentstate.DragForce * float64(s.tickspersec)) // aerodynamic drag
 
@@ -61,7 +61,7 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 	utils.Debug("arena", "Registrer agent "+agentimage)
 }
 
-func (s *Server) spawnAgents() error {
+func (s *Server) startAgentContainers() error {
 
 	for _, agent := range s.agents {
 		dockerimage := s.agentimages[agent.GetId()]
@@ -93,15 +93,15 @@ func (s *Server) spawnAgents() error {
 	return nil
 }
 
-func (s *Server) setAgent(agent agent.AgentInterface) {
+func (s *Server) setAgent(agent entities.AgentInterface) {
 	s.agentsmutex.Lock()
 	defer s.agentsmutex.Unlock()
 
 	s.agents[agent.GetId()] = agent
 }
 
-func (s *Server) getAgent(agentid string) (agent.AgentInterface, error) {
-	var emptyagent agent.AgentInterface
+func (s *Server) getAgent(agentid string) (entities.AgentInterface, error) {
+	var emptyagent entities.AgentInterface
 
 	foundkey, err := uuid.FromString(agentid)
 	if err != nil {
