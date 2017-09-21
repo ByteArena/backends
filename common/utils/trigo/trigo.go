@@ -403,3 +403,23 @@ func GetAffineEquationExpressedForY(segment vector.Segment2) (a float64, b float
 	b = pAY - (a * pAX)
 	return a, b, false, 0
 }
+
+func LocalAngleToAbsoluteAngleVec(abscurrentagentangle float64, vec vector.Vector2, maxangleconstraint *float64) vector.Vector2 {
+
+	// On passe de 0° / 360° à -180° / +180°
+	relvecangle := FullCircleAngleToSignedHalfCircleAngle(vec.Angle())
+
+	// On contraint la vélocité angulaire à un maximum
+	if maxangleconstraint != nil {
+		maxangleconstraintval := *maxangleconstraint
+		if math.Abs(relvecangle) > maxangleconstraintval {
+			if relvecangle > 0 {
+				relvecangle = maxangleconstraintval
+			} else {
+				relvecangle = -1 * maxangleconstraintval
+			}
+		}
+	}
+
+	return vec.SetAngle(abscurrentagentangle + relvecangle)
+}

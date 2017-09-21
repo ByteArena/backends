@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/bytearena/box2d"
-	"github.com/bytearena/bytearena/arenaserver/projectile"
 	"github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/game/entities"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -30,7 +30,7 @@ func (server *Server) update() {
 		}
 	}
 
-	server.state.ProjectilesDeletedThisTick = make(map[uuid.UUID]*projectile.BallisticProjectile)
+	server.state.ProjectilesDeletedThisTick = make(map[uuid.UUID]*entities.BallisticProjectile)
 	for _, projectileToRemoveId := range projectilesToRemove {
 		// has been set to 0 during the previous tick; pruning now (0 TTL projectiles might still have a collision later in this method)
 

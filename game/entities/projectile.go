@@ -1,4 +1,4 @@
-package projectile
+package entities
 
 import (
 	"github.com/bytearena/box2d"

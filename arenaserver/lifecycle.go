@@ -8,13 +8,13 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
-	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/perception"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/bytearena/game/entities"
 )
 
 func (server *Server) Start() (chan interface{}, error) {
@@ -22,11 +22,11 @@ func (server *Server) Start() (chan interface{}, error) {
 	utils.Debug("arena", "Listen")
 	block := server.listen()
 
-	utils.Debug("arena", "Spawn agents")
-	err := server.spawnAgents()
+	utils.Debug("arena", "Starting agent containers")
+	err := server.startAgentContainers()
 
 	if err != nil {
-		return nil, errors.New("Failed to spawn agents: " + err.Error())
+		return nil, errors.New("Failed to start agent containers: " + err.Error())
 	}
 
 	server.AddTearDownCall(func() error {
@@ -147,7 +147,7 @@ func (server *Server) doTick() {
 	arenamap := server.game.GetMapContainer()
 
 	for _, ag := range server.agents {
-		go func(server *Server, ag agent.AgentInterface, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
+		go func(server *Server, ag entities.AgentInterface, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
 
 			err := ag.SetPerception(
 				perception.ComputeAgentPerception(arenamap, serverstate, ag),

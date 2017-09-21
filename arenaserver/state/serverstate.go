@@ -2,26 +2,27 @@ package state
 
 import (
 	"encoding/json"
-	"strconv"
+	"math"
 	"sync"
 
 	"github.com/bytearena/box2d"
-	"github.com/bytearena/bytearena/arenaserver/projectile"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/bytearena/game/entities"
 	uuid "github.com/satori/go.uuid"
 )
 
 type ServerState struct {
-	Agents      map[uuid.UUID](AgentState)
+	Agents      map[uuid.UUID](entities.AgentState)
 	Agentsmutex *sync.Mutex
 
-	Projectiles                map[uuid.UUID](*projectile.BallisticProjectile)
+	Projectiles                map[uuid.UUID](*entities.BallisticProjectile)
 	Projectilesmutex           *sync.Mutex
-	ProjectilesDeletedThisTick map[uuid.UUID](*projectile.BallisticProjectile)
+	ProjectilesDeletedThisTick map[uuid.UUID](*entities.BallisticProjectile)
 
 	pendingmutations []protocol.AgentMutationBatch
 	mutationsmutex   *sync.Mutex
@@ -41,12 +42,12 @@ type ServerState struct {
 func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 
 	return &ServerState{
-		Agents:      make(map[uuid.UUID](AgentState)),
+		Agents:      make(map[uuid.UUID](entities.AgentState)),
 		Agentsmutex: &sync.Mutex{},
 
-		Projectiles:                make(map[uuid.UUID]*projectile.BallisticProjectile),
+		Projectiles:                make(map[uuid.UUID]*entities.BallisticProjectile),
 		Projectilesmutex:           &sync.Mutex{},
-		ProjectilesDeletedThisTick: make(map[uuid.UUID]*projectile.BallisticProjectile),
+		ProjectilesDeletedThisTick: make(map[uuid.UUID]*entities.BallisticProjectile),
 
 		pendingmutations: make([]protocol.AgentMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
@@ -58,7 +59,7 @@ func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 	}
 }
 
-func (serverstate *ServerState) GetProjectile(projectileid uuid.UUID) *projectile.BallisticProjectile {
+func (serverstate *ServerState) GetProjectile(projectileid uuid.UUID) *entities.BallisticProjectile {
 	serverstate.Projectilesmutex.Lock()
 	res := serverstate.Projectiles[projectileid]
 	serverstate.Projectilesmutex.Unlock()
@@ -66,13 +67,13 @@ func (serverstate *ServerState) GetProjectile(projectileid uuid.UUID) *projectil
 	return res
 }
 
-func (serverstate *ServerState) SetProjectile(projectileid uuid.UUID, projectile *projectile.BallisticProjectile) {
+func (serverstate *ServerState) SetProjectile(projectileid uuid.UUID, projectile *entities.BallisticProjectile) {
 	serverstate.Projectilesmutex.Lock()
 	serverstate.Projectiles[projectileid] = projectile
 	serverstate.Projectilesmutex.Unlock()
 }
 
-func (serverstate *ServerState) GetAgentState(agentid uuid.UUID) AgentState {
+func (serverstate *ServerState) GetAgentState(agentid uuid.UUID) entities.AgentState {
 	serverstate.Agentsmutex.Lock()
 	res := serverstate.Agents[agentid]
 	serverstate.Agentsmutex.Unlock()
@@ -80,7 +81,7 @@ func (serverstate *ServerState) GetAgentState(agentid uuid.UUID) AgentState {
 	return res
 }
 
-func (serverstate *ServerState) SetAgentState(agentid uuid.UUID, agentstate AgentState) {
+func (serverstate *ServerState) SetAgentState(agentid uuid.UUID, agentstate entities.AgentState) {
 	serverstate.Agentsmutex.Lock()
 	serverstate.Agents[agentid] = agentstate
 	serverstate.Agentsmutex.Unlock()
@@ -105,7 +106,7 @@ func (serverstate *ServerState) ProcessMutations() {
 
 		serverstate.Agentsmutex.Lock()
 		agentstate := serverstate.Agents[batch.AgentId]
-		newstate := agentstate.clone()
+		newstate := agentstate.Clone()
 		serverstate.Agentsmutex.Unlock()
 
 		// Ordering actions
@@ -126,7 +127,7 @@ func (serverstate *ServerState) ProcessMutations() {
 					}
 
 					nbmutations++
-					newstate = newstate.mutationShoot(serverstate, vector.MakeVector2(vec[0], vec[1]))
+					newstate = mutationShoot(newstate, serverstate, vector.MakeVector2(vec[0], vec[1]))
 
 					break
 				}
@@ -146,20 +147,17 @@ func (serverstate *ServerState) ProcessMutations() {
 					}
 
 					nbmutations++
-					newstate = newstate.mutationSteer(vector.MakeVector2(vec[0], vec[1]))
+					newstate = mutationSteer(newstate, vector.MakeVector2(vec[0], vec[1]))
 
 					break
 				}
 			}
 		}
 
-		if newstate.validate() && newstate.validateTransition(agentstate) {
-			serverstate.Agentsmutex.Lock()
-			serverstate.Agents[batch.AgentId] = newstate
-			serverstate.Agentsmutex.Unlock()
-		} else {
-			utils.Debug("core-loop", "ILLEGAL Mutations "+strconv.Itoa(nbmutations))
-		}
+		serverstate.Agentsmutex.Lock()
+		serverstate.Agents[batch.AgentId] = newstate
+		serverstate.Agentsmutex.Unlock()
+
 	}
 }
 
@@ -257,4 +255,90 @@ func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *box2d.B2World {
 	}
 
 	return &world
+}
+
+func mutationSteer(agentstate entities.AgentState, steering vector.Vector2) entities.AgentState {
+
+	prevmag := agentstate.GetVelocity().Mag()
+	diff := steering.Mag() - prevmag
+	if math.Abs(diff) > agentstate.MaxSteeringForce {
+		if diff > 0 {
+			steering = steering.SetMag(prevmag + agentstate.MaxSteeringForce)
+		} else {
+			steering = steering.SetMag(prevmag - agentstate.MaxSteeringForce)
+		}
+	}
+	abssteering := trigo.LocalAngleToAbsoluteAngleVec(agentstate.GetOrientation(), steering, &agentstate.MaxAngularVelocity)
+	agentstate.SetVelocity(abssteering.Limit(agentstate.MaxSpeed))
+
+	return agentstate
+}
+
+func mutationShoot(agentstate entities.AgentState, serverstate *ServerState, aiming vector.Vector2) entities.AgentState {
+
+	//
+	// Levels consumption
+	//
+
+	if agentstate.LastShot <= agentstate.ShootCooldown {
+		// invalid shot, cooldown not over
+		return agentstate
+	}
+
+	if agentstate.ShootEnergy < agentstate.ShootEnergyCost {
+		// TODO(jerome): puiser dans le shield ?
+		return agentstate
+	}
+
+	agentstate.LastShot = 0
+	agentstate.ShootEnergy -= agentstate.ShootEnergyCost
+
+	projectileId := uuid.NewV4()
+
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	// Make physical body for projectile
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
+	agentpos := agentstate.GetPosition()
+
+	bodydef := box2d.MakeB2BodyDef()
+	bodydef.Type = box2d.B2BodyType.B2_dynamicBody
+	bodydef.AllowSleep = false
+	bodydef.FixedRotation = true
+
+	bodydef.Position.Set(agentpos.GetX(), agentpos.GetY())
+
+	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
+	absaiming := trigo.LocalAngleToAbsoluteAngleVec(agentstate.GetOrientation(), aiming, nil) // TODO: replace nil here by an actual angle constraint
+
+	// FIXME(jerome): handle proper Box2D <=> BA velocity conversion
+	pvel := absaiming.SetMag(100) // projectile speed; 60 is 3u/tick
+	bodydef.LinearVelocity = box2d.MakeB2Vec2(pvel.GetX(), pvel.GetY())
+
+	body := serverstate.PhysicalWorld.CreateBody(&bodydef)
+	body.SetLinearDamping(0.0) // no aerodynamic drag
+
+	shape := box2d.MakeB2CircleShape()
+	shape.SetRadius(0.3)
+
+	fixturedef := box2d.MakeB2FixtureDef()
+	fixturedef.Shape = &shape
+	fixturedef.Density = 20.0
+	body.CreateFixtureFromDef(&fixturedef)
+	body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Projectile, projectileId.String()))
+	body.SetBullet(true)
+
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
+	projectile := entities.NewBallisticProjectile(projectileId, body)
+	projectile.AgentEmitterId = agentstate.GetAgentId()
+	projectile.JustFired = true
+	projectile.TTL = 60
+
+	serverstate.SetProjectile(projectile.Id, projectile)
+
+	return agentstate
 }

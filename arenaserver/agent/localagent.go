@@ -2,21 +2,21 @@ package agent
 
 import (
 	"github.com/bytearena/bytearena/arenaserver/protocol"
-	"github.com/bytearena/bytearena/arenaserver/state"
+	"github.com/bytearena/bytearena/game/entities"
 )
 
 type LocalAgentInterface interface {
-	AgentInterface
+	entities.AgentInterface
 }
 
 type LocalAgentImp struct {
-	AgentImp
+	entities.AgentImp
 	DebugNbPutPerception int
 }
 
 func MakeLocalAgentImp() LocalAgentImp {
 	return LocalAgentImp{
-		AgentImp: MakeAgentImp(),
+		AgentImp: entities.MakeAgentImp(),
 	}
 }
 
@@ -24,6 +24,6 @@ func (agent LocalAgentImp) String() string {
 	return "<LocalAgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent LocalAgentImp) SetPerception(perception state.Perception, comm protocol.AgentCommunicatorInterface) error {
+func (agent LocalAgentImp) SetPerception(perception protocol.Perception, comm protocol.AgentCommunicatorInterface) error {
 	return nil
 }

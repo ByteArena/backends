@@ -3,13 +3,13 @@ package arenaserver
 import (
 	"sync"
 
-	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/comm"
 	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/bytearena/game/entities"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -22,7 +22,7 @@ type Server struct {
 	stopticking           chan bool
 	tickspersec           int
 	containerorchestrator container.ContainerOrchestrator
-	agents                map[uuid.UUID]agent.AgentInterface
+	agents                map[uuid.UUID]entities.AgentInterface
 	agentsmutex           *sync.Mutex
 	state                 *state.ServerState
 	commserver            *comm.CommServer
@@ -64,7 +64,7 @@ func NewServer(host string, port int, orch container.ContainerOrchestrator, game
 		stopticking:           make(chan bool),
 		tickspersec:           game.GetTps(),
 		containerorchestrator: orch,
-		agents:                make(map[uuid.UUID]agent.AgentInterface),
+		agents:                make(map[uuid.UUID]entities.AgentInterface),
 		agentsmutex:           &sync.Mutex{},
 		state:                 state.NewServerState(game.GetMapContainer()),
 		commserver:            nil, // initialized in Listen()

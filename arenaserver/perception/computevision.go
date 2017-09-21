@@ -3,21 +3,22 @@ package perception
 import (
 	"math"
 
-	"github.com/bytearena/bytearena/arenaserver/agent"
+	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/bytearena/game/entities"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/bytearena/box2d"
 )
 
-func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.AgentInterface) []state.PerceptionVisionItem {
+func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent entities.AgentInterface) []protocol.PerceptionVisionItem {
 
 	agentstate := serverstate.GetAgentState(agent.GetId())
-	vision := make([]state.PerceptionVisionItem, 0)
+	vision := make([]protocol.PerceptionVisionItem, 0)
 
 	// Vision: Les autres agents
 	vision = append(vision, viewAgents(serverstate, agentstate, agent.GetId())...)
@@ -28,11 +29,11 @@ func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.
 	return vision
 }
 
-func viewAgents(serverstate *state.ServerState, agentstate state.AgentState, agentid uuid.UUID) []state.PerceptionVisionItem {
+func viewAgents(serverstate *state.ServerState, agentstate entities.AgentState, agentid uuid.UUID) []protocol.PerceptionVisionItem {
 
 	agentposition := agentstate.GetPosition()
 
-	vision := make([]state.PerceptionVisionItem, 0)
+	vision := make([]protocol.PerceptionVisionItem, 0)
 
 	orientation := agentstate.GetOrientation()
 	radiussq := agentstate.VisionRadius * agentstate.VisionRadius
@@ -79,7 +80,7 @@ func viewAgents(serverstate *state.ServerState, agentstate state.AgentState, age
 		if distsq <= radiussq {
 			// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
 			centervec = centervec.SetAngle(centervec.Angle() - orientation)
-			visionitem := state.PerceptionVisionItem{
+			visionitem := protocol.PerceptionVisionItem{
 				CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - orientation), // perpendicular to relative position vector, left side
 				Center:    centervec,
 				FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - orientation), // perpendicular to relative position vector, right side
@@ -96,9 +97,9 @@ func viewAgents(serverstate *state.ServerState, agentstate state.AgentState, age
 	return vision
 }
 
-func viewObstacles(serverstate *state.ServerState, agentstate state.AgentState) []state.PerceptionVisionItem {
+func viewObstacles(serverstate *state.ServerState, agentstate entities.AgentState) []protocol.PerceptionVisionItem {
 
-	vision := make([]state.PerceptionVisionItem, 0)
+	vision := make([]protocol.PerceptionVisionItem, 0)
 
 	absoluteposition := agentstate.GetPosition()
 	orientation := agentstate.GetOrientation()
@@ -224,7 +225,7 @@ func viewObstacles(serverstate *state.ServerState, agentstate state.AgentState) 
 				farEdge = relEdgeOneAgentAligned
 			}
 
-			obstacleperception := state.PerceptionVisionItem{
+			obstacleperception := protocol.PerceptionVisionItem{
 				CloseEdge: closeEdge,
 				Center:    relcenteragentaligned,
 				FarEdge:   farEdge,

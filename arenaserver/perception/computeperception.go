@@ -1,13 +1,14 @@
 package perception
 
 import (
-	"github.com/bytearena/bytearena/arenaserver/agent"
+	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
+	"github.com/bytearena/bytearena/game/entities"
 )
 
-func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent agent.AgentInterface) state.Perception {
-	p := state.Perception{}
+func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent entities.AgentInterface) protocol.Perception {
+	p := protocol.Perception{}
 	agentstate := serverstate.GetAgentState(agent.GetId())
 
 	orientation := agentstate.GetOrientation()

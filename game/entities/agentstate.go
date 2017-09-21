@@ -1,14 +1,9 @@
-package state
+package entities
 
 import (
-	"math"
-
 	"github.com/bytearena/box2d"
 
-	"github.com/bytearena/bytearena/arenaserver/projectile"
-	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils/number"
-	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	uuid "github.com/satori/go.uuid"
 )
@@ -106,6 +101,10 @@ func MakeAgentState(agentId uuid.UUID, agentName string, physicalbody *box2d.B2B
 	}
 }
 
+func (state AgentState) GetAgentId() uuid.UUID {
+	return state.agentId
+}
+
 func (state AgentState) GetName() string {
 	return state.agentName
 }
@@ -145,113 +144,7 @@ func (state AgentState) Update() AgentState {
 	return state
 }
 
-func (state AgentState) mutationSteer(steering vector.Vector2) AgentState {
-
-	prevmag := state.GetVelocity().Mag()
-	diff := steering.Mag() - prevmag
-	if math.Abs(diff) > state.MaxSteeringForce {
-		if diff > 0 {
-			steering = steering.SetMag(prevmag + state.MaxSteeringForce)
-		} else {
-			steering = steering.SetMag(prevmag - state.MaxSteeringForce)
-		}
-	}
-	abssteering := localAngleToAbsoluteAngleVec(state.GetOrientation(), steering, &state.MaxAngularVelocity)
-	state.SetVelocity(abssteering.Limit(state.MaxSpeed))
-
-	return state
-}
-
-func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Vector2) AgentState {
-
-	//
-	// Levels consumption
-	//
-
-	if state.LastShot <= state.ShootCooldown {
-		// invalid shot, cooldown not over
-		return state
-	}
-
-	if state.ShootEnergy < state.ShootEnergyCost {
-		// TODO(jerome): puiser dans le shield ?
-		return state
-	}
-
-	state.LastShot = 0
-	state.ShootEnergy -= state.ShootEnergyCost
-
-	projectileId := uuid.NewV4()
-
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-	// Make physical body for projectile
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-
-	agentpos := state.GetPosition()
-
-	bodydef := box2d.MakeB2BodyDef()
-	bodydef.Type = box2d.B2BodyType.B2_dynamicBody
-	bodydef.AllowSleep = false
-	bodydef.FixedRotation = true
-
-	bodydef.Position.Set(agentpos.GetX(), agentpos.GetY())
-
-	// // on passe le vecteur de visée d'un angle relatif à un angle absolu
-	absaiming := localAngleToAbsoluteAngleVec(state.GetOrientation(), aiming, nil) // TODO: replace nil here by an actual angle constraint
-
-	// FIXME(jerome): handle proper Box2D <=> BA velocity conversion
-	pvel := absaiming.SetMag(100) // projectile speed; 60 is 3u/tick
-	bodydef.LinearVelocity = box2d.MakeB2Vec2(pvel.GetX(), pvel.GetY())
-
-	body := serverstate.PhysicalWorld.CreateBody(&bodydef)
-	body.SetLinearDamping(0.0) // no aerodynamic drag
-
-	shape := box2d.MakeB2CircleShape()
-	shape.SetRadius(0.3)
-
-	fixturedef := box2d.MakeB2FixtureDef()
-	fixturedef.Shape = &shape
-	fixturedef.Density = 20.0
-	body.CreateFixtureFromDef(&fixturedef)
-	body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Projectile, projectileId.String()))
-	body.SetBullet(true)
-
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-
-	projectile := projectile.NewBallisticProjectile(projectileId, body)
-	projectile.AgentEmitterId = state.agentId
-	projectile.JustFired = true
-	projectile.TTL = 60
-
-	serverstate.SetProjectile(projectile.Id, projectile)
-
-	return state
-}
-
-func localAngleToAbsoluteAngleVec(abscurrentagentangle float64, vec vector.Vector2, maxangleconstraint *float64) vector.Vector2 {
-
-	// On passe de 0° / 360° à -180° / +180°
-	relvecangle := trigo.FullCircleAngleToSignedHalfCircleAngle(vec.Angle())
-
-	// On contraint la vélocité angulaire à un maximum
-	if maxangleconstraint != nil {
-		maxangleconstraintval := *maxangleconstraint
-		if math.Abs(relvecangle) > maxangleconstraintval {
-			if relvecangle > 0 {
-				relvecangle = maxangleconstraintval
-			} else {
-				relvecangle = -1 * maxangleconstraintval
-			}
-		}
-	}
-
-	return vec.SetAngle(abscurrentagentangle + relvecangle)
-}
-
-func (state AgentState) clone() AgentState {
+func (state AgentState) Clone() AgentState {
 	return state // yes, passed by value !
 }
 
