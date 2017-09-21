@@ -202,7 +202,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 	absaiming := localAngleToAbsoluteAngleVec(state.GetOrientation(), aiming, nil) // TODO: replace nil here by an actual angle constraint
 
 	// FIXME(jerome): handle proper Box2D <=> BA velocity conversion
-	pvel := absaiming.SetMag(60) // projectile speed; 60 is 3u/tick
+	pvel := absaiming.SetMag(100) // projectile speed; 60 is 3u/tick
 	bodydef.LinearVelocity = box2d.MakeB2Vec2(pvel.GetX(), pvel.GetY())
 
 	body := serverstate.PhysicalWorld.CreateBody(&bodydef)
@@ -216,6 +216,7 @@ func (state AgentState) mutationShoot(serverstate *ServerState, aiming vector.Ve
 	fixturedef.Density = 20.0
 	body.CreateFixtureFromDef(&fixturedef)
 	body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Projectile, projectileId.String()))
+	body.SetBullet(true)
 
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////

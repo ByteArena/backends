@@ -3,6 +3,7 @@ package arenaserver
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net"
 	"runtime"
 	"strconv"
@@ -152,6 +153,7 @@ func (server *Server) RegisterAgent(agentimage, agentname string) {
 	fixturedef.Density = 20.0
 	body.CreateFixtureFromDef(&fixturedef)
 	body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Agent, agent.GetId().String()))
+	body.SetBullet(true)
 
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
@@ -627,7 +629,7 @@ func (server *Server) update() {
 	// On simule le monde physique
 	///////////////////////////////////////////////////////////////////////////
 
-	//before := time.Now()
+	before := time.Now()
 
 	timeStep := 1.0 / float64(server.GetTicksPerSecond())
 
@@ -637,7 +639,7 @@ func (server *Server) update() {
 		3, // positionIterations; higher improve overlap resolution; default 3 in testbed
 	)
 
-	//log.Println("Physical world step took ", float64(time.Now().UnixNano()-before.UnixNano())/1000000.0, "ms")
+	log.Println("Physical world step took ", float64(time.Now().UnixNano()-before.UnixNano())/1000000.0, "ms")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On réagit aux contacts
