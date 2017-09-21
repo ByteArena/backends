@@ -12,7 +12,6 @@ import (
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/dhconnelly/rtreego"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -164,99 +163,6 @@ func (serverstate *ServerState) ProcessMutations() {
 	}
 }
 
-var GeometryObjectType = struct {
-	ObstacleGround int
-	ObstacleObject int
-	Agent          int
-	Projectile     int
-}{
-	ObstacleGround: 0,
-	ObstacleObject: 1,
-	Agent:          2,
-	Projectile:     3,
-}
-
-type GeometryObject struct {
-	ID     string
-	Type   int
-	Rect   *rtreego.Rect
-	PointA vector.Vector2
-	PointB vector.Vector2
-	Normal vector.Vector2
-}
-
-func (geobj GeometryObject) Bounds() *rtreego.Rect {
-	return geobj.Rect
-}
-
-func (geobj *GeometryObject) GetPointA() vector.Vector2 {
-	return geobj.PointA
-}
-
-func (geobj *GeometryObject) GetPointB() vector.Vector2 {
-	return geobj.PointB
-}
-
-func (geobj *GeometryObject) GetRadius() float64 {
-	return 0
-}
-
-func (geobj *GeometryObject) GetType() int {
-	return geobj.Type
-}
-
-func (geobj *GeometryObject) GetID() string {
-	return geobj.ID
-}
-
-type TriangleRtreeWrapper struct {
-	Rect   *rtreego.Rect
-	Points [3]vector.Vector2
-}
-
-func (geobj TriangleRtreeWrapper) Bounds() *rtreego.Rect {
-	return geobj.Rect
-}
-
-func GetBoundingBox(points []vector.Vector2) (rtreego.Point, rtreego.Point) {
-
-	var minX = 10000000000.0
-	var minY = 10000000000.0
-	var maxX = -10000000000.0
-	var maxY = -10000000000.0
-
-	for _, point := range points {
-		x, y := point.Get()
-		if x < minX {
-			minX = x
-		}
-
-		if y < minY {
-			minY = y
-		}
-
-		if x > maxX {
-			maxX = x
-		}
-
-		if y > maxY {
-			maxY = y
-		}
-	}
-
-	width := maxX - minX
-	if width <= 0 {
-		width = 0.00001
-	}
-
-	height := maxY - minY
-	if height <= 0 {
-		height = 0.00001
-	}
-
-	return []float64{minX, minY}, []float64{width, height}
-}
-
 func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoization {
 
 	///////////////////////////////////////////////////////////////////////////
@@ -271,13 +177,12 @@ func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 			for i := 0; i < len(polygon.Points)-1; i++ {
 				a := polygon.Points[i]
 				b := polygon.Points[i+1]
-				normal := polygon.Normals[i]
+
 				obstacles = append(obstacles, MakeObstacle(
 					ground.Id,
 					ObstacleType.Ground,
 					vector.MakeVector2(a.X, a.Y),
 					vector.MakeVector2(b.X, b.Y),
-					vector.MakeVector2(normal.X, normal.Y),
 				))
 			}
 		}
@@ -289,13 +194,11 @@ func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 		for i := 0; i < len(polygon.Points)-1; i++ {
 			a := polygon.Points[i]
 			b := polygon.Points[i+1]
-			normal := polygon.Normals[i]
 			obstacles = append(obstacles, MakeObstacle(
 				obstacle.Id,
 				ObstacleType.Object,
 				vector.MakeVector2(a.X, a.Y),
 				vector.MakeVector2(b.X, b.Y),
-				vector.MakeVector2(normal.X, normal.Y),
 			))
 		}
 	}

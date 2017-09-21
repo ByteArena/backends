@@ -53,7 +53,7 @@ func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner *AgentContainer) e
 func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
 	waitChan, errorChan := orch.cli.ContainerWait(
 		orch.ctx,
-		ctner.containerid.String(),
+		ctner.containerid,
 		container.WaitConditionRemoved,
 	)
 
@@ -69,7 +69,7 @@ func (orch *ContainerOrchestrator) TearDown(container *AgentContainer) {
 	// )
 
 	// if err != nil {
-	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
+	orch.cli.ContainerKill(orch.ctx, container.containerid, "KILL")
 	//}
 
 	if orch.RemoveImages {
@@ -188,7 +188,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		return nil, errors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
 	}
 
-	agentcontainer := NewAgentContainer(agentid, ContainerId(resp.ID), normalizedDockerimage)
+	agentcontainer := NewAgentContainer(agentid, resp.ID, normalizedDockerimage)
 	orch.containers = append(orch.containers, agentcontainer)
 
 	return agentcontainer, nil

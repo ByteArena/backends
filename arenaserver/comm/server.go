@@ -38,7 +38,6 @@ func (s *CommServer) Send(message []byte, conn net.Conn) error {
 
 func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 
-	utils.Debug("commserver", "::Listen")
 	ln, err := net.Listen("tcp4", s.address)
 	if err != nil {
 		return fmt.Errorf("Comm server could not listen on %s; %s", s.address, err.Error())
@@ -49,21 +48,17 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 	go func() {
 		defer s.listener.Close()
 		for {
-			utils.Debug("commserver", "::Accept")
+
 			conn, err := s.listener.Accept()
 			if err != nil {
 				utils.Debug("commserver", "ERROR !! "+err.Error())
 				continue
 			}
 
-			utils.Debug("commserver", "::AcceptED")
-
-			//conn.SetReadDeadline(time.Now().Add(time.Second * 10))
-
 			go func() {
 				defer conn.Close()
 				for {
-					//utils.Debug("commserver", "::Reading...")
+
 					reader := bufio.NewReader(conn)
 					buf, err := reader.ReadBytes('\n')
 					if err != nil {
@@ -71,11 +66,6 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 						utils.Debug("commserver", "Connexion closed unexpectedly; "+err.Error())
 						return
 					}
-
-					//utils.Debug("commserver", "::RECEIVED bytes"+string(buf))
-
-					// no more read deadline
-					//conn.SetReadDeadline(time.Time{})
 
 					// Unmarshal message (unwrapping in an AgentMessage structure)
 					var msg protocol.MessageWrapperImp

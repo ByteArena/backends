@@ -25,7 +25,7 @@ func startContainerLocalOrch(orch *ContainerOrchestrator, ctner *AgentContainer,
 
 	err := orch.cli.ContainerStart(
 		orch.ctx,
-		ctner.containerid.String(),
+		ctner.containerid,
 		types.ContainerStartOptions{},
 	)
 
@@ -36,15 +36,15 @@ func startContainerLocalOrch(orch *ContainerOrchestrator, ctner *AgentContainer,
 	err = localLogsToStdOut(orch, ctner)
 
 	if err != nil {
-		return errors.New("Failed to follow docker container logs for " + ctner.containerid.String())
+		return errors.New("Failed to follow docker container logs for " + ctner.containerid)
 	}
 
 	containerInfo, err := orch.cli.ContainerInspect(
 		orch.ctx,
-		ctner.containerid.String(),
+		ctner.containerid,
 	)
 	if err != nil {
-		return errors.New("Could not inspect container " + ctner.containerid.String())
+		return errors.New("Could not inspect container " + ctner.containerid)
 	}
 
 	ctner.SetIPAddress(containerInfo.NetworkSettings.IPAddress)
@@ -77,7 +77,7 @@ func MakeLocalContainerOrchestrator(host string) ContainerOrchestrator {
 
 func localLogsToStdOut(orch *ContainerOrchestrator, container *AgentContainer) error {
 	go func(orch *ContainerOrchestrator, container *AgentContainer) {
-		reader, err := orch.cli.ContainerLogs(orch.ctx, container.containerid.String(), types.ContainerLogsOptions{
+		reader, err := orch.cli.ContainerLogs(orch.ctx, container.containerid, types.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Follow:     true,
@@ -85,7 +85,7 @@ func localLogsToStdOut(orch *ContainerOrchestrator, container *AgentContainer) e
 			Timestamps: false,
 		})
 
-		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.containerid.String())
+		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.containerid)
 
 		defer reader.Close()
 
