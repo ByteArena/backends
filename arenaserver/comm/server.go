@@ -12,6 +12,7 @@ import (
 
 type CommDispatcherInterface interface {
 	DispatchAgentMessage(msg protocol.MessageWrapperInterface) error
+	ImplementsCommDispatcherInterface()
 }
 
 type CommServer struct {
