@@ -79,6 +79,8 @@ func main() {
 	// handling signals
 	<-common.SignalHandler()
 	utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
+
+	brokerclient.Stop()
 }
 
 func initRepo(db protocol.DatabaseInterface, mqclient mq.ClientInterface, agentid string) {
