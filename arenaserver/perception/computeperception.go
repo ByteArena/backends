@@ -7,8 +7,8 @@ import (
 	"github.com/bytearena/bytearena/game/entities"
 )
 
-func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent entities.AgentInterface) protocol.Perception {
-	p := protocol.Perception{}
+func ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent entities.AgentInterface) protocol.AgentPerception {
+	p := protocol.AgentPerception{}
 	agentstate := serverstate.GetAgentState(agent.GetId())
 
 	orientation := agentstate.GetOrientation()

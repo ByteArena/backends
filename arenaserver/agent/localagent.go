@@ -24,6 +24,6 @@ func (agent LocalAgentImp) String() string {
 	return "<LocalAgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent LocalAgentImp) SetPerception(perception protocol.Perception, comm protocol.AgentCommunicatorInterface) error {
+func (agent LocalAgentImp) SetPerception(perception protocol.AgentPerception, comm protocol.AgentCommunicatorInterface) error {
 	return nil
 }

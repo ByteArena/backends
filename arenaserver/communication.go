@@ -55,7 +55,7 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 	// as the two addresses do not match
 
 	switch msg.GetType() {
-	case "Handshake":
+	case protocol.AgentMessageType.Handshake:
 		{
 			if _, found := s.agenthandshakes[msg.GetAgentId()]; found {
 				return errors.New("ERROR: Received duplicate handshake from agent " + ag.String())
@@ -63,7 +63,7 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 
 			s.agenthandshakes[msg.GetAgentId()] = struct{}{}
 
-			var handshake protocol.MessageHandshakeImp
+			var handshake protocol.AgentMessagePayloadHandshake
 			err = json.Unmarshal(msg.GetPayload(), &handshake)
 			if err != nil {
 				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent handshake payload for agent " + msg.GetAgentId().String() + "; " + string(msg.GetPayload()))
@@ -89,11 +89,11 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 
 			break
 		}
-	case "Mutation":
+	case protocol.AgentMessageType.Mutation:
 		{
 			//break
 			var mutations struct {
-				Mutations []protocol.AgentMutationMessage
+				Mutations []protocol.AgentMessagePayloadMutation
 			}
 
 			err = json.Unmarshal(msg.GetPayload(), &mutations)
@@ -112,7 +112,7 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 		}
 	default:
 		{
-			return errors.New("DispatchAgentMessage: Unknown message type" + msg.GetType())
+			return errors.New("DispatchAgentMessage: Unknown message type" + msg.GetType().String())
 		}
 	}
 

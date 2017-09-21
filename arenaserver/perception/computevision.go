@@ -15,10 +15,10 @@ import (
 	"github.com/bytearena/box2d"
 )
 
-func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent entities.AgentInterface) []protocol.PerceptionVisionItem {
+func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.ServerState, agent entities.AgentInterface) []protocol.AgentPerceptionVisionItem {
 
 	agentstate := serverstate.GetAgentState(agent.GetId())
-	vision := make([]protocol.PerceptionVisionItem, 0)
+	vision := make([]protocol.AgentPerceptionVisionItem, 0)
 
 	// Vision: Les autres agents
 	vision = append(vision, viewAgents(serverstate, agentstate, agent.GetId())...)
@@ -29,11 +29,11 @@ func ComputeAgentVision(arenaMap *mapcontainer.MapContainer, serverstate *state.
 	return vision
 }
 
-func viewAgents(serverstate *state.ServerState, agentstate entities.AgentState, agentid uuid.UUID) []protocol.PerceptionVisionItem {
+func viewAgents(serverstate *state.ServerState, agentstate entities.AgentState, agentid uuid.UUID) []protocol.AgentPerceptionVisionItem {
 
 	agentposition := agentstate.GetPosition()
 
-	vision := make([]protocol.PerceptionVisionItem, 0)
+	vision := make([]protocol.AgentPerceptionVisionItem, 0)
 
 	orientation := agentstate.GetOrientation()
 	radiussq := agentstate.VisionRadius * agentstate.VisionRadius
@@ -80,13 +80,13 @@ func viewAgents(serverstate *state.ServerState, agentstate entities.AgentState, 
 		if distsq <= radiussq {
 			// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
 			centervec = centervec.SetAngle(centervec.Angle() - orientation)
-			visionitem := protocol.PerceptionVisionItem{
+			visionitem := protocol.AgentPerceptionVisionItem{
 				CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - orientation), // perpendicular to relative position vector, left side
 				Center:    centervec,
 				FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - orientation), // perpendicular to relative position vector, right side
 				// FIXME(jerome): /20 here is to convert velocity per second in velocity per tick; should probably handle velocities in m/s everywhere ?
 				Velocity: otheragentstate.GetVelocity().Clone().SetAngle(otheragentstate.GetVelocity().Angle() - orientation).Scale(1 / 20),
-				Tag:      "agent",
+				Tag:      protocol.AgentPerceptionVisionItemTag.Agent,
 			}
 
 			vision = append(vision, visionitem)
@@ -97,9 +97,9 @@ func viewAgents(serverstate *state.ServerState, agentstate entities.AgentState, 
 	return vision
 }
 
-func viewObstacles(serverstate *state.ServerState, agentstate entities.AgentState) []protocol.PerceptionVisionItem {
+func viewObstacles(serverstate *state.ServerState, agentstate entities.AgentState) []protocol.AgentPerceptionVisionItem {
 
-	vision := make([]protocol.PerceptionVisionItem, 0)
+	vision := make([]protocol.AgentPerceptionVisionItem, 0)
 
 	absoluteposition := agentstate.GetPosition()
 	orientation := agentstate.GetOrientation()
@@ -225,12 +225,12 @@ func viewObstacles(serverstate *state.ServerState, agentstate entities.AgentStat
 				farEdge = relEdgeOneAgentAligned
 			}
 
-			obstacleperception := protocol.PerceptionVisionItem{
+			obstacleperception := protocol.AgentPerceptionVisionItem{
 				CloseEdge: closeEdge,
 				Center:    relcenteragentaligned,
 				FarEdge:   farEdge,
 				Velocity:  vector.MakeNullVector2(),
-				Tag:       "obstacle",
+				Tag:       protocol.AgentPerceptionVisionItemTag.Obstacle,
 			}
 
 			vision = append(vision, obstacleperception)

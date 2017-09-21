@@ -29,7 +29,7 @@ func (agent NetAgentImp) String() string {
 	return "<NetAgentImp(" + agent.GetId().String() + ")>"
 }
 
-func (agent NetAgentImp) SetPerception(perception protocol.Perception, comm protocol.AgentCommunicatorInterface) error {
+func (agent NetAgentImp) SetPerception(perception protocol.AgentPerception, comm protocol.AgentCommunicatorInterface) error {
 	perceptionjson, _ := json.Marshal(perception)
 	message := []byte("{\"Method\": \"tick\", \"Arguments\": [0," + string(perceptionjson) + "]}\n") // TODO(jerome): remove 0 (ex turn)
 	return comm.NetSend(message, agent.GetConn())

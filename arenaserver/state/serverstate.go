@@ -167,7 +167,7 @@ func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 	// Obstacles
 	///////////////////////////////////////////////////////////////////////////
 
-	obstacles := make([]Obstacle, 0)
+	obstacles := make([]entities.Obstacle, 0)
 
 	// Obstacles formed by the grounds
 	for _, ground := range arenaMap.Data.Grounds {
@@ -176,9 +176,9 @@ func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 				a := polygon.Points[i]
 				b := polygon.Points[i+1]
 
-				obstacles = append(obstacles, MakeObstacle(
+				obstacles = append(obstacles, entities.MakeObstacle(
 					ground.Id,
-					ObstacleType.Ground,
+					entities.ObstacleType.Ground,
 					vector.MakeVector2(a.X, a.Y),
 					vector.MakeVector2(b.X, b.Y),
 				))
@@ -192,9 +192,9 @@ func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoizati
 		for i := 0; i < len(polygon.Points)-1; i++ {
 			a := polygon.Points[i]
 			b := polygon.Points[i+1]
-			obstacles = append(obstacles, MakeObstacle(
+			obstacles = append(obstacles, entities.MakeObstacle(
 				obstacle.Id,
-				ObstacleType.Object,
+				entities.ObstacleType.Object,
 				vector.MakeVector2(a.X, a.Y),
 				vector.MakeVector2(b.X, b.Y),
 			))
