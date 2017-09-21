@@ -23,7 +23,7 @@ type ServerState struct {
 	Projectilesmutex           *sync.Mutex
 	ProjectilesDeletedThisTick map[uuid.UUID](*projectile.BallisticProjectile)
 
-	pendingmutations []protocol.StateMutationBatch
+	pendingmutations []protocol.AgentMutationBatch
 	mutationsmutex   *sync.Mutex
 
 	DebugPoints      []vector.Vector2
@@ -48,7 +48,7 @@ func NewServerState(arenaMap *mapcontainer.MapContainer) *ServerState {
 		Projectilesmutex:           &sync.Mutex{},
 		ProjectilesDeletedThisTick: make(map[uuid.UUID]*projectile.BallisticProjectile),
 
-		pendingmutations: make([]protocol.StateMutationBatch, 0),
+		pendingmutations: make([]protocol.AgentMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
 
 		DebugPoints:      make([]vector.Vector2, 0),
@@ -86,7 +86,7 @@ func (serverstate *ServerState) SetAgentState(agentid uuid.UUID, agentstate Agen
 	serverstate.Agentsmutex.Unlock()
 }
 
-func (serverstate *ServerState) PushMutationBatch(batch protocol.StateMutationBatch) {
+func (serverstate *ServerState) PushMutationBatch(batch protocol.AgentMutationBatch) {
 	serverstate.mutationsmutex.Lock()
 	serverstate.pendingmutations = append(serverstate.pendingmutations, batch)
 	serverstate.mutationsmutex.Unlock()
@@ -96,7 +96,7 @@ func (serverstate *ServerState) ProcessMutations() {
 
 	serverstate.mutationsmutex.Lock()
 	mutations := serverstate.pendingmutations
-	serverstate.pendingmutations = make([]protocol.StateMutationBatch, 0)
+	serverstate.pendingmutations = make([]protocol.AgentMutationBatch, 0)
 	serverstate.mutationsmutex.Unlock()
 
 	for _, batch := range mutations {

@@ -6,24 +6,24 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-type MutationMessage struct {
+type AgentMutationMessage struct {
 	Method    string
 	Arguments json.RawMessage
 }
 
-func (m MutationMessage) GetMethod() string {
+func (m AgentMutationMessage) GetMethod() string {
 	return m.Method
 }
 
-func (m MutationMessage) GetArguments() json.RawMessage {
+func (m AgentMutationMessage) GetArguments() json.RawMessage {
 	return m.Arguments
 }
 
-type StateMutationBatch struct {
+type AgentMutationBatch struct {
 	AgentId   uuid.UUID
-	Mutations []MutationMessage
+	Mutations []AgentMutationMessage
 }
 
-type StateMutationPusherInterface interface {
-	PushMutationBatch(batch StateMutationBatch)
+type AgentMutationBatcherInterface interface {
+	PushMutationBatch(batch AgentMutationBatch)
 }

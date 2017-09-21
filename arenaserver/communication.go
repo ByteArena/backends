@@ -33,7 +33,7 @@ func (s *Server) NetSend(message []byte, conn net.Conn) error {
 	return s.commserver.Send(message, conn)
 }
 
-func (s *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
+func (s *Server) PushMutationBatch(batch protocol.AgentMutationBatch) {
 	s.state.PushMutationBatch(batch)
 }
 
@@ -41,7 +41,7 @@ func (s *Server) PushMutationBatch(batch protocol.StateMutationBatch) {
 
 /* <implementing protocol.CommunicatorDispatcherInterface> */
 func (s *Server) ImplementsCommDispatcherInterface() {}
-func (s *Server) DispatchAgentMessage(msg protocol.MessageWrapperInterface) error {
+func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 
 	ag, err := s.getAgent(msg.GetAgentId().String())
 	if err != nil {
@@ -92,15 +92,18 @@ func (s *Server) DispatchAgentMessage(msg protocol.MessageWrapperInterface) erro
 	case "Mutation":
 		{
 			//break
-			var mutations []protocol.MutationMessage
+			var mutations struct {
+				Mutations []protocol.AgentMutationMessage
+			}
+
 			err = json.Unmarshal(msg.GetPayload(), &mutations)
 			if err != nil {
 				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent mutation payload for agent " + ag.String() + "; " + string(msg.GetPayload()))
 			}
 
-			mutationbatch := protocol.StateMutationBatch{
+			mutationbatch := protocol.AgentMutationBatch{
 				AgentId:   ag.GetId(),
-				Mutations: mutations,
+				Mutations: mutations.Mutations,
 			}
 
 			s.PushMutationBatch(mutationbatch)

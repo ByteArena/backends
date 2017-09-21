@@ -11,7 +11,7 @@ import (
 )
 
 type CommDispatcherInterface interface {
-	DispatchAgentMessage(msg protocol.MessageWrapperInterface) error
+	DispatchAgentMessage(msg protocol.AgentMessage) error
 	ImplementsCommDispatcherInterface()
 }
 
@@ -69,7 +69,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 					}
 
 					// Unmarshal message (unwrapping in an AgentMessage structure)
-					var msg protocol.MessageWrapperImp
+					var msg protocol.AgentMessage
 					err = json.Unmarshal(buf, &msg)
 					if err != nil {
 						utils.Debug("commserver", "Failed to unmarshal incoming JSON in CommServer::Listen(); "+string(buf)+";"+err.Error())
