@@ -109,7 +109,7 @@ func commonCreateAgentContainer(orch arenaservertypes.ContainerOrchestrator, age
 		return nil, errors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
 	}
 
-	agentcontainer := arenaservertypes.NewAgentContainer(agentid, arenaservertypes.ContainerId(resp.ID), normalizedDockerimage)
+	agentcontainer := arenaservertypes.NewAgentContainer(agentid, resp.ID, normalizedDockerimage)
 	orch.AddContainer(agentcontainer)
 
 	return agentcontainer, nil

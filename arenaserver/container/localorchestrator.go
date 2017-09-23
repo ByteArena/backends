@@ -28,7 +28,7 @@ func (orch *LocalContainerOrchestrator) startContainerLocalOrch(ctner *arenaserv
 
 	err := orch.cli.ContainerStart(
 		orch.ctx,
-		ctner.Containerid.String(),
+		ctner.Containerid,
 		types.ContainerStartOptions{},
 	)
 
@@ -39,15 +39,15 @@ func (orch *LocalContainerOrchestrator) startContainerLocalOrch(ctner *arenaserv
 	err = orch.localLogsToStdOut(ctner)
 
 	if err != nil {
-		return errors.New("Failed to follow docker container logs for " + ctner.Containerid.String())
+		return errors.New("Failed to follow docker container logs for " + ctner.Containerid)
 	}
 
 	containerInfo, err := orch.cli.ContainerInspect(
 		orch.ctx,
-		ctner.Containerid.String(),
+		ctner.Containerid,
 	)
 	if err != nil {
-		return errors.New("Could not inspect container " + ctner.Containerid.String())
+		return errors.New("Could not inspect container " + ctner.Containerid)
 	}
 
 	ctner.SetIPAddress(containerInfo.NetworkSettings.IPAddress)
@@ -85,7 +85,7 @@ func (orch *LocalContainerOrchestrator) GetHost() (string, error) {
 
 func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaservertypes.AgentContainer) error {
 	go func(orch *LocalContainerOrchestrator, container *arenaservertypes.AgentContainer) {
-		reader, err := orch.cli.ContainerLogs(orch.ctx, container.Containerid.String(), types.ContainerLogsOptions{
+		reader, err := orch.cli.ContainerLogs(orch.ctx, container.Containerid, types.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Follow:     true,
@@ -93,7 +93,7 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 			Timestamps: false,
 		})
 
-		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.Containerid.String())
+		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.Containerid)
 
 		defer reader.Close()
 
@@ -128,7 +128,7 @@ func (orch *LocalContainerOrchestrator) TearDown(container *arenaservertypes.Age
 	// )
 
 	// if err != nil {
-	orch.cli.ContainerKill(orch.ctx, container.Containerid.String(), "KILL")
+	orch.cli.ContainerKill(orch.ctx, container.Containerid, "KILL")
 	//}
 }
 
@@ -141,7 +141,7 @@ func (orch *LocalContainerOrchestrator) RemoveAgentContainer(ctner *arenaservert
 func (orch *LocalContainerOrchestrator) Wait(ctner arenaservertypes.AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
 	waitChan, errorChan := orch.cli.ContainerWait(
 		orch.ctx,
-		ctner.Containerid.String(),
+		ctner.Containerid,
 		container.WaitConditionRemoved,
 	)
 
