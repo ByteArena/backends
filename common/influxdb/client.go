@@ -13,6 +13,7 @@ type Client struct {
 	isStub bool
 
 	batchpointsClient client.BatchPoints
+	appName           string
 	influxdbClient    client.Client
 	tickerChannel     *time.Ticker
 }
@@ -29,7 +30,7 @@ func createBatchPoints(db string) (client.BatchPoints, error) {
 	})
 }
 
-func NewClient() (*Client, error) {
+func NewClient(appName string) (*Client, error) {
 	influxdbAddr := os.Getenv("INFLUXDB_ADDR")
 	influxdbDb := os.Getenv("INFLUXDB_DB")
 
@@ -39,6 +40,7 @@ func NewClient() (*Client, error) {
 		isStub: true,
 
 		tickerChannel: tickerChannel,
+		appName:       appName,
 	}
 
 	if influxdbAddr == "" && influxdbDb == "" {
@@ -66,17 +68,18 @@ func NewClient() (*Client, error) {
 			influxdbClient:    influxdbClient,
 			batchpointsClient: batchpointsClient,
 			tickerChannel:     tickerChannel,
+			appName:           appName,
 		}, nil
 	}
 }
 
-func (c *Client) WriteAppMetric(name, app string, fields map[string]interface{}) {
+func (c *Client) WriteAppMetric(name string, fields map[string]interface{}) {
 	if c.isStub {
 		// TODO(sven): do something? Print in the console?
 		return
 	}
 
-	tags := map[string]string{"app": app}
+	tags := map[string]string{"app": c.appName}
 
 	pt, err := client.NewPoint(name, tags, fields, time.Now())
 

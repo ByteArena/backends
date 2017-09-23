@@ -25,8 +25,7 @@ func NewServer(mq *mq.Client, gql *graphql.Client) *Server {
 		state:         NewState(),
 	}
 
-	influxdbClient, influxdbClientErr := influxdb.NewClient()
-
+	influxdbClient, influxdbClientErr := influxdb.NewClient("arenamaster")
 	utils.Check(influxdbClientErr, "Unable to create influxdb client")
 
 	err := s.startStateReporting(influxdbClient)
@@ -51,7 +50,7 @@ func (server *Server) startStateReporting(influxdbClient *influxdb.Client) error
 
 		server.state.UnlockState()
 
-		influxdbClient.WriteAppMetric("arenamaster", "arenamaster", fields)
+		influxdbClient.WriteAppMetric("arenamaster", fields)
 	})
 
 	return nil
