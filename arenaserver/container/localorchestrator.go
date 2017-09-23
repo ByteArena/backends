@@ -172,7 +172,9 @@ func (orch *LocalContainerOrchestrator) SetAgentLogger(container *arenaservertyp
 }
 
 func (orch *LocalContainerOrchestrator) TearDownAll() error {
-	fmt.Println("Implement TearDownAll in LocalContainerOrchestrator")
+	for _, container := range orch.containers {
+		orch.TearDown(container)
+	}
 
 	return nil
 }

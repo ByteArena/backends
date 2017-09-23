@@ -163,7 +163,9 @@ func (orch *RemoteContainerOrchestrator) Wait(ctner arenaservertypes.AgentContai
 }
 
 func (orch *RemoteContainerOrchestrator) TearDownAll() error {
-	fmt.Println("Implement TearDownAll in RemoteContainerOrchestrator")
+	for _, container := range orch.containers {
+		orch.TearDown(container)
+	}
 
 	return nil
 }
