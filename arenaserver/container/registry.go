@@ -21,14 +21,14 @@ func registryLogin(address string, ctx context.Context, client *client.Client) s
 	return "no_token"
 }
 
-func (orch *ContainerOrchestrator) publishInRegistry(image string) {
+func (orch *RemoteContainerOrchestrator) publishInRegistry(image string) {
 	options := types.ImagePushOptions{
 		All:          true,
-		RegistryAuth: orch.registryAuth,
+		RegistryAuth: orch.GetRegistryAuth(),
 	}
 
-	_, err := orch.cli.ImagePush(
-		orch.ctx,
+	_, err := orch.GetCli().ImagePush(
+		orch.GetContext(),
 		image,
 		options,
 	)
