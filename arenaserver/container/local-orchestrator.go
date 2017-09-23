@@ -8,7 +8,7 @@ import (
 	commonTypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
+	"github.com/docker/docker/api/client"
 )
 
 func getHostLocalOrch(orch *ContainerOrchestrator) (string, error) {
@@ -56,6 +56,8 @@ func MakeLocalContainerOrchestrator(host string) ContainerOrchestrator {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
 	utils.Check(err, "Failed to initialize docker client environment")
+
+	utils.Debug("orch", "docker client version: "+cli.ClientVersion())
 
 	registryAuth := ""
 

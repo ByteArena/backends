@@ -50,6 +50,9 @@ func main() {
 	// Make GraphQL client
 	graphqlclient := graphql.MakeClient(*apiurl)
 
+	// Make docker client
+	orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
+
 	// Make message broker client
 	brokerclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: Could not connect to messagebroker on "+*mqhost)
@@ -80,7 +83,6 @@ func main() {
 		arena, err := apiqueries.FetchGameById(graphqlclient, payload.Id)
 		utils.Check(err, "Could not fetch game "+payload.Id)
 
-		orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
 		srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID, brokerclient)
 
 		srv.AddTearDownCall(func() error {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
+	"github.com/docker/docker/api/client"
 )
 
 func registryLogin(address string, ctx context.Context, client *client.Client) string {

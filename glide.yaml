@@ -7,12 +7,6 @@ import:
   version: f86db6b22663a27ba4d278220b7e34be528b1e79
   subpackages:
   - reference
-- package: github.com/docker/docker
-  version: 82c2a08b6018586f3c8f35405c3bd6fce3c78ccd
-  subpackages:
-  - api/types
-  - api/types/container
-  - client
 - package: github.com/gorilla/handlers
   version: ~1.2.1
 - package: github.com/gorilla/mux
