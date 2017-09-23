@@ -50,8 +50,8 @@ func NewDeathmatchGame(gameDescription types.GameDescriptionInterface) *Deathmat
 		PhysicalWorld: buildPhysicalWorld(gameDescription.GetMapContainer()),
 	}
 
-	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity) {
-		physicalAspect := game.GetPhysicalBody(entity)
+	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity, data interface{}) {
+		physicalAspect := game.CastPhysicalBody(data)
 		game.PhysicalWorld.DestroyBody(physicalAspect.body)
 	})
 
@@ -62,8 +62,8 @@ func NewDeathmatchGame(gameDescription types.GameDescriptionInterface) *Deathmat
 	return game
 }
 
-func (deathmatch DeathmatchGame) GetEntity(id ecs.EntityID) *ecs.Entity {
-	return deathmatch.manager.GetEntityByID(id)
+func (deathmatch DeathmatchGame) GetEntity(id ecs.EntityID, tag ecs.Tag) *ecs.QueryResult {
+	return deathmatch.manager.GetEntityByID(id, tag)
 }
 
 // <GameInterface>
@@ -80,14 +80,14 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 	// On supprime les projectiles en fin de vie
 	///////////////////////////////////////////////////////////////////////////
 
-	ttlSignature := ecs.ComposeSignature(deathmatch.ttlComponent)
+	ttlSignature := ecs.BuildTag(deathmatch.ttlComponent)
 
 	entitiesToRemove := make([]*ecs.Entity, 0)
 
-	for _, entity := range deathmatch.manager.Query(ttlSignature) {
-		ttlAspect := deathmatch.GetTtl(entity)
+	for _, entityresult := range deathmatch.manager.Query(ttlSignature) {
+		ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent.GetID()])
 		if ttlAspect.Decrement(1) < 0 {
-			entitiesToRemove = append(entitiesToRemove, entity)
+			entitiesToRemove = append(entitiesToRemove, entityresult.Entity)
 		}
 	}
 
@@ -141,76 +141,86 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 			// on impacte le collider
 			id, _ := strconv.Atoi(descriptorCollider.ID)
 			entityid := ecs.EntityID(id)
-			entity := deathmatch.GetEntity(entityid)
-			if entity == nil {
+			entityresult := deathmatch.GetEntity(entityid, ecs.BuildTag(
+				deathmatch.ttlComponent,
+				deathmatch.playerComponent,
+			))
+			if entityresult == nil {
 				continue
 			}
 
 			worldManifold := box2d.MakeB2WorldManifold()
 			collision.GetWorldManifold(&worldManifold)
 
-			ttlAspect := deathmatch.GetTtl(entity)
-			physicalAspect := deathmatch.GetPhysicalBody(entity)
+			ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent.GetID()])
+			physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent.GetID()])
+
 			ttlAspect.SetValue(1)
 
-			physicalAspect.SetVelocity(vector.MakeNullVector2())
-			physicalAspect.SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
+			physicalAspect.
+				SetVelocity(vector.MakeNullVector2()).
+				SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
 		}
 
 		if descriptorCollidee.Type == types.PhysicalBodyDescriptorType.Projectile {
 			// on impacte le collider
 			id, _ := strconv.Atoi(descriptorCollidee.ID)
 			entityid := ecs.EntityID(id)
-			entity := deathmatch.GetEntity(entityid)
-			if entity == nil {
+			entityresult := deathmatch.GetEntity(entityid, ecs.BuildTag(
+				deathmatch.ttlComponent,
+				deathmatch.playerComponent,
+			))
+			if entityresult == nil {
 				continue
 			}
 
 			worldManifold := box2d.MakeB2WorldManifold()
 			collision.GetWorldManifold(&worldManifold)
 
-			ttlAspect := deathmatch.GetTtl(entity)
-			physicalAspect := deathmatch.GetPhysicalBody(entity)
+			ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent.GetID()])
+			physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent.GetID()])
+
 			ttlAspect.SetValue(1)
 
-			physicalAspect.SetVelocity(vector.MakeNullVector2())
-			physicalAspect.SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
+			physicalAspect.
+				SetVelocity(vector.MakeNullVector2()).
+				SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
 		}
 	}
 }
 
 // </GameInterface>
 
-func (deathmatch DeathmatchGame) GetPhysicalBody(entity *ecs.Entity) *PhysicalBody {
-	return entity.GetComponentData(deathmatch.physicalBodyComponent).(*PhysicalBody)
+func (deathmatch DeathmatchGame) CastPhysicalBody(data interface{}) *PhysicalBody {
+	return data.(*PhysicalBody)
 }
 
-func (deathmatch DeathmatchGame) GetHealth(entity *ecs.Entity) *Health {
-	return entity.GetComponentData(deathmatch.healthComponent).(*Health)
+func (deathmatch DeathmatchGame) GetHealth(data interface{}) *Health {
+	return data.(*Health)
 }
 
-func (deathmatch DeathmatchGame) GetPlayer(entity *ecs.Entity) *Player {
-	return entity.GetComponentData(deathmatch.playerComponent).(*Player)
+func (deathmatch DeathmatchGame) CastPlayer(data interface{}) *Player {
+	return data.(*Player)
 }
 
-func (deathmatch DeathmatchGame) GetRender(entity *ecs.Entity) *Render {
-	return entity.GetComponentData(deathmatch.renderComponent).(*Render)
+func (deathmatch DeathmatchGame) CastRender(data interface{}) *Render {
+	return data.(*Render)
 }
 
-func (deathmatch DeathmatchGame) GetScript(entity *ecs.Entity) *Script {
-	return entity.GetComponentData(deathmatch.scriptComponent).(*Script)
+func (deathmatch DeathmatchGame) CastScript(data interface{}) *Script {
+	return data.(*Script)
 }
 
-func (deathmatch DeathmatchGame) GetTtl(entity *ecs.Entity) *Ttl {
-	return entity.GetComponentData(deathmatch.ttlComponent).(*Ttl)
+func (deathmatch DeathmatchGame) CastTtl(data interface{}) *Ttl {
+	return data.(*Ttl)
 }
 
-func (deathmatch DeathmatchGame) GetPerception(entity *ecs.Entity) *Perception {
-	return entity.GetComponentData(deathmatch.perceptionComponent).(*Perception)
+func (deathmatch DeathmatchGame) CastPerception(data interface{}) *Perception {
+	return data.(*Perception)
 }
 
-func (deathmatch DeathmatchGame) GetOwned(entity *ecs.Entity) *Owned {
-	return entity.GetComponentData(deathmatch.ownedComponent).(*Owned)
+func (deathmatch DeathmatchGame) CastOwned(data interface{}) *Owned {
+	return data.(*Owned)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -337,8 +347,9 @@ func (p PhysicalBody) GetPosition() vector.Vector2 {
 	return vector.MakeVector2(v.X, v.Y)
 }
 
-func (p *PhysicalBody) SetPosition(v vector.Vector2) {
+func (p *PhysicalBody) SetPosition(v vector.Vector2) *PhysicalBody {
 	p.body.SetTransform(v.ToB2Vec2(), p.GetOrientation())
+	return p
 }
 
 func (p PhysicalBody) GetVelocity() vector.Vector2 {
@@ -346,9 +357,10 @@ func (p PhysicalBody) GetVelocity() vector.Vector2 {
 	return vector.MakeVector2(v.X, v.Y)
 }
 
-func (p *PhysicalBody) SetVelocity(v vector.Vector2) {
+func (p *PhysicalBody) SetVelocity(v vector.Vector2) *PhysicalBody {
 	// FIXME(jerome): properly convert units from m/tick to m/s for Box2D
 	p.body.SetLinearVelocity(v.Scale(20).ToB2Vec2())
+	return p
 }
 
 func (p PhysicalBody) GetOrientation() float64 {
@@ -538,12 +550,16 @@ func (filter *CollisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB
 	if other.Type == types.PhysicalBodyDescriptorType.Agent {
 		// fetch projectile
 		projectileid, _ := strconv.Atoi(projectile.ID)
-		projectile := filter.game.GetEntity(ecs.EntityID(projectileid))
-		if projectile == nil {
+
+		tag := ecs.BuildTag(filter.game.ownedComponent)
+		projectileresult := filter.game.GetEntity(ecs.EntityID(projectileid), tag)
+		if projectileresult == nil {
 			return false
 		}
 
-		return filter.game.GetOwned(projectile).GetOwner().String() != other.ID
+		ownedAspect := filter.game.CastOwned(projectileresult.Components[filter.game.ownedComponent.GetID()])
+
+		return ownedAspect.GetOwner().String() != other.ID
 	}
 
 	return true
@@ -667,22 +683,18 @@ func (deathmatch *DeathmatchGame) ProduceVizMessageJson() []byte {
 		Objects: []types.VizMessageObject{},
 	}
 
-	renderablePhysicalBodiesTag := ecs.ComposeSignature(
+	renderablePhysicalBodiesTag := ecs.BuildTag(
 		deathmatch.renderComponent,
 		deathmatch.physicalBodyComponent,
 	)
 
-	for _, entity := range deathmatch.manager.Query(renderablePhysicalBodiesTag) {
+	for _, entityresult := range deathmatch.manager.Query(renderablePhysicalBodiesTag) {
 
-		renderAspect := deathmatch.GetRender(entity)
-		physicalBodyAspect := deathmatch.GetPhysicalBody(entity)
-
-		if renderAspect == nil || physicalBodyAspect == nil {
-			continue
-		}
+		renderAspect := deathmatch.CastRender(entityresult.Components[deathmatch.renderComponent.GetID()])
+		physicalBodyAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent.GetID()])
 
 		msg.Objects = append(msg.Objects, types.VizMessageObject{
-			Id:          entity.GetID().String(),
+			Id:          entityresult.Entity.GetID().String(),
 			Type:        renderAspect.GetType(),
 			Position:    physicalBodyAspect.GetPosition(),
 			Velocity:    physicalBodyAspect.GetVelocity(),

@@ -2,7 +2,6 @@ package game
 
 import (
 	"encoding/json"
-	"log"
 	"math"
 
 	"github.com/bytearena/bytearena/arenaserver/protocol"
@@ -15,8 +14,6 @@ import (
 func (deathmatch *DeathmatchGame) ProcessMutations(mutations []protocol.AgentMutationBatch) {
 
 	for _, batch := range mutations {
-
-		entity := deathmatch.GetEntity(batch.AgentEntityId)
 
 		nbmutations := 0
 
@@ -38,7 +35,7 @@ func (deathmatch *DeathmatchGame) ProcessMutations(mutations []protocol.AgentMut
 					}
 
 					nbmutations++
-					mutationShoot(deathmatch, entity, vector.MakeVector2(vec[0], vec[1]))
+					mutationShoot(deathmatch, batch.AgentEntityId, vector.MakeVector2(vec[0], vec[1]))
 
 					break
 				}
@@ -58,7 +55,7 @@ func (deathmatch *DeathmatchGame) ProcessMutations(mutations []protocol.AgentMut
 					}
 
 					nbmutations++
-					mutationSteer(deathmatch, entity, vector.MakeVector2(vec[0], vec[1]))
+					mutationSteer(deathmatch, batch.AgentEntityId, vector.MakeVector2(vec[0], vec[1]))
 
 					break
 				}
@@ -68,13 +65,16 @@ func (deathmatch *DeathmatchGame) ProcessMutations(mutations []protocol.AgentMut
 	}
 }
 
-func mutationSteer(game *DeathmatchGame, entity *ecs.Entity, steering vector.Vector2) {
+func mutationSteer(game *DeathmatchGame, entityid ecs.EntityID, steering vector.Vector2) {
 
-	if !entity.HasComponent(game.physicalBodyComponent) {
+	tag := ecs.BuildTag(game.physicalBodyComponent)
+	entityresult := game.GetEntity(entityid, tag)
+	if entityresult == nil {
 		return
 	}
 
-	physicalAspect := game.GetPhysicalBody(entity)
+	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent.GetID()])
+
 	velocity := physicalAspect.GetVelocity()
 	orientation := physicalAspect.GetOrientation()
 
@@ -91,13 +91,12 @@ func mutationSteer(game *DeathmatchGame, entity *ecs.Entity, steering vector.Vec
 			steering = steering.SetMag(prevmag - maxSteeringForce)
 		}
 	}
-	steering = vector.MakeVector2(-100, 0)
+
 	abssteering := trigo.LocalAngleToAbsoluteAngleVec(orientation, steering, &maxAngularVelocity)
-	log.Println("steer", abssteering)
 	physicalAspect.SetVelocity(abssteering.Limit(maxSpeed))
 }
 
-func mutationShoot(game *DeathmatchGame, entity *ecs.Entity, aiming vector.Vector2) {
+func mutationShoot(game *DeathmatchGame, entityid ecs.EntityID, aiming vector.Vector2) {
 
 	// //
 	// // Levels consumption
@@ -122,9 +121,14 @@ func mutationShoot(game *DeathmatchGame, entity *ecs.Entity, aiming vector.Vecto
 	// ///////////////////////////////////////////////////////////////////////////
 	// ///////////////////////////////////////////////////////////////////////////
 
-	log.Println("shoot", entity)
+	tag := ecs.BuildTag(game.physicalBodyComponent)
+	entityresult := game.GetEntity(entityid, tag)
+	if entityresult == nil {
+		return
+	}
 
-	physicalAspect := game.GetPhysicalBody(entity)
+	entity := entityresult.Entity
+	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent.GetID()])
 
 	position := physicalAspect.GetPosition()
 	orientation := physicalAspect.GetOrientation()

@@ -11,12 +11,12 @@ import (
 	"github.com/bytearena/ecs"
 )
 
-func (game *DeathmatchGame) ComputeAgentVision(arenaMap *mapcontainer.MapContainer, entity *ecs.Entity) []protocol.AgentPerceptionVisionItem {
+func (game *DeathmatchGame) ComputeAgentVision(arenaMap *mapcontainer.MapContainer, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []protocol.AgentPerceptionVisionItem {
 
 	vision := make([]protocol.AgentPerceptionVisionItem, 0)
 
 	// Vision: Les autres agents
-	vision = append(vision, viewAgents(game, entity)...)
+	vision = append(vision, viewAgents(game, entity, physicalAspect, perceptionAspect)...)
 
 	// Vision: les obstacles
 	//vision = append(vision, viewObstacles(game, entity)...)
@@ -24,27 +24,27 @@ func (game *DeathmatchGame) ComputeAgentVision(arenaMap *mapcontainer.MapContain
 	return vision
 }
 
-func viewAgents(game *DeathmatchGame, entity *ecs.Entity) []protocol.AgentPerceptionVisionItem {
+func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []protocol.AgentPerceptionVisionItem {
 
 	vision := make([]protocol.AgentPerceptionVisionItem, 0)
-
-	physicalAspect := game.GetPhysicalBody(entity)
-	perceptionAspect := game.GetPerception(entity)
 
 	agentposition := physicalAspect.GetPosition()
 
 	orientation := physicalAspect.GetOrientation()
 	radiussq := math.Pow(perceptionAspect.GetVisionRadius(), 2)
 
-	agentSignature := ecs.ComposeSignature(game.playerComponent)
+	agentSignature := ecs.BuildTag(game.playerComponent, game.physicalBodyComponent)
 
-	for _, otherentity := range game.manager.Query(agentSignature) {
+	for _, otherentityresult := range game.manager.Query(agentSignature) {
+
+		otherentity := otherentityresult.Entity
 
 		if otherentity.GetID() == entity.GetID() {
 			continue // one cannot see itself
 		}
 
-		otherPhysicalAspect := game.GetPhysicalBody(otherentity)
+		otherPhysicalAspect := game.CastPhysicalBody(otherentityresult.Components[game.physicalBodyComponent.GetID()])
+
 		otherPosition := otherPhysicalAspect.GetPosition()
 		otherVelocity := otherPhysicalAspect.GetVelocity()
 		otherRadius := otherPhysicalAspect.GetRadius()

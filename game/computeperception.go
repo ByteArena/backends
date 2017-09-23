@@ -9,13 +9,17 @@ import (
 func (game *DeathmatchGame) ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) protocol.AgentPerception {
 	p := protocol.AgentPerception{}
 
-	entity := game.GetEntity(entityid)
-	if !entity.HasComponent(game.physicalBodyComponent) || !entity.HasComponent(game.perceptionComponent) {
+	entityresult := game.GetEntity(entityid, ecs.BuildTag(
+		game.physicalBodyComponent,
+		game.perceptionComponent,
+	))
+
+	if entityresult == nil {
 		return p
 	}
 
-	physicalAspect := game.GetPhysicalBody(entity)
-	perceptionAspect := game.GetPerception(entity)
+	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent.GetID()])
+	perceptionAspect := game.CastPerception(entityresult.Components[game.perceptionComponent.GetID()])
 
 	orientation := physicalAspect.GetOrientation()
 	velocity := physicalAspect.GetVelocity()
@@ -32,7 +36,7 @@ func (game *DeathmatchGame) ComputeAgentPerception(arenaMap *mapcontainer.MapCon
 	p.Specs.VisionRadius = perceptionAspect.GetVisionRadius()
 	p.Specs.VisionAngle = perceptionAspect.GetVisionAngle()
 
-	p.External.Vision = game.ComputeAgentVision(arenaMap, entity)
+	p.External.Vision = game.ComputeAgentVision(arenaMap, entityresult.Entity, physicalAspect, perceptionAspect)
 
 	return p
 }
