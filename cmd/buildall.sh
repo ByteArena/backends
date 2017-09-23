@@ -1,17 +1,18 @@
-#!/bin/sh
-#set -x
+#!/usr/bin/env bash
 
-BUILDFLAGS="-v"
+BUILDFLAGS=""
 COMMANDS=$(find * -maxdepth 0 -type d)
 
 for i in $COMMANDS
 do
    : 
-   # do whatever on $i
-   echo "############################################################"
-   echo "# Building ${i}"
-   echo "############################################################"
-   echo ""
-   cd "$i" && go build $BUILDFLAGS && cd ..
-   echo ""
+   printf "# Building ${i}"
+
+   (cd "$i" && go build $BUILDFLAGS && cd ..)
+
+   if [[ "$?" -eq 0 ]]
+   then
+       echo " OK"
+   fi
+
 done

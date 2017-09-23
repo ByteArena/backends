@@ -46,7 +46,7 @@ func (s *Server) startAgentContainers() error {
 	for _, agentproxy := range s.agentproxies {
 		dockerimage := s.agentimages[agentproxy.GetProxyUUID()]
 
-		arenaHostnameForAgents, err := s.containerorchestrator.GetHost(&s.containerorchestrator)
+		arenaHostnameForAgents, err := s.containerorchestrator.GetHost()
 		if err != nil {
 			return errors.New("Failed to fetch arena hostname for agents; " + err.Error())
 		}

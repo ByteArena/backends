@@ -5,8 +5,10 @@ import (
 
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/comm"
-	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
+	uuid "github.com/satori/go.uuid"
+
+	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
@@ -14,7 +16,6 @@ import (
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/bytearena/game"
 	"github.com/bytearena/bytearena/game/entities"
-	uuid "github.com/satori/go.uuid"
 )
 
 const debug = false
@@ -36,9 +37,10 @@ type Server struct {
 	tearDownCallbacks      []types.TearDownCallback
 	tearDownCallbacksMutex *sync.Mutex
 
-	containerorchestrator container.ContainerOrchestrator
-	commserver            *comm.CommServer
-	mqClient              mq.ClientInterface
+	containerorchestrator arenaservertypes.ContainerOrchestrator
+
+	commserver *comm.CommServer
+	mqClient   mq.ClientInterface
 
 	gameDescription        types.GameDescriptionInterface
 	agentproxies           map[uuid.UUID]agent.AgentProxyInterface
@@ -56,12 +58,12 @@ type Server struct {
 	MapMemoization *MapMemoization
 }
 
-func NewServer(host string, port int, orch container.ContainerOrchestrator, gameDescription types.GameDescriptionInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
+func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrator, gameDescription types.GameDescriptionInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
 
 	gamehost := host
 
 	if host == "" {
-		host, err := orch.GetHost(&orch)
+		host, err := orch.GetHost()
 		utils.Check(err, "Could not determine arena-server host/ip.")
 
 		gamehost = host
