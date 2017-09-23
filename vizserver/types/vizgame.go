@@ -1,33 +1,33 @@
 package types
 
 import (
-	"github.com/bytearena/bytearena/arenaserver"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
 type VizGame struct {
-	game arenaserver.GameInterface
-	pool *WatcherMap
+	gameDescription types.GameDescriptionInterface
+	pool            *WatcherMap
 }
 
-func NewVizGame(game arenaserver.GameInterface) *VizGame {
+func NewVizGame(gameDescription types.GameDescriptionInterface) *VizGame {
 	return &VizGame{
-		pool: NewWatcherMap(),
-		game: game,
+		pool:            NewWatcherMap(),
+		gameDescription: gameDescription,
 	}
 }
 
-func (vizgame *VizGame) GetGame() arenaserver.GameInterface {
-	return vizgame.game
+func (vizgame *VizGame) GetGame() types.GameDescriptionInterface {
+	return vizgame.gameDescription
 }
 
-func (vizgame *VizGame) SetGame(game arenaserver.GameInterface) {
-	vizgame.game = game
+func (vizgame *VizGame) SetGame(game types.GameDescriptionInterface) {
+	vizgame.gameDescription = game
 }
 
 func (vizgame *VizGame) GetTps() int {
-	return vizgame.game.GetTps()
+	return vizgame.gameDescription.GetTps()
 }
 
 type VizInitMessageData struct {
@@ -45,7 +45,7 @@ func (vizgame *VizGame) SetWatcher(watcher *Watcher) {
 	initMsg := VizInitMessage{
 		Type: "init",
 		Data: VizInitMessageData{
-			Map: vizgame.game.GetMapContainer(),
+			Map: vizgame.gameDescription.GetMapContainer(),
 		},
 	}
 

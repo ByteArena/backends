@@ -1,4 +1,4 @@
-package state
+package arenaserver
 
 import "github.com/bytearena/bytearena/game/entities"
 

@@ -225,6 +225,10 @@ func (a Vector2) ToB2Vec2() box2d.B2Vec2 {
 	return box2d.MakeB2Vec2(a.GetX(), a.GetY())
 }
 
+func FromB2Vec2(v box2d.B2Vec2) Vector2 {
+	return MakeVector2(v.X, v.Y)
+}
+
 var epsilon float64 = 0.000001
 
 func isZero(f float64) bool {

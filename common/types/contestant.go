@@ -1,4 +1,4 @@
-package arenaserver
+package types
 
 type Contestant struct {
 	Id            string

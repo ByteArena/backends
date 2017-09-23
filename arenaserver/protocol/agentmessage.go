@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 
+	"github.com/bytearena/ecs"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -75,8 +76,9 @@ func (m AgentMessagePayloadMutation) GetArguments() json.RawMessage {
 }
 
 type AgentMutationBatch struct {
-	AgentId   uuid.UUID
-	Mutations []AgentMessagePayloadMutation
+	AgentProxyUUID uuid.UUID
+	AgentEntityId  ecs.EntityID
+	Mutations      []AgentMessagePayloadMutation
 }
 
 type AgentMutationBatcherInterface interface {

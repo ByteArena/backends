@@ -34,7 +34,9 @@ func (s *Server) NetSend(message []byte, conn net.Conn) error {
 }
 
 func (s *Server) PushMutationBatch(batch protocol.AgentMutationBatch) {
-	s.state.PushMutationBatch(batch)
+	s.mutationsmutex.Lock()
+	s.pendingmutations = append(s.pendingmutations, batch)
+	s.mutationsmutex.Unlock()
 }
 
 /* </implementing protocol.AgentCommunicator> */
@@ -43,7 +45,7 @@ func (s *Server) PushMutationBatch(batch protocol.AgentMutationBatch) {
 func (s *Server) ImplementsCommDispatcherInterface() {}
 func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 
-	ag, err := s.getAgent(msg.GetAgentId().String())
+	agentproxy, err := s.getAgentProxy(msg.GetAgentId().String())
 	if err != nil {
 		return errors.New("DispatchAgentMessage: agentid does not match any known agent in received agent message !;" + msg.GetAgentId().String())
 	}
@@ -57,11 +59,11 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 	switch msg.GetType() {
 	case protocol.AgentMessageType.Handshake:
 		{
-			if _, found := s.agenthandshakes[msg.GetAgentId()]; found {
-				return errors.New("ERROR: Received duplicate handshake from agent " + ag.String())
+			if _, found := s.agentproxieshandshakes[msg.GetAgentId()]; found {
+				return errors.New("ERROR: Received duplicate handshake from agent " + agentproxy.String())
 			}
 
-			s.agenthandshakes[msg.GetAgentId()] = struct{}{}
+			s.agentproxieshandshakes[msg.GetAgentId()] = struct{}{}
 
 			var handshake protocol.AgentMessagePayloadHandshake
 			err = json.Unmarshal(msg.GetPayload(), &handshake)
@@ -69,13 +71,13 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent handshake payload for agent " + msg.GetAgentId().String() + "; " + string(msg.GetPayload()))
 			}
 
-			ag, ok := ag.(agent.NetAgentInterface)
+			ag, ok := agentproxy.(agent.AgentProxyNetworkInterface)
 			if !ok {
 				return errors.New("DispatchAgentMessage: Failed to cast agent to NetAgent during handshake for " + ag.String())
 			}
 
 			ag = ag.SetConn(msg.GetEmitterConn())
-			s.setAgent(ag)
+			s.setAgentProxy(ag)
 
 			utils.Debug("arena", "Received handshake from agent "+ag.String()+"; agent said \""+handshake.GetGreetings()+"\"")
 
@@ -91,19 +93,19 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 		}
 	case protocol.AgentMessageType.Mutation:
 		{
-			//break
 			var mutations struct {
 				Mutations []protocol.AgentMessagePayloadMutation
 			}
 
 			err = json.Unmarshal(msg.GetPayload(), &mutations)
 			if err != nil {
-				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent mutation payload for agent " + ag.String() + "; " + string(msg.GetPayload()))
+				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent mutation payload for agent " + agentproxy.String() + "; " + string(msg.GetPayload()))
 			}
 
 			mutationbatch := protocol.AgentMutationBatch{
-				AgentId:   ag.GetId(),
-				Mutations: mutations.Mutations,
+				AgentProxyUUID: agentproxy.GetProxyUUID(),
+				AgentEntityId:  agentproxy.GetEntityId(),
+				Mutations:      mutations.Mutations,
 			}
 
 			s.PushMutationBatch(mutationbatch)

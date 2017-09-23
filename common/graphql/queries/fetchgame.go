@@ -5,9 +5,9 @@ import (
 
 	"errors"
 
-	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/common/graphql"
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
+	"github.com/bytearena/bytearena/common/types"
 )
 
 const gameQuery = `
@@ -44,7 +44,7 @@ query ($gameid: String = null) {
 }
 `
 
-func FetchGames(graphqlclient graphql.Client) ([]arenaserver.GameInterface, error) {
+func FetchGames(graphqlclient graphql.Client) ([]types.GameDescriptionInterface, error) {
 	data, err := graphqlclient.RequestSync(
 		graphql.NewQuery(gameQuery),
 	)
@@ -58,15 +58,15 @@ func FetchGames(graphqlclient graphql.Client) ([]arenaserver.GameInterface, erro
 	}
 	json.Unmarshal(data, &apiresponse)
 
-	res := make([]arenaserver.GameInterface, 0)
+	res := make([]types.GameDescriptionInterface, 0)
 	for _, game := range apiresponse.Games {
-		res = append(res, arenaserver.NewGameGql(game))
+		res = append(res, types.NewGameDescriptionGQL(game))
 	}
 
 	return res, nil
 }
 
-func FetchGameById(graphqlclient graphql.Client, gameid string) (arenaserver.GameInterface, error) {
+func FetchGameById(graphqlclient graphql.Client, gameid string) (types.GameDescriptionInterface, error) {
 
 	data, err := graphqlclient.RequestSync(
 		graphql.NewQuery(gameQuery).SetVariables(graphql.Variables{
@@ -82,7 +82,7 @@ func FetchGameById(graphqlclient graphql.Client, gameid string) (arenaserver.Gam
 		Games []graphqltype.GameType `json:"games"`
 	}
 	json.Unmarshal(data, &apiresponse)
-	arena := arenaserver.NewGameGql(apiresponse.Games[0])
+	game := types.NewGameDescriptionGQL(apiresponse.Games[0])
 
-	return arena, nil
+	return game, nil
 }

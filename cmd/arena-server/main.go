@@ -102,8 +102,8 @@ func main() {
 	<-streamArenaStopped
 }
 
-func startGame(arenaSubmitted messageArenaLaunch, orch container.ContainerOrchestrator, arena arenaserver.GameInterface, srv *arenaserver.Server, timeout int) {
-	for _, contestant := range arena.GetContestants() {
+func startGame(arenaSubmitted messageArenaLaunch, orch container.ContainerOrchestrator, gameDescription types.GameDescriptionInterface, srv *arenaserver.Server, timeout int) {
+	for _, contestant := range gameDescription.GetContestants() {
 		srv.RegisterAgent(contestant.AgentRegistry+"/"+contestant.AgentImage, contestant.Username)
 	}
 

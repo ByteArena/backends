@@ -2,6 +2,7 @@ package entities
 
 import (
 	"github.com/bytearena/box2d"
+	"github.com/bytearena/ecs"
 
 	"github.com/bytearena/bytearena/common/utils/number"
 	"github.com/bytearena/bytearena/common/utils/vector"
@@ -32,8 +33,10 @@ import (
 // or by simulating moment of inertia.
 
 type AgentState struct {
-	agentId   uuid.UUID
+	agentId   ecs.EntityID
 	agentName string
+
+	agentproxyUUID uuid.UUID
 
 	PhysicalBody *box2d.B2Body // replaces Radius, Mass, Position, Velocity, Orientation
 
@@ -65,11 +68,13 @@ type AgentState struct {
 	DebugMsg    string // Number of ticks since last shot
 }
 
-func MakeAgentState(agentId uuid.UUID, agentName string, physicalbody *box2d.B2Body) AgentState {
+func MakeAgentState(agentproxyUUID uuid.UUID, agentName string, physicalbody *box2d.B2Body) AgentState {
 
 	return AgentState{
-		agentId:   agentId,
+		agentId:   0,
 		agentName: agentName,
+
+		agentproxyUUID: agentproxyUUID,
 
 		PhysicalBody: physicalbody,
 
@@ -101,7 +106,7 @@ func MakeAgentState(agentId uuid.UUID, agentName string, physicalbody *box2d.B2B
 	}
 }
 
-func (state AgentState) GetAgentId() uuid.UUID {
+func (state AgentState) GetAgentId() ecs.EntityID {
 	return state.agentId
 }
 

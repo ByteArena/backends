@@ -3,17 +3,21 @@ package arenaserver
 import (
 	"errors"
 
-	"github.com/bytearena/box2d"
+	"github.com/bytearena/bytearena/common/utils/vector"
+
 	"github.com/bytearena/bytearena/arenaserver/agent"
-	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/game/entities"
 	uuid "github.com/satori/go.uuid"
 )
 
 func (s *Server) RegisterAgent(agentimage, agentname string) {
-	arenamap := s.game.GetMapContainer()
-	agentSpawnPointIndex := len(s.agents)
+
+	///////////////////////////////////////////////////////////////////////////
+	// Building the agent entity (gameplay related aspects of the agent)
+	///////////////////////////////////////////////////////////////////////////
+
+	arenamap := s.GetGameDescription().GetMapContainer()
+	agentSpawnPointIndex := len(s.agentproxies)
 
 	if agentSpawnPointIndex >= len(arenamap.Data.Starts) {
 		utils.Debug("arena", "Agent "+agentimage+" cannot spawn, no starting point left")
@@ -22,65 +26,41 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 
 	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
 
-	agent := agent.MakeNetAgentImp()
+	agententity := s.game.NewEntityAgent(vector.MakeVector2(agentSpawningPos.Point.X, agentSpawningPos.Point.Y))
 
 	///////////////////////////////////////////////////////////////////////////
-	// Building the physical body of the agent
+	// Building the agent proxy (concrete link with container and communication pipe)
 	///////////////////////////////////////////////////////////////////////////
 
-	bodydef := box2d.MakeB2BodyDef()
-	bodydef.Position.Set(agentSpawningPos.Point.X, agentSpawningPos.Point.Y)
-	bodydef.Type = box2d.B2BodyType.B2_dynamicBody
-	bodydef.AllowSleep = false
-	bodydef.FixedRotation = true
+	agentproxy := agent.MakeAgentProxyNetwork()
+	agentproxy.SetEntityId(agententity.GetID())
 
-	body := s.state.PhysicalWorld.CreateBody(&bodydef)
-
-	shape := box2d.MakeB2CircleShape()
-	shape.SetRadius(0.5)
-
-	fixturedef := box2d.MakeB2FixtureDef()
-	fixturedef.Shape = &shape
-	fixturedef.Density = 20.0
-	body.CreateFixtureFromDef(&fixturedef)
-	body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Agent, agent.GetId().String()))
-	body.SetBullet(true)
-
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-
-	agentstate := entities.MakeAgentState(agent.GetId(), agentname, body)
-
-	body.SetLinearDamping(agentstate.DragForce * float64(s.tickspersec)) // aerodynamic drag
-
-	s.setAgent(agent)
-	s.state.SetAgentState(agent.GetId(), agentstate)
-
-	s.agentimages[agent.GetId()] = agentimage
+	s.setAgentProxy(agentproxy)
+	s.agentimages[agentproxy.GetProxyUUID()] = agentimage
 
 	utils.Debug("arena", "Registrer agent "+agentimage)
 }
 
 func (s *Server) startAgentContainers() error {
 
-	for _, agent := range s.agents {
-		dockerimage := s.agentimages[agent.GetId()]
+	for _, agentproxy := range s.agentproxies {
+		dockerimage := s.agentimages[agentproxy.GetProxyUUID()]
 
 		arenaHostnameForAgents, err := s.containerorchestrator.GetHost(&s.containerorchestrator)
 		if err != nil {
 			return errors.New("Failed to fetch arena hostname for agents; " + err.Error())
 		}
 
-		container, err := s.containerorchestrator.CreateAgentContainer(agent.GetId(), arenaHostnameForAgents, s.port, dockerimage)
+		container, err := s.containerorchestrator.CreateAgentContainer(agentproxy.GetProxyUUID(), arenaHostnameForAgents, s.port, dockerimage)
 
 		if err != nil {
-			return errors.New("Failed to create docker container for " + agent.String() + ": " + err.Error())
+			return errors.New("Failed to create docker container for " + agentproxy.String() + ": " + err.Error())
 		}
 
 		err = s.containerorchestrator.StartAgentContainer(container, s.AddTearDownCall)
 
 		if err != nil {
-			return errors.New("Failed to start docker container for " + agent.String() + ": " + err.Error())
+			return errors.New("Failed to start docker container for " + agentproxy.String() + ": " + err.Error())
 		}
 
 		s.AddTearDownCall(func() error {
@@ -93,27 +73,26 @@ func (s *Server) startAgentContainers() error {
 	return nil
 }
 
-func (s *Server) setAgent(agent entities.AgentInterface) {
-	s.agentsmutex.Lock()
-	defer s.agentsmutex.Unlock()
-
-	s.agents[agent.GetId()] = agent
+func (s *Server) setAgentProxy(agent agent.AgentProxyInterface) {
+	s.agentproxiesmutex.Lock()
+	defer s.agentproxiesmutex.Unlock()
+	s.agentproxies[agent.GetProxyUUID()] = agent
 }
 
-func (s *Server) getAgent(agentid string) (entities.AgentInterface, error) {
-	var emptyagent entities.AgentInterface
+func (s *Server) getAgentProxy(agentid string) (agent.AgentProxyInterface, error) {
+	var emptyagent agent.AgentProxyInterface
 
 	foundkey, err := uuid.FromString(agentid)
 	if err != nil {
 		return emptyagent, err
 	}
 
-	s.agentsmutex.Lock()
-	if foundagent, ok := s.agents[foundkey]; ok {
-		s.agentsmutex.Unlock()
+	s.agentproxiesmutex.Lock()
+	if foundagent, ok := s.agentproxies[foundkey]; ok {
+		s.agentproxiesmutex.Unlock()
 		return foundagent, nil
 	}
-	s.agentsmutex.Unlock()
+	s.agentproxiesmutex.Unlock()
 
 	return emptyagent, errors.New("Agent" + agentid + " not found")
 }

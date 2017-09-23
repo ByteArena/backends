@@ -8,13 +8,10 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
-	"github.com/bytearena/bytearena/arenaserver/perception"
-	"github.com/bytearena/bytearena/arenaserver/state"
+	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/bytearena/bytearena/game/entities"
 )
 
 func (server *Server) Start() (chan interface{}, error) {
@@ -32,7 +29,7 @@ func (server *Server) Start() (chan interface{}, error) {
 	server.AddTearDownCall(func() error {
 		utils.Debug("arena", "Publish game state ("+server.arenaServerUUID+"stopped)")
 
-		game := server.GetGame()
+		game := server.GetGameDescription()
 
 		err := server.mqClient.Publish("game", "stopped", types.NewMQMessage(
 			"arena-server",
@@ -53,15 +50,15 @@ func (server *Server) Stop() {
 	server.TearDown()
 }
 
-func (s *Server) SubscribeStateObservation() chan state.ServerState {
-	ch := make(chan state.ServerState)
+func (s *Server) SubscribeStateObservation() chan interface{} {
+	ch := make(chan interface{})
 	s.stateobservers = append(s.stateobservers, ch)
 	return ch
 }
 
 func (s *Server) SendLaunched() {
 	payload := types.MQPayload{
-		"id":              s.GetGame().GetId(),
+		"id":              s.GetGameDescription().GetId(),
 		"arenaserveruuid": s.arenaServerUUID,
 	}
 
@@ -142,32 +139,28 @@ func (server *Server) doTick() {
 	///////////////////////////////////////////////////////////////////////////
 	// Refreshing perception for every agent
 	///////////////////////////////////////////////////////////////////////////
-	server.GetState().DebugPoints = make([]vector.Vector2, 0)
 
-	arenamap := server.game.GetMapContainer()
+	arenamap := server.GetGameDescription().GetMapContainer()
+	for _, agentproxy := range server.agentproxies {
+		go func(server *Server, agentproxy agent.AgentProxyInterface, arenamap *mapcontainer.MapContainer) {
 
-	for _, ag := range server.agents {
-		go func(server *Server, ag entities.AgentInterface, serverstate *state.ServerState, arenamap *mapcontainer.MapContainer) {
-
-			err := ag.SetPerception(
-				perception.ComputeAgentPerception(arenamap, serverstate, ag),
+			err := agentproxy.SetPerception(
+				server.GetGame().ComputeAgentPerception(arenamap, agentproxy.GetEntityId()),
 				server,
 			)
 			if err != nil {
-				utils.Debug("arenaserver", "ERROR: could not set perception on agent "+ag.GetId().String())
+				utils.Debug("arenaserver", "ERROR: could not set perception on agent "+agentproxy.GetProxyUUID().String())
 			}
 
-		}(server, ag, server.GetState(), arenamap)
+		}(server, agentproxy, arenamap)
 	}
 
 	///////////////////////////////////////////////////////////////////////////
 	// Pushing updated state to viz
 	///////////////////////////////////////////////////////////////////////////
-	serverCloned := *server.state
-
 	for _, subscriber := range server.stateobservers {
-		go func(s chan state.ServerState) {
-			s <- serverCloned
+		go func(s chan interface{}) {
+			s <- nil
 		}(subscriber)
 	}
 

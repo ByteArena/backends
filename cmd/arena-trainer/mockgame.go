@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bytearena/bytearena/arenaserver"
 	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
 type MockGame struct {
 	tps          int
-	contestants  []arenaserver.Contestant
+	contestants  []types.Contestant
 	mapContainer *mapcontainer.MapContainer
 }
 
@@ -42,7 +42,7 @@ func NewMockGame(tps int) *MockGame {
 
 	return &MockGame{
 		tps:          tps,
-		contestants:  make([]arenaserver.Contestant, 0),
+		contestants:  make([]types.Contestant, 0),
 		mapContainer: &mapContainer,
 	}
 }
@@ -85,7 +85,7 @@ func (game *MockGame) AddContestant(agentimage string) {
 		imagename = agentimage
 	}
 
-	game.contestants = append(game.contestants, arenaserver.Contestant{
+	game.contestants = append(game.contestants, types.Contestant{
 		Id:            strconv.Itoa(len(game.contestants) + 1),
 		Username:      "trainer-user",
 		AgentName:     "Trainee " + agentimage,
@@ -94,7 +94,7 @@ func (game *MockGame) AddContestant(agentimage string) {
 	})
 }
 
-func (game *MockGame) GetContestants() []arenaserver.Contestant {
+func (game *MockGame) GetContestants() []types.Contestant {
 	return game.contestants
 }
 

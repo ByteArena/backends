@@ -7,8 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/bytearena/bytearena/arenaserver"
-
+	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/vizserver/types"
 	"github.com/gorilla/mux"
 )
@@ -25,12 +24,12 @@ func Game(fetchVizGames func() ([]*types.VizGame, error), basepath string, CDNBa
 			return
 		}
 
-		var game arenaserver.GameInterface
+		var gameDescription commontypes.GameDescriptionInterface
 		foundgame := false
 
 		for _, vizgame := range vizgames {
 			if vizgame.GetGame().GetId() == vars["id"] {
-				game = vizgame.GetGame()
+				gameDescription = vizgame.GetGame()
 				foundgame = true
 				break
 			}
@@ -60,10 +59,10 @@ func Game(fetchVizGames func() ([]*types.VizGame, error), basepath string, CDNBa
 			Rand       int64
 			Tps        int
 		}{
-			WsURL:      protocol + "://" + r.Host + "/arena/" + game.GetId() + "/ws",
+			WsURL:      protocol + "://" + r.Host + "/arena/" + gameDescription.GetId() + "/ws",
 			CDNBaseURL: CDNBaseURL,
 			Rand:       time.Now().Unix(),
-			Tps:        game.GetTps(),
+			Tps:        gameDescription.GetTps(),
 		})
 	}
 }
