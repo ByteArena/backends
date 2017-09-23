@@ -15,6 +15,7 @@ import (
 	"github.com/bytearena/bytearena/common/healthcheck"
 
 	"github.com/bytearena/bytearena/arenaserver/container"
+	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/types"
@@ -108,7 +109,7 @@ func main() {
 	<-streamArenaStopped
 }
 
-func startGame(arenaSubmitted messageArenaLaunch, orch container.ContainerOrchestrator, arena arenaserver.GameInterface, srv *arenaserver.Server, timeout int) {
+func startGame(arenaSubmitted messageArenaLaunch, orch arenaservertypes.ContainerOrchestrator, arena arenaserver.GameInterface, srv *arenaserver.Server, timeout int) {
 	for _, contestant := range arena.GetContestants() {
 		srv.RegisterAgent(contestant.AgentRegistry+"/"+contestant.AgentImage, contestant.Username)
 	}

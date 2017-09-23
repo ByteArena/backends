@@ -10,22 +10,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bytearena/box2d"
-
 	notify "github.com/bitly/go-notify"
+	uuid "github.com/satori/go.uuid"
+
+	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/comm"
-	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/arenaserver/perception"
 	"github.com/bytearena/bytearena/arenaserver/projectile"
 	"github.com/bytearena/bytearena/arenaserver/protocol"
 	"github.com/bytearena/bytearena/arenaserver/state"
+	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
-	uuid "github.com/satori/go.uuid"
 )
 
 const debug = false
@@ -36,7 +36,7 @@ type Server struct {
 	port                  int
 	stopticking           chan bool
 	tickspersec           int
-	containerorchestrator container.ContainerOrchestrator
+	containerorchestrator arenaservertypes.ContainerOrchestrator
 	agents                map[uuid.UUID]agent.AgentInterface
 	agentsmutex           *sync.Mutex
 	state                 *state.ServerState
@@ -61,12 +61,12 @@ type Server struct {
 	collisionListener *CollisionListener
 }
 
-func NewServer(host string, port int, orch container.ContainerOrchestrator, game GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
+func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrator, game GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
 
 	gamehost := host
 
 	if host == "" {
-		host, err := orch.GetHost(&orch)
+		host, err := orch.GetHost()
 		utils.Check(err, "Could not determine arena-server host/ip.")
 
 		gamehost = host
@@ -349,7 +349,7 @@ func (server *Server) spawnAgents() error {
 	for _, agent := range server.agents {
 		dockerimage := server.agentimages[agent.GetId()]
 
-		arenaHostnameForAgents, err := server.containerorchestrator.GetHost(&server.containerorchestrator)
+		arenaHostnameForAgents, err := server.containerorchestrator.GetHost()
 		if err != nil {
 			return errors.New("Failed to fetch arena hostname for agents; " + err.Error())
 		}

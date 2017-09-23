@@ -14,6 +14,7 @@ import (
 
 	"github.com/bytearena/bytearena/agentbuilder"
 	"github.com/bytearena/bytearena/common"
+	"github.com/bytearena/bytearena/common/utils"
 )
 
 func msgOut(msg string) {
@@ -185,14 +186,6 @@ func assertAgentCodeIsLegit(absBuildDir, registryHost string) {
 	}
 }
 
-func orString(value, defaultValue string) string {
-	if value == "" {
-		return defaultValue
-	}
-
-	return value
-}
-
 func buildImage(absBuildDir, name, registryHost string) {
 
 	assertAgentCodeIsLegit(absBuildDir, registryHost)
@@ -202,11 +195,11 @@ func buildImage(absBuildDir, name, registryHost string) {
 		msgOut("Error: docker command not found in path")
 	}
 
-	dockerBuildMemoryLimit := orString(os.Getenv("DOCKER_BUILD_MEMORY_LIMIT"), "100m")
-	dockerBuildSwapLimit := orString(os.Getenv("DOCKER_BUILD_SWAP_LIMIT"), "100m")
-	dockerBuildNetwork := orString(os.Getenv("DOCKER_BUILD_NETWORK"), "bridge")
-	dockerBuildNoCache := orString(os.Getenv("DOCKER_BUILD_NO_CACHE"), "true")
-	dockerBuildCpuPeriod := orString(os.Getenv("DOCKER_BUILD_CPU_PERIOD"), "5000")
+	dockerBuildMemoryLimit := utils.GetenvOrDefault("DOCKER_BUILD_MEMORY_LIMIT", "100m")
+	dockerBuildSwapLimit := utils.GetenvOrDefault("DOCKER_BUILD_SWAP_LIMIT", "100m")
+	dockerBuildNetwork := utils.GetenvOrDefault("DOCKER_BUILD_NETWORK", "bridge")
+	dockerBuildNoCache := utils.GetenvOrDefault("DOCKER_BUILD_NO_CACHE", "true")
+	dockerBuildCpuPeriod := utils.GetenvOrDefault("DOCKER_BUILD_CPU_PERIOD", "5000")
 
 	dockargs := []string{
 		"build",

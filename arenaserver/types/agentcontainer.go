@@ -1,4 +1,4 @@
-package container
+package types
 
 import (
 	"io"
@@ -9,7 +9,7 @@ import (
 
 type AgentContainer struct {
 	AgentId     uuid.UUID
-	containerid ContainerId
+	Containerid ContainerId
 	ImageName   string
 	IPAddress   string
 
@@ -20,7 +20,7 @@ type AgentContainer struct {
 func NewAgentContainer(agentid uuid.UUID, containerid ContainerId, imageName string) *AgentContainer {
 	return &AgentContainer{
 		AgentId:     agentid,
-		containerid: containerid,
+		Containerid: containerid,
 		ImageName:   imageName,
 		IPAddress:   "", // not started yet; set in startContainer*Orch
 	}

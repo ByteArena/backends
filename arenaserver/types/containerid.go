@@ -1,4 +1,4 @@
-package container
+package types
 
 type ContainerId string
 
