@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
 	"github.com/bytearena/bytearena/common/healthcheck"
+	"github.com/bytearena/bytearena/common/influxdb"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
@@ -160,6 +162,20 @@ func main() {
 	gamelist := NewGameList(graphqlclient, time.Second*10)
 	gamelist.StartSync()
 
+	// Make influxdb client
+	influxdbClient, influxdbClientErr := influxdb.NewClient("viz")
+	utils.Check(influxdbClientErr, "Unable to create influxdb client")
+
+	influxdbClient.Loop(func() {
+		var memstats runtime.MemStats
+		memoryUsageInBytes := memstats.Alloc
+
+		influxdbClient.WriteAppMetric("viz", map[string]interface{}{
+			// FIXME(sven): casting to an int seems to return 0
+			"memory-usage": int(memoryUsageInBytes),
+		})
+	})
+
 	serverAddr := ":" + strconv.Itoa(*port)
 	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]*types.VizGame, error) {
 		return gamelist.GetGames(), nil
@@ -185,6 +201,10 @@ func main() {
 
 		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena server "+arenaServerUUID)
 		notify.PostTimeout("viz:message:"+gameID, string(msg.Data), time.Millisecond)
+
+		influxdbClient.WriteAppMetric("viz", map[string]interface{}{
+			"msg-received": len(vizMessage),
+		})
 	})
 
 	mqclient.Subscribe("game", "stopped", func(msg mq.BrokerMessage) {
