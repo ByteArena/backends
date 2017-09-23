@@ -215,4 +215,6 @@ func main() {
 	if hc != nil {
 		hc.Stop()
 	}
+
+	mqclient.Stop()
 }

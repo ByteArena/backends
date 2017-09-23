@@ -64,72 +64,20 @@ func (client *Client) connect() bool {
 	return true
 }
 
-// func handleUnexepectedClose(client *Client) {
-// 	utils.Debug("mq-client", "Unexpected close")
+func (client *Client) Stop() {
 
-// 	f := func() error {
-// 		utils.Debug("mq-client", "Try to reconnect")
-// 		hasConnected := client.connect()
+	// Stop all current Redis PubSub subscriptions
+	for _, pubsub := range client.subscriptions {
+		pubsub.Close()
+	}
 
-// 		if hasConnected {
-// 			utils.Debug("mq-client", "Reconnected")
-// 			for _, subscriptionLane := range client.subscriptions.GetKeys() {
-// 				subscriptionCbk := client.subscriptions.Get(subscriptionLane)
-// 				parts := strings.Split(subscriptionLane, ":")
-// 				utils.Debug("mq-client", "Re-subscribing to "+subscriptionLane)
-// 				client.Subscribe(parts[0], parts[1], subscriptionCbk)
-// 			}
-// 			return nil
-// 		}
-
-// 		return errors.New("connection failed")
-// 	}
-
-// 	backoff.Retry(f, backoff.NewExponentialBackOff())
-// }
-
-// func (client *Client) waitAndListen() {
-
-// 	for {
-// 		_, rawData, err := client.conn.ReadMessage()
-
-// 		if websocket.IsUnexpectedCloseError(err) {
-// 			handleUnexepectedClose(client)
-// 			continue
-// 		}
-
-// 		if err != nil {
-// 			utils.Debug("mqclient", "Received invalid message; "+err.Error())
-// 			continue
-// 		}
-
-// 		var message BrokerMessage
-
-// 		err = json.Unmarshal(rawData, &message)
-// 		if err != nil {
-// 			utils.Debug("mqclient", "Received invalid message; "+err.Error()+";"+string(rawData))
-// 			continue
-// 		}
-
-// 		subscription := client.subscriptions.Get(message.Channel + ":" + message.Topic)
-// 		if subscription == nil {
-// 			utils.Debug("mqclient", "unexpected (unsubscribed) message type "+message.Channel+":"+message.Topic)
-// 			continue
-// 		}
-
-// 		subscription(message)
-// 	}
-// }
+	err := client.conn.Close()
+	utils.Check(err, "Unable to Redis client connection")
+}
 
 /* <mq.MessageBrokerClientInterface> */
 func (client *Client) Subscribe(channel string, topic string, onmessage SubscriptionCallback) error {
 	client.mu.Lock()
-
-	// err := client.conn.WriteJSON(brokerAction{
-	// 	Action:  "sub",
-	// 	Channel: channel,
-	// 	Topic:   topic,
-	// })
 
 	channelName := channelAndTopicToString(channel, topic)
 
@@ -143,11 +91,6 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 
 	utils.Debug("mq", "Subscribed to bus "+channelName)
 
-	// if err != nil {
-	// 	return errors.New("Error: cannot subscribe to message broker (" + channel + ", " + topic + ")")
-	// }
-
-	// client.subscriptions.Set(channel+":"+topic, onmessage)
 	client.subscriptions[channelName] = pubsub
 
 	/*

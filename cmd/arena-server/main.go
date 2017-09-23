@@ -92,6 +92,12 @@ func main() {
 			return nil
 		})
 
+		srv.AddTearDownCall(func() error {
+			brokerclient.Stop()
+
+			return nil
+		})
+
 		go startGame(payload, orch, arena, srv, *timeout)
 		go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
 	})

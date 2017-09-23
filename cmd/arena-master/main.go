@@ -41,6 +41,7 @@ func main() {
 		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 
 		server.Stop()
+		brokerclient.Stop()
 
 		if hc != nil {
 			hc.Stop()
