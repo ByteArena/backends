@@ -2,6 +2,7 @@ package influxdb
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/bytearena/bytearena/common/utils"
@@ -75,7 +76,15 @@ func NewClient(appName string) (*Client, error) {
 
 func (c *Client) WriteAppMetric(name string, fields map[string]interface{}) {
 	if c.isStub {
-		// TODO(sven): do something? Print in the console?
+		str := ""
+
+		for k, v := range fields {
+			if vs, isString := v.(int); isString {
+				str += k + "=" + strconv.Itoa(vs)
+			}
+		}
+
+		utils.Debug("influxdb-debug", str)
 		return
 	}
 
