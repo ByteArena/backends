@@ -168,10 +168,12 @@ func main() {
 
 	influxdbClient.Loop(func() {
 		var memstats runtime.MemStats
-		memoryUsageInBytes := memstats.Alloc
+
+		runtime.ReadMemStats(&memstats)
+
+		memoryUsageInBytes := memstats.Alloc + memstats.StackInuse
 
 		influxdbClient.WriteAppMetric("viz", map[string]interface{}{
-			// FIXME(sven): casting to an int seems to return 0
 			"memory-usage": int(memoryUsageInBytes),
 		})
 	})
