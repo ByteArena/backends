@@ -12,8 +12,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO(jerome): parametrize this
-var logDir = "/var/log/agents"
+var logDir = utils.GetenvOrDefault("AGENT_LOGS_PATH", "./data/agent-logs")
 
 func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner *AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
 
