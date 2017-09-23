@@ -5,11 +5,13 @@ import (
 	"os"
 
 	uuid "github.com/satori/go.uuid"
+
+	"github.com/bytearena/bytearena/arenaserver/types"
 )
 
 type AgentContainer struct {
 	AgentId     uuid.UUID
-	containerid ContainerId
+	containerid types.ContainerId
 	ImageName   string
 	IPAddress   string
 
@@ -17,7 +19,7 @@ type AgentContainer struct {
 	LogWriter *os.File
 }
 
-func NewAgentContainer(agentid uuid.UUID, containerid ContainerId, imageName string) *AgentContainer {
+func NewAgentContainer(agentid uuid.UUID, containerid types.ContainerId, imageName string) *AgentContainer {
 	return &AgentContainer{
 		AgentId:     agentid,
 		containerid: containerid,

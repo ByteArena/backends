@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	t "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 
@@ -188,7 +189,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		return nil, errors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
 	}
 
-	agentcontainer := NewAgentContainer(agentid, ContainerId(resp.ID), normalizedDockerimage)
+	agentcontainer := NewAgentContainer(agentid, arenaservertypes.ContainerId(resp.ID), normalizedDockerimage)
 	orch.containers = append(orch.containers, agentcontainer)
 
 	return agentcontainer, nil
