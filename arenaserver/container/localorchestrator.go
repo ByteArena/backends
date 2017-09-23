@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"strconv"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -131,28 +130,12 @@ func (orch *LocalContainerOrchestrator) TearDown(container *arenaservertypes.Age
 	// if err != nil {
 	orch.cli.ContainerKill(orch.ctx, container.Containerid.String(), "KILL")
 	//}
-
-	err := orch.RemoveAgentContainer(container)
-	if err != nil {
-		utils.Debug("orch", "Cannot remove agent container: "+err.Error())
-	}
 }
 
 func (orch *LocalContainerOrchestrator) RemoveAgentContainer(ctner *arenaservertypes.AgentContainer) error {
-	utils.Debug("orch", "Remove agent image "+ctner.ImageName)
 
-	out, errImageRemove := orch.cli.ImageRemove(
-		orch.ctx,
-		ctner.ImageName,
-		types.ImageRemoveOptions{
-			Force:         true,
-			PruneChildren: true,
-		},
-	)
-
-	utils.Debug("orch", "Removed "+strconv.Itoa(len(out))+" layers")
-
-	return errImageRemove
+	// We don't want to remove images in local mode
+	return nil
 }
 
 func (orch *LocalContainerOrchestrator) Wait(ctner arenaservertypes.AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
