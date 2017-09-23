@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	t "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
@@ -14,11 +15,11 @@ import (
 
 var logDir = utils.GetenvOrDefault("AGENT_LOGS_PATH", "./data/agent-logs")
 
-func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner *AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
+func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner *arenaservertypes.AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
 
 	err := orch.cli.ContainerStart(
 		orch.ctx,
-		ctner.containerid.String(),
+		ctner.Containerid.String(),
 		types.ContainerStartOptions{},
 	)
 
@@ -29,7 +30,7 @@ func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner *AgentContainer
 	err = setAgentLogger(orch, ctner)
 
 	if err != nil {
-		return errors.New("Failed to follow docker container logs for " + ctner.containerid.String())
+		return errors.New("Failed to follow docker container logs for " + ctner.Containerid.String())
 	}
 
 	addTearDownCall(func() error {
@@ -45,10 +46,10 @@ func startContainerRemoteOrch(orch *ContainerOrchestrator, ctner *AgentContainer
 
 	containerInfo, err := orch.cli.ContainerInspect(
 		orch.ctx,
-		ctner.containerid.String(),
+		ctner.Containerid.String(),
 	)
 	if err != nil {
-		return errors.New("Could not inspect container " + ctner.containerid.String())
+		return errors.New("Could not inspect container " + ctner.Containerid.String())
 	}
 
 	ctner.SetIPAddress(containerInfo.NetworkSettings.IPAddress)
@@ -75,10 +76,10 @@ func MakeRemoteContainerOrchestrator(arenaAddr string, registryAddr string) Cont
 	}
 }
 
-func setAgentLogger(orch *ContainerOrchestrator, container *AgentContainer) error {
+func setAgentLogger(orch *ContainerOrchestrator, container *arenaservertypes.AgentContainer) error {
 
-	go func(orch *ContainerOrchestrator, container *AgentContainer) {
-		reader, err := orch.cli.ContainerLogs(orch.ctx, container.containerid.String(), types.ContainerLogsOptions{
+	go func(orch *ContainerOrchestrator, container *arenaservertypes.AgentContainer) {
+		reader, err := orch.cli.ContainerLogs(orch.ctx, container.Containerid.String(), types.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Follow:     true,
@@ -86,7 +87,7 @@ func setAgentLogger(orch *ContainerOrchestrator, container *AgentContainer) erro
 			Timestamps: false,
 		})
 
-		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.containerid.String())
+		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.Containerid.String())
 
 		// Create log file
 		filename := logDir + "/" + container.AgentId.String() + ".log"

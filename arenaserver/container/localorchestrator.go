@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 
+	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	commonTypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/docker/docker/api/types"
@@ -21,11 +22,11 @@ func getHostLocalOrch(orch *ContainerOrchestrator) (string, error) {
 	return res.IPAM.Config[0].Gateway, nil
 }
 
-func startContainerLocalOrch(orch *ContainerOrchestrator, ctner *AgentContainer, addTearDownCall func(commonTypes.TearDownCallback)) error {
+func startContainerLocalOrch(orch *ContainerOrchestrator, ctner *arenaservertypes.AgentContainer, addTearDownCall func(commonTypes.TearDownCallback)) error {
 
 	err := orch.cli.ContainerStart(
 		orch.ctx,
-		ctner.containerid.String(),
+		ctner.Containerid.String(),
 		types.ContainerStartOptions{},
 	)
 
@@ -36,15 +37,15 @@ func startContainerLocalOrch(orch *ContainerOrchestrator, ctner *AgentContainer,
 	err = localLogsToStdOut(orch, ctner)
 
 	if err != nil {
-		return errors.New("Failed to follow docker container logs for " + ctner.containerid.String())
+		return errors.New("Failed to follow docker container logs for " + ctner.Containerid.String())
 	}
 
 	containerInfo, err := orch.cli.ContainerInspect(
 		orch.ctx,
-		ctner.containerid.String(),
+		ctner.Containerid.String(),
 	)
 	if err != nil {
-		return errors.New("Could not inspect container " + ctner.containerid.String())
+		return errors.New("Could not inspect container " + ctner.Containerid.String())
 	}
 
 	ctner.SetIPAddress(containerInfo.NetworkSettings.IPAddress)
@@ -75,9 +76,9 @@ func MakeLocalContainerOrchestrator(host string) ContainerOrchestrator {
 	}
 }
 
-func localLogsToStdOut(orch *ContainerOrchestrator, container *AgentContainer) error {
-	go func(orch *ContainerOrchestrator, container *AgentContainer) {
-		reader, err := orch.cli.ContainerLogs(orch.ctx, container.containerid.String(), types.ContainerLogsOptions{
+func localLogsToStdOut(orch *ContainerOrchestrator, container *arenaservertypes.AgentContainer) error {
+	go func(orch *ContainerOrchestrator, container *arenaservertypes.AgentContainer) {
+		reader, err := orch.cli.ContainerLogs(orch.ctx, container.Containerid.String(), types.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Follow:     true,
@@ -85,7 +86,7 @@ func localLogsToStdOut(orch *ContainerOrchestrator, container *AgentContainer) e
 			Timestamps: false,
 		})
 
-		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.containerid.String())
+		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.Containerid.String())
 
 		defer reader.Close()
 

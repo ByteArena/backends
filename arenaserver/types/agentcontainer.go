@@ -1,17 +1,15 @@
-package container
+package types
 
 import (
 	"io"
 	"os"
 
 	uuid "github.com/satori/go.uuid"
-
-	"github.com/bytearena/bytearena/arenaserver/types"
 )
 
 type AgentContainer struct {
 	AgentId     uuid.UUID
-	containerid types.ContainerId
+	Containerid ContainerId
 	ImageName   string
 	IPAddress   string
 
@@ -19,10 +17,10 @@ type AgentContainer struct {
 	LogWriter *os.File
 }
 
-func NewAgentContainer(agentid uuid.UUID, containerid types.ContainerId, imageName string) *AgentContainer {
+func NewAgentContainer(agentid uuid.UUID, containerid ContainerId, imageName string) *AgentContainer {
 	return &AgentContainer{
 		AgentId:     agentid,
-		containerid: containerid,
+		Containerid: containerid,
 		ImageName:   imageName,
 		IPAddress:   "", // not started yet; set in startContainer*Orch
 	}

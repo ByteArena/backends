@@ -22,19 +22,19 @@ type ContainerOrchestrator struct {
 	ctx            context.Context
 	cli            *client.Client
 	registryAuth   string
-	containers     []*AgentContainer
+	containers     []*arenaservertypes.AgentContainer
 	GetHost        func(orch *ContainerOrchestrator) (string, error)
-	StartContainer func(orch *ContainerOrchestrator, ctner *AgentContainer, addTearDownCall func(t.TearDownCallback)) error
+	StartContainer func(orch *ContainerOrchestrator, ctner *arenaservertypes.AgentContainer, addTearDownCall func(t.TearDownCallback)) error
 	RemoveImages   bool
 }
 
-func (orch *ContainerOrchestrator) StartAgentContainer(ctner *AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
+func (orch *ContainerOrchestrator) StartAgentContainer(ctner *arenaservertypes.AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
 	utils.Debug("orch", "Spawning agent "+ctner.AgentId.String())
 
 	return orch.StartContainer(orch, ctner, addTearDownCall)
 }
 
-func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner *AgentContainer) error {
+func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner *arenaservertypes.AgentContainer) error {
 	utils.Debug("orch", "Remove agent image "+ctner.ImageName)
 
 	out, errImageRemove := orch.cli.ImageRemove(
@@ -51,17 +51,17 @@ func (orch *ContainerOrchestrator) RemoveAgentContainer(ctner *AgentContainer) e
 	return errImageRemove
 }
 
-func (orch *ContainerOrchestrator) Wait(ctner AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
+func (orch *ContainerOrchestrator) Wait(ctner arenaservertypes.AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
 	waitChan, errorChan := orch.cli.ContainerWait(
 		orch.ctx,
-		ctner.containerid.String(),
+		ctner.Containerid.String(),
 		container.WaitConditionRemoved,
 	)
 
 	return waitChan, errorChan
 }
 
-func (orch *ContainerOrchestrator) TearDown(container *AgentContainer) {
+func (orch *ContainerOrchestrator) TearDown(container *arenaservertypes.AgentContainer) {
 	// timeout := time.Second * 5
 	// err := orch.cli.ContainerStop(
 	// 	orch.ctx,
@@ -70,7 +70,7 @@ func (orch *ContainerOrchestrator) TearDown(container *AgentContainer) {
 	// )
 
 	// if err != nil {
-	orch.cli.ContainerKill(orch.ctx, container.containerid.String(), "KILL")
+	orch.cli.ContainerKill(orch.ctx, container.Containerid.String(), "KILL")
 	//}
 
 	if orch.RemoveImages {
@@ -102,7 +102,7 @@ func normalizeDockerRef(dockerimage string) (string, error) {
 	return parsedRefWithTag.String(), nil
 }
 
-func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, dockerimage string) (*AgentContainer, error) {
+func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, dockerimage string) (*arenaservertypes.AgentContainer, error) {
 
 	containerUnixUser := os.Getenv("CONTAINER_UNIX_USER")
 
@@ -189,7 +189,7 @@ func (orch *ContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host 
 		return nil, errors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
 	}
 
-	agentcontainer := NewAgentContainer(agentid, arenaservertypes.ContainerId(resp.ID), normalizedDockerimage)
+	agentcontainer := arenaservertypes.NewAgentContainer(agentid, arenaservertypes.ContainerId(resp.ID), normalizedDockerimage)
 	orch.containers = append(orch.containers, agentcontainer)
 
 	return agentcontainer, nil
