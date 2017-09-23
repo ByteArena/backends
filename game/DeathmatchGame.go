@@ -27,6 +27,11 @@ type DeathmatchGame struct {
 	perceptionComponent   *ecs.Component
 	ownedComponent        *ecs.Component
 
+	agentsView     *ecs.View
+	ttlView        *ecs.View
+	renderableView *ecs.View
+	physicalView   *ecs.View
+
 	PhysicalWorld     *box2d.B2World
 	collisionListener *CollisionListener
 }
@@ -49,6 +54,22 @@ func NewDeathmatchGame(gameDescription types.GameDescriptionInterface) *Deathmat
 
 		PhysicalWorld: buildPhysicalWorld(gameDescription.GetMapContainer()),
 	}
+
+	game.agentsView = manager.CreateView("agents", ecs.BuildTag(
+		game.playerComponent, game.physicalBodyComponent,
+	))
+
+	game.ttlView = manager.CreateView("ttlbound", ecs.BuildTag(
+		game.ttlComponent,
+	))
+
+	game.renderableView = manager.CreateView("renderable", ecs.BuildTag(
+		game.renderComponent, game.physicalBodyComponent,
+	))
+
+	game.physicalView = manager.CreateView("physicalbodies", ecs.BuildTag(
+		game.physicalBodyComponent,
+	))
 
 	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity, data interface{}) {
 		physicalAspect := game.CastPhysicalBody(data)
@@ -80,11 +101,9 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 	// On supprime les projectiles en fin de vie
 	///////////////////////////////////////////////////////////////////////////
 
-	ttlSignature := ecs.BuildTag(deathmatch.ttlComponent)
-
 	entitiesToRemove := make([]*ecs.Entity, 0)
 
-	for _, entityresult := range deathmatch.manager.Query(ttlSignature) {
+	for _, entityresult := range deathmatch.ttlView.Get() {
 		ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent.GetID()])
 		if ttlAspect.Decrement(1) < 0 {
 			entitiesToRemove = append(entitiesToRemove, entityresult.Entity)
@@ -97,15 +116,12 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 	// // On met l'état des agents à jour
 	// ///////////////////////////////////////////////////////////////////////////
 
-	// for _, agent := range server.agentproxies {
-	// 	id := agent.GetId()
-	// 	agentstate := server.GetAgentState(id)
-	// 	agentstate = agentstate.Update()
-	// 	server.SetAgentState(
-	// 		id,
-	// 		agentstate,
-	// 	)
-	// }
+	for _, entityresult := range deathmatch.physicalView.Get() {
+		physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent.GetID()])
+		if physicalAspect.GetVelocity().Mag() > 0.01 {
+			physicalAspect.SetOrientation(physicalAspect.GetVelocity().Angle())
+		}
+	}
 
 	// ///////////////////////////////////////////////////////////////////////////
 	// // On simule le monde physique
@@ -365,6 +381,12 @@ func (p *PhysicalBody) SetVelocity(v vector.Vector2) *PhysicalBody {
 
 func (p PhysicalBody) GetOrientation() float64 {
 	return p.body.GetAngle()
+}
+
+func (p *PhysicalBody) SetOrientation(angle float64) *PhysicalBody {
+	// Could also be implemented using torque; see http://www.iforce2d.net/b2dtut/rotate-to-angle
+	p.body.SetTransform(p.body.GetPosition(), angle)
+	return p
 }
 
 func (p PhysicalBody) GetRadius() float64 {
@@ -683,12 +705,7 @@ func (deathmatch *DeathmatchGame) ProduceVizMessageJson() []byte {
 		Objects: []types.VizMessageObject{},
 	}
 
-	renderablePhysicalBodiesTag := ecs.BuildTag(
-		deathmatch.renderComponent,
-		deathmatch.physicalBodyComponent,
-	)
-
-	for _, entityresult := range deathmatch.manager.Query(renderablePhysicalBodiesTag) {
+	for _, entityresult := range deathmatch.renderableView.Get() {
 
 		renderAspect := deathmatch.CastRender(entityresult.Components[deathmatch.renderComponent.GetID()])
 		physicalBodyAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent.GetID()])

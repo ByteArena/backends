@@ -33,9 +33,7 @@ func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Physic
 	orientation := physicalAspect.GetOrientation()
 	radiussq := math.Pow(perceptionAspect.GetVisionRadius(), 2)
 
-	agentSignature := ecs.BuildTag(game.playerComponent, game.physicalBodyComponent)
-
-	for _, otherentityresult := range game.manager.Query(agentSignature) {
+	for _, otherentityresult := range game.agentsView.Get() {
 
 		otherentity := otherentityresult.Entity
 
