@@ -2,15 +2,12 @@ package arenamaster
 
 import (
 	"encoding/json"
-	"os"
-	"time"
 
 	"github.com/bytearena/bytearena/common/graphql"
+	"github.com/bytearena/bytearena/common/influxdb"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
-
-	"github.com/influxdata/influxdb/client/v2"
 )
 
 type ListeningChanStruct chan struct{}
@@ -28,60 +25,34 @@ func NewServer(mq *mq.Client, gql *graphql.Client) *Server {
 		state:         NewState(),
 	}
 
-	if os.Getenv("INFLUXDB_ADDR") != "" {
-		utils.Debug("arenamaster", "State reporting activated")
-		err := s.startStateReporting(os.Getenv("INFLUXDB_ADDR"), os.Getenv("INFLUXDB_DB"))
+	influxdbClient, influxdbClientErr := influxdb.NewClient()
 
-		utils.CheckWithFunc(err, func() string {
-			panic("Could not start state reporting: " + err.Error())
-		})
-	}
+	utils.Check(influxdbClientErr, "Unable to create influxdb client")
+
+	err := s.startStateReporting(influxdbClient)
+
+	utils.CheckWithFunc(err, func() string {
+		panic("Could not start state reporting: " + err.Error())
+	})
 
 	return s
 }
 
-func (server *Server) startStateReporting(addr, db string) error {
-	influxdbClient, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr: addr,
-	})
+func (server *Server) startStateReporting(influxdbClient *influxdb.Client) error {
 
-	if err != nil {
-		return err
-	}
+	influxdbClient.Loop(func() {
+		server.state.LockState()
 
-	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
-		Database: db,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		for {
-			<-time.NewTicker(5 * time.Second).C
-
-			server.state.LockState()
-
-			tags := map[string]string{"app": "arenamaster"}
-			fields := map[string]interface{}{
-				"state-idle":    len(server.state.idleArenas),
-				"state-running": len(server.state.runningArenas),
-				"state-pending": len(server.state.pendingArenas),
-			}
-
-			pt, err := client.NewPoint("arenamaster", tags, fields, time.Now())
-
-			if err != nil {
-				panic(err.Error())
-			}
-
-			bp.AddPoint(pt)
-			influxdbClient.Write(bp)
-
-			server.state.UnlockState()
+		fields := map[string]interface{}{
+			"state-idle":    len(server.state.idleArenas),
+			"state-running": len(server.state.runningArenas),
+			"state-pending": len(server.state.pendingArenas),
 		}
-	}()
+
+		server.state.UnlockState()
+
+		influxdbClient.WriteAppMetric("arenamaster", "arenamaster", fields)
+	})
 
 	return nil
 }
