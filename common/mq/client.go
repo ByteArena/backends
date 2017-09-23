@@ -101,7 +101,9 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 			msg, err := pubsub.ReceiveMessage()
 
 			if err != nil {
-				panic(err)
+				utils.RecoverableError("mqclient", "Could not receive message: "+err.Error())
+				continue
+
 			}
 
 			var mqMessage BrokerMessage
@@ -109,7 +111,7 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 			err = json.Unmarshal([]byte(msg.Payload), &mqMessage)
 
 			if err != nil {
-				utils.Debug("mqclient", "Received invalid message; "+err.Error()+";"+msg.Payload)
+				utils.RecoverableError("mqclient", "Received invalid message; "+err.Error()+";"+msg.Payload)
 				continue
 			}
 
