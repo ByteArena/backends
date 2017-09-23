@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 
 	"github.com/docker/docker/api/types"

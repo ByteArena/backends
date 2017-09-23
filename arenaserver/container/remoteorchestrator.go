@@ -3,7 +3,6 @@ package container
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"strconv"
