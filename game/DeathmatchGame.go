@@ -104,7 +104,7 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 	entitiesToRemove := make([]*ecs.Entity, 0)
 
 	for _, entityresult := range deathmatch.ttlView.Get() {
-		ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent.GetID()])
+		ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent])
 		if ttlAspect.Decrement(1) < 0 {
 			entitiesToRemove = append(entitiesToRemove, entityresult.Entity)
 		}
@@ -117,7 +117,7 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 	// ///////////////////////////////////////////////////////////////////////////
 
 	for _, entityresult := range deathmatch.physicalView.Get() {
-		physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent.GetID()])
+		physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
 		if physicalAspect.GetVelocity().Mag() > 0.01 {
 			physicalAspect.SetOrientation(physicalAspect.GetVelocity().Angle())
 		}
@@ -168,8 +168,8 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 			worldManifold := box2d.MakeB2WorldManifold()
 			collision.GetWorldManifold(&worldManifold)
 
-			ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent.GetID()])
-			physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent.GetID()])
+			ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent])
+			physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
 
 			ttlAspect.SetValue(1)
 
@@ -193,8 +193,8 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 			worldManifold := box2d.MakeB2WorldManifold()
 			collision.GetWorldManifold(&worldManifold)
 
-			ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent.GetID()])
-			physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent.GetID()])
+			ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent])
+			physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
 
 			ttlAspect.SetValue(1)
 
@@ -579,7 +579,7 @@ func (filter *CollisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB
 			return false
 		}
 
-		ownedAspect := filter.game.CastOwned(projectileresult.Components[filter.game.ownedComponent.GetID()])
+		ownedAspect := filter.game.CastOwned(projectileresult.Components[filter.game.ownedComponent])
 
 		return ownedAspect.GetOwner().String() != other.ID
 	}
@@ -707,8 +707,8 @@ func (deathmatch *DeathmatchGame) ProduceVizMessageJson() []byte {
 
 	for _, entityresult := range deathmatch.renderableView.Get() {
 
-		renderAspect := deathmatch.CastRender(entityresult.Components[deathmatch.renderComponent.GetID()])
-		physicalBodyAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent.GetID()])
+		renderAspect := deathmatch.CastRender(entityresult.Components[deathmatch.renderComponent])
+		physicalBodyAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
 
 		msg.Objects = append(msg.Objects, types.VizMessageObject{
 			Id:          entityresult.Entity.GetID().String(),

@@ -41,7 +41,7 @@ func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Physic
 			continue // one cannot see itself
 		}
 
-		otherPhysicalAspect := game.CastPhysicalBody(otherentityresult.Components[game.physicalBodyComponent.GetID()])
+		otherPhysicalAspect := game.CastPhysicalBody(otherentityresult.Components[game.physicalBodyComponent])
 
 		otherPosition := otherPhysicalAspect.GetPosition()
 		otherVelocity := otherPhysicalAspect.GetVelocity()

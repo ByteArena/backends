@@ -73,7 +73,7 @@ func mutationSteer(game *DeathmatchGame, entityid ecs.EntityID, steering vector.
 		return
 	}
 
-	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent.GetID()])
+	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent])
 
 	velocity := physicalAspect.GetVelocity()
 	orientation := physicalAspect.GetOrientation()
@@ -128,7 +128,7 @@ func mutationShoot(game *DeathmatchGame, entityid ecs.EntityID, aiming vector.Ve
 	}
 
 	entity := entityresult.Entity
-	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent.GetID()])
+	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent])
 
 	position := physicalAspect.GetPosition()
 	orientation := physicalAspect.GetOrientation()

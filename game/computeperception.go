@@ -18,8 +18,8 @@ func (game *DeathmatchGame) ComputeAgentPerception(arenaMap *mapcontainer.MapCon
 		return p
 	}
 
-	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent.GetID()])
-	perceptionAspect := game.CastPerception(entityresult.Components[game.perceptionComponent.GetID()])
+	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent])
+	perceptionAspect := game.CastPerception(entityresult.Components[game.perceptionComponent])
 
 	orientation := physicalAspect.GetOrientation()
 	velocity := physicalAspect.GetVelocity()
