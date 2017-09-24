@@ -23,6 +23,6 @@ func (agent AgentProxyLocal) String() string {
 	return "<LocalAgentImp(" + agent.GetProxyUUID().String() + ")>"
 }
 
-func (agent AgentProxyLocal) SetPerception(perception protocol.AgentPerception, comm protocol.AgentCommunicatorInterface) error {
+func (agent AgentProxyLocal) SetPerception(perception protocol.AgentPerceptionInterface, comm protocol.AgentCommunicatorInterface) error {
 	return nil
 }

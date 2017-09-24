@@ -1,4 +1,4 @@
-package game
+package deathmatch
 
 import (
 	"encoding/json"

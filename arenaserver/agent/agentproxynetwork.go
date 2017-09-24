@@ -28,7 +28,7 @@ func (agent AgentProxyNetwork) String() string {
 	return "<NetAgentImp(" + agent.GetProxyUUID().String() + ")>"
 }
 
-func (agent AgentProxyNetwork) SetPerception(perception protocol.AgentPerception, comm protocol.AgentCommunicatorInterface) error {
+func (agent AgentProxyNetwork) SetPerception(perception protocol.AgentPerceptionInterface, comm protocol.AgentCommunicatorInterface) error {
 	perceptionjson, _ := json.Marshal(perception)
 	message := []byte("{\"Method\": \"tick\", \"Arguments\": [0," + string(perceptionjson) + "]}\n") // TODO(jerome): remove 0 (ex turn)
 	return comm.NetSend(message, agent.GetConn())

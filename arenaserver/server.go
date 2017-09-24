@@ -11,11 +11,8 @@ import (
 	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/bytearena/bytearena/game"
-	"github.com/bytearena/bytearena/game/entities"
+	"github.com/bytearena/bytearena/game/deathmatch"
 )
 
 const debug = false
@@ -50,12 +47,10 @@ type Server struct {
 
 	// State
 
-	game *game.DeathmatchGame
+	game *deathmatch.DeathmatchGame
 
 	pendingmutations []protocol.AgentMutationBatch
 	mutationsmutex   *sync.Mutex
-
-	MapMemoization *MapMemoization
 }
 
 func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrator, gameDescription types.GameDescriptionInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
@@ -97,13 +92,11 @@ func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrato
 		pendingmutations: make([]protocol.AgentMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
 
-		MapMemoization: initializeMapMemoization(gameDescription.GetMapContainer()),
-
 		///////////////////////////////////////////////////////////////////////
 		// Game logic
 		///////////////////////////////////////////////////////////////////////
 
-		game: game.NewDeathmatchGame(gameDescription),
+		game: deathmatch.NewDeathmatchGame(gameDescription),
 	}
 
 	return s
@@ -117,7 +110,7 @@ func (s Server) GetGameDescription() types.GameDescriptionInterface {
 	return s.gameDescription
 }
 
-func (s Server) GetGame() *game.DeathmatchGame {
+func (s Server) GetGame() *deathmatch.DeathmatchGame {
 	return s.game
 }
 
@@ -161,49 +154,4 @@ func (s *Server) ProcessMutations() {
 	s.mutationsmutex.Unlock()
 
 	s.game.ProcessMutations(mutations)
-}
-
-func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoization {
-
-	///////////////////////////////////////////////////////////////////////////
-	// Obstacles
-	///////////////////////////////////////////////////////////////////////////
-
-	obstacles := make([]entities.Obstacle, 0)
-
-	// Obstacles formed by the grounds
-	for _, ground := range arenaMap.Data.Grounds {
-		for _, polygon := range ground.Outline {
-			for i := 0; i < len(polygon.Points)-1; i++ {
-				a := polygon.Points[i]
-				b := polygon.Points[i+1]
-
-				obstacles = append(obstacles, entities.MakeObstacle(
-					ground.Id,
-					entities.ObstacleType.Ground,
-					vector.MakeVector2(a.X, a.Y),
-					vector.MakeVector2(b.X, b.Y),
-				))
-			}
-		}
-	}
-
-	// Explicit obstacles
-	for _, obstacle := range arenaMap.Data.Obstacles {
-		polygon := obstacle.Polygon
-		for i := 0; i < len(polygon.Points)-1; i++ {
-			a := polygon.Points[i]
-			b := polygon.Points[i+1]
-			obstacles = append(obstacles, entities.MakeObstacle(
-				obstacle.Id,
-				entities.ObstacleType.Object,
-				vector.MakeVector2(a.X, a.Y),
-				vector.MakeVector2(b.X, b.Y),
-			))
-		}
-	}
-
-	return &MapMemoization{
-		Obstacles: obstacles,
-	}
 }

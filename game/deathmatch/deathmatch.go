@@ -1,4 +1,4 @@
-package game
+package deathmatch
 
 import (
 	"encoding/json"
@@ -9,8 +9,8 @@ import (
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
-	"github.com/bytearena/bytearena/common/utils/number"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/bytearena/game/common"
 	"github.com/bytearena/ecs"
 )
 
@@ -73,7 +73,7 @@ func NewDeathmatchGame(gameDescription types.GameDescriptionInterface) *Deathmat
 
 	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity, data interface{}) {
 		physicalAspect := game.CastPhysicalBody(data)
-		game.PhysicalWorld.DestroyBody(physicalAspect.body)
+		game.PhysicalWorld.DestroyBody(physicalAspect.GetBody())
 	})
 
 	game.collisionListener = newCollisionListener(game)
@@ -90,10 +90,10 @@ func (deathmatch DeathmatchGame) GetEntity(id ecs.EntityID, tag ecs.Tag) *ecs.Qu
 // <GameInterface>
 
 func (deathmatch *DeathmatchGame) ImplementsGameInterface() {}
-func (deathmatch *DeathmatchGame) Subscribe(event string, cbk func(data interface{})) GameEventSubscription {
-	return GameEventSubscription(0)
+func (deathmatch *DeathmatchGame) Subscribe(event string, cbk func(data interface{})) common.GameEventSubscription {
+	return common.GameEventSubscription(0)
 }
-func (deathmatch *DeathmatchGame) Unsubscribe(subscription GameEventSubscription) {}
+func (deathmatch *DeathmatchGame) Unsubscribe(subscription common.GameEventSubscription) {}
 
 func (deathmatch *DeathmatchGame) Step(dt float64) {
 
@@ -223,10 +223,6 @@ func (deathmatch DeathmatchGame) CastRender(data interface{}) *Render {
 	return data.(*Render)
 }
 
-func (deathmatch DeathmatchGame) CastScript(data interface{}) *Script {
-	return data.(*Script)
-}
-
 func (deathmatch DeathmatchGame) CastTtl(data interface{}) *Ttl {
 	return data.(*Ttl)
 }
@@ -237,282 +233,6 @@ func (deathmatch DeathmatchGame) CastPerception(data interface{}) *Perception {
 
 func (deathmatch DeathmatchGame) CastOwned(data interface{}) *Owned {
 	return data.(*Owned)
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.Entity {
-
-	agent := deathmatch.manager.NewEntity()
-
-	bodydef := box2d.MakeB2BodyDef()
-	bodydef.Position.Set(position.GetX(), position.GetY())
-	bodydef.Type = box2d.B2BodyType.B2_dynamicBody
-	bodydef.AllowSleep = false
-	bodydef.FixedRotation = true
-
-	body := deathmatch.PhysicalWorld.CreateBody(&bodydef)
-
-	shape := box2d.MakeB2CircleShape()
-	shape.SetRadius(0.5)
-
-	fixturedef := box2d.MakeB2FixtureDef()
-	fixturedef.Shape = &shape
-	fixturedef.Density = 20.0
-	body.CreateFixtureFromDef(&fixturedef)
-	body.SetUserData(types.MakePhysicalBodyDescriptor(
-		types.PhysicalBodyDescriptorType.Agent,
-		strconv.Itoa(int(agent.GetID())),
-	))
-	body.SetBullet(true)
-	//body.SetLinearDamping(agentstate.DragForce * float64(s.tickspersec)) // aerodynamic drag
-
-	return agent.
-		AddComponent(deathmatch.physicalBodyComponent, &PhysicalBody{
-			body:               body,
-			maxSpeed:           0.75,
-			maxSteeringForce:   0.12,
-			maxAngularVelocity: number.DegreeToRadian(9),
-			dragForce:          0.015,
-		}).
-		AddComponent(deathmatch.perceptionComponent, &Perception{
-			visionAngle:  number.DegreeToRadian(180),
-			visionRadius: 100,
-		}).
-		AddComponent(deathmatch.healthComponent, &Health{}).
-		AddComponent(deathmatch.playerComponent, &Player{}).
-		AddComponent(deathmatch.renderComponent, &Render{
-			type_:  "agent",
-			static: false,
-		}).
-		AddComponent(deathmatch.scriptComponent, &Script{})
-}
-
-func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.EntityID, position vector.Vector2, velocity vector.Vector2) *ecs.Entity {
-
-	projectile := deathmatch.manager.NewEntity()
-
-	bodydef := box2d.MakeB2BodyDef()
-	bodydef.Type = box2d.B2BodyType.B2_dynamicBody
-	bodydef.AllowSleep = false
-	bodydef.FixedRotation = true
-
-	bodydef.Position.Set(position.GetX(), position.GetY())
-	bodydef.LinearVelocity = box2d.MakeB2Vec2(velocity.GetX(), velocity.GetY())
-
-	body := deathmatch.PhysicalWorld.CreateBody(&bodydef)
-	body.SetLinearDamping(0.0) // no aerodynamic drag
-
-	shape := box2d.MakeB2CircleShape()
-	shape.SetRadius(0.3)
-
-	fixturedef := box2d.MakeB2FixtureDef()
-	fixturedef.Shape = &shape
-	fixturedef.Density = 20.0
-	body.CreateFixtureFromDef(&fixturedef)
-	body.SetUserData(types.MakePhysicalBodyDescriptor(
-		types.PhysicalBodyDescriptorType.Projectile,
-		strconv.Itoa(int(projectile.GetID())),
-	))
-	body.SetBullet(true)
-
-	return projectile.
-		AddComponent(deathmatch.physicalBodyComponent, &PhysicalBody{
-			body:               body,
-			maxSpeed:           100,
-			maxSteeringForce:   100,
-			maxAngularVelocity: 10,
-			dragForce:          0,
-		}).
-		AddComponent(deathmatch.renderComponent, &Render{
-			type_:  "projectile",
-			static: false,
-		}).
-		AddComponent(deathmatch.scriptComponent, &Script{}).
-		AddComponent(deathmatch.ttlComponent, &Ttl{60}).
-		AddComponent(deathmatch.ownedComponent, &Owned{ownerid})
-}
-
-// func (deathmatch *DeathmatchGame) NewEntityObstacle() *ecs.Entity {
-// 	return deathmatch.manager.NewEntity().
-// 		AddComponent(deathmatch.physicalBodyComponent, &PhysicalBody{}).
-// 		AddComponent(deathmatch.renderComponent, &Render{static: true})
-// }
-
-///////////////////////////////////////////////////////////////////////////////
-// Components structs
-///////////////////////////////////////////////////////////////////////////////
-
-type PhysicalBody struct {
-	body               *box2d.B2Body
-	maxSpeed           float64 // expressed in m/tick
-	maxSteeringForce   float64 // expressed in m/tick
-	maxAngularVelocity float64 // expressed in rad/tick
-	visionRadius       float64 // expressed in m
-	visionAngle        float64 // expressed in rad
-	dragForce          float64 // expressed in m/tick
-}
-
-func (p *PhysicalBody) SetBody(body *box2d.B2Body) *PhysicalBody {
-	p.body = body
-	return p
-}
-
-func (p PhysicalBody) GetPosition() vector.Vector2 {
-	v := p.body.GetPosition()
-	return vector.MakeVector2(v.X, v.Y)
-}
-
-func (p *PhysicalBody) SetPosition(v vector.Vector2) *PhysicalBody {
-	p.body.SetTransform(v.ToB2Vec2(), p.GetOrientation())
-	return p
-}
-
-func (p PhysicalBody) GetVelocity() vector.Vector2 {
-	v := p.body.GetLinearVelocity()
-	return vector.MakeVector2(v.X, v.Y)
-}
-
-func (p *PhysicalBody) SetVelocity(v vector.Vector2) *PhysicalBody {
-	// FIXME(jerome): properly convert units from m/tick to m/s for Box2D
-	p.body.SetLinearVelocity(v.Scale(20).ToB2Vec2())
-	return p
-}
-
-func (p PhysicalBody) GetOrientation() float64 {
-	return p.body.GetAngle()
-}
-
-func (p *PhysicalBody) SetOrientation(angle float64) *PhysicalBody {
-	// Could also be implemented using torque; see http://www.iforce2d.net/b2dtut/rotate-to-angle
-	p.body.SetTransform(p.body.GetPosition(), angle)
-	return p
-}
-
-func (p PhysicalBody) GetRadius() float64 {
-	// FIXME(jerome): here we suppose that the agent is always a circle
-	return p.body.GetFixtureList().GetShape().GetRadius()
-}
-
-func (p PhysicalBody) GetMaxSpeed() float64 {
-	return p.maxSpeed
-}
-
-func (p *PhysicalBody) SetMaxSpeed(maxSpeed float64) *PhysicalBody {
-	p.maxSpeed = maxSpeed
-	return p
-}
-
-func (p PhysicalBody) GetMaxSteeringForce() float64 {
-	return p.maxSteeringForce
-}
-
-func (p *PhysicalBody) SetMaxSteeringForce(maxSteeringForce float64) *PhysicalBody {
-	p.maxSteeringForce = maxSteeringForce
-	return p
-}
-
-func (p PhysicalBody) GetMaxAngularVelocity() float64 {
-	return p.maxAngularVelocity
-}
-
-func (p *PhysicalBody) SetMaxAngularVelocity(maxAngularVelocity float64) *PhysicalBody {
-	p.maxAngularVelocity = maxAngularVelocity
-	return p
-}
-
-func (p PhysicalBody) GetVisionRadius() float64 {
-	return p.visionRadius
-}
-
-func (p *PhysicalBody) SetVisionRadius(visionRadius float64) *PhysicalBody {
-	p.visionRadius = visionRadius
-	return p
-}
-
-func (p PhysicalBody) GetVisionAngle() float64 {
-	return p.visionAngle
-}
-
-func (p *PhysicalBody) SetVisionAngle(visionAngle float64) *PhysicalBody {
-	p.visionAngle = visionAngle
-	return p
-}
-
-func (p PhysicalBody) GetDragForce() float64 {
-	return p.dragForce
-}
-
-func (p *PhysicalBody) SetDragForce(dragForce float64) *PhysicalBody {
-	p.dragForce = dragForce
-	return p
-}
-
-type Health struct{}
-type Player struct{}
-type Render struct {
-	type_  string
-	static bool
-}
-
-func (r Render) GetType() string {
-	return r.type_
-}
-
-type Script struct{}
-
-type Ttl struct {
-	ttl int
-}
-
-func (t *Ttl) SetValue(ttl int) *Ttl {
-	t.ttl = ttl
-	return t
-}
-
-func (t *Ttl) Decrement(amount int) int {
-	t.ttl -= amount
-	return t.ttl
-}
-
-func (t *Ttl) Increment(amount int) int {
-	t.ttl += amount
-	return t.ttl
-}
-
-func (t Ttl) GetValue(ttl int) int {
-	return t.ttl
-}
-
-func (t *Ttl) Step() *Ttl {
-	t.ttl -= 1
-	return t
-}
-
-type Perception struct {
-	visionAngle  float64 // expressed in rad
-	visionRadius float64 // expressed in rad
-}
-
-func (p Perception) GetVisionAngle() float64 {
-	return p.visionAngle
-}
-
-func (p Perception) GetVisionRadius() float64 {
-	return p.visionRadius
-}
-
-type Owned struct {
-	owner ecs.EntityID
-}
-
-func (o Owned) GetOwner() ecs.EntityID {
-	return o.owner
-}
-
-func (o *Owned) SetOwner(owner ecs.EntityID) *Owned {
-	o.owner = owner
-	return o
 }
 
 ///////////////////////////////////////////////////////////////////////////////

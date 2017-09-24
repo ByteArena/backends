@@ -1,4 +1,4 @@
-package game
+package common
 
 type GameEventSubscription int32
 

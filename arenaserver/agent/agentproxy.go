@@ -9,7 +9,7 @@ import (
 type AgentProxyInterface interface {
 	GetProxyUUID() uuid.UUID
 	GetEntityId() ecs.EntityID
-	SetPerception(perception protocol.AgentPerception, comm protocol.AgentCommunicatorInterface) error // abstract method
+	SetPerception(perception protocol.AgentPerceptionInterface, comm protocol.AgentCommunicatorInterface) error // abstract method
 	String() string
 }
 
@@ -40,7 +40,7 @@ func (agent AgentProxyGeneric) String() string {
 	return "<AgentImp(" + agent.GetProxyUUID().String() + ")>"
 }
 
-func (agent AgentProxyGeneric) SetPerception(perception protocol.AgentPerception, comm protocol.AgentCommunicatorInterface) error {
+func (agent AgentProxyGeneric) SetPerception(perception protocol.AgentPerceptionInterface, comm protocol.AgentCommunicatorInterface) error {
 	// I'm abstract, override me !
 	return nil
 }

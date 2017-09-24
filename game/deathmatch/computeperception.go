@@ -1,4 +1,4 @@
-package game
+package deathmatch
 
 import (
 	"math"
@@ -11,9 +11,44 @@ import (
 	"github.com/bytearena/ecs"
 )
 
-func (game *DeathmatchGame) ComputeAgentVision(arenaMap *mapcontainer.MapContainer, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []protocol.AgentPerceptionVisionItem {
+func (game *DeathmatchGame) ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) protocol.AgentPerceptionInterface {
+	p := AgentPerception{}
 
-	vision := make([]protocol.AgentPerceptionVisionItem, 0)
+	entityresult := game.GetEntity(entityid, ecs.BuildTag(
+		game.physicalBodyComponent,
+		game.perceptionComponent,
+	))
+
+	if entityresult == nil {
+		return p
+	}
+
+	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent])
+	perceptionAspect := game.CastPerception(entityresult.Components[game.perceptionComponent])
+
+	orientation := physicalAspect.GetOrientation()
+	velocity := physicalAspect.GetVelocity()
+	radius := physicalAspect.GetRadius()
+
+	p.Internal.Velocity = velocity.Clone().SetAngle(velocity.Angle() - orientation)
+	p.Internal.Proprioception = radius
+	p.Internal.Magnetoreception = orientation // l'angle d'orientation de l'agent par rapport au "Nord" de l'arène
+
+	p.Specs.MaxSpeed = physicalAspect.GetMaxSpeed()
+	p.Specs.MaxSteeringForce = physicalAspect.GetMaxSteeringForce()
+	p.Specs.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
+	p.Specs.DragForce = physicalAspect.GetDragForce()
+	p.Specs.VisionRadius = perceptionAspect.GetVisionRadius()
+	p.Specs.VisionAngle = perceptionAspect.GetVisionAngle()
+
+	p.External.Vision = computeAgentVision(game, arenaMap, entityresult.Entity, physicalAspect, perceptionAspect)
+
+	return p
+}
+
+func computeAgentVision(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []AgentPerceptionVisionItem {
+
+	vision := make([]AgentPerceptionVisionItem, 0)
 
 	// Vision: Les autres agents
 	vision = append(vision, viewAgents(game, entity, physicalAspect, perceptionAspect)...)
@@ -24,9 +59,9 @@ func (game *DeathmatchGame) ComputeAgentVision(arenaMap *mapcontainer.MapContain
 	return vision
 }
 
-func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []protocol.AgentPerceptionVisionItem {
+func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []AgentPerceptionVisionItem {
 
-	vision := make([]protocol.AgentPerceptionVisionItem, 0)
+	vision := make([]AgentPerceptionVisionItem, 0)
 
 	agentposition := physicalAspect.GetPosition()
 
@@ -83,13 +118,13 @@ func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Physic
 
 			// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
 			centervec = centervec.SetAngle(centervec.Angle() - orientation)
-			visionitem := protocol.AgentPerceptionVisionItem{
+			visionitem := AgentPerceptionVisionItem{
 				CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - orientation), // perpendicular to relative position vector, left side
 				Center:    centervec,
 				FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - orientation), // perpendicular to relative position vector, right side
 				// FIXME(jerome): /20 here is to convert velocity per second in velocity per tick; should probably handle velocities in m/s everywhere ?
 				Velocity: otherVelocity.Clone().SetAngle(otherVelocity.Angle() - orientation).Scale(1 / 20),
-				Tag:      protocol.AgentPerceptionVisionItemTag.Agent,
+				Tag:      AgentPerceptionVisionItemTag.Agent,
 			}
 
 			vision = append(vision, visionitem)
@@ -101,9 +136,9 @@ func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Physic
 	return vision
 }
 
-func viewObstacles(game *DeathmatchGame, entity *ecs.Entity) []protocol.AgentPerceptionVisionItem {
+func viewObstacles(game *DeathmatchGame, entity *ecs.Entity) []AgentPerceptionVisionItem {
 
-	vision := make([]protocol.AgentPerceptionVisionItem, 0)
+	vision := make([]AgentPerceptionVisionItem, 0)
 
 	// FIXME(jerome)
 	// physicalAspect := game.GetPhysicalBody(entity)
