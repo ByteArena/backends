@@ -5,6 +5,10 @@ type Render struct {
 	static bool
 }
 
+func (deathmatch DeathmatchGame) CastRender(data interface{}) *Render {
+	return data.(*Render)
+}
+
 func (r Render) GetType() string {
 	return r.type_
 }

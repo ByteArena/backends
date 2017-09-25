@@ -4,6 +4,10 @@ type Ttl struct {
 	ttl int
 }
 
+func (deathmatch DeathmatchGame) CastTtl(data interface{}) *Ttl {
+	return data.(*Ttl)
+}
+
 func (t *Ttl) SetValue(ttl int) *Ttl {
 	t.ttl = ttl
 	return t

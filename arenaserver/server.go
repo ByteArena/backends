@@ -269,7 +269,7 @@ func (server *Server) doTick() {
 		go func(server *Server, agentproxy agent.AgentProxyInterface, arenamap *mapcontainer.MapContainer) {
 
 			err := agentproxy.SetPerception(
-				server.GetGame().ComputeAgentPerception(arenamap, agentproxy.GetEntityId()),
+				server.GetGame().GetAgentPerception(agentproxy.GetEntityId()),
 				server,
 			)
 			if err != nil {

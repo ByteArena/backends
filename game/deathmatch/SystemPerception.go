@@ -3,6 +3,7 @@ package deathmatch
 import (
 	"encoding/json"
 	"math"
+	"sync"
 
 	"github.com/bytearena/box2d"
 	commontypes "github.com/bytearena/bytearena/common/types"
@@ -11,10 +12,30 @@ import (
 	"github.com/bytearena/ecs"
 )
 
-func (game *DeathmatchGame) ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) []byte {
+func systemPerception(deathmatch *DeathmatchGame) {
+	entitiesWithPerception := deathmatch.perceptorsView.Get()
+	wg := sync.WaitGroup{}
+	wg.Add(len(entitiesWithPerception))
+
+	for _, entityResult := range entitiesWithPerception {
+		perceptionAspect := deathmatch.CastPerception(entityResult.Components[deathmatch.perceptionComponent])
+		go func(perceptionAspect *Perception, entity *ecs.Entity, wg *sync.WaitGroup) {
+			perceptionAspect.SetPerception(computeAgentPerception(
+				deathmatch,
+				deathmatch.gameDescription.GetMapContainer(),
+				entity.GetID(),
+			))
+			wg.Done()
+		}(perceptionAspect, entityResult.Entity, &wg)
+	}
+
+	wg.Wait()
+}
+
+func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) []byte {
 	p := AgentPerception{}
 
-	entityresult := game.GetEntity(entityid, ecs.BuildTag(
+	entityresult := game.getEntity(entityid, ecs.BuildTag(
 		game.physicalBodyComponent,
 		game.perceptionComponent,
 	))

@@ -5,9 +5,9 @@ import (
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
-///////////////////////////////////////////////////////////////////////////////
-// Components structs
-///////////////////////////////////////////////////////////////////////////////
+func (deathmatch DeathmatchGame) CastPhysicalBody(data interface{}) *PhysicalBody {
+	return data.(*PhysicalBody)
+}
 
 type PhysicalBody struct {
 	body               *box2d.B2Body

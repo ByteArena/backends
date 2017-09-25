@@ -1,8 +1,8 @@
 package entities
 
-type MapMemoization struct {
-	Obstacles []Obstacle
-}
+// type MapMemoization struct {
+// 	Obstacles []Obstacle
+// }
 
 // func initializeMapMemoization(arenaMap *mapcontainer.MapContainer) *MapMemoization {
 

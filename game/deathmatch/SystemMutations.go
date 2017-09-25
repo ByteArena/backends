@@ -11,7 +11,7 @@ import (
 	"github.com/bytearena/ecs"
 )
 
-func (deathmatch *DeathmatchGame) processMutations(mutations []types.AgentMutationBatch) {
+func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutationBatch) {
 
 	for _, batch := range mutations {
 
@@ -68,7 +68,7 @@ func (deathmatch *DeathmatchGame) processMutations(mutations []types.AgentMutati
 func mutationSteer(game *DeathmatchGame, entityid ecs.EntityID, steering vector.Vector2) {
 
 	tag := ecs.BuildTag(game.physicalBodyComponent)
-	entityresult := game.GetEntity(entityid, tag)
+	entityresult := game.getEntity(entityid, tag)
 	if entityresult == nil {
 		return
 	}
@@ -122,7 +122,7 @@ func mutationShoot(game *DeathmatchGame, entityid ecs.EntityID, aiming vector.Ve
 	// ///////////////////////////////////////////////////////////////////////////
 
 	tag := ecs.BuildTag(game.physicalBodyComponent)
-	entityresult := game.GetEntity(entityid, tag)
+	entityresult := game.getEntity(entityid, tag)
 	if entityresult == nil {
 		return
 	}

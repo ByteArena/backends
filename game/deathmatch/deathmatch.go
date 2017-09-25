@@ -2,15 +2,11 @@ package deathmatch
 
 import (
 	"encoding/json"
-	"log"
-	"strconv"
-	"time"
 
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/types"
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
-	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/bytearena/game/common"
 	"github.com/bytearena/ecs"
 )
@@ -32,9 +28,10 @@ type DeathmatchGame struct {
 	ttlView        *ecs.View
 	renderableView *ecs.View
 	physicalView   *ecs.View
+	perceptorsView *ecs.View
 
 	PhysicalWorld     *box2d.B2World
-	collisionListener *CollisionListener
+	collisionListener *collisionListener
 }
 
 func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *DeathmatchGame {
@@ -72,6 +69,10 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		game.physicalBodyComponent,
 	))
 
+	game.perceptorsView = manager.CreateView("perceptors", ecs.BuildTag(
+		game.perceptionComponent,
+	))
+
 	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity, data interface{}) {
 		physicalAspect := game.CastPhysicalBody(data)
 		game.PhysicalWorld.DestroyBody(physicalAspect.GetBody())
@@ -84,16 +85,18 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 	return game
 }
 
-func (deathmatch DeathmatchGame) GetEntity(id ecs.EntityID, tag ecs.Tag) *ecs.QueryResult {
+func (deathmatch DeathmatchGame) getEntity(id ecs.EntityID, tag ecs.Tag) *ecs.QueryResult {
 	return deathmatch.manager.GetEntityByID(id, tag)
 }
 
 // <GameInterface>
 
 func (deathmatch *DeathmatchGame) ImplementsGameInterface() {}
+
 func (deathmatch *DeathmatchGame) Subscribe(event string, cbk func(data interface{})) common.GameEventSubscription {
 	return common.GameEventSubscription(0)
 }
+
 func (deathmatch *DeathmatchGame) Unsubscribe(subscription common.GameEventSubscription) {}
 
 func (deathmatch *DeathmatchGame) Step(dt float64, mutations []types.AgentMutationBatch) {
@@ -101,276 +104,66 @@ func (deathmatch *DeathmatchGame) Step(dt float64, mutations []types.AgentMutati
 	///////////////////////////////////////////////////////////////////////////
 	// On supprime les projectiles en fin de vie
 	///////////////////////////////////////////////////////////////////////////
-
-	entitiesToRemove := make([]*ecs.Entity, 0)
-
-	for _, entityresult := range deathmatch.ttlView.Get() {
-		ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent])
-		if ttlAspect.Decrement(1) < 0 {
-			entitiesToRemove = append(entitiesToRemove, entityresult.Entity)
-		}
-	}
-
-	deathmatch.manager.DisposeEntities(entitiesToRemove...)
+	systemTtl(deathmatch)
 
 	///////////////////////////////////////////////////////////////////////////
 	// On traite les mutations
 	///////////////////////////////////////////////////////////////////////////
-	deathmatch.processMutations(mutations)
+	systemMutations(deathmatch, mutations)
 
 	///////////////////////////////////////////////////////////////////////////
-	// On met l'état des agents à jour
+	// On met l'état des objets physiques à jour
 	///////////////////////////////////////////////////////////////////////////
-
-	for _, entityresult := range deathmatch.physicalView.Get() {
-		physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
-		if physicalAspect.GetVelocity().Mag() > 0.01 {
-			physicalAspect.SetOrientation(physicalAspect.GetVelocity().Angle())
-		}
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	// On simule le monde physique
-	///////////////////////////////////////////////////////////////////////////
-
-	before := time.Now()
-
-	deathmatch.PhysicalWorld.Step(
-		dt,
-		8, // velocityIterations; higher improves stability; default 8 in testbed
-		3, // positionIterations; higher improve overlap resolution; default 3 in testbed
-	)
-
-	log.Println("Physical world step took ", float64(time.Now().UnixNano()-before.UnixNano())/1000000.0, "ms")
+	systemPhysics(deathmatch, dt)
 
 	///////////////////////////////////////////////////////////////////////////
 	// On réagit aux contacts
 	///////////////////////////////////////////////////////////////////////////
+	systemCollisions(deathmatch)
 
-	for _, collision := range deathmatch.collisionListener.PopCollisions() {
+	///////////////////////////////////////////////////////////////////////////
+	// On construit les perceptions
+	///////////////////////////////////////////////////////////////////////////
+	systemPerception(deathmatch)
+}
 
-		descriptorCollider, ok := collision.GetFixtureA().GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
-		if !ok {
-			continue
-		}
-
-		descriptorCollidee, ok := collision.GetFixtureB().GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
-		if !ok {
-			continue
-		}
-
-		if descriptorCollider.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
-			// on impacte le collider
-			id, _ := strconv.Atoi(descriptorCollider.ID)
-			entityid := ecs.EntityID(id)
-			entityresult := deathmatch.GetEntity(entityid, ecs.BuildTag(
-				deathmatch.ttlComponent,
-				deathmatch.playerComponent,
-			))
-			if entityresult == nil {
-				continue
-			}
-
-			worldManifold := box2d.MakeB2WorldManifold()
-			collision.GetWorldManifold(&worldManifold)
-
-			ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent])
-			physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
-
-			ttlAspect.SetValue(1)
-
-			physicalAspect.
-				SetVelocity(vector.MakeNullVector2()).
-				SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
-		}
-
-		if descriptorCollidee.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
-			// on impacte le collider
-			id, _ := strconv.Atoi(descriptorCollidee.ID)
-			entityid := ecs.EntityID(id)
-			entityresult := deathmatch.GetEntity(entityid, ecs.BuildTag(
-				deathmatch.ttlComponent,
-				deathmatch.playerComponent,
-			))
-			if entityresult == nil {
-				continue
-			}
-
-			worldManifold := box2d.MakeB2WorldManifold()
-			collision.GetWorldManifold(&worldManifold)
-
-			ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent])
-			physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
-
-			ttlAspect.SetValue(1)
-
-			physicalAspect.
-				SetVelocity(vector.MakeNullVector2()).
-				SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
-		}
+func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []byte {
+	tag := ecs.BuildTag(deathmatch.perceptionComponent)
+	entityResult := deathmatch.getEntity(entityid, tag)
+	if entityResult == nil {
+		return []byte{}
 	}
+
+	perceptionAspect := deathmatch.CastPerception(entityResult.Components[deathmatch.perceptionComponent])
+	return perceptionAspect.GetPerception()
+}
+
+func (deathmatch *DeathmatchGame) ProduceVizMessageJson() []byte {
+	msg := commontypes.VizMessage{
+		GameID:  deathmatch.gameDescription.GetId(),
+		Objects: []commontypes.VizMessageObject{},
+	}
+
+	for _, entityresult := range deathmatch.renderableView.Get() {
+
+		renderAspect := deathmatch.CastRender(entityresult.Components[deathmatch.renderComponent])
+		physicalBodyAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
+
+		msg.Objects = append(msg.Objects, commontypes.VizMessageObject{
+			Id:          entityresult.Entity.GetID().String(),
+			Type:        renderAspect.GetType(),
+			Position:    physicalBodyAspect.GetPosition(),
+			Velocity:    physicalBodyAspect.GetVelocity(),
+			Radius:      physicalBodyAspect.GetRadius(),
+			Orientation: physicalBodyAspect.GetOrientation(),
+		})
+	}
+
+	res, _ := json.Marshal(msg)
+	return res
 }
 
 // </GameInterface>
-
-func (deathmatch DeathmatchGame) CastPhysicalBody(data interface{}) *PhysicalBody {
-	return data.(*PhysicalBody)
-}
-
-func (deathmatch DeathmatchGame) GetHealth(data interface{}) *Health {
-	return data.(*Health)
-}
-
-func (deathmatch DeathmatchGame) CastPlayer(data interface{}) *Player {
-	return data.(*Player)
-}
-
-func (deathmatch DeathmatchGame) CastRender(data interface{}) *Render {
-	return data.(*Render)
-}
-
-func (deathmatch DeathmatchGame) CastTtl(data interface{}) *Ttl {
-	return data.(*Ttl)
-}
-
-func (deathmatch DeathmatchGame) CastPerception(data interface{}) *Perception {
-	return data.(*Perception)
-}
-
-func (deathmatch DeathmatchGame) CastOwned(data interface{}) *Owned {
-	return data.(*Owned)
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-// Collision Handling
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-type CollisionFilter struct { /* implements box2d.B2World.B2ContactFilterInterface */
-	game *DeathmatchGame
-}
-
-func (filter *CollisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB *box2d.B2Fixture) bool {
-	// Si projectile, ne pas collisionner agent émetteur
-	// Si projectile, ne pas collisionner ground
-
-	descriptorA, ok := fixtureA.GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
-	if !ok {
-		return false
-	}
-
-	descriptorB, ok := fixtureB.GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
-	if !ok {
-		return false
-	}
-
-	aIsProjectile := descriptorA.Type == commontypes.PhysicalBodyDescriptorType.Projectile
-	bIsProjectile := descriptorB.Type == commontypes.PhysicalBodyDescriptorType.Projectile
-
-	if !aIsProjectile && !bIsProjectile {
-		return true
-	}
-
-	if aIsProjectile && bIsProjectile {
-		return true
-	}
-
-	var projectile *commontypes.PhysicalBodyDescriptor
-	var other *commontypes.PhysicalBodyDescriptor
-
-	if aIsProjectile {
-		projectile = &descriptorA
-		other = &descriptorB
-	} else {
-		projectile = &descriptorB
-		other = &descriptorA
-	}
-
-	if other.Type == commontypes.PhysicalBodyDescriptorType.Obstacle {
-		return true
-	}
-
-	if other.Type == commontypes.PhysicalBodyDescriptorType.Ground {
-		return false
-	}
-
-	if other.Type == commontypes.PhysicalBodyDescriptorType.Agent {
-		// fetch projectile
-		projectileid, _ := strconv.Atoi(projectile.ID)
-
-		tag := ecs.BuildTag(filter.game.ownedComponent)
-		projectileresult := filter.game.GetEntity(ecs.EntityID(projectileid), tag)
-		if projectileresult == nil {
-			return false
-		}
-
-		ownedAspect := filter.game.CastOwned(projectileresult.Components[filter.game.ownedComponent])
-
-		return ownedAspect.GetOwner().String() != other.ID
-	}
-
-	return true
-}
-
-func newCollisionFilter(game *DeathmatchGame) *CollisionFilter {
-	return &CollisionFilter{
-		game: game,
-	}
-}
-
-type CollisionListener struct { /* implements box2d.B2World.B2ContactListenerInterface */
-	game            *DeathmatchGame
-	collisionbuffer []box2d.B2ContactInterface
-}
-
-func (listener *CollisionListener) PopCollisions() []box2d.B2ContactInterface {
-	defer func() { listener.collisionbuffer = make([]box2d.B2ContactInterface, 0) }()
-	return listener.collisionbuffer
-}
-
-/// Called when two fixtures begin to touch.
-func (listener *CollisionListener) BeginContact(contact box2d.B2ContactInterface) { // contact has to be backed by a pointer
-	listener.collisionbuffer = append(listener.collisionbuffer, contact)
-}
-
-/// Called when two fixtures cease to touch.
-func (listener *CollisionListener) EndContact(contact box2d.B2ContactInterface) { // contact has to be backed by a pointer
-	//log.Println("END:COLLISION !!!!!!!!!!!!!!")
-}
-
-/// This is called after a contact is updated. This allows you to inspect a
-/// contact before it goes to the solver. If you are careful, you can modify the
-/// contact manifold (e.g. disable contact).
-/// A copy of the old manifold is provided so that you can detect changes.
-/// Note: this is called only for awake bodies.
-/// Note: this is called even when the number of contact points is zero.
-/// Note: this is not called for sensors.
-/// Note: if you set the number of contact points to zero, you will not
-/// get an EndContact callback. However, you may get a BeginContact callback
-/// the next step.
-func (listener *CollisionListener) PreSolve(contact box2d.B2ContactInterface, oldManifold box2d.B2Manifold) { // contact has to be backed by a pointer
-	//log.Println("PRESOLVE !!!!!!!!!!!!!!")
-}
-
-/// This lets you inspect a contact after the solver is finished. This is useful
-/// for inspecting impulses.
-/// Note: the contact manifold does not include time of impact impulses, which can be
-/// arbitrarily large if the sub-step is small. Hence the impulse is provided explicitly
-/// in a separate data structure.
-/// Note: this is only called for contacts that are touching, solid, and awake.
-func (listener *CollisionListener) PostSolve(contact box2d.B2ContactInterface, impulse *box2d.B2ContactImpulse) { // contact has to be backed by a pointer
-	//log.Println("POSTSOLVE !!!!!!!!!!!!!!")
-}
-
-func newCollisionListener(game *DeathmatchGame) *CollisionListener {
-	return &CollisionListener{
-		game: game,
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
 
 func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *box2d.B2World {
 
@@ -421,31 +214,4 @@ func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *box2d.B2World {
 	}
 
 	return &world
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-func (deathmatch *DeathmatchGame) ProduceVizMessageJson() []byte {
-	msg := commontypes.VizMessage{
-		GameID:  deathmatch.gameDescription.GetId(),
-		Objects: []commontypes.VizMessageObject{},
-	}
-
-	for _, entityresult := range deathmatch.renderableView.Get() {
-
-		renderAspect := deathmatch.CastRender(entityresult.Components[deathmatch.renderComponent])
-		physicalBodyAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
-
-		msg.Objects = append(msg.Objects, commontypes.VizMessageObject{
-			Id:          entityresult.Entity.GetID().String(),
-			Type:        renderAspect.GetType(),
-			Position:    physicalBodyAspect.GetPosition(),
-			Velocity:    physicalBodyAspect.GetVelocity(),
-			Radius:      physicalBodyAspect.GetRadius(),
-			Orientation: physicalBodyAspect.GetOrientation(),
-		})
-	}
-
-	res, _ := json.Marshal(msg)
-	return res
 }

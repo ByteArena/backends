@@ -2,7 +2,6 @@ package common
 
 import (
 	"github.com/bytearena/bytearena/arenaserver/types"
-	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/ecs"
 )
@@ -15,6 +14,6 @@ type GameInterface interface {
 	Unsubscribe(subscription GameEventSubscription)
 	Step(dt float64, mutations []types.AgentMutationBatch)
 	NewEntityAgent(pos vector.Vector2) *ecs.Entity
-	ComputeAgentPerception(arenamap *mapcontainer.MapContainer, entityid ecs.EntityID) []byte
+	GetAgentPerception(entityid ecs.EntityID) []byte
 	ProduceVizMessageJson() []byte
 }
