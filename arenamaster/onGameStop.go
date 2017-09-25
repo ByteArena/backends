@@ -22,11 +22,11 @@ func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 
 	if arenaServerUUID, ok := (*payload)["arenaserveruuid"].(string); ok {
 		state.LockState()
-
 		arena, ok := state.runningArenas[arenaServerUUID]
 
 		if ok {
 			delete(state.runningArenas, arena.id)
+			state.UnlockState()
 
 			gameid, _ := (*payload)["id"].(string)
 
@@ -52,10 +52,9 @@ func onGameStop(state *State, payload *types.MQPayload, gql *graphql.Client) {
 			}()
 
 		} else {
+			state.UnlockState()
 			utils.Debug("master", "Arena ("+arenaServerUUID+") was stopped but was not in the running state")
 		}
-
-		state.UnlockState()
 	} else {
 		utils.Debug("master", "Received game stop event but payload is not parsable")
 	}
