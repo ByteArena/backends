@@ -1,10 +1,9 @@
 package deathmatch
 
 import (
-	"strconv"
-
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/ecs"
 )
@@ -33,7 +32,7 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 	body.CreateFixtureFromDef(&fixturedef)
 	body.SetUserData(types.MakePhysicalBodyDescriptor(
 		types.PhysicalBodyDescriptorType.Projectile,
-		strconv.Itoa(int(projectile.GetID())),
+		projectile.GetID(),
 	))
 	body.SetBullet(true)
 
@@ -41,7 +40,6 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 		AddComponent(deathmatch.physicalBodyComponent, &PhysicalBody{
 			body:               body,
 			maxSpeed:           100,
-			maxSteeringForce:   100,
 			maxAngularVelocity: 10,
 			dragForce:          0,
 		}).
@@ -50,5 +48,32 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 			static: false,
 		}).
 		AddComponent(deathmatch.ttlComponent, &Ttl{60}).
-		AddComponent(deathmatch.ownedComponent, &Owned{ownerid})
+		AddComponent(deathmatch.ownedComponent, &Owned{ownerid}).
+		AddComponent(deathmatch.impactorComponent, &Impactor{
+			damage: 30,
+		}).
+		AddComponent(deathmatch.collidableComponent, NewCollidable(
+			CollisionGroup.Projectile,
+			utils.BuildTag(
+				CollisionGroup.Agent,
+				CollisionGroup.Obstacle,
+				CollisionGroup.Projectile,
+			),
+		).SetCollisionScriptFunc(projectileCollisionScript))
+}
+
+func projectileCollisionScript(game *DeathmatchGame, entityID ecs.EntityID, otherEntityID ecs.EntityID, collidableAspect *Collidable, otherCollidableAspectB *Collidable, point vector.Vector2) {
+	entityResult := game.getEntity(entityID, game.physicalBodyComponent, game.ttlComponent)
+	if entityResult == nil {
+		return
+	}
+
+	physicalAspect := game.CastPhysicalBody(entityResult.Components[game.physicalBodyComponent])
+	ttlAspect := game.CastTtl(entityResult.Components[game.ttlComponent])
+
+	physicalAspect.
+		SetVelocity(vector.MakeNullVector2()).
+		SetPosition(point)
+
+	ttlAspect.SetValue(0) // will be destroyed before processing next tick
 }

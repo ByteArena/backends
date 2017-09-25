@@ -1,11 +1,8 @@
 package deathmatch
 
 import (
-	"strconv"
-
 	"github.com/bytearena/box2d"
 	commontypes "github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/ecs"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -19,8 +16,6 @@ type collisionFilter struct { /* implements box2d.B2World.B2ContactFilterInterfa
 }
 
 func (filter *collisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB *box2d.B2Fixture) bool {
-	// Si projectile, ne pas collisionner agent émetteur
-	// Si projectile, ne pas collisionner ground
 
 	descriptorA, ok := fixtureA.GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
 	if !ok {
@@ -32,49 +27,42 @@ func (filter *collisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB
 		return false
 	}
 
-	aIsProjectile := descriptorA.Type == commontypes.PhysicalBodyDescriptorType.Projectile
-	bIsProjectile := descriptorB.Type == commontypes.PhysicalBodyDescriptorType.Projectile
+	game := filter.game
 
-	if !aIsProjectile && !bIsProjectile {
-		return true
-	}
+	entityResultA := game.getEntity(descriptorA.ID, game.collidableComponent)
+	entityResultB := game.getEntity(descriptorB.ID, game.collidableComponent)
 
-	if aIsProjectile && bIsProjectile {
-		return true
-	}
-
-	var projectile *commontypes.PhysicalBodyDescriptor
-	var other *commontypes.PhysicalBodyDescriptor
-
-	if aIsProjectile {
-		projectile = &descriptorA
-		other = &descriptorB
-	} else {
-		projectile = &descriptorB
-		other = &descriptorA
-	}
-
-	if other.Type == commontypes.PhysicalBodyDescriptorType.Obstacle {
-		return true
-	}
-
-	if other.Type == commontypes.PhysicalBodyDescriptorType.Ground {
+	if entityResultA == nil || entityResultB == nil {
 		return false
 	}
 
-	if other.Type == commontypes.PhysicalBodyDescriptorType.Agent {
-		// fetch projectile
-		projectileid, _ := strconv.Atoi(projectile.ID)
+	collidableAspectA := game.CastCollidable(entityResultA.Components[game.collidableComponent])
+	collidableAspectB := game.CastCollidable(entityResultB.Components[game.collidableComponent])
 
-		tag := ecs.BuildTag(filter.game.ownedComponent)
-		projectileresult := filter.game.getEntity(ecs.EntityID(projectileid), tag)
-		if projectileresult == nil {
+	mayGroupsCollide := collidableAspectA.MayCollideWith(collidableAspectB) || collidableAspectB.MayCollideWith(collidableAspectA)
+	if !mayGroupsCollide {
+		// groups cannot collide
+		return false
+	}
+
+	// groups can collide; still have to check if there's an owner/owned relationship between the two (owned cannot collide with owner)
+	// filtering here because unfiltered collisions do have an impact on Box2D bodies movements
+
+	entityResultOwnedA := game.getEntity(descriptorA.ID, game.ownedComponent)
+	entityResultOwnedB := game.getEntity(descriptorB.ID, game.ownedComponent)
+
+	if entityResultOwnedA != nil {
+		ownedAspect := game.CastOwned(entityResultOwnedA.Components[game.ownedComponent])
+		if ownedAspect.GetOwner() == descriptorB.ID {
 			return false
 		}
+	}
 
-		ownedAspect := filter.game.CastOwned(projectileresult.Components[filter.game.ownedComponent])
-
-		return ownedAspect.GetOwner().String() != other.ID
+	if entityResultOwnedB != nil {
+		ownedAspect := game.CastOwned(entityResultOwnedB.Components[game.ownedComponent])
+		if ownedAspect.GetOwner() == descriptorA.ID {
+			return false
+		}
 	}
 
 	return true

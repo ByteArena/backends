@@ -3,6 +3,7 @@ package arenaserver
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"runtime"
 	"strconv"
 	"sync"
@@ -52,6 +53,8 @@ type Server struct {
 
 	gameDescription types.GameDescriptionInterface
 
+	tickdurations []int64
+
 	// Game logic
 
 	game commongame.GameInterface
@@ -68,11 +71,13 @@ func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrato
 		gamehost = host
 	}
 
+	tickspersec := gameDescription.GetTps()
+
 	s := &Server{
 		host:            gamehost,
 		port:            port,
 		arenaServerUUID: arenaServerUUID,
-		tickspersec:     gameDescription.GetTps(),
+		tickspersec:     tickspersec,
 
 		stopticking:  make(chan bool),
 		nbhandshaked: 0,
@@ -94,6 +99,8 @@ func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrato
 
 		pendingmutations: make([]arenaservertypes.AgentMutationBatch, 0),
 		mutationsmutex:   &sync.Mutex{},
+
+		tickdurations: make([]int64, 0),
 
 		///////////////////////////////////////////////////////////////////////
 		// Game logic
@@ -242,7 +249,9 @@ func (server *Server) popMutationBatches() []arenaservertypes.AgentMutationBatch
 
 func (server *Server) doTick() {
 
-	turn := int(server.currentturn)
+	begin := time.Now()
+
+	turn := int(server.currentturn) // starts at 0
 	atomic.AddUint32(&server.currentturn, 1)
 
 	dolog := (turn % server.tickspersec) == 0
@@ -258,7 +267,7 @@ func (server *Server) doTick() {
 
 	timeStep := 1.0 / float64(server.GetTicksPerSecond())
 	mutations := server.popMutationBatches()
-	server.game.Step(timeStep, mutations)
+	server.game.Step(turn, timeStep, mutations)
 
 	///////////////////////////////////////////////////////////////////////////
 	// Refreshing perception for every agent
@@ -284,6 +293,22 @@ func (server *Server) doTick() {
 	///////////////////////////////////////////////////////////////////////////
 
 	notify.Post("app:stateupdated", nil)
+
+	nbsamplesToKeep := server.GetTicksPerSecond() * 5
+	if len(server.tickdurations) < nbsamplesToKeep {
+		server.tickdurations = append(server.tickdurations, time.Now().UnixNano()-begin.UnixNano())
+	} else {
+		server.tickdurations[turn%nbsamplesToKeep] = time.Now().UnixNano() - begin.UnixNano()
+	}
+
+	if dolog {
+		var totalDuration int64 = 0
+		for _, duration := range server.tickdurations {
+			totalDuration += duration
+		}
+		meanTick := float64(totalDuration) / float64(len(server.tickdurations))
+		log.Println("Mean tick duration ", meanTick/1000000.0, "ms")
+	}
 }
 
 func (s *Server) AddTearDownCall(fn types.TearDownCallback) {

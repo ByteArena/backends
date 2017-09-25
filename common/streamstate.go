@@ -29,7 +29,7 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface, arena
 		select {
 		case <-stateobserver:
 			{
-				buk.AddFrame(string(srv.GetGame().ProduceVizMessageJson()))
+				buk.AddFrame(string(srv.GetGame().GetVizFrameJson()))
 			}
 		}
 	}

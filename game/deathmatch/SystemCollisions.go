@@ -1,75 +1,71 @@
 package deathmatch
 
 import (
-	"strconv"
-
 	"github.com/bytearena/box2d"
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/ecs"
 )
 
-func systemCollisions(deathmatch *DeathmatchGame) {
-	for _, collision := range deathmatch.collisionListener.PopCollisions() {
+type collision struct {
+	entityIDA         ecs.EntityID
+	entityIDB         ecs.EntityID
+	collidableAspectA *Collidable
+	collidableAspectB *Collidable
+	point             vector.Vector2
+	normal            vector.Vector2
+	toi               float64
+	friction          float64
+	restitution       float64
+}
 
-		descriptorCollider, ok := collision.GetFixtureA().GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
+func systemCollisions(deathmatch *DeathmatchGame) []collision {
+
+	collisions := make([]collision, 0)
+
+	for _, coll := range deathmatch.collisionListener.PopCollisions() {
+
+		A, ok := coll.GetFixtureA().GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
 		if !ok {
 			continue
 		}
 
-		descriptorCollidee, ok := collision.GetFixtureB().GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
+		B, ok := coll.GetFixtureB().GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
 		if !ok {
 			continue
 		}
 
-		if descriptorCollider.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
-			// on impacte le collider
-			id, _ := strconv.Atoi(descriptorCollider.ID)
-			entityid := ecs.EntityID(id)
-			entityresult := deathmatch.getEntity(entityid, ecs.BuildTag(
-				deathmatch.ttlComponent,
-				deathmatch.playerComponent,
-			))
-			if entityresult == nil {
-				continue
-			}
+		worldManifold := box2d.MakeB2WorldManifold()
+		coll.GetWorldManifold(&worldManifold)
 
-			worldManifold := box2d.MakeB2WorldManifold()
-			collision.GetWorldManifold(&worldManifold)
+		entityResultA := deathmatch.getEntity(A.ID, deathmatch.collidableComponent)
+		entityResultB := deathmatch.getEntity(B.ID, deathmatch.collidableComponent)
 
-			ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent])
-			physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
-
-			ttlAspect.SetValue(1)
-
-			physicalAspect.
-				SetVelocity(vector.MakeNullVector2()).
-				SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
+		if entityResultA == nil || entityResultB == nil {
+			// Should never happen; this case is filtered in deathmatch.collisionFilter
+			continue
 		}
 
-		if descriptorCollidee.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
-			// on impacte le collider
-			id, _ := strconv.Atoi(descriptorCollidee.ID)
-			entityid := ecs.EntityID(id)
-			entityresult := deathmatch.getEntity(entityid, ecs.BuildTag(
-				deathmatch.ttlComponent,
-				deathmatch.playerComponent,
-			))
-			if entityresult == nil {
-				continue
-			}
+		collidableAspectA := deathmatch.CastCollidable(entityResultA.Components[deathmatch.collidableComponent])
+		collidableAspectB := deathmatch.CastCollidable(entityResultB.Components[deathmatch.collidableComponent])
 
-			worldManifold := box2d.MakeB2WorldManifold()
-			collision.GetWorldManifold(&worldManifold)
-
-			ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent])
-			physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
-
-			ttlAspect.SetValue(1)
-
-			physicalAspect.
-				SetVelocity(vector.MakeNullVector2()).
-				SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
+		compiledCollision := collision{
+			entityIDA:         A.ID,
+			entityIDB:         B.ID,
+			collidableAspectA: collidableAspectA,
+			collidableAspectB: collidableAspectB,
+			point:             vector.FromB2Vec2(worldManifold.Points[0]),
+			normal:            vector.FromB2Vec2(worldManifold.Normal),
+			toi:               coll.GetTOI(),
+			friction:          coll.GetFriction(),
+			restitution:       coll.GetRestitution(),
 		}
+
+		collisions = append(collisions, compiledCollision)
+
+		collidableAspectA.CollisionScript(deathmatch, A.ID, B.ID, collidableAspectA, collidableAspectB, compiledCollision.point)
+		collidableAspectB.CollisionScript(deathmatch, B.ID, A.ID, collidableAspectB, collidableAspectA, compiledCollision.point)
 	}
+
+	return collisions
 }

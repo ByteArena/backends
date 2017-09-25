@@ -37,6 +37,7 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 
 	entityresult := game.getEntity(entityid, ecs.BuildTag(
 		game.physicalBodyComponent,
+		game.steeringComponent,
 		game.perceptionComponent,
 	))
 
@@ -45,6 +46,7 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	}
 
 	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent])
+	steeringAspect := game.CastSteering(entityresult.Components[game.steeringComponent])
 	perceptionAspect := game.CastPerception(entityresult.Components[game.perceptionComponent])
 
 	orientation := physicalAspect.GetOrientation()
@@ -56,7 +58,7 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	p.Internal.Magnetoreception = orientation // l'angle d'orientation de l'agent par rapport au "Nord" de l'arène
 
 	p.Specs.MaxSpeed = physicalAspect.GetMaxSpeed()
-	p.Specs.MaxSteeringForce = physicalAspect.GetMaxSteeringForce()
+	p.Specs.MaxSteeringForce = steeringAspect.GetMaxSteeringForce()
 	p.Specs.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
 	p.Specs.DragForce = physicalAspect.GetDragForce()
 	p.Specs.VisionRadius = perceptionAspect.GetVisionRadius()

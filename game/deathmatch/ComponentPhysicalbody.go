@@ -12,11 +12,9 @@ func (deathmatch DeathmatchGame) CastPhysicalBody(data interface{}) *PhysicalBod
 type PhysicalBody struct {
 	body               *box2d.B2Body
 	maxSpeed           float64 // expressed in m/tick
-	maxSteeringForce   float64 // expressed in m/tick
 	maxAngularVelocity float64 // expressed in rad/tick
-	visionRadius       float64 // expressed in m
-	visionAngle        float64 // expressed in rad
 	dragForce          float64 // expressed in m/tick
+	static             bool
 }
 
 func (p *PhysicalBody) GetBody() *box2d.B2Body {
@@ -73,39 +71,12 @@ func (p *PhysicalBody) SetMaxSpeed(maxSpeed float64) *PhysicalBody {
 	return p
 }
 
-func (p PhysicalBody) GetMaxSteeringForce() float64 {
-	return p.maxSteeringForce
-}
-
-func (p *PhysicalBody) SetMaxSteeringForce(maxSteeringForce float64) *PhysicalBody {
-	p.maxSteeringForce = maxSteeringForce
-	return p
-}
-
 func (p PhysicalBody) GetMaxAngularVelocity() float64 {
 	return p.maxAngularVelocity
 }
 
 func (p *PhysicalBody) SetMaxAngularVelocity(maxAngularVelocity float64) *PhysicalBody {
 	p.maxAngularVelocity = maxAngularVelocity
-	return p
-}
-
-func (p PhysicalBody) GetVisionRadius() float64 {
-	return p.visionRadius
-}
-
-func (p *PhysicalBody) SetVisionRadius(visionRadius float64) *PhysicalBody {
-	p.visionRadius = visionRadius
-	return p
-}
-
-func (p PhysicalBody) GetVisionAngle() float64 {
-	return p.visionAngle
-}
-
-func (p *PhysicalBody) SetVisionAngle(visionAngle float64) *PhysicalBody {
-	p.visionAngle = visionAngle
 	return p
 }
 

@@ -6,12 +6,13 @@ import (
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/types"
 	commontypes "github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/game/common"
 	"github.com/bytearena/ecs"
 )
 
 type DeathmatchGame struct {
+	ticknum int
+
 	gameDescription commontypes.GameDescriptionInterface
 	manager         *ecs.Manager
 
@@ -23,12 +24,19 @@ type DeathmatchGame struct {
 	ttlComponent          *ecs.Component
 	perceptionComponent   *ecs.Component
 	ownedComponent        *ecs.Component
+	steeringComponent     *ecs.Component
+	shootingComponent     *ecs.Component
+	impactorComponent     *ecs.Component
+	collidableComponent   *ecs.Component
 
 	agentsView     *ecs.View
 	ttlView        *ecs.View
 	renderableView *ecs.View
 	physicalView   *ecs.View
 	perceptorsView *ecs.View
+	shootingView   *ecs.View
+	steeringView   *ecs.View
+	impactorView   *ecs.View
 
 	PhysicalWorld     *box2d.B2World
 	collisionListener *collisionListener
@@ -49,9 +57,17 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		ttlComponent:          manager.NewComponent(),
 		perceptionComponent:   manager.NewComponent(),
 		ownedComponent:        manager.NewComponent(),
-
-		PhysicalWorld: buildPhysicalWorld(gameDescription.GetMapContainer()),
+		steeringComponent:     manager.NewComponent(),
+		shootingComponent:     manager.NewComponent(),
+		impactorComponent:     manager.NewComponent(),
+		collidableComponent:   manager.NewComponent(),
 	}
+
+	gravity := box2d.MakeB2Vec2(0.0, 0.0) // gravity 0: the simulation is seen from the top
+	world := box2d.MakeB2World(gravity)
+	game.PhysicalWorld = &world
+
+	initPhysicalWorld(game)
 
 	game.agentsView = manager.CreateView("agents", ecs.BuildTag(
 		game.playerComponent, game.physicalBodyComponent,
@@ -73,6 +89,21 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		game.perceptionComponent,
 	))
 
+	game.shootingView = manager.CreateView("shooting", ecs.BuildTag(
+		game.shootingComponent,
+		game.physicalBodyComponent,
+	))
+
+	game.steeringView = manager.CreateView("steering", ecs.BuildTag(
+		game.steeringComponent,
+		game.physicalBodyComponent,
+	))
+
+	game.impactorView = manager.CreateView("impactor", ecs.BuildTag(
+		game.impactorComponent,
+		game.physicalBodyComponent,
+	))
+
 	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity, data interface{}) {
 		physicalAspect := game.CastPhysicalBody(data)
 		game.PhysicalWorld.DestroyBody(physicalAspect.GetBody())
@@ -85,8 +116,8 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 	return game
 }
 
-func (deathmatch DeathmatchGame) getEntity(id ecs.EntityID, tag ecs.Tag) *ecs.QueryResult {
-	return deathmatch.manager.GetEntityByID(id, tag)
+func (deathmatch DeathmatchGame) getEntity(id ecs.EntityID, tagelements ...interface{}) *ecs.QueryResult {
+	return deathmatch.manager.GetEntityByID(id, tagelements...)
 }
 
 // <GameInterface>
@@ -99,7 +130,9 @@ func (deathmatch *DeathmatchGame) Subscribe(event string, cbk func(data interfac
 
 func (deathmatch *DeathmatchGame) Unsubscribe(subscription common.GameEventSubscription) {}
 
-func (deathmatch *DeathmatchGame) Step(dt float64, mutations []types.AgentMutationBatch) {
+func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []types.AgentMutationBatch) {
+
+	deathmatch.ticknum = ticknum
 
 	///////////////////////////////////////////////////////////////////////////
 	// On supprime les projectiles en fin de vie
@@ -112,14 +145,29 @@ func (deathmatch *DeathmatchGame) Step(dt float64, mutations []types.AgentMutati
 	systemMutations(deathmatch, mutations)
 
 	///////////////////////////////////////////////////////////////////////////
+	// On traite les tirs
+	///////////////////////////////////////////////////////////////////////////
+	systemShooting(deathmatch)
+
+	///////////////////////////////////////////////////////////////////////////
+	// On traite les déplacements
+	///////////////////////////////////////////////////////////////////////////
+	systemSteering(deathmatch)
+
+	///////////////////////////////////////////////////////////////////////////
 	// On met l'état des objets physiques à jour
 	///////////////////////////////////////////////////////////////////////////
 	systemPhysics(deathmatch, dt)
 
 	///////////////////////////////////////////////////////////////////////////
-	// On réagit aux contacts
+	// On identifie les collisions
 	///////////////////////////////////////////////////////////////////////////
-	systemCollisions(deathmatch)
+	collisions := systemCollisions(deathmatch)
+
+	///////////////////////////////////////////////////////////////////////////
+	// On réagit aux collisions
+	///////////////////////////////////////////////////////////////////////////
+	systemHealth(deathmatch, collisions)
 
 	///////////////////////////////////////////////////////////////////////////
 	// On construit les perceptions
@@ -138,7 +186,7 @@ func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []by
 	return perceptionAspect.GetPerception()
 }
 
-func (deathmatch *DeathmatchGame) ProduceVizMessageJson() []byte {
+func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 	msg := commontypes.VizMessage{
 		GameID:  deathmatch.gameDescription.GetId(),
 		Objects: []commontypes.VizMessageObject{},
@@ -165,53 +213,20 @@ func (deathmatch *DeathmatchGame) ProduceVizMessageJson() []byte {
 
 // </GameInterface>
 
-func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *box2d.B2World {
+func initPhysicalWorld(deathmatch *DeathmatchGame) {
 
-	// Define the gravity vector.
-	gravity := box2d.MakeB2Vec2(0.0, 0.0) // 0: the simulation is seen from the top
-
-	// Construct a world object, which will hold and simulate the rigid bodies.
-	world := box2d.MakeB2World(gravity)
+	arenaMap := deathmatch.gameDescription.GetMapContainer()
 
 	// Static obstacles formed by the grounds
 	for _, ground := range arenaMap.Data.Grounds {
 		for _, polygon := range ground.Outline {
-
-			bodydef := box2d.MakeB2BodyDef()
-			bodydef.Type = box2d.B2BodyType.B2_staticBody
-
-			body := world.CreateBody(&bodydef)
-			vertices := make([]box2d.B2Vec2, len(polygon.Points)-1) // -1: avoid last point because the last point of the loop should not be repeated
-
-			for i := 0; i < len(polygon.Points)-1; i++ {
-				vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
-			}
-
-			shape := box2d.MakeB2ChainShape()
-			shape.CreateLoop(vertices, len(vertices))
-			body.CreateFixture(&shape, 0.0)
-			body.SetUserData(commontypes.MakePhysicalBodyDescriptor(commontypes.PhysicalBodyDescriptorType.Ground, ground.Id))
+			deathmatch.NewEntityGround(polygon)
 		}
 	}
 
 	// Explicit obstacles
 	for _, obstacle := range arenaMap.Data.Obstacles {
 		polygon := obstacle.Polygon
-		bodydef := box2d.MakeB2BodyDef()
-		bodydef.Type = box2d.B2BodyType.B2_staticBody
-
-		body := world.CreateBody(&bodydef)
-		vertices := make([]box2d.B2Vec2, len(polygon.Points)-1) // a polygon has as many edges as points
-
-		for i := 0; i < len(polygon.Points)-1; i++ {
-			vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
-		}
-
-		shape := box2d.MakeB2ChainShape()
-		shape.CreateLoop(vertices, len(vertices))
-		body.CreateFixture(&shape, 0.0)
-		body.SetUserData(commontypes.MakePhysicalBodyDescriptor(commontypes.PhysicalBodyDescriptorType.Obstacle, obstacle.Id))
+		deathmatch.NewEntityObstacle(polygon)
 	}
-
-	return &world
 }

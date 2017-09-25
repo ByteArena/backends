@@ -12,8 +12,8 @@ type GameInterface interface {
 	ImplementsGameInterface()
 	Subscribe(event string, cbk func(data interface{})) GameEventSubscription
 	Unsubscribe(subscription GameEventSubscription)
-	Step(dt float64, mutations []types.AgentMutationBatch)
+	Step(tickturn int, dt float64, mutations []types.AgentMutationBatch)
 	NewEntityAgent(pos vector.Vector2) *ecs.Entity
 	GetAgentPerception(entityid ecs.EntityID) []byte
-	ProduceVizMessageJson() []byte
+	GetVizFrameJson() []byte
 }
