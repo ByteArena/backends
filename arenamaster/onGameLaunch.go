@@ -1,7 +1,6 @@
 package arenamaster
 
 import (
-	"log"
 	"time"
 
 	"github.com/bytearena/bytearena/common/graphql"
@@ -77,7 +76,6 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 		state.UnlockState()
 	} else {
 		utils.Debug("master", "Received game launch event but payload is not parsable")
-		log.Println(*payload)
 	}
 }
 
