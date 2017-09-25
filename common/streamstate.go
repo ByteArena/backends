@@ -1,4 +1,4 @@
-package protocol
+package common
 
 import (
 	"encoding/json"
@@ -33,5 +33,4 @@ func StreamState(srv *arenaserver.Server, brokerclient mq.ClientInterface, arena
 			}
 		}
 	}
-
 }

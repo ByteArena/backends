@@ -1,17 +1,17 @@
 package deathmatch
 
 import (
+	"encoding/json"
 	"math"
 
 	"github.com/bytearena/box2d"
-	"github.com/bytearena/bytearena/arenaserver/protocol"
-	"github.com/bytearena/bytearena/common/types"
+	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/ecs"
 )
 
-func (game *DeathmatchGame) ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) protocol.AgentPerceptionInterface {
+func (game *DeathmatchGame) ComputeAgentPerception(arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) []byte {
 	p := AgentPerception{}
 
 	entityresult := game.GetEntity(entityid, ecs.BuildTag(
@@ -20,7 +20,7 @@ func (game *DeathmatchGame) ComputeAgentPerception(arenaMap *mapcontainer.MapCon
 	))
 
 	if entityresult == nil {
-		return p
+		return []byte{}
 	}
 
 	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent])
@@ -43,7 +43,8 @@ func (game *DeathmatchGame) ComputeAgentPerception(arenaMap *mapcontainer.MapCon
 
 	p.External.Vision = computeAgentVision(game, arenaMap, entityresult.Entity, physicalAspect, perceptionAspect)
 
-	return p
+	res, _ := json.Marshal(p)
+	return res
 }
 
 func computeAgentVision(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []AgentPerceptionVisionItem {
@@ -96,12 +97,12 @@ func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Physic
 			// raycast between two the agents to determine if they can see each other
 			game.PhysicalWorld.RayCast(
 				func(fixture *box2d.B2Fixture, point box2d.B2Vec2, normal box2d.B2Vec2, fraction float64) float64 {
-					bodyDescriptor, ok := fixture.GetBody().GetUserData().(types.PhysicalBodyDescriptor)
+					bodyDescriptor, ok := fixture.GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
 					if !ok {
 						return 1.0 // continue the ray
 					}
 
-					if bodyDescriptor.Type == types.PhysicalBodyDescriptorType.Obstacle {
+					if bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Obstacle {
 						occulted = true
 						return 0.0 // terminate the ray
 					}
@@ -270,12 +271,12 @@ func viewObstacles(game *DeathmatchGame, entity *ecs.Entity) []AgentPerceptionVi
 	// 			farEdge = relEdgeOneAgentAligned
 	// 		}
 
-	// 		obstacleperception := protocol.AgentPerceptionVisionItem{
+	// 		obstacleperception := types.AgentPerceptionVisionItem{
 	// 			CloseEdge: closeEdge,
 	// 			Center:    relcenteragentaligned,
 	// 			FarEdge:   farEdge,
 	// 			Velocity:  vector.MakeNullVector2(),
-	// 			Tag:       protocol.AgentPerceptionVisionItemTag.Obstacle,
+	// 			Tag:       types.AgentPerceptionVisionItemTag.Obstacle,
 	// 		}
 
 	// 		vision = append(vision, obstacleperception)

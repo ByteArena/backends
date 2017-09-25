@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"math"
 
-	"github.com/bytearena/bytearena/arenaserver/protocol"
+	"github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/ecs"
 )
 
-func (deathmatch *DeathmatchGame) ProcessMutations(mutations []protocol.AgentMutationBatch) {
+func (deathmatch *DeathmatchGame) processMutations(mutations []types.AgentMutationBatch) {
 
 	for _, batch := range mutations {
 

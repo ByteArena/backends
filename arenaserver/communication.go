@@ -9,7 +9,7 @@ import (
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/comm"
-	"github.com/bytearena/bytearena/arenaserver/protocol"
+	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
@@ -28,22 +28,22 @@ func (s *Server) listen() chan interface{} {
 	return block
 }
 
-/* <implementing protocol.AgentCommunicator> */
+/* <implementing types.AgentCommunicatorInterface> */
 func (s *Server) NetSend(message []byte, conn net.Conn) error {
 	return s.commserver.Send(message, conn)
 }
 
-func (s *Server) PushMutationBatch(batch protocol.AgentMutationBatch) {
+func (s *Server) PushMutationBatch(batch arenaservertypes.AgentMutationBatch) {
 	s.mutationsmutex.Lock()
 	s.pendingmutations = append(s.pendingmutations, batch)
 	s.mutationsmutex.Unlock()
 }
 
-/* </implementing protocol.AgentCommunicator> */
+/* </implementing types.AgentCommunicatorInterface> */
 
-/* <implementing protocol.CommunicatorDispatcherInterface> */
+/* <implementing types.CommunicatorDispatcherInterface> */
 func (s *Server) ImplementsCommDispatcherInterface() {}
-func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
+func (s *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
 
 	agentproxy, err := s.getAgentProxy(msg.GetAgentId().String())
 	if err != nil {
@@ -57,7 +57,7 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 	// as the two addresses do not match
 
 	switch msg.GetType() {
-	case protocol.AgentMessageType.Handshake:
+	case arenaservertypes.AgentMessageType.Handshake:
 		{
 			if _, found := s.agentproxieshandshakes[msg.GetAgentId()]; found {
 				return errors.New("ERROR: Received duplicate handshake from agent " + agentproxy.String())
@@ -65,7 +65,7 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 
 			s.agentproxieshandshakes[msg.GetAgentId()] = struct{}{}
 
-			var handshake protocol.AgentMessagePayloadHandshake
+			var handshake arenaservertypes.AgentMessagePayloadHandshake
 			err = json.Unmarshal(msg.GetPayload(), &handshake)
 			if err != nil {
 				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent handshake payload for agent " + msg.GetAgentId().String() + "; " + string(msg.GetPayload()))
@@ -91,10 +91,10 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 
 			break
 		}
-	case protocol.AgentMessageType.Mutation:
+	case arenaservertypes.AgentMessageType.Mutation:
 		{
 			var mutations struct {
-				Mutations []protocol.AgentMessagePayloadMutation
+				Mutations []arenaservertypes.AgentMessagePayloadMutation
 			}
 
 			err = json.Unmarshal(msg.GetPayload(), &mutations)
@@ -102,7 +102,7 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent mutation payload for agent " + agentproxy.String() + "; " + string(msg.GetPayload()))
 			}
 
-			mutationbatch := protocol.AgentMutationBatch{
+			mutationbatch := arenaservertypes.AgentMutationBatch{
 				AgentProxyUUID: agentproxy.GetProxyUUID(),
 				AgentEntityId:  agentproxy.GetEntityId(),
 				Mutations:      mutations.Mutations,
@@ -121,4 +121,4 @@ func (s *Server) DispatchAgentMessage(msg protocol.AgentMessage) error {
 	return nil
 }
 
-/* </implementing protocol.CommunicatorDispatcherInterface> */
+/* </implementing types.CommunicatorDispatcherInterface> */

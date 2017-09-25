@@ -47,5 +47,3 @@ type AgentPerception struct {
 	External AgentPerceptionExternal
 	Internal AgentPerceptionInternal
 }
-
-func (ap AgentPerception) ImplementsAgentPerceptionInterface() {}

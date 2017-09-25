@@ -9,8 +9,7 @@ import (
 
 func (s *Server) monitoring(stopChannel chan bool) {
 	monitorfreq := time.Second
-	debugNbMutations := 0
-	debugNbUpdates := 0
+	debugNbUpdates := s.currentturn
 	for {
 		select {
 		case <-stopChannel:
@@ -21,13 +20,10 @@ func (s *Server) monitoring(stopChannel chan bool) {
 			{
 				utils.Debug("monitoring",
 					"-- MONITORING -- "+
-						strconv.Itoa(s.debugNbMutations-debugNbMutations)+" mutations per "+monitorfreq.String()+";"+
-						strconv.Itoa(s.debugNbUpdates-debugNbUpdates)+" updates per "+monitorfreq.String(),
+						strconv.Itoa(int(s.currentturn-debugNbUpdates))+" ticks per "+monitorfreq.String(),
 				)
 
-				debugNbMutations = s.debugNbMutations
-				debugNbUpdates = s.debugNbUpdates
-
+				debugNbUpdates = s.currentturn
 			}
 		}
 	}

@@ -13,11 +13,11 @@ import (
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
 	"github.com/bytearena/bytearena/common/healthcheck"
+	"github.com/bytearena/bytearena/game/deathmatch"
 
 	"github.com/bytearena/bytearena/arenaserver/container"
 	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 )
@@ -78,11 +78,12 @@ func main() {
 			return
 		}
 
-		arena, err := apiqueries.FetchGameById(graphqlclient, payload.Id)
+		gamedescription, err := apiqueries.FetchGameById(graphqlclient, payload.Id)
 		utils.Check(err, "Could not fetch game "+payload.Id)
+		game := deathmatch.NewDeathmatchGame(gamedescription)
 
 		orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
-		srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID, brokerclient)
+		srv := arenaserver.NewServer(*host, *port, orch, gamedescription, game, *arenaServerUUID, brokerclient)
 
 		srv.AddTearDownCall(func() error {
 			if hc != nil {
@@ -99,8 +100,8 @@ func main() {
 			return nil
 		})
 
-		go startGame(payload, orch, arena, srv, *timeout)
-		go protocol.StreamState(srv, brokerclient, *arenaServerUUID)
+		go startGame(payload, orch, gamedescription, srv, *timeout)
+		go common.StreamState(srv, brokerclient, *arenaServerUUID)
 	})
 
 	streamArenaStopped := make(chan interface{})

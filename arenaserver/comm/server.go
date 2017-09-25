@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/bytearena/bytearena/arenaserver/protocol"
+	"github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
 type CommDispatcherInterface interface {
-	DispatchAgentMessage(msg protocol.AgentMessage) error
+	DispatchAgentMessage(msg types.AgentMessage) error
 	ImplementsCommDispatcherInterface()
 }
 
@@ -69,7 +69,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 					}
 
 					// Unmarshal message (unwrapping in an AgentMessage structure)
-					var msg protocol.AgentMessage
+					var msg types.AgentMessage
 					err = json.Unmarshal(buf, &msg)
 					if err != nil {
 						utils.Debug("commserver", "Failed to unmarshal incoming JSON in CommServer::Listen(); "+string(buf)+";"+err.Error())

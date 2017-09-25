@@ -1,10 +1,9 @@
 package agent
 
 import (
-	"encoding/json"
 	"net"
 
-	"github.com/bytearena/bytearena/arenaserver/protocol"
+	"github.com/bytearena/bytearena/arenaserver/types"
 )
 
 type AgentProxyNetworkInterface interface {
@@ -28,8 +27,7 @@ func (agent AgentProxyNetwork) String() string {
 	return "<NetAgentImp(" + agent.GetProxyUUID().String() + ")>"
 }
 
-func (agent AgentProxyNetwork) SetPerception(perception protocol.AgentPerceptionInterface, comm protocol.AgentCommunicatorInterface) error {
-	perceptionjson, _ := json.Marshal(perception)
+func (agent AgentProxyNetwork) SetPerception(perceptionjson []byte, comm types.AgentCommunicatorInterface) error {
 	message := []byte("{\"Method\": \"tick\", \"Arguments\": [0," + string(perceptionjson) + "]}\n") // TODO(jerome): remove 0 (ex turn)
 	return comm.NetSend(message, agent.GetConn())
 }

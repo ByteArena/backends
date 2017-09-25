@@ -1,4 +1,4 @@
-package arenatrainer
+package main
 
 import (
 	"encoding/json"

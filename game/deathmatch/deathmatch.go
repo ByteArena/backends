@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"github.com/bytearena/box2d"
-	"github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/arenaserver/types"
+	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/bytearena/game/common"
@@ -15,7 +16,7 @@ import (
 )
 
 type DeathmatchGame struct {
-	gameDescription types.GameDescriptionInterface
+	gameDescription commontypes.GameDescriptionInterface
 	manager         *ecs.Manager
 
 	physicalBodyComponent *ecs.Component
@@ -36,7 +37,7 @@ type DeathmatchGame struct {
 	collisionListener *CollisionListener
 }
 
-func NewDeathmatchGame(gameDescription types.GameDescriptionInterface) *DeathmatchGame {
+func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *DeathmatchGame {
 	manager := ecs.NewManager()
 
 	game := &DeathmatchGame{
@@ -95,7 +96,7 @@ func (deathmatch *DeathmatchGame) Subscribe(event string, cbk func(data interfac
 }
 func (deathmatch *DeathmatchGame) Unsubscribe(subscription common.GameEventSubscription) {}
 
-func (deathmatch *DeathmatchGame) Step(dt float64) {
+func (deathmatch *DeathmatchGame) Step(dt float64, mutations []types.AgentMutationBatch) {
 
 	///////////////////////////////////////////////////////////////////////////
 	// On supprime les projectiles en fin de vie
@@ -112,9 +113,14 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 
 	deathmatch.manager.DisposeEntities(entitiesToRemove...)
 
-	// ///////////////////////////////////////////////////////////////////////////
-	// // On met l'état des agents à jour
-	// ///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	// On traite les mutations
+	///////////////////////////////////////////////////////////////////////////
+	deathmatch.processMutations(mutations)
+
+	///////////////////////////////////////////////////////////////////////////
+	// On met l'état des agents à jour
+	///////////////////////////////////////////////////////////////////////////
 
 	for _, entityresult := range deathmatch.physicalView.Get() {
 		physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
@@ -123,9 +129,9 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 		}
 	}
 
-	// ///////////////////////////////////////////////////////////////////////////
-	// // On simule le monde physique
-	// ///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	// On simule le monde physique
+	///////////////////////////////////////////////////////////////////////////
 
 	before := time.Now()
 
@@ -137,23 +143,23 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 
 	log.Println("Physical world step took ", float64(time.Now().UnixNano()-before.UnixNano())/1000000.0, "ms")
 
-	// ///////////////////////////////////////////////////////////////////////////
-	// // On réagit aux contacts
-	// ///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	// On réagit aux contacts
+	///////////////////////////////////////////////////////////////////////////
 
 	for _, collision := range deathmatch.collisionListener.PopCollisions() {
 
-		descriptorCollider, ok := collision.GetFixtureA().GetBody().GetUserData().(types.PhysicalBodyDescriptor)
+		descriptorCollider, ok := collision.GetFixtureA().GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
 		if !ok {
 			continue
 		}
 
-		descriptorCollidee, ok := collision.GetFixtureB().GetBody().GetUserData().(types.PhysicalBodyDescriptor)
+		descriptorCollidee, ok := collision.GetFixtureB().GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
 		if !ok {
 			continue
 		}
 
-		if descriptorCollider.Type == types.PhysicalBodyDescriptorType.Projectile {
+		if descriptorCollider.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
 			// on impacte le collider
 			id, _ := strconv.Atoi(descriptorCollider.ID)
 			entityid := ecs.EntityID(id)
@@ -178,7 +184,7 @@ func (deathmatch *DeathmatchGame) Step(dt float64) {
 				SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
 		}
 
-		if descriptorCollidee.Type == types.PhysicalBodyDescriptorType.Projectile {
+		if descriptorCollidee.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
 			// on impacte le collider
 			id, _ := strconv.Atoi(descriptorCollidee.ID)
 			entityid := ecs.EntityID(id)
@@ -249,18 +255,18 @@ func (filter *CollisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB
 	// Si projectile, ne pas collisionner agent émetteur
 	// Si projectile, ne pas collisionner ground
 
-	descriptorA, ok := fixtureA.GetBody().GetUserData().(types.PhysicalBodyDescriptor)
+	descriptorA, ok := fixtureA.GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
 	if !ok {
 		return false
 	}
 
-	descriptorB, ok := fixtureB.GetBody().GetUserData().(types.PhysicalBodyDescriptor)
+	descriptorB, ok := fixtureB.GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
 	if !ok {
 		return false
 	}
 
-	aIsProjectile := descriptorA.Type == types.PhysicalBodyDescriptorType.Projectile
-	bIsProjectile := descriptorB.Type == types.PhysicalBodyDescriptorType.Projectile
+	aIsProjectile := descriptorA.Type == commontypes.PhysicalBodyDescriptorType.Projectile
+	bIsProjectile := descriptorB.Type == commontypes.PhysicalBodyDescriptorType.Projectile
 
 	if !aIsProjectile && !bIsProjectile {
 		return true
@@ -270,8 +276,8 @@ func (filter *CollisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB
 		return true
 	}
 
-	var projectile *types.PhysicalBodyDescriptor
-	var other *types.PhysicalBodyDescriptor
+	var projectile *commontypes.PhysicalBodyDescriptor
+	var other *commontypes.PhysicalBodyDescriptor
 
 	if aIsProjectile {
 		projectile = &descriptorA
@@ -281,15 +287,15 @@ func (filter *CollisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB
 		other = &descriptorA
 	}
 
-	if other.Type == types.PhysicalBodyDescriptorType.Obstacle {
+	if other.Type == commontypes.PhysicalBodyDescriptorType.Obstacle {
 		return true
 	}
 
-	if other.Type == types.PhysicalBodyDescriptorType.Ground {
+	if other.Type == commontypes.PhysicalBodyDescriptorType.Ground {
 		return false
 	}
 
-	if other.Type == types.PhysicalBodyDescriptorType.Agent {
+	if other.Type == commontypes.PhysicalBodyDescriptorType.Agent {
 		// fetch projectile
 		projectileid, _ := strconv.Atoi(projectile.ID)
 
@@ -391,7 +397,7 @@ func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *box2d.B2World {
 			shape := box2d.MakeB2ChainShape()
 			shape.CreateLoop(vertices, len(vertices))
 			body.CreateFixture(&shape, 0.0)
-			body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Ground, ground.Id))
+			body.SetUserData(commontypes.MakePhysicalBodyDescriptor(commontypes.PhysicalBodyDescriptorType.Ground, ground.Id))
 		}
 	}
 
@@ -411,7 +417,7 @@ func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *box2d.B2World {
 		shape := box2d.MakeB2ChainShape()
 		shape.CreateLoop(vertices, len(vertices))
 		body.CreateFixture(&shape, 0.0)
-		body.SetUserData(types.MakePhysicalBodyDescriptor(types.PhysicalBodyDescriptorType.Obstacle, obstacle.Id))
+		body.SetUserData(commontypes.MakePhysicalBodyDescriptor(commontypes.PhysicalBodyDescriptorType.Obstacle, obstacle.Id))
 	}
 
 	return &world
@@ -420,9 +426,9 @@ func buildPhysicalWorld(arenaMap *mapcontainer.MapContainer) *box2d.B2World {
 ///////////////////////////////////////////////////////////////////////////////
 
 func (deathmatch *DeathmatchGame) ProduceVizMessageJson() []byte {
-	msg := types.VizMessage{
+	msg := commontypes.VizMessage{
 		GameID:  deathmatch.gameDescription.GetId(),
-		Objects: []types.VizMessageObject{},
+		Objects: []commontypes.VizMessageObject{},
 	}
 
 	for _, entityresult := range deathmatch.renderableView.Get() {
@@ -430,7 +436,7 @@ func (deathmatch *DeathmatchGame) ProduceVizMessageJson() []byte {
 		renderAspect := deathmatch.CastRender(entityresult.Components[deathmatch.renderComponent])
 		physicalBodyAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
 
-		msg.Objects = append(msg.Objects, types.VizMessageObject{
+		msg.Objects = append(msg.Objects, commontypes.VizMessageObject{
 			Id:          entityresult.Entity.GetID().String(),
 			Type:        renderAspect.GetType(),
 			Position:    physicalBodyAspect.GetPosition(),

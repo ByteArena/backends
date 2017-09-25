@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"github.com/bytearena/bytearena/arenaserver/protocol"
+	"github.com/bytearena/bytearena/arenaserver/types"
 )
 
 type AgentProxyLocalInterface interface {
@@ -23,6 +23,6 @@ func (agent AgentProxyLocal) String() string {
 	return "<LocalAgentImp(" + agent.GetProxyUUID().String() + ")>"
 }
 
-func (agent AgentProxyLocal) SetPerception(perception protocol.AgentPerceptionInterface, comm protocol.AgentCommunicatorInterface) error {
+func (agent AgentProxyLocal) SetPerception(perception []byte, comm types.AgentCommunicatorInterface) error {
 	return nil
 }
