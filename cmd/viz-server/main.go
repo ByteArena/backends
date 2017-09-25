@@ -23,6 +23,8 @@ import (
 	"github.com/bytearena/bytearena/vizserver/types"
 )
 
+var vizMessageReceived = influxdb.NewCounter()
+
 // Simplified version of the VizMessage struct
 type GameIDVizMessage struct {
 	GameID          string
@@ -175,6 +177,7 @@ func main() {
 
 		influxdbClient.WriteAppMetric("viz", map[string]interface{}{
 			"memory-usage": int(memoryUsageInBytes),
+			"msg-received": vizMessageReceived.GetAndReset(),
 		})
 	})
 
@@ -204,9 +207,7 @@ func main() {
 		utils.Debug("viz:message", "received batch of "+strconv.Itoa(len(vizMessage))+" message(s) for arena server "+arenaServerUUID)
 		notify.PostTimeout("viz:message:"+gameID, string(msg.Data), time.Millisecond)
 
-		influxdbClient.WriteAppMetric("viz", map[string]interface{}{
-			"msg-received": len(vizMessage),
-		})
+		vizMessageReceived.Add(len(vizMessage))
 	})
 
 	mqclient.Subscribe("game", "stopped", func(msg mq.BrokerMessage) {
