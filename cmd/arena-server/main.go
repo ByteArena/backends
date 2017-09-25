@@ -55,7 +55,7 @@ func main() {
 	brokerclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: Could not connect to messagebroker on "+*mqhost)
 
-	handshakeTicker := time.NewTicker(time.Duration(*timeout) * time.Minute)
+	handshakeTicker := time.NewTicker(time.Duration(*timeout/2) * time.Minute)
 
 	go func() {
 		for {
