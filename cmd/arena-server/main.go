@@ -55,12 +55,22 @@ func main() {
 	brokerclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: Could not connect to messagebroker on "+*mqhost)
 
-	brokerclient.Publish("game", "handshake", types.NewMQMessage(
-		"arena-server",
-		"Arena Server "+(*arenaServerUUID)+" reporting for duty.",
-	).SetPayload(types.MQPayload{
-		"arenaserveruuid": (*arenaServerUUID),
-	}))
+	handshakeTicker := time.NewTicker(time.Duration(*timeout) * time.Minute)
+
+	go func() {
+		for {
+			<-handshakeTicker.C
+
+			utils.Debug("arena-server", "send handshake")
+
+			brokerclient.Publish("game", "handshake", types.NewMQMessage(
+				"arena-server",
+				"Arena Server "+(*arenaServerUUID)+" reporting for duty.",
+			).SetPayload(types.MQPayload{
+				"arenaserveruuid": (*arenaServerUUID),
+			}))
+		}
+	}()
 
 	var hc *healthcheck.HealthCheckServer
 	if env == "prod" {
