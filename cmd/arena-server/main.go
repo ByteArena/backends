@@ -59,8 +59,6 @@ func main() {
 
 	go func() {
 		for {
-			<-handshakeTicker.C
-
 			utils.Debug("arena-server", "send handshake")
 
 			brokerclient.Publish("game", "handshake", types.NewMQMessage(
@@ -69,6 +67,8 @@ func main() {
 			).SetPayload(types.MQPayload{
 				"arenaserveruuid": (*arenaServerUUID),
 			}))
+
+			<-handshakeTicker.C
 		}
 	}()
 
