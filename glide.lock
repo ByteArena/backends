@@ -1,5 +1,5 @@
-hash: 6f810c1e8cce5881e9052d7e176a9e33bf750bb3b2ba819dd5199968902330c6
-updated: 2017-09-20T22:24:38.440037298+02:00
+hash: 00a18001b0877022741d2264807b62048b774fb838ecfdcf2c1f33653d93b3c8
+updated: 2017-09-26T22:18:30.795093545+02:00
 imports:
 - name: github.com/akavel/polyclip-go
   version: 2cfdb71461bde9115450eb65688337e3f8ee715e
@@ -7,6 +7,8 @@ imports:
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
 - name: github.com/bytearena/box2d
   version: 6a120bfe0653a6b77776488137fb5bcf364d27af
+- name: github.com/bytearena/ecs
+  version: 45f5efd6621bf828c672d6736ae2b202a7a82643
 - name: github.com/cenkalti/backoff
   version: 61153c768f31ee5f130071d08fc82b85208528de
 - name: github.com/davecgh/go-spew

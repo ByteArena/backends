@@ -41,3 +41,4 @@ import:
   - client/v2
 - package: github.com/bytearena/box2d
   version: ^1.0.0
+- package: github.com/bytearena/ecs
