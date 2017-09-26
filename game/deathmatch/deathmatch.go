@@ -21,22 +21,22 @@ type DeathmatchGame struct {
 	playerComponent       *ecs.Component
 	renderComponent       *ecs.Component
 	scriptComponent       *ecs.Component
-	ttlComponent          *ecs.Component
 	perceptionComponent   *ecs.Component
 	ownedComponent        *ecs.Component
 	steeringComponent     *ecs.Component
 	shootingComponent     *ecs.Component
 	impactorComponent     *ecs.Component
 	collidableComponent   *ecs.Component
+	lifecycleComponent    *ecs.Component
 
 	agentsView     *ecs.View
-	ttlView        *ecs.View
 	renderableView *ecs.View
 	physicalView   *ecs.View
 	perceptorsView *ecs.View
 	shootingView   *ecs.View
 	steeringView   *ecs.View
 	impactorView   *ecs.View
+	lifecycleView  *ecs.View
 
 	PhysicalWorld     *box2d.B2World
 	collisionListener *collisionListener
@@ -54,13 +54,13 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		playerComponent:       manager.NewComponent(),
 		renderComponent:       manager.NewComponent(),
 		scriptComponent:       manager.NewComponent(),
-		ttlComponent:          manager.NewComponent(),
 		perceptionComponent:   manager.NewComponent(),
 		ownedComponent:        manager.NewComponent(),
 		steeringComponent:     manager.NewComponent(),
 		shootingComponent:     manager.NewComponent(),
 		impactorComponent:     manager.NewComponent(),
 		collidableComponent:   manager.NewComponent(),
+		lifecycleComponent:    manager.NewComponent(),
 	}
 
 	gravity := box2d.MakeB2Vec2(0.0, 0.0) // gravity 0: the simulation is seen from the top
@@ -68,8 +68,6 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 	game.PhysicalWorld = &world
 
 	initPhysicalWorld(game)
-
-	game.ttlView = manager.CreateView(game.ttlComponent)
 
 	game.physicalView = manager.CreateView(game.physicalBodyComponent)
 
@@ -98,6 +96,10 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 	game.impactorView = manager.CreateView(
 		game.impactorComponent,
 		game.physicalBodyComponent,
+	)
+
+	game.lifecycleView = manager.CreateView(
+		game.lifecycleComponent,
 	)
 
 	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity, data interface{}) {
@@ -131,11 +133,6 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 	deathmatch.ticknum = ticknum
 
 	///////////////////////////////////////////////////////////////////////////
-	// On supprime les projectiles en fin de vie
-	///////////////////////////////////////////////////////////////////////////
-	systemTtl(deathmatch)
-
-	///////////////////////////////////////////////////////////////////////////
 	// On traite les mutations
 	///////////////////////////////////////////////////////////////////////////
 	systemMutations(deathmatch, mutations)
@@ -166,9 +163,19 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 	systemHealth(deathmatch, collisions)
 
 	///////////////////////////////////////////////////////////////////////////
+	// On fait mourir les entités
+	///////////////////////////////////////////////////////////////////////////
+	systemLifecycle(deathmatch)
+
+	///////////////////////////////////////////////////////////////////////////
 	// On construit les perceptions
 	///////////////////////////////////////////////////////////////////////////
 	systemPerception(deathmatch)
+
+	///////////////////////////////////////////////////////////////////////////
+	// On supprime les projectiles en fin de vie
+	///////////////////////////////////////////////////////////////////////////
+	systemDeath(deathmatch)
 }
 
 func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []byte {

@@ -6,20 +6,21 @@ import (
 	"github.com/bytearena/ecs"
 )
 
-func impactWithDamage(deathmatch *DeathmatchGame, qrHealth *ecs.QueryResult, qrImpactor *ecs.QueryResult, killed *[]*Health) {
+func impactWithDamage(deathmatch *DeathmatchGame, qrHealth *ecs.QueryResult, qrImpactor *ecs.QueryResult, killed *[]*ecs.QueryResult) {
 	log.Println("AGENT TOOK A HIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 	healthAspect := deathmatch.CastHealth(qrHealth.Components[deathmatch.healthComponent])
 	impactorAspect := deathmatch.CastImpactor(qrImpactor.Components[deathmatch.impactorComponent])
 
-	healthAspect.AddLife(-1 * impactorAspect.damage)
+	healthAspect.AddLife(-1 * impactorAspect.damage * 1000)
 	if healthAspect.GetLife() <= 0 {
-		*killed = append(*killed, healthAspect)
+		log.Println("AGENT KILLED !!!!!!!!!!!!!!!!!!!!!!!!")
+		*killed = append(*killed, qrHealth)
 	}
 }
 
 func systemHealth(deathmatch *DeathmatchGame, collisions []collision) {
 
-	killed := make([]*Health, 0)
+	killed := make([]*ecs.QueryResult, 0)
 	for _, coll := range collisions {
 		entityResultAImpactor := deathmatch.getEntity(coll.entityIDA, deathmatch.impactorComponent)
 		entityResultAHealth := deathmatch.getEntity(coll.entityIDA, deathmatch.healthComponent)
@@ -36,61 +37,19 @@ func systemHealth(deathmatch *DeathmatchGame, collisions []collision) {
 		}
 	}
 
-	for _, killedHealthAspect := range killed {
-		killedHealthAspect.DeathScript()
+	for _, qrKilled := range killed {
+		healthAspect := deathmatch.CastHealth(qrKilled.Components[deathmatch.healthComponent])
+
+		if healthAspect.DeathScript != nil {
+			healthAspect.DeathScript()
+		} else {
+			lifecycleQr := deathmatch.getEntity(qrKilled.Entity.GetID(), deathmatch.lifecycleComponent)
+			if lifecycleQr == nil {
+				continue
+			}
+
+			lifecycleAspect := deathmatch.CastLifecycle(qrKilled.Components[deathmatch.lifecycleComponent])
+			lifecycleAspect.SetDeath(deathmatch.ticknum)
+		}
 	}
-
-	// for _, coll := range collisions {
-	// 	if descriptorCollider.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
-	// 		// on impacte le collider
-	// 		entityid := descriptorCollider.ID
-	// 		entityresult := deathmatch.getEntity(entityid, ecs.BuildTag(
-	// 			deathmatch.ttlComponent,
-	// 			deathmatch.playerComponent,
-	// 		))
-	// 		if entityresult == nil {
-	// 			continue
-	// 		}
-
-	// 		worldManifold := box2d.MakeB2WorldManifold()
-	// 		coll.GetWorldManifold(&worldManifold)
-
-	// 		collisions = append(collisions, collision{
-	// 			entityA:
-	// 		})
-
-	// 		// ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent])
-	// 		// physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
-
-	// 		// ttlAspect.SetValue(1)
-
-	// 		// physicalAspect.
-	// 		// 	SetVelocity(vector.MakeNullVector2()).
-	// 		// 	SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
-	// 	}
-
-	// 	if descriptorCollidee.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
-	// 		// on impacte le collider
-	// 		entityid := descriptorCollidee.ID
-	// 		entityresult := deathmatch.getEntity(entityid, ecs.BuildTag(
-	// 			deathmatch.ttlComponent,
-	// 			deathmatch.playerComponent,
-	// 		))
-	// 		if entityresult == nil {
-	// 			continue
-	// 		}
-
-	// 		worldManifold := box2d.MakeB2WorldManifold()
-	// 		coll.GetWorldManifold(&worldManifold)
-
-	// 		// ttlAspect := deathmatch.CastTtl(entityresult.Components[deathmatch.ttlComponent])
-	// 		// physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
-
-	// 		// ttlAspect.SetValue(1)
-
-	// 		// physicalAspect.
-	// 		// 	SetVelocity(vector.MakeNullVector2()).
-	// 		// 	SetPosition(vector.FromB2Vec2(worldManifold.Points[0]))
-	// 	}
-	// }
 }

@@ -1,9 +1,9 @@
 package deathmatch
 
 type Health struct {
-	maxLife         float64 // Const
-	life            float64 // Current life level
-	deathScriptFunc func()
+	maxLife     float64 // Const
+	life        float64 // Current life level
+	DeathScript func()
 
 	// maxShield           float64 // Const
 	// shield              float64 // Current shield level
@@ -19,7 +19,7 @@ func NewHealth(maxlife float64) *Health {
 		// Shield:              1000, // Current shield level
 		// ShieldReplenishRate: 10,   // Const; Shield regained every tick
 
-		deathScriptFunc: nil,
+		DeathScript: nil,
 	}
 }
 
@@ -36,7 +36,7 @@ func (health Health) GetLife() float64 {
 }
 
 func (health *Health) SetDeathScript(f func()) *Health {
-	health.deathScriptFunc = f
+	health.DeathScript = f
 	return health
 }
 
@@ -54,10 +54,4 @@ func (health *Health) SetLife(life float64) {
 
 func (health *Health) AddLife(life float64) {
 	health.SetLife(life + health.GetLife())
-}
-
-func (health *Health) DeathScript() {
-	if health.deathScriptFunc != nil {
-		health.deathScriptFunc()
-	}
 }

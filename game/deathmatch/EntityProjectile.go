@@ -47,7 +47,10 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 			type_:  "projectile",
 			static: false,
 		}).
-		AddComponent(deathmatch.ttlComponent, &Ttl{60}).
+		AddComponent(deathmatch.lifecycleComponent, &Lifecycle{
+			tickBirth: deathmatch.ticknum,
+			maxAge:    60,
+		}).
 		AddComponent(deathmatch.ownedComponent, &Owned{ownerid}).
 		AddComponent(deathmatch.impactorComponent, &Impactor{
 			damage: 30,
@@ -63,17 +66,17 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 }
 
 func projectileCollisionScript(game *DeathmatchGame, entityID ecs.EntityID, otherEntityID ecs.EntityID, collidableAspect *Collidable, otherCollidableAspectB *Collidable, point vector.Vector2) {
-	entityResult := game.getEntity(entityID, game.physicalBodyComponent, game.ttlComponent)
+	entityResult := game.getEntity(entityID, game.physicalBodyComponent, game.lifecycleComponent)
 	if entityResult == nil {
 		return
 	}
 
 	physicalAspect := game.CastPhysicalBody(entityResult.Components[game.physicalBodyComponent])
-	ttlAspect := game.CastTtl(entityResult.Components[game.ttlComponent])
+	lifecycleAspect := game.CastLifecycle(entityResult.Components[game.lifecycleComponent])
 
 	physicalAspect.
 		SetVelocity(vector.MakeNullVector2()).
 		SetPosition(point)
 
-	ttlAspect.SetValue(0) // will be destroyed before processing next tick
+	lifecycleAspect.SetDeath(game.ticknum) // dead in this tick
 }

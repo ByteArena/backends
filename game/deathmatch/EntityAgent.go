@@ -1,8 +1,6 @@
 package deathmatch
 
 import (
-	"log"
-
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -48,11 +46,7 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 			visionAngle:  number.DegreeToRadian(180),
 			visionRadius: 100,
 		}).
-		AddComponent(deathmatch.healthComponent, NewHealth(100).
-			SetDeathScript(func() {
-				log.Println("AGENT IS DEAD !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-			}),
-		).
+		AddComponent(deathmatch.healthComponent, NewHealth(100)).
 		AddComponent(deathmatch.playerComponent, &Player{}).
 		AddComponent(deathmatch.renderComponent, &Render{
 			type_:  "agent",
@@ -70,7 +64,8 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 				CollisionGroup.Projectile,
 				CollisionGroup.Ground,
 			),
-		).SetCollisionScriptFunc(agentCollisionScript))
+		).SetCollisionScriptFunc(agentCollisionScript)) //.
+	//AddComponent(deathmatch.lifecycleComponent, &Lifecycle{})
 }
 
 func agentCollisionScript(game *DeathmatchGame, entityID ecs.EntityID, otherEntityID ecs.EntityID, collidableAspect *Collidable, otherCollidableAspectB *Collidable, point vector.Vector2) {
