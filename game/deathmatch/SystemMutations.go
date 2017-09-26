@@ -6,7 +6,6 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/bytearena/ecs"
 )
 
 func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutationBatch) {
@@ -33,8 +32,7 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 
 					aiming := vector.MakeVector2(aimingFloats[0], aimingFloats[1])
 
-					tag := ecs.BuildTag(deathmatch.shootingComponent)
-					entityresult := deathmatch.getEntity(batch.AgentEntityId, tag)
+					entityresult := deathmatch.getEntity(batch.AgentEntityId, deathmatch.shootingComponent)
 					if entityresult == nil {
 						continue
 					}
@@ -61,8 +59,7 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 
 					steering := vector.MakeVector2(steeringFloats[0], steeringFloats[1])
 
-					tag := ecs.BuildTag(deathmatch.steeringComponent)
-					entityresult := deathmatch.getEntity(batch.AgentEntityId, tag)
+					entityresult := deathmatch.getEntity(batch.AgentEntityId, deathmatch.steeringComponent)
 					if entityresult == nil {
 						continue
 					}

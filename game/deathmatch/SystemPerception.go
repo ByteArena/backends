@@ -35,11 +35,11 @@ func systemPerception(deathmatch *DeathmatchGame) {
 func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) []byte {
 	p := AgentPerception{}
 
-	entityresult := game.getEntity(entityid, ecs.BuildTag(
+	entityresult := game.getEntity(entityid,
 		game.physicalBodyComponent,
 		game.steeringComponent,
 		game.perceptionComponent,
-	))
+	)
 
 	if entityresult == nil {
 		return []byte{}

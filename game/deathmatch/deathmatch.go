@@ -69,40 +69,36 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 
 	initPhysicalWorld(game)
 
-	game.agentsView = manager.CreateView("agents", ecs.BuildTag(
-		game.playerComponent, game.physicalBodyComponent,
-	))
+	game.ttlView = manager.CreateView(game.ttlComponent)
 
-	game.ttlView = manager.CreateView("ttlbound", ecs.BuildTag(
-		game.ttlComponent,
-	))
+	game.physicalView = manager.CreateView(game.physicalBodyComponent)
 
-	game.renderableView = manager.CreateView("renderable", ecs.BuildTag(
-		game.renderComponent, game.physicalBodyComponent,
-	))
+	game.perceptorsView = manager.CreateView(game.perceptionComponent)
 
-	game.physicalView = manager.CreateView("physicalbodies", ecs.BuildTag(
+	game.agentsView = manager.CreateView(
+		game.playerComponent,
 		game.physicalBodyComponent,
-	))
+	)
 
-	game.perceptorsView = manager.CreateView("perceptors", ecs.BuildTag(
-		game.perceptionComponent,
-	))
+	game.renderableView = manager.CreateView(
+		game.renderComponent,
+		game.physicalBodyComponent,
+	)
 
-	game.shootingView = manager.CreateView("shooting", ecs.BuildTag(
+	game.shootingView = manager.CreateView(
 		game.shootingComponent,
 		game.physicalBodyComponent,
-	))
+	)
 
-	game.steeringView = manager.CreateView("steering", ecs.BuildTag(
+	game.steeringView = manager.CreateView(
 		game.steeringComponent,
 		game.physicalBodyComponent,
-	))
+	)
 
-	game.impactorView = manager.CreateView("impactor", ecs.BuildTag(
+	game.impactorView = manager.CreateView(
 		game.impactorComponent,
 		game.physicalBodyComponent,
-	))
+	)
 
 	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity, data interface{}) {
 		physicalAspect := game.CastPhysicalBody(data)
@@ -176,8 +172,7 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 }
 
 func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []byte {
-	tag := ecs.BuildTag(deathmatch.perceptionComponent)
-	entityResult := deathmatch.getEntity(entityid, tag)
+	entityResult := deathmatch.getEntity(entityid, deathmatch.perceptionComponent)
 	if entityResult == nil {
 		return []byte{}
 	}
