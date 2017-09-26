@@ -2,8 +2,6 @@ package arenamaster
 
 import (
 	"sync"
-
-	"github.com/bytearena/bytearena/common/utils"
 )
 
 type ArenaServerState struct {
@@ -28,11 +26,9 @@ func NewState() *State {
 }
 
 func (s *State) LockState() {
-	utils.Debug("state", "locking")
 	s.mutex.Lock()
 }
 
 func (s *State) UnlockState() {
-	utils.Debug("state", "unlocking")
 	s.mutex.Unlock()
 }
