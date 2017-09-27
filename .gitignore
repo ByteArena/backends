@@ -5,4 +5,5 @@ data
 !.secrets/.gitkeep
 vendor
 cmd/replay/replay
+cmd/test-vm/test-vm
 build
