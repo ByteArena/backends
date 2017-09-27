@@ -11,9 +11,8 @@ import (
 	"time"
 
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/hashicorp/errwrap"
 	"github.com/rkt/rkt/networking/tuntap"
-	"github.com/vishvananda/netlink"
+	// "github.com/vishvananda/netlink"
 )
 
 type VMConfig struct {
@@ -121,30 +120,17 @@ func (vm *VM) TearNetwork() error {
 }
 
 func (vm *VM) SetupNetwork() (string, error) {
-	MTU := 1500
+	tapIfce, tapErr := createTapInterface(vm.Config.Name)
+	utils.Check(tapErr, "Could not create tap interface")
 
-	br, err := ensureBridgeIsUp(vm.brIfName, MTU)
-	if err != nil {
-		return "", errwrap.Wrap(errors.New("error in time of bridge setup"), err)
-	}
+	tapLinkErr := createTapLink(tapIfce)
+	utils.Check(tapLinkErr, "Could not create tap link")
 
-	link, tapErr := setupTapDevice(vm.Config.Name)
-	if tapErr != nil {
-		return "", tapErr
-	}
+	go listenTap(tapIfce)
 
-	linkErr := netlink.LinkSetMaster(link, br)
+	vm.Log(fmt.Sprintf("Setup network %s<->%s", vm.brIfName, tapIfce.Name()))
 
-	if linkErr != nil {
-		return "", errwrap.Wrap(errors.New("can not add tap interface to bridge"), err)
-	}
-
-	ifName := link.Attrs().Name
-	vm.tapIfName = ifName
-
-	vm.Log(fmt.Sprintf("Setup network %s<->%s", vm.brIfName, ifName))
-
-	return ifName, nil
+	return tapIfce.Name(), nil
 }
 
 func (vm *VM) Start() error {
@@ -167,7 +153,7 @@ func (vm *VM) Start() error {
 		"-no-fd-bootchk",
 		"-net", "nic,model=virtio",
 		"-net", "user",
-		"-net", "tap,name="+tapName+",ifname="+tapName,
+		"-net", "tap,name=net0,ifname="+tapName+",script=no",
 		"-drive", "file="+vm.Config.ImageLocation+",if=virtio,cache=none,format=raw,index=1",
 	)
 
