@@ -8,8 +8,8 @@ import (
 
 func systemSteering(deathmatch *DeathmatchGame) {
 	for _, entityresult := range deathmatch.steeringView.Get() {
-		steeringAspect := deathmatch.CastSteering(entityresult.Components[deathmatch.steeringComponent])
-		physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
+		steeringAspect := entityresult.Components[deathmatch.steeringComponent].(*Steering)
+		physicalAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
 
 		steers := steeringAspect.PopPendingSteers()
 		if len(steers) == 0 {

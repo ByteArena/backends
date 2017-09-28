@@ -20,10 +20,6 @@ func NewSteering(maxSteeringForce float64) *Steering {
 	}
 }
 
-func (deathmatch DeathmatchGame) CastSteering(data interface{}) *Steering {
-	return data.(*Steering)
-}
-
 func (steering Steering) GetMaxSteeringForce() float64 {
 	return steering.maxSteeringForce
 }

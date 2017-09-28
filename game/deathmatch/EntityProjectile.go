@@ -14,7 +14,7 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 
 	bodydef := box2d.MakeB2BodyDef()
 	bodydef.Type = box2d.B2BodyType.B2_dynamicBody
-	bodydef.AllowSleep = false
+	bodydef.AllowSleep = true
 	bodydef.FixedRotation = true
 
 	bodydef.Position.Set(position.GetX(), position.GetY())
@@ -71,8 +71,8 @@ func projectileCollisionScript(game *DeathmatchGame, entityID ecs.EntityID, othe
 		return
 	}
 
-	physicalAspect := game.CastPhysicalBody(entityResult.Components[game.physicalBodyComponent])
-	lifecycleAspect := game.CastLifecycle(entityResult.Components[game.lifecycleComponent])
+	physicalAspect := entityResult.Components[game.physicalBodyComponent].(*PhysicalBody)
+	lifecycleAspect := entityResult.Components[game.lifecycleComponent].(*Lifecycle)
 
 	physicalAspect.
 		SetVelocity(vector.MakeNullVector2()).

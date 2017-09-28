@@ -3,9 +3,8 @@ package arenaserver
 import (
 	"encoding/json"
 	"errors"
-	"log"
+	"fmt"
 	"runtime"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -194,15 +193,15 @@ func (server *Server) onAgentsReady() {
 	utils.Debug("arena", "Agents are ready; starting in 1 second")
 	time.Sleep(time.Duration(time.Second * 1))
 
-	go func() {
-		stopChannel := make(chan bool)
-		server.monitoring(stopChannel)
+	// go func() {
+	// 	stopChannel := make(chan bool)
+	// 	server.monitoring(stopChannel)
 
-		server.AddTearDownCall(func() error {
-			stopChannel <- true
-			return nil
-		})
-	}()
+	// 	server.AddTearDownCall(func() error {
+	// 		stopChannel <- true
+	// 		return nil
+	// 	})
+	// }()
 
 	server.startTicking()
 }
@@ -257,8 +256,12 @@ func (server *Server) doTick() {
 	dolog := (turn % server.tickspersec) == 0
 
 	if dolog {
-		utils.Debug("core-loop", "######## Tick ######## "+strconv.Itoa(turn))
-		utils.Debug("core-loop", "Goroutines in flight : "+strconv.Itoa(runtime.NumGoroutine()))
+		var totalDuration int64 = 0
+		for _, duration := range server.tickdurations {
+			totalDuration += duration
+		}
+		meanTick := float64(totalDuration) / float64(len(server.tickdurations))
+		utils.Debug("core-loop", fmt.Sprintf("Tick %d; %.3f ms mean; %d goroutines", turn, meanTick/1000000.0, runtime.NumGoroutine()))
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -299,15 +302,6 @@ func (server *Server) doTick() {
 		server.tickdurations = append(server.tickdurations, time.Now().UnixNano()-begin.UnixNano())
 	} else {
 		server.tickdurations[turn%nbsamplesToKeep] = time.Now().UnixNano() - begin.UnixNano()
-	}
-
-	if dolog {
-		var totalDuration int64 = 0
-		for _, duration := range server.tickdurations {
-			totalDuration += duration
-		}
-		meanTick := float64(totalDuration) / float64(len(server.tickdurations))
-		log.Println("Mean tick duration ", meanTick/1000000.0, "ms")
 	}
 }
 

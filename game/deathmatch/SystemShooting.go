@@ -7,8 +7,8 @@ import (
 func systemShooting(deathmatch *DeathmatchGame) {
 
 	for _, entityresult := range deathmatch.shootingView.Get() {
-		shootingAspect := deathmatch.CastShooting(entityresult.Components[deathmatch.shootingComponent])
-		physicalAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
+		shootingAspect := entityresult.Components[deathmatch.shootingComponent].(*Shooting)
+		physicalAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
 
 		shots := shootingAspect.PopPendingShots()
 		if len(shots) == 0 {

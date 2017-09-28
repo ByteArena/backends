@@ -36,8 +36,8 @@ func (filter *collisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB
 		return false
 	}
 
-	collidableAspectA := game.CastCollidable(entityResultA.Components[game.collidableComponent])
-	collidableAspectB := game.CastCollidable(entityResultB.Components[game.collidableComponent])
+	collidableAspectA := entityResultA.Components[game.collidableComponent].(*Collidable)
+	collidableAspectB := entityResultB.Components[game.collidableComponent].(*Collidable)
 
 	mayGroupsCollide := collidableAspectA.MayCollideWith(collidableAspectB) || collidableAspectB.MayCollideWith(collidableAspectA)
 	if !mayGroupsCollide {
@@ -52,14 +52,14 @@ func (filter *collisionFilter) ShouldCollide(fixtureA *box2d.B2Fixture, fixtureB
 	entityResultOwnedB := game.getEntity(descriptorB.ID, game.ownedComponent)
 
 	if entityResultOwnedA != nil {
-		ownedAspect := game.CastOwned(entityResultOwnedA.Components[game.ownedComponent])
+		ownedAspect := entityResultOwnedA.Components[game.ownedComponent].(*Owned)
 		if ownedAspect.GetOwner() == descriptorB.ID {
 			return false
 		}
 	}
 
 	if entityResultOwnedB != nil {
-		ownedAspect := game.CastOwned(entityResultOwnedB.Components[game.ownedComponent])
+		ownedAspect := entityResultOwnedB.Components[game.ownedComponent].(*Owned)
 		if ownedAspect.GetOwner() == descriptorA.ID {
 			return false
 		}

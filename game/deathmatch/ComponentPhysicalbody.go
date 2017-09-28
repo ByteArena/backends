@@ -5,10 +5,6 @@ import (
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
-func (deathmatch DeathmatchGame) CastPhysicalBody(data interface{}) *PhysicalBody {
-	return data.(*PhysicalBody)
-}
-
 type PhysicalBody struct {
 	body               *box2d.B2Body
 	maxSpeed           float64 // expressed in m/tick

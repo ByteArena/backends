@@ -18,7 +18,7 @@ func systemPerception(deathmatch *DeathmatchGame) {
 	wg.Add(len(entitiesWithPerception))
 
 	for _, entityResult := range entitiesWithPerception {
-		perceptionAspect := deathmatch.CastPerception(entityResult.Components[deathmatch.perceptionComponent])
+		perceptionAspect := entityResult.Components[deathmatch.perceptionComponent].(*Perception)
 		go func(perceptionAspect *Perception, entity *ecs.Entity, wg *sync.WaitGroup) {
 			perceptionAspect.SetPerception(computeAgentPerception(
 				deathmatch,
@@ -45,9 +45,9 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 		return []byte{}
 	}
 
-	physicalAspect := game.CastPhysicalBody(entityresult.Components[game.physicalBodyComponent])
-	steeringAspect := game.CastSteering(entityresult.Components[game.steeringComponent])
-	perceptionAspect := game.CastPerception(entityresult.Components[game.perceptionComponent])
+	physicalAspect := entityresult.Components[game.physicalBodyComponent].(*PhysicalBody)
+	steeringAspect := entityresult.Components[game.steeringComponent].(*Steering)
+	perceptionAspect := entityresult.Components[game.perceptionComponent].(*Perception)
 
 	orientation := physicalAspect.GetOrientation()
 	velocity := physicalAspect.GetVelocity()
@@ -100,7 +100,7 @@ func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Physic
 			continue // one cannot see itself
 		}
 
-		otherPhysicalAspect := game.CastPhysicalBody(otherentityresult.Components[game.physicalBodyComponent])
+		otherPhysicalAspect := otherentityresult.Components[game.physicalBodyComponent].(*PhysicalBody)
 
 		otherPosition := otherPhysicalAspect.GetPosition()
 		otherVelocity := otherPhysicalAspect.GetVelocity()

@@ -31,10 +31,6 @@ func NewShooting() *Shooting {
 	}
 }
 
-func (deathmatch DeathmatchGame) CastShooting(data interface{}) *Shooting {
-	return data.(*Shooting)
-}
-
 func (shooting *Shooting) PushShot(aiming vector.Vector2) {
 	shooting.lock.Lock()
 	shooting.pendingShots = append(shooting.pendingShots, aiming)

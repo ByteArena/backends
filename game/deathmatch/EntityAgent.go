@@ -1,6 +1,9 @@
 package deathmatch
 
 import (
+	"log"
+	"math/rand"
+
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -64,8 +67,53 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 				CollisionGroup.Projectile,
 				CollisionGroup.Ground,
 			),
-		).SetCollisionScriptFunc(agentCollisionScript)) //.
-	//AddComponent(deathmatch.lifecycleComponent, &Lifecycle{})
+		).SetCollisionScriptFunc(agentCollisionScript)).
+		AddComponent(deathmatch.lifecycleComponent, &Lifecycle{
+			onDeath: func() {
+				log.Println("AGENT DEATH !!!!!!!!!!!!!!!!!!!!!")
+				qr := deathmatch.getEntity(agent.GetID(), deathmatch.respawnComponent, deathmatch.lifecycleComponent)
+				if qr == nil {
+					// should never happen
+					return
+				}
+
+				respawnAspect := qr.Components[deathmatch.respawnComponent].(*Respawn)
+				lifecycleAspect := qr.Components[deathmatch.lifecycleComponent].(*Lifecycle)
+
+				lifecycleAspect.locked = true
+
+				respawnAspect.isRespawning = true
+				respawnAspect.respawningCountdown = deathmatch.gameDescription.GetTps() * 5 // 5 seconds
+
+			},
+		}).
+		AddComponent(deathmatch.respawnComponent, &Respawn{
+			onRespawn: func() {
+
+				qr := deathmatch.getEntity(agent.GetID(),
+					deathmatch.physicalBodyComponent,
+					deathmatch.lifecycleComponent,
+					deathmatch.healthComponent,
+				)
+
+				if qr == nil {
+					// should never happen
+					return
+				}
+
+				// pick a randown spawn point
+				starts := deathmatch.gameDescription.GetMapContainer().Data.Starts
+				spawnPoint := starts[rand.Int()%(len(starts)-1)].Point
+
+				physicalAspect := qr.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
+				lifecycleAspect := qr.Components[deathmatch.lifecycleComponent].(*Lifecycle)
+				healthAspect := qr.Components[deathmatch.healthComponent].(*Health)
+
+				physicalAspect.SetPosition(vector.MakeVector2(spawnPoint.X, spawnPoint.Y))
+				lifecycleAspect.locked = false
+				healthAspect.Restore()
+			},
+		})
 }
 
 func agentCollisionScript(game *DeathmatchGame, entityID ecs.EntityID, otherEntityID ecs.EntityID, collidableAspect *Collidable, otherCollidableAspectB *Collidable, point vector.Vector2) {
@@ -74,6 +122,6 @@ func agentCollisionScript(game *DeathmatchGame, entityID ecs.EntityID, otherEnti
 		return
 	}
 
-	physicalAspect := game.CastPhysicalBody(entityResult.Components[game.physicalBodyComponent])
+	physicalAspect := entityResult.Components[game.physicalBodyComponent].(*PhysicalBody)
 	physicalAspect.SetVelocity(vector.MakeNullVector2())
 }

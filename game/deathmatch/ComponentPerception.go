@@ -6,10 +6,6 @@ type Perception struct {
 	perception   []byte
 }
 
-func (deathmatch DeathmatchGame) CastPerception(data interface{}) *Perception {
-	return data.(*Perception)
-}
-
 func (p Perception) GetVisionAngle() float64 {
 	return p.visionAngle
 }

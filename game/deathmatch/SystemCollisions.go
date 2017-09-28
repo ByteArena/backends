@@ -46,8 +46,8 @@ func systemCollisions(deathmatch *DeathmatchGame) []collision {
 			continue
 		}
 
-		collidableAspectA := deathmatch.CastCollidable(entityResultA.Components[deathmatch.collidableComponent])
-		collidableAspectB := deathmatch.CastCollidable(entityResultB.Components[deathmatch.collidableComponent])
+		collidableAspectA := entityResultA.Components[deathmatch.collidableComponent].(*Collidable)
+		collidableAspectB := entityResultB.Components[deathmatch.collidableComponent].(*Collidable)
 
 		compiledCollision := collision{
 			entityIDA:         A.ID,

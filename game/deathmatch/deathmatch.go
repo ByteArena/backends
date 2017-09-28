@@ -28,6 +28,7 @@ type DeathmatchGame struct {
 	impactorComponent     *ecs.Component
 	collidableComponent   *ecs.Component
 	lifecycleComponent    *ecs.Component
+	respawnComponent      *ecs.Component
 
 	agentsView     *ecs.View
 	renderableView *ecs.View
@@ -37,6 +38,7 @@ type DeathmatchGame struct {
 	steeringView   *ecs.View
 	impactorView   *ecs.View
 	lifecycleView  *ecs.View
+	respawnView    *ecs.View
 
 	PhysicalWorld     *box2d.B2World
 	collisionListener *collisionListener
@@ -61,6 +63,7 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		impactorComponent:     manager.NewComponent(),
 		collidableComponent:   manager.NewComponent(),
 		lifecycleComponent:    manager.NewComponent(),
+		respawnComponent:      manager.NewComponent(),
 	}
 
 	gravity := box2d.MakeB2Vec2(0.0, 0.0) // gravity 0: the simulation is seen from the top
@@ -91,6 +94,7 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 	game.steeringView = manager.CreateView(
 		game.steeringComponent,
 		game.physicalBodyComponent,
+		game.lifecycleComponent,
 	)
 
 	game.impactorView = manager.CreateView(
@@ -102,8 +106,12 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		game.lifecycleComponent,
 	)
 
+	game.respawnView = manager.CreateView(
+		game.respawnComponent,
+	)
+
 	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity, data interface{}) {
-		physicalAspect := game.CastPhysicalBody(data)
+		physicalAspect := data.(*PhysicalBody)
 		game.PhysicalWorld.DestroyBody(physicalAspect.GetBody())
 	})
 
@@ -131,6 +139,17 @@ func (deathmatch *DeathmatchGame) Unsubscribe(subscription common.GameEventSubsc
 func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []types.AgentMutationBatch) {
 
 	deathmatch.ticknum = ticknum
+
+	respawnersTag := ecs.BuildTag(deathmatch.respawnComponent)
+
+	///////////////////////////////////////////////////////////////////////////
+	// On fait mourir les non respawners début du tour (donc après le tour
+	// précédent et la construction du message de visualisation du tour précédent).
+	// Cela permet de conserver la vision des projectiles à l'endroit de leur disparition pendant 1 tick
+	// Pour une meilleur précision de la position de collision dans la visualisation
+	///////////////////////////////////////////////////////////////////////////
+
+	systemDeath(deathmatch, respawnersTag.Inverse())
 
 	///////////////////////////////////////////////////////////////////////////
 	// On traite les mutations
@@ -163,28 +182,34 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 	systemHealth(deathmatch, collisions)
 
 	///////////////////////////////////////////////////////////////////////////
-	// On fait mourir les entités
+	// On fait vivre les entités
 	///////////////////////////////////////////////////////////////////////////
 	systemLifecycle(deathmatch)
+
+	///////////////////////////////////////////////////////////////////////////
+	// On fait mourir les respawners tués au cours du tour
+	///////////////////////////////////////////////////////////////////////////
+	systemDeath(deathmatch, respawnersTag)
+
+	///////////////////////////////////////////////////////////////////////////
+	// On ressuscite les entités qui peuvent l'être
+	///////////////////////////////////////////////////////////////////////////
+	systemRespawn(deathmatch)
 
 	///////////////////////////////////////////////////////////////////////////
 	// On construit les perceptions
 	///////////////////////////////////////////////////////////////////////////
 	systemPerception(deathmatch)
 
-	///////////////////////////////////////////////////////////////////////////
-	// On supprime les projectiles en fin de vie
-	///////////////////////////////////////////////////////////////////////////
-	systemDeath(deathmatch)
 }
 
 func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []byte {
 	entityResult := deathmatch.getEntity(entityid, deathmatch.perceptionComponent)
 	if entityResult == nil {
-		return []byte{}
+		return []byte("0")
 	}
 
-	perceptionAspect := deathmatch.CastPerception(entityResult.Components[deathmatch.perceptionComponent])
+	perceptionAspect := entityResult.Components[deathmatch.perceptionComponent].(*Perception)
 	return perceptionAspect.GetPerception()
 }
 
@@ -196,8 +221,8 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 
 	for _, entityresult := range deathmatch.renderableView.Get() {
 
-		renderAspect := deathmatch.CastRender(entityresult.Components[deathmatch.renderComponent])
-		physicalBodyAspect := deathmatch.CastPhysicalBody(entityresult.Components[deathmatch.physicalBodyComponent])
+		renderAspect := entityresult.Components[deathmatch.renderComponent].(*Render)
+		physicalBodyAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
 
 		msg.Objects = append(msg.Objects, commontypes.VizMessageObject{
 			Id:          entityresult.Entity.GetID().String(),

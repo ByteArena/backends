@@ -1,14 +1,12 @@
 package deathmatch
 
 type Lifecycle struct {
-	tickBirth int
-	tickDeath int
-	maxAge    int
-	onDeath   func()
-}
-
-func (deathmatch DeathmatchGame) CastLifecycle(data interface{}) *Lifecycle {
-	return data.(*Lifecycle)
+	tickBirth      int
+	tickDeath      int
+	deathProcessed bool
+	maxAge         int
+	onDeath        func()
+	locked         bool
 }
 
 func (lc *Lifecycle) SetMaxAge(maxAge int) *Lifecycle {
@@ -31,5 +29,6 @@ func (lc Lifecycle) GetDeath() int {
 
 func (lc *Lifecycle) SetDeath(tick int) *Lifecycle {
 	lc.tickDeath = tick
+	lc.deathProcessed = false
 	return lc
 }

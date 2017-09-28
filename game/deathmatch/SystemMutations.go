@@ -12,6 +12,16 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 
 	for _, batch := range mutations {
 
+		entityresult := deathmatch.getEntity(batch.AgentEntityId, deathmatch.lifecycleComponent)
+		if entityresult != nil {
+			lifecycleAspect := entityresult.Components[deathmatch.lifecycleComponent].(*Lifecycle)
+			if lifecycleAspect.locked {
+
+				// Entity is locked; discarding all mutations
+				continue
+			}
+		}
+
 		// Ordering actions
 		// This is important because operations like shooting are taken from the previous position of the agent
 		// 1. Non-movement actions (shoot, etc.)
@@ -37,7 +47,7 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 						continue
 					}
 
-					shootingAspect := deathmatch.CastShooting(entityresult.Components[deathmatch.shootingComponent])
+					shootingAspect := entityresult.Components[deathmatch.shootingComponent].(*Shooting)
 					shootingAspect.PushShot(aiming)
 
 					break
@@ -64,7 +74,7 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 						continue
 					}
 
-					steeringAspect := deathmatch.CastSteering(entityresult.Components[deathmatch.steeringComponent])
+					steeringAspect := entityresult.Components[deathmatch.steeringComponent].(*Steering)
 					steeringAspect.PushSteer(steering)
 
 					break
