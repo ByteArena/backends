@@ -423,3 +423,42 @@ func LocalAngleToAbsoluteAngleVec(abscurrentagentangle float64, vec vector.Vecto
 
 	return vec.SetAngle(abscurrentagentangle + relvecangle)
 }
+
+func GetBoundingBoxForPoints(points []vector.Vector2) (lowerBound vector.Vector2, upperBound vector.Vector2) {
+
+	var minX = 10000000000.0
+	var minY = 10000000000.0
+	var maxX = -10000000000.0
+	var maxY = -10000000000.0
+
+	for _, point := range points {
+		x, y := point.Get()
+		if x < minX {
+			minX = x
+		}
+
+		if y < minY {
+			minY = y
+		}
+
+		if x > maxX {
+			maxX = x
+		}
+
+		if y > maxY {
+			maxY = y
+		}
+	}
+
+	width := maxX - minX
+	if width <= 0 {
+		width = 0.00001
+	}
+
+	height := maxY - minY
+	if height <= 0 {
+		height = 0.00001
+	}
+
+	return vector.MakeVector2(minX, minY), vector.MakeVector2(maxX, maxY)
+}

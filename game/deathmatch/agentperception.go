@@ -4,7 +4,7 @@ import "github.com/bytearena/bytearena/common/utils/vector"
 
 type _privateAgentPerceptionVisionItemTag string
 
-var AgentPerceptionVisionItemTag = struct {
+var agentPerceptionVisionItemTag = struct {
 	Agent      _privateAgentPerceptionVisionItemTag
 	Obstacle   _privateAgentPerceptionVisionItemTag
 	Projectile _privateAgentPerceptionVisionItemTag
@@ -14,7 +14,7 @@ var AgentPerceptionVisionItemTag = struct {
 	Projectile: _privateAgentPerceptionVisionItemTag("projectile"),
 }
 
-type AgentPerceptionSpecs struct {
+type agentPerceptionSpecs struct {
 	MaxSpeed           float64 // max distance covered per turn
 	MaxSteeringForce   float64 // max force applied when steering (ie, max magnitude of steering vector)
 	MaxAngularVelocity float64
@@ -23,7 +23,7 @@ type AgentPerceptionSpecs struct {
 	DragForce          float64
 }
 
-type AgentPerceptionVisionItem struct {
+type agentPerceptionVisionItem struct {
 	Tag       _privateAgentPerceptionVisionItemTag
 	CloseEdge vector.Vector2
 	Center    vector.Vector2
@@ -31,19 +31,19 @@ type AgentPerceptionVisionItem struct {
 	Velocity  vector.Vector2
 }
 
-type AgentPerceptionExternal struct {
-	Vision []AgentPerceptionVisionItem
+type agentPerceptionExternal struct {
+	Vision []agentPerceptionVisionItem
 }
 
-type AgentPerceptionInternal struct {
+type agentPerceptionInternal struct {
 	Energy           float64        // niveau en millièmes; reconstitution automatique ?
 	Proprioception   float64        // rayon de la surface occupée par le corps en rayon par rapport au centre géométrique
 	Velocity         vector.Vector2 // vecteur de force (direction, magnitude)
 	Magnetoreception float64        // azimuth en degrés par rapport au "Nord" de l'arène
 }
 
-type AgentPerception struct {
-	Specs    AgentPerceptionSpecs
-	External AgentPerceptionExternal
-	Internal AgentPerceptionInternal
+type agentPerception struct {
+	Specs    agentPerceptionSpecs
+	External agentPerceptionExternal
+	Internal agentPerceptionInternal
 }

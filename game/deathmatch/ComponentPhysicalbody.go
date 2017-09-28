@@ -54,7 +54,7 @@ func (p *PhysicalBody) SetOrientation(angle float64) *PhysicalBody {
 }
 
 func (p PhysicalBody) GetRadius() float64 {
-	// FIXME(jerome): here we suppose that the agent is always a circle
+	// FIXME(jerome): here we suppose that the body is always a circle
 	return p.body.GetFixtureList().GetShape().GetRadius()
 }
 

@@ -46,8 +46,8 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 			dragForce:          0.015,
 		}).
 		AddComponent(deathmatch.perceptionComponent, &Perception{
-			visionAngle:  number.DegreeToRadian(180),
-			visionRadius: 100,
+			visionAngle:  number.DegreeToRadian(140),
+			visionRadius: 60,
 		}).
 		AddComponent(deathmatch.healthComponent, NewHealth(100)).
 		AddComponent(deathmatch.playerComponent, &Player{}).

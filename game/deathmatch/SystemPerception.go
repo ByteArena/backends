@@ -2,13 +2,17 @@ package deathmatch
 
 import (
 	"encoding/json"
+	"log"
 	"math"
 	"sync"
 
-	"github.com/bytearena/box2d"
 	commontypes "github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/types/mapcontainer"
+	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
+
+	"github.com/bytearena/box2d"
+
+	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/ecs"
 )
 
@@ -33,7 +37,7 @@ func systemPerception(deathmatch *DeathmatchGame) {
 }
 
 func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) []byte {
-	p := AgentPerception{}
+	p := agentPerception{}
 
 	entityresult := game.getEntity(entityid,
 		game.physicalBodyComponent,
@@ -64,109 +68,214 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	p.Specs.VisionRadius = perceptionAspect.GetVisionRadius()
 	p.Specs.VisionAngle = perceptionAspect.GetVisionAngle()
 
-	p.External.Vision = computeAgentVision(game, arenaMap, entityresult.Entity, physicalAspect, perceptionAspect)
+	p.External.Vision = computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)
 
 	res, _ := json.Marshal(p)
 	return res
 }
 
-func computeAgentVision(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []AgentPerceptionVisionItem {
+func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
 
-	vision := make([]AgentPerceptionVisionItem, 0)
+	vision := make([]agentPerceptionVisionItem, 0)
 
-	// Vision: Les autres agents
-	vision = append(vision, viewAgents(game, entity, physicalAspect, perceptionAspect)...)
-
-	// Vision: les obstacles
-	//vision = append(vision, viewObstacles(game, entity)...)
+	vision = append(vision, viewEntities(game, entity, physicalAspect, perceptionAspect)...)
 
 	return vision
 }
 
-func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []AgentPerceptionVisionItem {
+func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
+	vision := make([]agentPerceptionVisionItem, 0)
 
-	vision := make([]AgentPerceptionVisionItem, 0)
+	// for _, entityresult := range game.physicalView.Get() {
+	// 	physicalAspect := entityresult.Components[game.physicalBodyComponent].(*PhysicalBody)
+	// 	if physicalAspect.GetVelocity().Mag() > 0.01 {
+	// 		physicalAspect.SetOrientation(physicalAspect.GetVelocity().Angle())
+	// 	}
+	// }
 
-	agentposition := physicalAspect.GetPosition()
+	pi2 := math.Pi * 2
+	halfpi := math.Pi / 2
+	threepi2 := math.Pi + halfpi
 
-	orientation := physicalAspect.GetOrientation()
-	radiussq := math.Pow(perceptionAspect.GetVisionRadius(), 2)
+	agentPosition := physicalAspect.GetPosition()
+	agentOrientation := physicalAspect.GetOrientation()
+	visionAngle := perceptionAspect.GetVisionAngle()
+	visionRadius := perceptionAspect.GetVisionRadius()
 
-	for _, otherentityresult := range game.agentsView.Get() {
+	halfVisionAngle := visionAngle / 2
+	leftVisionEdgeAngle := math.Mod(agentOrientation-halfVisionAngle, pi2)
+	rightVisionEdgeAngle := math.Mod(agentOrientation+halfVisionAngle, pi2)
+	leftVisionRelvec := vector.MakeVector2(1, 1).SetMag(visionRadius).SetAngle(leftVisionEdgeAngle)
+	rightVisionRelvec := vector.MakeVector2(1, 1).SetMag(visionRadius).SetAngle(rightVisionEdgeAngle)
 
-		otherentity := otherentityresult.Entity
+	// Determine View cone AABB
 
-		if otherentity.GetID() == entity.GetID() {
-			continue // one cannot see itself
+	notableVisionConePoints := make([]vector.Vector2, 0)
+	notableVisionConePoints = append(notableVisionConePoints, agentPosition)                        // center
+	notableVisionConePoints = append(notableVisionConePoints, leftVisionRelvec.Add(agentPosition))  // left radius
+	notableVisionConePoints = append(notableVisionConePoints, rightVisionRelvec.Add(agentPosition)) // right radius
+
+	minAngle := math.Min(leftVisionEdgeAngle, rightVisionEdgeAngle)
+	maxAngle := math.Max(leftVisionEdgeAngle, rightVisionEdgeAngle)
+
+	if minAngle <= 0 && maxAngle > 0 {
+		// Determine north point on circle
+		notableVisionConePoints = append(notableVisionConePoints,
+			vector.MakeVector2(1, 1).SetMag(visionRadius).SetAngle(0).Add(agentPosition),
+		)
+	}
+
+	if minAngle <= halfpi && maxAngle > halfpi {
+		// Determine east point on circle
+		notableVisionConePoints = append(notableVisionConePoints,
+			vector.MakeVector2(1, 1).SetMag(visionRadius).SetAngle(halfpi).Add(agentPosition),
+		)
+	}
+
+	if minAngle <= math.Pi && maxAngle > math.Pi {
+		// Determine south point on circle
+		notableVisionConePoints = append(notableVisionConePoints,
+			vector.MakeVector2(1, 1).SetMag(visionRadius).SetAngle(math.Pi).Add(agentPosition),
+		)
+	}
+
+	if minAngle <= (threepi2) && maxAngle > (threepi2) {
+		// Determine west point on circle
+		notableVisionConePoints = append(notableVisionConePoints,
+			vector.MakeVector2(1, 1).SetMag(visionRadius).SetAngle(threepi2).Add(agentPosition),
+		)
+	}
+
+	lowerBound, upperBound := trigo.GetBoundingBoxForPoints(notableVisionConePoints)
+
+	aabb := box2d.MakeB2AABB()
+	aabb.LowerBound = lowerBound.ToB2Vec2()
+	aabb.UpperBound = upperBound.ToB2Vec2()
+
+	elementsInAABB := make([]commontypes.PhysicalBodyDescriptor, 0)
+
+	game.PhysicalWorld.QueryAABB(func(fixture *box2d.B2Fixture) bool {
+		if descriptor, ok := fixture.GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor); ok {
+			elementsInAABB = append(elementsInAABB, descriptor)
+		}
+		return true // keep going to find all fixtures in the query area
+	}, aabb)
+
+	log.Println("AABB:", len(elementsInAABB))
+
+	for _, bodyDescriptor := range elementsInAABB {
+
+		if bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Agent || bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
+			// view a circle
+		} else {
+			// view a polygon
 		}
 
-		otherPhysicalAspect := otherentityresult.Components[game.physicalBodyComponent].(*PhysicalBody)
+		// qr := game.getEntity(bodyDescriptor.ID, game.physicalBodyComponent)
+		// if qr == nil {
+		// 	continue
+		// }
 
-		otherPosition := otherPhysicalAspect.GetPosition()
-		otherVelocity := otherPhysicalAspect.GetVelocity()
-		otherRadius := otherPhysicalAspect.GetRadius()
+		// obstaclePhysicalAspect := qr.Components[game.physicalBodyComponent].(*PhysicalBody)
+		// obstaclePhysicalAspect.body.GetFixtureList()
 
-		centervec := otherPosition.Sub(agentposition)
-		centersegment := vector.MakeSegment2(vector.MakeNullVector2(), centervec)
-		agentdiameter := centersegment.OrthogonalToBCentered().SetLengthFromCenter(otherRadius * 2)
-
-		closeEdge, farEdge := agentdiameter.Get()
-
-		distsq := centervec.MagSq()
-		if distsq <= radiussq {
-
-			occulted := false
-
-			// raycast between two the agents to determine if they can see each other
-			game.PhysicalWorld.RayCast(
-				func(fixture *box2d.B2Fixture, point box2d.B2Vec2, normal box2d.B2Vec2, fraction float64) float64 {
-					bodyDescriptor, ok := fixture.GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
-					if !ok {
-						return 1.0 // continue the ray
-					}
-
-					if bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Obstacle {
-						occulted = true
-						return 0.0 // terminate the ray
-					}
-
-					return 1.0 // continue the ray
-				},
-				agentposition.ToB2Vec2(),
-				otherPosition.ToB2Vec2(),
-			)
-
-			if occulted {
-				continue // cannot see through obstacles
-			}
-
-			// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
-			centervec = centervec.SetAngle(centervec.Angle() - orientation)
-			visionitem := AgentPerceptionVisionItem{
-				CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - orientation), // perpendicular to relative position vector, left side
-				Center:    centervec,
-				FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - orientation), // perpendicular to relative position vector, right side
-				// FIXME(jerome): /20 here is to convert velocity per second in velocity per tick; should probably handle velocities in m/s everywhere ?
-				Velocity: otherVelocity.Clone().SetAngle(otherVelocity.Angle() - orientation).Scale(1 / 20),
-				Tag:      AgentPerceptionVisionItemTag.Agent,
-			}
-
-			vision = append(vision, visionitem)
-
-			//log.Println(orientation, otherVelocity, closeEdge, farEdge, visionitem)
-		}
 	}
 
 	return vision
 }
 
-func viewObstacles(game *DeathmatchGame, entity *ecs.Entity) []AgentPerceptionVisionItem {
+func getCircleSegmentAABB(center vector.Vector2, radius float64, angleARad float64, angleBRad float64) (lowerBound vector.Vector2, upperBound vector.Vector2) {
+	return vector.MakeVector2(0, 0), vector.MakeVector2(0, 0)
+}
 
-	vision := make([]AgentPerceptionVisionItem, 0)
+// func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
 
-	// FIXME(jerome)
-	// physicalAspect := game.GetPhysicalBody(entity)
-	// perceptionAspect := game.GetPerception(entity)
+// 	vision := make([]agentPerceptionVisionItem, 0)
+
+// 	agentposition := physicalAspect.GetPosition()
+
+// 	orientation := physicalAspect.GetOrientation()
+// 	radiussq := math.Pow(perceptionAspect.GetVisionRadius(), 2)
+
+// 	for _, otherentityresult := range game.agentsView.Get() {
+
+// 		otherentity := otherentityresult.Entity
+
+// 		if otherentity.GetID() == entity.GetID() {
+// 			continue // one cannot see itself
+// 		}
+
+// 		otherPhysicalAspect := otherentityresult.Components[game.physicalBodyComponent].(*PhysicalBody)
+
+// 		otherPosition := otherPhysicalAspect.GetPosition()
+// 		otherVelocity := otherPhysicalAspect.GetVelocity()
+// 		otherRadius := otherPhysicalAspect.GetRadius()
+
+// 		centervec := otherPosition.Sub(agentposition)
+// 		centersegment := vector.MakeSegment2(vector.MakeNullVector2(), centervec)
+// 		agentdiameter := centersegment.OrthogonalToBCentered().SetLengthFromCenter(otherRadius * 2)
+
+// 		closeEdge, farEdge := agentdiameter.Get()
+
+// 		distsq := centervec.MagSq()
+// 		if distsq <= radiussq {
+
+// 			occulted := false
+
+// 			// raycast between two the agents to determine if they can see each other
+// 			game.PhysicalWorld.RayCast(
+// 				func(fixture *box2d.B2Fixture, point box2d.B2Vec2, normal box2d.B2Vec2, fraction float64) float64 {
+// 					bodyDescriptor, ok := fixture.GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
+// 					if !ok {
+// 						return 1.0 // continue the ray
+// 					}
+
+// 					if bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Obstacle {
+// 						occulted = true
+// 						return 0.0 // terminate the ray
+// 					}
+
+// 					return 1.0 // continue the ray
+// 				},
+// 				agentposition.ToB2Vec2(),
+// 				otherPosition.ToB2Vec2(),
+// 			)
+
+// 			if occulted {
+// 				continue // cannot see through obstacles
+// 			}
+
+// 			// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
+// 			centervec = centervec.SetAngle(centervec.Angle() - orientation)
+// 			visionitem := agentPerceptionVisionItem{
+// 				CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - orientation), // perpendicular to relative position vector, left side
+// 				Center:    centervec,
+// 				FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - orientation), // perpendicular to relative position vector, right side
+// 				// FIXME(jerome): /20 here is to convert velocity per second in velocity per tick; should probably handle velocities in m/s everywhere ?
+// 				Velocity: otherVelocity.Clone().SetAngle(otherVelocity.Angle() - orientation).Scale(1 / 20),
+// 				Tag:      agentPerceptionVisionItemTag.Agent,
+// 			}
+
+// 			vision = append(vision, visionitem)
+
+// 			//log.Println(orientation, otherVelocity, closeEdge, farEdge, visionitem)
+// 		}
+// 	}
+
+// 	return vision
+// }
+
+func viewObstacles(game *DeathmatchGame, entity *ecs.Entity) []agentPerceptionVisionItem {
+
+	vision := make([]agentPerceptionVisionItem, 0)
+
+	// queryResult := game.getEntity(entity.GetID(), game.physicalBodyComponent, game.perceptionComponent)
+	// if queryResult == nil {
+	// 	return vision
+	// }
+
+	// physicalAspect := queryResult.Components[game.physicalBodyComponent].(*PhysicalBody)
+	// perceptionAspect := queryResult.Components[game.perceptionComponent].(*Perception)
 
 	// absoluteposition := physicalAspect.GetPosition()
 	// orientation := physicalAspect.GetOrientation()
