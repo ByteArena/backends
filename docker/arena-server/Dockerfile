@@ -1,10 +1,13 @@
-FROM golang:1.8-stretch as builder
+FROM golang:1.8-alpine3.5 as builder
 
 ENV APP_HOME $GOPATH/src/github.com/bytearena/bytearena
 
-RUN apt-get -y update
-RUN apt-get -y upgrade
-RUN apt-get -y install git openssh-server curl netcat gnupg2 sudo
+# RUN apt-get -y update
+# RUN apt-get -y upgrade
+# RUN apt-get -y install git openssh-server curl netcat gnupg2 sudo
+
+RUN apk update
+RUN apk add git curl sudo gnupg
 
 RUN curl https://glide.sh/get | sh
 
@@ -13,27 +16,29 @@ COPY ./ $APP_HOME
 WORKDIR $APP_HOME
 # RUN glide --debug install
 
-# Build mq-cli
-WORKDIR $APP_HOME/cmd/mq-cli
-RUN go build
-RUN cp -f $APP_HOME/cmd/mq-cli/mq-cli /usr/bin
-
 WORKDIR $APP_HOME/cmd/arena-server
 RUN go build
 RUN cp -f $APP_HOME/cmd/arena-server/arena-server /usr/bin
 
-FROM alpine:latest
+FROM alpine:3.5
 
 ARG REGISTRY_ADDR
+
+ENV PORT=7777
+ENV MQHOST=redis.net.bytearena.com
+ENV APIURL=graphql.net.bytearena.com
+ENV ID=UNKNOW
+ENV GAME_TIMEOUT=10
+ENV REGISTRY_ADDR=registry.net.bytearena.com
+ENV ARENA_ADDR=arena.local
 
 RUN apk update
 RUN apk add git curl sudo gnupg
 
-COPY --from=builder /usr/bin/mq-cli /usr/bin/mq-cli
 COPY --from=builder /usr/bin/arena-server /usr/bin/arena-server
 
 # Startup script
 COPY ./docker/arena-server/start.sh .
 
-CMD ["bash", "start.sh"]
+CMD ["sh", "start.sh"]
 
