@@ -7,6 +7,7 @@ type Lifecycle struct {
 	maxAge         int
 	onDeath        func()
 	locked         bool
+	delete         bool
 }
 
 func (lc *Lifecycle) SetMaxAge(maxAge int) *Lifecycle {

@@ -201,14 +201,16 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 	///////////////////////////////////////////////////////////////////////////
 	systemPerception(deathmatch)
 
+	///////////////////////////////////////////////////////////////////////////
+	// On supprime les entités marquées comme à supprimer
+	// à la fin du tour pour éviter que box2D ne nile pas les références lors du disposeEntities
+	///////////////////////////////////////////////////////////////////////////
+	systemDeleteEntities(deathmatch)
+
 }
 
 func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []byte {
 	entityResult := deathmatch.getEntity(entityid, deathmatch.perceptionComponent)
-	if entityResult == nil {
-		return []byte("0")
-	}
-
 	perceptionAspect := entityResult.Components[deathmatch.perceptionComponent].(*Perception)
 	return perceptionAspect.GetPerception()
 }

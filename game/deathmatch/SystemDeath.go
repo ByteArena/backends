@@ -4,8 +4,6 @@ import "github.com/bytearena/ecs"
 
 func systemDeath(deathmatch *DeathmatchGame, filter ecs.Tag) {
 
-	entitiesToRemove := make([]*ecs.Entity, 0)
-
 	for _, entityresult := range deathmatch.lifecycleView.Get() {
 
 		if !entityresult.Entity.Matches(filter) {
@@ -17,13 +15,10 @@ func systemDeath(deathmatch *DeathmatchGame, filter ecs.Tag) {
 			if lifecycleAspect.onDeath != nil {
 				lifecycleAspect.onDeath()
 			} else {
-				entitiesToRemove = append(entitiesToRemove, entityresult.Entity)
+				//entitiesToRemove = append(entitiesToRemove, entityresult.Entity)
+				lifecycleAspect.delete = true
 			}
 			lifecycleAspect.deathProcessed = true
 		}
-	}
-
-	if len(entitiesToRemove) > 0 {
-		deathmatch.manager.DisposeEntities(entitiesToRemove...)
 	}
 }

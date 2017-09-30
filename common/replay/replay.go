@@ -67,7 +67,7 @@ func (r *Replayer) Read() chan *ReplayMessage {
 
 	go func() {
 		for {
-			line, isPrefix, readErr := reader.ReadLine()
+			line, readErr := utils.ReadFullLine(reader)
 
 			if len(line) == 0 {
 				continue
@@ -79,25 +79,9 @@ func (r *Replayer) Read() chan *ReplayMessage {
 				r.streamingChannel <- nil
 			}
 
-			if !isPrefix {
-				r.streamingChannel <- &ReplayMessage{
-					Line: string(line),
-					UUID: r.UUID,
-				}
-
-			} else {
-				buf := append([]byte(nil), line...)
-
-				for isPrefix && readErr == nil {
-					line, isPrefix, readErr = reader.ReadLine()
-					buf = append(buf, line...)
-				}
-
-				r.streamingChannel <- &ReplayMessage{
-					Line: string(buf),
-					UUID: r.UUID,
-				}
-
+			r.streamingChannel <- &ReplayMessage{
+				Line: line,
+				UUID: r.UUID,
 			}
 		}
 	}()

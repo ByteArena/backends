@@ -2,7 +2,6 @@ package deathmatch
 
 import (
 	"encoding/json"
-	"log"
 	"math"
 	"sync"
 
@@ -101,6 +100,7 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 	agentOrientation := physicalAspect.GetOrientation()
 	visionAngle := perceptionAspect.GetVisionAngle()
 	visionRadius := perceptionAspect.GetVisionRadius()
+	visionRadiusSq := visionRadius * visionRadius
 
 	halfVisionAngle := visionAngle / 2
 	leftVisionEdgeAngle := math.Mod(agentOrientation-halfVisionAngle, pi2)
@@ -161,24 +161,203 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 		return true // keep going to find all fixtures in the query area
 	}, aabb)
 
-	log.Println("AABB:", len(elementsInAABB))
+	//log.Println("AABB:", len(elementsInAABB))
 
 	for _, bodyDescriptor := range elementsInAABB {
 
-		if bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Agent || bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
-			// view a circle
-		} else {
-			// view a polygon
+		if bodyDescriptor.ID == entity.ID {
+			continue
 		}
 
-		// qr := game.getEntity(bodyDescriptor.ID, game.physicalBodyComponent)
-		// if qr == nil {
-		// 	continue
-		// }
+		if bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Agent || bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
+			//log.Println("Circle", bodyDescriptor.Type)
+			// view a circle
 
-		// obstaclePhysicalAspect := qr.Components[game.physicalBodyComponent].(*PhysicalBody)
-		// obstaclePhysicalAspect.body.GetFixtureList()
+			if bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Projectile {
+				ownedQr := game.getEntity(bodyDescriptor.ID, game.ownedComponent)
+				if ownedQr != nil {
+					ownedAspect := ownedQr.Components[game.ownedComponent].(*Owned)
+					if ownedAspect.GetOwner() == entity.GetID() {
+						// do not show projectiles to their sender
+						continue
+					}
+				}
+			}
 
+			otherQr := game.getEntity(bodyDescriptor.ID, game.physicalBodyComponent)
+			otherPhysicalAspect := otherQr.Components[game.physicalBodyComponent].(*PhysicalBody)
+
+			otherPosition := otherPhysicalAspect.GetPosition()
+			otherVelocity := otherPhysicalAspect.GetVelocity()
+			otherRadius := otherPhysicalAspect.GetRadius()
+
+			if otherPosition.Equals(agentPosition) {
+				// bodies have the exact same position; should never happen
+				continue
+			}
+
+			centervec := otherPosition.Sub(agentPosition)
+			centersegment := vector.MakeSegment2(vector.MakeNullVector2(), centervec)
+			agentdiameter := centersegment.OrthogonalToBCentered().SetLengthFromCenter(otherRadius * 2)
+
+			closeEdge, farEdge := agentdiameter.Get()
+
+			distsq := centervec.MagSq()
+			if distsq <= visionRadiusSq {
+
+				// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
+				centervec = centervec.SetAngle(centervec.Angle() - agentOrientation)
+
+				visionitem := agentPerceptionVisionItem{
+					CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - agentOrientation), // perpendicular to relative position vector, left side
+					Center:    centervec,
+					FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - agentOrientation), // perpendicular to relative position vector, right side
+					// FIXME(jerome): /20 here is to convert velocity per second in velocity per tick; should probably handle velocities in m/s everywhere ?
+					Velocity: otherVelocity.Clone().SetAngle(otherVelocity.Angle() - agentOrientation).Scale(1 / 20),
+					Tag:      agentPerceptionVisionItemTag.Agent,
+				}
+
+				vision = append(vision, visionitem)
+			}
+		} else {
+
+			// view a polygon
+			edges := make([]vector.Vector2, 0)
+			//rejectededges := make([]vector.Vector2, 0)
+
+			otherQr := game.getEntity(bodyDescriptor.ID, game.physicalBodyComponent)
+			otherPhysicalAspect := otherQr.Components[game.physicalBodyComponent].(*PhysicalBody)
+
+			bodyPoly := otherPhysicalAspect.body.GetFixtureList().GetShape().(*box2d.B2ChainShape)
+			vertices := bodyPoly.M_vertices
+			for i := 1; i < len(vertices); i++ {
+				pointA := vector.FromB2Vec2(vertices[i-1])
+				pointB := vector.FromB2Vec2(vertices[i])
+
+				relvecA := pointA.Sub(agentPosition)
+				relvecB := pointB.Sub(agentPosition)
+
+				distsqA := relvecA.MagSq()
+				distsqB := relvecB.MagSq()
+
+				// Comment déterminer si le vecteur entre dans le champ de vision ?
+				// => Intersection entre vecteur et segment gauche, droite
+
+				if distsqA <= visionRadiusSq {
+					// in radius
+					absAngleA := relvecA.Angle()
+					relAngleA := absAngleA - agentOrientation
+
+					// On passe de 0° / 360° à -180° / +180°
+					relAngleA = trigo.FullCircleAngleToSignedHalfCircleAngle(relAngleA)
+
+					if math.Abs(relAngleA) <= halfVisionAngle {
+						// point dans le champ de vision !
+						edges = append(edges, relvecA.Add(agentPosition))
+					} else {
+						//rejectededges = append(rejectededges, relvecA.Add(absoluteposition))
+					}
+				}
+
+				if distsqB <= visionRadiusSq {
+					absAngleB := relvecB.Angle()
+					relAngleB := absAngleB - agentOrientation
+
+					// On passe de 0° / 360° à -180° / +180°
+					relAngleB = trigo.FullCircleAngleToSignedHalfCircleAngle(relAngleB)
+
+					if math.Abs(relAngleB) <= halfVisionAngle {
+						// point dans le champ de vision !
+						edges = append(edges, relvecB.Add(agentPosition))
+					} else {
+						//rejectededges = append(rejectededges, relvecB.Add(absoluteposition))
+					}
+				}
+
+				{
+					// Sur les bords de la perception
+					if point, intersects, colinear, _ := trigo.IntersectionWithLineSegment(vector.MakeNullVector2(), leftVisionRelvec, relvecA, relvecB); intersects && !colinear {
+						// INTERSECT LEFT
+						edges = append(edges, point.Add(agentPosition))
+					}
+
+					if point, intersects, colinear, _ := trigo.IntersectionWithLineSegment(vector.MakeNullVector2(), rightVisionRelvec, relvecA, relvecB); intersects && !colinear {
+						// INTERSECT RIGHT
+						edges = append(edges, point.Add(agentPosition))
+					}
+				}
+
+				{
+					// Sur l'horizon de perception (arc de cercle)
+					intersections := trigo.LineCircleIntersectionPoints(
+						relvecA,
+						relvecB,
+						vector.MakeNullVector2(),
+						visionRadius,
+					)
+
+					for _, point := range intersections {
+						// il faut vérifier que le point se trouve bien sur le segment
+						// il faut vérifier que l'angle du point de collision se trouve bien dans le champ de vision de l'agent
+
+						if trigo.PointOnLineSegment(point, relvecA, relvecB) {
+							relvecangle := point.Angle() - agentOrientation
+
+							// On passe de 0° / 360° à -180° / +180°
+							relvecangle = trigo.FullCircleAngleToSignedHalfCircleAngle(relvecangle)
+
+							if math.Abs(relvecangle) <= halfVisionAngle {
+								edges = append(edges, point.Add(agentPosition))
+							} else {
+								//rejectededges = append(rejectededges, point.Add(absoluteposition))
+							}
+						} else {
+							//rejectededges = append(rejectededges, point.Add(absoluteposition))
+						}
+					}
+				}
+
+				if len(edges) == 2 {
+					edgeone := edges[0]
+					edgetwo := edges[1]
+					center := edgetwo.Add(edgeone).DivScalar(2)
+
+					//visiblemag := edgetwo.Sub(edgeone).Mag()
+
+					relCenter := center.Sub(agentPosition) // aligned on north
+					relCenterAngle := relCenter.Angle()
+					relCenterAgentAligned := relCenter.SetAngle(relCenterAngle - agentOrientation)
+
+					relEdgeOne := edgeone.Sub(agentPosition)
+					relEdgeTwo := edgetwo.Sub(agentPosition)
+
+					relEdgeOneAgentAligned := relEdgeOne.SetAngle(relEdgeOne.Angle() - agentOrientation)
+					relEdgeTwoAgentAligned := relEdgeTwo.SetAngle(relEdgeTwo.Angle() - agentOrientation)
+
+					var closeEdge, farEdge vector.Vector2
+					if relEdgeTwoAgentAligned.MagSq() > relEdgeOneAgentAligned.MagSq() {
+						closeEdge = relEdgeOneAgentAligned
+						farEdge = relEdgeTwoAgentAligned
+					} else {
+						closeEdge = relEdgeTwoAgentAligned
+						farEdge = relEdgeOneAgentAligned
+					}
+
+					obstacleperception := agentPerceptionVisionItem{
+						CloseEdge: closeEdge,
+						Center:    relCenterAgentAligned,
+						FarEdge:   farEdge,
+						Velocity:  vector.MakeNullVector2(),
+						Tag:       agentPerceptionVisionItemTag.Obstacle,
+					}
+
+					vision = append(vision, obstacleperception)
+
+				} else if len(edges) > 0 {
+					// problems with FOV > 180
+				}
+			}
+		}
 	}
 
 	return vision

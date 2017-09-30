@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -84,7 +85,9 @@ func (orch *LocalContainerOrchestrator) GetHost() (string, error) {
 }
 
 func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaservertypes.AgentContainer) error {
+
 	go func(orch *LocalContainerOrchestrator, container *arenaservertypes.AgentContainer) {
+
 		reader, err := orch.cli.ContainerLogs(orch.ctx, container.Containerid, types.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
@@ -96,12 +99,11 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.Containerid)
 
 		defer reader.Close()
-
 		r := bufio.NewReader(reader)
-		scanner := bufio.NewScanner(r)
-		for scanner.Scan() {
-			text := scanner.Text()
-			utils.Debug(container.AgentId.String()+"/"+container.ImageName, text)
+
+		for {
+			buf, _ := utils.ReadFullLine(r)
+			fmt.Printf("Message from %s: %s %d\n\n", container.AgentId.String()+"/"+container.ImageName, buf)
 		}
 
 	}(orch, container)
