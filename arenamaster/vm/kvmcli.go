@@ -22,6 +22,7 @@ func CreateKVMCommand(kvmbin string, config VMConfig) *exec.Cmd {
 	}
 
 	args = append(args, buildNetArgs(config.NICs)...)
+	args = append(args, buildQMPServer(config.QMPServer)...)
 
 	log.Println(args)
 
@@ -58,7 +59,7 @@ func buildNetArgs(NICs []interface{}) []string {
 				args,
 				[]string{
 					"-net",
-					"user",
+					fmt.Sprintf("user,host=%s", nic.Host),
 				}...,
 			)
 		case types.NICSocket:
@@ -72,6 +73,16 @@ func buildNetArgs(NICs []interface{}) []string {
 		default:
 			panic("Unknow NIC type")
 		}
+	}
+
+	return args
+}
+
+func buildQMPServer(config *types.QMPServer) []string {
+	args := []string{}
+
+	if config != nil {
+		return []string{"-qmp", config.Addr + ",server,nowait"}
 	}
 
 	return args

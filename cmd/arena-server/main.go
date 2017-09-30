@@ -5,6 +5,7 @@ import (
 	"flag"
 	"math/rand"
 	"os"
+	"os/exec"
 	"time"
 
 	notify "github.com/bitly/go-notify"
@@ -54,6 +55,16 @@ func main() {
 	// Make message broker client
 	brokerclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: Could not connect to messagebroker on "+*mqhost)
+
+	// Just test docker
+	testDockerTicker := time.NewTicker(time.Duration(10) * time.Second)
+
+	go func() {
+		for {
+			testDocker()
+			<-testDockerTicker.C
+		}
+	}()
 
 	handshakeTicker := time.NewTicker(time.Duration(*timeout/2) * time.Minute)
 
@@ -155,4 +166,25 @@ func startGame(arenaSubmitted messageArenaLaunch, orch arenaservertypes.Containe
 	srv.Stop()
 
 	notify.PostTimeout("game:stopped", nil, time.Millisecond)
+}
+
+func testDocker() {
+
+	dockerBin, LookPatherr := exec.LookPath("docker")
+
+	if LookPatherr != nil {
+		panic(LookPatherr)
+	}
+
+	command := exec.Command(dockerBin, "ps")
+
+	out, stderr := command.CombinedOutput()
+
+	if stderr != nil {
+		utils.Debug("test-docker", "err: "+string(out))
+	}
+
+	if out != nil {
+		utils.Debug("test-docker", "docker ps: "+string(out))
+	}
 }

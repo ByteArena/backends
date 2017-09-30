@@ -14,4 +14,10 @@ type NICTap struct {
 	Script string
 }
 
-type NICUser struct{}
+type NICUser struct {
+	Host string
+}
+
+type QMPServer struct {
+	Addr string
+}

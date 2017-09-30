@@ -11,7 +11,6 @@ import (
 
 	"github.com/bytearena/bytearena/arenamaster/vm/types"
 	"github.com/bytearena/bytearena/common/utils"
-	"github.com/rkt/rkt/networking/tuntap"
 	// "github.com/vishvananda/netlink"
 )
 
@@ -28,6 +27,7 @@ type VMConfig struct {
 	NICs          []interface{}
 	Name          string
 	ImageLocation string
+	QMPServer     *types.QMPServer
 	MegMemory     int
 	CPUAmount     int
 	CPUCoreAmount int
@@ -166,40 +166,22 @@ func (vm *VM) Start() error {
 }
 
 func Test() {
-	// brIfName := "docker0"
-	vmName := "testvm"
-
-	runIP("link", "add", "br0", "type", "bridge")
-	runIP("link", "set", "tap0", "master", "br0")
-	runIP("link", "set", "br0", "up")
-	runIP("link", "set", "tap0", "up")
-
-	// tapIfce, tapErr := createTapInterface()
-	// utils.Check(tapErr, "Could not create tap interface")
-
-	// tapLinkErr := createTapLink(tapIfce)
-	// utils.Check(tapLinkErr, "Could not create tap link")
-
-	// // socketAddr := "127.0.0.1:1234"
-
-	// go listenTap(tapIfce)
-
-	// fmt.Printf("Setup network %s<->%s", brIfName, tapIfce.Name())
+	hostIp := "10.0.2.10"
 
 	config := VMConfig{
+		QMPServer: &types.QMPServer{
+			Addr: "tcp:localhost:4444",
+		},
 		NICs: []interface{}{
-			types.NICUser{},
+			types.NICUser{
+				Host: hostIp,
+			},
 			types.NICIface{
 				Model: "virtio",
 			},
-			types.NICTap{
-				Name:   "net0",
-				Ifname: "tap0",
-				Script: "no",
-			},
 		},
-		Name:          vmName,
-		MegMemory:     1024,
+		Name:          "testvm",
+		MegMemory:     2048,
 		CPUAmount:     1,
 		CPUCoreAmount: 1,
 		ImageLocation: "/home/sven/go/src/github.com/bytearena/linuxkit/linuxkit.raw",
@@ -212,14 +194,11 @@ func Test() {
 
 	<-time.After(20 * time.Second)
 
-	vm.SendStdin("echo ----------------------------------------------------------------------------------------------------")
-
 	vm.SendStdin("ifconfig")
 	vm.SendStdin("route -n")
 	vm.SendStdin("ping 8.8.8.8 -W 3 -w 3")
+	vm.SendStdin("ping " + hostIp + " -W 3 -w 3")
 	vm.SendStdin("ping bytearena.com -W 3 -w 3")
-	// vm.SendStdin("ping 192.168.1.120 -W 3 -w 3")
-	// vm.SendStdin("ifconfig eth0")
 
 	<-time.After(30 * time.Second)
 
@@ -229,13 +208,4 @@ func Test() {
 		killErr := vm.KillProcess()
 		utils.Check(killErr, "Could not kill VM process")
 	}
-
-	ifName := "tap0"
-	errRemoveTap := tuntap.RemovePersistentIface(ifName, tuntap.Tap)
-
-	if errRemoveTap != nil {
-		panic(errRemoveTap)
-	}
-
-	// vm.Log(fmt.Sprintf("Teardown network %s<->%s", brIfName, tapIfce.Name()))
 }

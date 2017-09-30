@@ -4,7 +4,7 @@ ENV APP_HOME $GOPATH/src/github.com/bytearena/bytearena
 
 RUN apt-get -y update
 RUN apt-get -y upgrade
-RUN apt-get -y install git openssh-server curl netcat
+RUN apt-get -y install git openssh-server curl netcat qemu-kvm
 
 RUN curl https://glide.sh/get | sh
 
