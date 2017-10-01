@@ -15,7 +15,8 @@ type NICTap struct {
 }
 
 type NICUser struct {
-	Host string
+	Host     string
+	Hostname string
 }
 
 type QMPServer struct {

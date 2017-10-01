@@ -59,7 +59,7 @@ func buildNetArgs(NICs []interface{}) []string {
 				args,
 				[]string{
 					"-net",
-					fmt.Sprintf("user,host=%s", nic.Host),
+					fmt.Sprintf("user,host=%s,hostname=%s", nic.Host, nic.Hostname),
 				}...,
 			)
 		case types.NICSocket:
