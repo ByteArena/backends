@@ -52,8 +52,9 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 		AddComponent(deathmatch.healthComponent, NewHealth(100)).
 		AddComponent(deathmatch.playerComponent, &Player{}).
 		AddComponent(deathmatch.renderComponent, &Render{
-			type_:  "agent",
-			static: false,
+			type_:       "agent",
+			static:      false,
+			DebugPoints: make([][2]float64, 0),
 		}).
 		AddComponent(deathmatch.shootingComponent, NewShooting()).
 		AddComponent(deathmatch.steeringComponent, NewSteering(

@@ -221,6 +221,10 @@ func (a Vector2) String() string {
 	return "<Vector2(" + number.FloatToStr(a.x, 5) + ", " + number.FloatToStr(a.y, 5) + ")>"
 }
 
+func (a Vector2) ToFloatArray() [2]float64 {
+	return [2]float64{a.GetX(), a.GetY()}
+}
+
 func (a Vector2) ToB2Vec2() box2d.B2Vec2 {
 	return box2d.MakeB2Vec2(a.GetX(), a.GetY())
 }

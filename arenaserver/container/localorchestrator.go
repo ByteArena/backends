@@ -103,7 +103,9 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 
 		for {
 			buf, _ := utils.ReadFullLine(r)
-			fmt.Printf("Message from %s: %s %d\n\n", container.AgentId.String()+"/"+container.ImageName, buf)
+			if buf != "" {
+				fmt.Printf("Message from %s: %s \n\n", container.AgentId.String()+"/"+container.ImageName, buf)
+			}
 		}
 
 	}(orch, container)

@@ -5,8 +5,9 @@ import (
 )
 
 type VizMessage struct {
-	GameID  string
-	Objects []VizMessageObject
+	GameID      string
+	Objects     []VizMessageObject
+	DebugPoints [][2]float64
 }
 
 type VizMessageObject struct {
