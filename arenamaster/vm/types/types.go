@@ -9,14 +9,12 @@ type NICSocket struct {
 }
 
 type NICTap struct {
-	Name   string
 	Ifname string
-	Script string
 }
 
 type NICUser struct {
-	Host     string
-	Hostname string
+	DHCPStart string
+	Net       string
 }
 
 type QMPServer struct {

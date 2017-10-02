@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"strings"
 
 	"github.com/abiosoft/ishell"
 
@@ -31,12 +30,12 @@ func main() {
 		mqClient: mqClient,
 	}
 
-	shell.Println("Sample Interactive Shell")
+	shell.Println("arena-master cli")
 
 	shell.AddCmd(&ishell.Cmd{
-		Name: "vm/start",
-		Help: "Start VM",
-		Func: session.handleStartVMCommand,
+		Name: "arena/add",
+		Help: "Add arena VM",
+		Func: session.handleArenaAddCommand,
 	})
 
 	shell.AddCmd(&ishell.Cmd{
@@ -48,8 +47,14 @@ func main() {
 	shell.Run()
 }
 
-func (s Session) handleStartVMCommand(c *ishell.Context) {
-	c.Println("Hello", strings.Join(c.Args, " "))
+func (s Session) handleArenaAddCommand(c *ishell.Context) {
+	err := s.mqClient.Publish("arena", "add", types.MQPayload{})
+
+	if err != nil {
+		c.Println("MQ error: " + err.Error())
+	} else {
+		c.Println("OK")
+	}
 }
 
 func (s Session) handleStartGameCommand(c *ishell.Context) {

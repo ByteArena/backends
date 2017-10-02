@@ -51,7 +51,7 @@ func buildNetArgs(NICs []interface{}) []string {
 				args,
 				[]string{
 					"-net",
-					fmt.Sprintf("tap,name=%s,ifname=%s,script=%s", nic.Name, nic.Ifname, nic.Script),
+					fmt.Sprintf("tap,ifname=%s,script=no,downscript=no", nic.Ifname),
 				}...,
 			)
 		case types.NICUser:
@@ -59,7 +59,7 @@ func buildNetArgs(NICs []interface{}) []string {
 				args,
 				[]string{
 					"-net",
-					fmt.Sprintf("user,host=%s,hostname=%s", nic.Host, nic.Hostname),
+					fmt.Sprintf("user,dhcpstart=%s,net=%s", nic.DHCPStart, nic.Net),
 				}...,
 			)
 		case types.NICSocket:

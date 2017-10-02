@@ -11,7 +11,6 @@ import (
 
 	"github.com/bytearena/bytearena/arenamaster/vm/types"
 	"github.com/bytearena/bytearena/common/utils"
-	// "github.com/vishvananda/netlink"
 )
 
 type NIC struct {
@@ -160,18 +159,19 @@ func (vm *VM) Start() error {
 	return nil
 }
 
-func Test() {
-	hostIp := "10.0.2.10"
-	vmName := "arenaserver-1"
+func SpawnArena(vmName string) {
 
 	config := VMConfig{
-		QMPServer: &types.QMPServer{
-			Addr: "tcp:localhost:4444",
-		},
+		// QMPServer: &types.QMPServer{
+		// 	Addr: "tcp:localhost:4444",
+		// },
 		NICs: []interface{}{
 			types.NICUser{
-				Host:     hostIp,
-				Hostname: vmName,
+				DHCPStart: "10.0.0.50",
+				Net:       "10.0.0.1/24",
+			},
+			types.NICTap{
+				Ifname: "tun" + vmName,
 			},
 			types.NICIface{
 				Model: "virtio",
@@ -192,17 +192,20 @@ func Test() {
 	<-time.After(5 * time.Second)
 
 	vm.SendStdin("tail -f /var/log/arenaserver.*")
-	// vm.SendStdin("route -n")
-	// vm.SendStdin("ping 8.8.8.8 -W 3 -w 3")
-	// vm.SendStdin("ping " + hostIp + " -W 3 -w 3")
-	// vm.SendStdin("ping bytearena.com -W 3 -w 3")
+}
 
-	<-time.After(3 * time.Minute)
+func Test() {
+	// // vm.SendStdin("route -n")
+	// // vm.SendStdin("ping 8.8.8.8 -W 3 -w 3")
+	// // vm.SendStdin("ping " + hostIp + " -W 3 -w 3")
+	// // vm.SendStdin("ping bytearena.com -W 3 -w 3")
 
-	if haltErr := vm.SendHalt(); haltErr != nil {
-		vm.Log(haltErr.Error())
+	// <-time.After(3 * time.Minute)
 
-		killErr := vm.KillProcess()
-		utils.Check(killErr, "Could not kill VM process")
-	}
+	// if haltErr := vm.SendHalt(); haltErr != nil {
+	// 	vm.Log(haltErr.Error())
+
+	// 	killErr := vm.KillProcess()
+	// 	utils.Check(killErr, "Could not kill VM process")
+	// }
 }

@@ -2,7 +2,9 @@ package arenamaster
 
 import (
 	"encoding/json"
+	"strconv"
 
+	"github.com/bytearena/bytearena/arenamaster/vm"
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/influxdb"
 	"github.com/bytearena/bytearena/common/mq"
@@ -67,6 +69,19 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 }
 
 func (server *Server) Start() ListeningChanStruct {
+	listener := Listener{
+		mqClient: server.brokerclient,
+	}
+
+	arenaAdd := listener.ListenArenaAdd()
+
+	for {
+		select {
+		case <-arenaAdd:
+			id := strconv.Itoa(len(server.state.idleArenas))
+			vm.SpawnArena("arenaserver-" + id)
+		}
+	}
 
 	server.brokerclient.Subscribe("game", "launch", func(msg mq.BrokerMessage) {
 		err, message := unmarshalMQMessage(msg)
