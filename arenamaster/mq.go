@@ -23,3 +23,7 @@ func (l *Listener) subscribeToChannelAndGetChan(channel, topic string) Res {
 func (l *Listener) ListenArenaAdd() Res {
 	return l.subscribeToChannelAndGetChan("arena", "add")
 }
+
+func (l *Listener) ListenArenaHalt() Res {
+	return l.subscribeToChannelAndGetChan("arena", "halt")
+}

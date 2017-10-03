@@ -12,6 +12,8 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
+var inc = 0
+
 type ListeningChanStruct chan struct{}
 type Server struct {
 	listeningChan ListeningChanStruct
@@ -45,9 +47,10 @@ func (server *Server) startStateReporting(influxdbClient *influxdb.Client) error
 		server.state.LockState()
 
 		fields := map[string]interface{}{
-			"state-idle":    len(server.state.idleArenas),
-			"state-running": len(server.state.runningArenas),
-			"state-pending": len(server.state.pendingArenas),
+			"state-idle":       len(server.state.idleArenas),
+			"state-running":    len(server.state.runningArenas),
+			"state-pending":    len(server.state.pendingArenas),
+			"state-booting-vm": len(server.state.bootingVM),
 		}
 
 		server.state.UnlockState()
@@ -73,13 +76,29 @@ func (server *Server) Start() ListeningChanStruct {
 		mqClient: server.brokerclient,
 	}
 
-	arenaAdd := listener.ListenArenaAdd()
-
 	for {
 		select {
-		case <-arenaAdd:
-			id := strconv.Itoa(len(server.state.idleArenas))
-			vm.SpawnArena("arenaserver-" + id)
+		case <-listener.ListenArenaAdd():
+			inc++
+
+			id := strconv.Itoa(inc)
+
+			server.state.UpdateAddBootingVM(id)
+			vm := vm.SpawnArena("arenaserver" + id)
+			server.state.UpdateVMBooted(id, vm)
+
+		case msg := <-listener.ListenArenaHalt():
+			err, message := unmarshalMQMessage(msg)
+
+			if err != nil {
+				utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
+			} else {
+				id := (*message.Payload)["id"].(string)
+
+				if _, hasRunningVm := server.state.runningVM[id]; hasRunningVm {
+					server.state.UpdateVMHalted(id)
+				}
+			}
 		}
 	}
 

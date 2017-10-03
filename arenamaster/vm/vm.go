@@ -159,7 +159,7 @@ func (vm *VM) Start() error {
 	return nil
 }
 
-func SpawnArena(vmName string) {
+func SpawnArena(vmName string) *VM {
 
 	config := VMConfig{
 		// QMPServer: &types.QMPServer{
@@ -192,6 +192,8 @@ func SpawnArena(vmName string) {
 	<-time.After(5 * time.Second)
 
 	vm.SendStdin("tail -f /var/log/arenaserver.*")
+
+	return vm
 }
 
 func Test() {
