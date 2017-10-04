@@ -72,13 +72,11 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 }
 
 func (server *Server) Start() ListeningChanStruct {
-	listener := Listener{
-		mqClient: server.brokerclient,
-	}
+	listener := MakeListener(server.brokerclient)
 
 	for {
 		select {
-		case <-listener.ListenArenaAdd():
+		case <-listener.arenaAdd:
 			inc++
 
 			id := strconv.Itoa(inc)
@@ -87,7 +85,7 @@ func (server *Server) Start() ListeningChanStruct {
 			vm := vm.SpawnArena("arenaserver" + id)
 			server.state.UpdateVMBooted(id, vm)
 
-		case msg := <-listener.ListenArenaHalt():
+		case msg := <-listener.arenaHalt:
 			err, message := unmarshalMQMessage(msg)
 
 			if err != nil {
