@@ -3,10 +3,7 @@ package deathmatch
 import (
 	"encoding/json"
 	"math"
-	"sort"
 	"sync"
-
-	"github.com/bytearena/bytearena/common/utils/number"
 
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils/trigo"
@@ -434,350 +431,172 @@ func (a byAngleRatio) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a byAngleRatio) Less(i, j int) bool { return a[i].angleRatioFrom < a[j].angleRatioFrom }
 
 func processOcclusions(vision []agentPerceptionVisionItem, visionAngle float64) []agentPerceptionVisionItem {
+	return vision
 
-	if len(vision) == 0 {
-		return vision
-	}
+	// if len(vision) == 0 {
+	// 	return vision
+	// }
 
-	occlusionItems := make([]occlusionItem, 0)
+	// occlusionItems := make([]occlusionItem, 0)
 
-	halfVisionAngle := visionAngle / 2.0
+	// halfVisionAngle := visionAngle / 2.0
 
-	for _, visionItem := range vision {
+	// for _, visionItem := range vision {
 
-		angleRealFrom := halfVisionAngle + trigo.FullCircleAngleToSignedHalfCircleAngle(visionItem.CloseEdge.Angle())
-		angleRealTo := halfVisionAngle + trigo.FullCircleAngleToSignedHalfCircleAngle(visionItem.FarEdge.Angle())
+	// 	angleRealFrom := halfVisionAngle + trigo.FullCircleAngleToSignedHalfCircleAngle(visionItem.CloseEdge.Angle())
+	// 	angleRealTo := halfVisionAngle + trigo.FullCircleAngleToSignedHalfCircleAngle(visionItem.FarEdge.Angle())
 
-		if angleRealTo < angleRealFrom {
-			angleRealFrom, angleRealTo = angleRealTo, angleRealFrom
-		}
+	// 	if angleRealTo < angleRealFrom {
+	// 		angleRealFrom, angleRealTo = angleRealTo, angleRealFrom
+	// 	}
 
-		occlusionItems = append(occlusionItems, occlusionItem{
-			visionItem:     visionItem,
-			angleRealFrom:  angleRealFrom,
-			angleRealTo:    angleRealTo,
-			angleRatioFrom: angleRealFrom / visionAngle,
-			angleRatioTo:   angleRealTo / visionAngle,
-			distanceSq:     visionItem.Center.MagSq(),
-		})
-	}
+	// 	ratioFrom := angleRealFrom / visionAngle
+	// 	ratioTo := angleRealTo / visionAngle
+	// 	if ratioFrom < 0 {
+	// 		ratioFrom = 0
+	// 	}
 
-	sort.Sort(byAngleRatio(occlusionItems))
+	// 	if ratioTo > 1 {
+	// 		ratioTo = 1
+	// 	}
 
-	result := make([]agentPerceptionVisionItem, 0)
+	// 	occlusionItems = append(occlusionItems, occlusionItem{
+	// 		visionItem:     visionItem,
+	// 		angleRealFrom:  angleRealFrom,
+	// 		angleRealTo:    angleRealTo,
+	// 		angleRatioFrom: ratioFrom,
+	// 		angleRatioTo:   ratioTo,
+	// 		distanceSq:     visionItem.Center.MagSq(),
+	// 	})
+	// }
 
-	for i := 0; i < len(occlusionItems); i++ {
-		cur := occlusionItems[i]
+	// sort.Sort(byAngleRatio(occlusionItems))
 
-		occlusions := make([][2]float64, 0)
+	// result := make([]agentPerceptionVisionItem, 0)
 
-		// Finding overlaps in front
-		for j := 0; j < len(occlusionItems); j++ {
-			if j == i {
-				continue
-			}
+	// for i := 0; i < len(occlusionItems); i++ {
 
-			against := occlusionItems[j]
+	// 	//log.Println(i, "--------------------------------------------")
+	// 	cur := occlusionItems[i]
 
-			if against.distanceSq > cur.distanceSq {
-				// against is behind cur; skipping
-				// holds because it's garanteed that obstacle segments never intersect
-				continue
-			}
+	// 	occlusions := make([][2]float64, 0)
 
-			if cur.angleRatioTo <= against.angleRatioFrom {
-				// following items cannot overlap anymore (array is from-sorted)
-				break
-			}
+	// 	// Finding overlaps in front
+	// 	for j := 0; j < len(occlusionItems); j++ {
+	// 		if j == i {
+	// 			continue
+	// 		}
 
-			if cur.angleRatioFrom >= against.angleRatioTo {
-				// no overlap
-				continue
-			}
+	// 		potentialOccluder := occlusionItems[j]
 
-			// overlapping and in front
-			//occluders = append(occluders, against)
-			occlusions = append(occlusions, [2]float64{against.angleRatioFrom, against.angleRatioTo})
-		}
+	// 		if potentialOccluder.distanceSq > cur.distanceSq {
+	// 			// against is behind cur; skipping
+	// 			// holds because it's garanteed that obstacle segments never intersect
+	// 			continue
+	// 		}
 
-		if len(occlusions) == 0 {
-			// aucune occlusion; le segment est affiché intégralement
-			result = append(result, cur.visionItem)
-			continue
-		}
+	// 		if potentialOccluder.angleRealTo <= cur.angleRealFrom {
+	// 			// no overlap
+	// 			continue
+	// 		}
 
-		fullRelSegment := vector.MakeSegment2(cur.visionItem.CloseEdge, cur.visionItem.FarEdge)
+	// 		if potentialOccluder.angleRealFrom >= cur.angleRealTo {
+	// 			// following items cannot overlap anymore (array is from-sorted)
+	// 			break
+	// 		}
 
-		lastVisibleAngleRatio := cur.angleRatioFrom
+	// 		// overlapping and in front
+	// 		//occluders = append(occluders, against)
 
-		for _, occlusion := range occlusions {
-			occlusionFrom := occlusion[0]
-			occlusionTo := occlusion[1]
+	// 		fromRelative := number.Map(potentialOccluder.angleRealFrom, cur.angleRealFrom, cur.angleRealTo, 0, 1)
+	// 		// if fromRelative < 0 {
+	// 		// 	fromRelative = 0.0
+	// 		// }
 
-			if occlusionFrom <= lastVisibleAngleRatio {
-				lastVisibleAngleRatio = occlusionTo
-				continue
-			}
+	// 		toRelative := number.Map(potentialOccluder.angleRealTo, cur.angleRealFrom, cur.angleRealTo, 0, 1)
+	// 		// if toRelative > 1 {
+	// 		// 	toRelative = 1.0
+	// 		// }
 
-			visibleSegment := cur.visionItem
+	// 		occlusions = append(occlusions, [2]float64{
+	// 			fromRelative,
+	// 			toRelative,
+	// 		})
+	// 	}
 
-			// on détermine le vecteur depuis la position de l'agent jusqu'au lastVisibleAngle sur le segment
-			lengthScalePointA := number.Map(lastVisibleAngleRatio, cur.angleRatioFrom, cur.angleRatioTo, 0, 1)
-			visibleSegment.CloseEdge = fullRelSegment.ScaleFromA(lengthScalePointA).GetPointB() // angleRatio suitable for scale because angle and length have a linear and proportionnal relationship
+	// 	//spew.Dump(occlusions)
 
-			lengthScalePointB := number.Map(occlusionFrom, cur.angleRatioFrom, cur.angleRatioTo, 0, 1)
-			visibleSegment.FarEdge = fullRelSegment.ScaleFromA(lengthScalePointB).GetPointB()
+	// 	if len(occlusions) == 0 {
+	// 		// aucune occlusion; le segment est affiché intégralement
+	// 		result = append(result, cur.visionItem)
+	// 		continue
+	// 	}
 
-			closeDistSq := visibleSegment.CloseEdge.MagSq()
-			farDistSq := visibleSegment.FarEdge.MagSq()
-			if closeDistSq > farDistSq {
-				visibleSegment.CloseEdge, visibleSegment.FarEdge = visibleSegment.FarEdge, visibleSegment.CloseEdge
-			}
+	// 	angleClose := halfVisionAngle + trigo.FullCircleAngleToSignedHalfCircleAngle(cur.visionItem.CloseEdge.Angle())
+	// 	angleFar := halfVisionAngle + trigo.FullCircleAngleToSignedHalfCircleAngle(cur.visionItem.FarEdge.Angle())
 
-			visibleSegment.Center = visibleSegment.FarEdge.Add(visibleSegment.CloseEdge).DivScalar(2)
+	// 	var fullRelSegment vector.Segment2
 
-			result = append(result, visibleSegment)
+	// 	if angleFar > angleClose {
+	// 		fullRelSegment = vector.MakeSegment2(cur.visionItem.CloseEdge, cur.visionItem.FarEdge)
+	// 	} else {
+	// 		fullRelSegment = vector.MakeSegment2(cur.visionItem.FarEdge, cur.visionItem.CloseEdge)
+	// 	}
 
-			lastVisibleAngleRatio = occlusionTo
-		}
-	}
+	// 	lastVisiblePart := 0.0
 
-	return result
+	// 	for _, occlusion := range occlusions {
+	// 		occlusionFrom := occlusion[0]
+	// 		occlusionTo := occlusion[1]
+
+	// 		if occlusionFrom <= lastVisiblePart {
+	// 			if lastVisiblePart < occlusionTo {
+	// 				lastVisiblePart = occlusionTo
+	// 			}
+
+	// 			continue
+	// 		}
+
+	// 		// if occlusionFrom <= lastVisibleAngleRatio {
+	// 		// 	lastVisibleAngleRatio = occlusionTo
+	// 		// 	continue
+	// 		// }
+
+	// 		visibleSegment := cur.visionItem
+
+	// 		// on détermine le vecteur depuis la position de l'agent jusqu'au lastVisibleAngle sur le segment
+	// 		//lengthScalePointA := number.Map(lastVisibleAngleRatio, cur.angleRatioFrom, cur.angleRatioTo, 0, 1)
+	// 		//log.Println("lengthScalePointA", lengthScalePointA, lastVisibleAngleRatio, cur.angleRatioFrom, cur.angleRatioTo)
+	// 		lengthScalePointA := lastVisiblePart
+	// 		if lengthScalePointA < 0 {
+	// 			lengthScalePointA = 0.0
+	// 		}
+	// 		visibleSegment.CloseEdge = fullRelSegment.ScaleFromA(lengthScalePointA).GetPointB() // angleRatio suitable for scale because angle and length have a linear and proportionnal relationship
+
+	// 		lengthScalePointB := occlusionFrom
+	// 		if lengthScalePointB > 1.0 {
+	// 			lengthScalePointB = 1.0
+	// 		}
+	// 		//log.Println("lengthScalePointB", lengthScalePointB, occlusionFrom, cur.angleRatioFrom, cur.angleRatioTo)
+	// 		visibleSegment.FarEdge = fullRelSegment.ScaleFromA(lengthScalePointB).GetPointB()
+
+	// 		closeDistSq := visibleSegment.CloseEdge.MagSq()
+	// 		farDistSq := visibleSegment.FarEdge.MagSq()
+	// 		if closeDistSq > farDistSq {
+	// 			visibleSegment.CloseEdge, visibleSegment.FarEdge = visibleSegment.FarEdge, visibleSegment.CloseEdge
+	// 		}
+
+	// 		visibleSegment.Center = visibleSegment.FarEdge.Add(visibleSegment.CloseEdge).DivScalar(2)
+
+	// 		result = append(result, visibleSegment)
+
+	// 		lastVisiblePart = occlusionFrom
+	// 	}
+	// }
+
+	// return result
 }
 
 func getCircleSegmentAABB(center vector.Vector2, radius float64, angleARad float64, angleBRad float64) (lowerBound vector.Vector2, upperBound vector.Vector2) {
 	return vector.MakeVector2(0, 0), vector.MakeVector2(0, 0)
-}
-
-// func viewAgents(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
-
-// 	vision := make([]agentPerceptionVisionItem, 0)
-
-// 	agentposition := physicalAspect.GetPosition()
-
-// 	orientation := physicalAspect.GetOrientation()
-// 	radiussq := math.Pow(perceptionAspect.GetVisionRadius(), 2)
-
-// 	for _, otherentityresult := range game.agentsView.Get() {
-
-// 		otherentity := otherentityresult.Entity
-
-// 		if otherentity.GetID() == entity.GetID() {
-// 			continue // one cannot see itself
-// 		}
-
-// 		otherPhysicalAspect := otherentityresult.Components[game.physicalBodyComponent].(*PhysicalBody)
-
-// 		otherPosition := otherPhysicalAspect.GetPosition()
-// 		otherVelocity := otherPhysicalAspect.GetVelocity()
-// 		otherRadius := otherPhysicalAspect.GetRadius()
-
-// 		centervec := otherPosition.Sub(agentposition)
-// 		centersegment := vector.MakeSegment2(vector.MakeNullVector2(), centervec)
-// 		agentdiameter := centersegment.OrthogonalToBCentered().SetLengthFromCenter(otherRadius * 2)
-
-// 		closeEdge, farEdge := agentdiameter.Get()
-
-// 		distsq := centervec.MagSq()
-// 		if distsq <= radiussq {
-
-// 			occulted := false
-
-// 			// raycast between two the agents to determine if they can see each other
-// 			game.PhysicalWorld.RayCast(
-// 				func(fixture *box2d.B2Fixture, point box2d.B2Vec2, normal box2d.B2Vec2, fraction float64) float64 {
-// 					bodyDescriptor, ok := fixture.GetBody().GetUserData().(commontypes.PhysicalBodyDescriptor)
-// 					if !ok {
-// 						return 1.0 // continue the ray
-// 					}
-
-// 					if bodyDescriptor.Type == commontypes.PhysicalBodyDescriptorType.Obstacle {
-// 						occulted = true
-// 						return 0.0 // terminate the ray
-// 					}
-
-// 					return 1.0 // continue the ray
-// 				},
-// 				agentposition.ToB2Vec2(),
-// 				otherPosition.ToB2Vec2(),
-// 			)
-
-// 			if occulted {
-// 				continue // cannot see through obstacles
-// 			}
-
-// 			// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
-// 			centervec = centervec.SetAngle(centervec.Angle() - orientation)
-// 			visionitem := agentPerceptionVisionItem{
-// 				CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - orientation), // perpendicular to relative position vector, left side
-// 				Center:    centervec,
-// 				FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - orientation), // perpendicular to relative position vector, right side
-// 				// FIXME(jerome): /20 here is to convert velocity per second in velocity per tick; should probably handle velocities in m/s everywhere ?
-// 				Velocity: otherVelocity.Clone().SetAngle(otherVelocity.Angle() - orientation).Scale(1 / 20),
-// 				Tag:      agentPerceptionVisionItemTag.Agent,
-// 			}
-
-// 			vision = append(vision, visionitem)
-
-// 			//log.Println(orientation, otherVelocity, closeEdge, farEdge, visionitem)
-// 		}
-// 	}
-
-// 	return vision
-// }
-
-func viewObstacles(game *DeathmatchGame, entity *ecs.Entity) []agentPerceptionVisionItem {
-
-	vision := make([]agentPerceptionVisionItem, 0)
-
-	// queryResult := game.getEntity(entity.GetID(), game.physicalBodyComponent, game.perceptionComponent)
-	// if queryResult == nil {
-	// 	return vision
-	// }
-
-	// physicalAspect := queryResult.Components[game.physicalBodyComponent].(*PhysicalBody)
-	// perceptionAspect := queryResult.Components[game.perceptionComponent].(*Perception)
-
-	// absoluteposition := physicalAspect.GetPosition()
-	// orientation := physicalAspect.GetOrientation()
-	// visionradius := perceptionAspect.GetVisionRadius()
-	// visionangle := perceptionAspect.GetVisionAngle()
-
-	// radiussq := math.Pow(perceptionAspect.GetVisionRadius(), 2)
-
-	// // On détermine les bords gauche et droit du cône de vision de l'agent
-	// halfvisionangle := visionangle / 2
-	// leftvisionrelvec := vector.MakeVector2(1, 1).SetMag(visionradius).SetAngle(orientation + halfvisionangle*-1)
-	// rightvisionrelvec := vector.MakeVector2(1, 1).SetMag(visionradius).SetAngle(orientation + halfvisionangle)
-
-	// for _, obstacle := range game.MapMemoization.Obstacles {
-
-	// 	edges := make([]vector.Vector2, 0)
-	// 	//rejectededges := make([]vector.Vector2, 0)
-
-	// 	relvecA := obstacle.A.Sub(absoluteposition)
-	// 	relvecB := obstacle.B.Sub(absoluteposition)
-
-	// 	distsqA := relvecA.MagSq()
-	// 	distsqB := relvecB.MagSq()
-
-	// 	// Comment déterminer si le vecteur entre dans le champ de vision ?
-	// 	// => Intersection entre vecteur et segment gauche, droite
-
-	// 	if distsqA <= radiussq {
-	// 		// in radius
-	// 		absAngleA := relvecA.Angle()
-	// 		relAngleA := absAngleA - orientation
-
-	// 		// On passe de 0° / 360° à -180° / +180°
-	// 		relAngleA = trigo.FullCircleAngleToSignedHalfCircleAngle(relAngleA)
-
-	// 		if math.Abs(relAngleA) <= halfvisionangle {
-	// 			// point dans le champ de vision !
-	// 			edges = append(edges, relvecA.Add(absoluteposition))
-	// 		} else {
-	// 			//rejectededges = append(rejectededges, relvecA.Add(absoluteposition))
-	// 		}
-	// 	}
-
-	// 	if distsqB <= radiussq {
-	// 		absAngleB := relvecB.Angle()
-	// 		relAngleB := absAngleB - orientation
-
-	// 		// On passe de 0° / 360° à -180° / +180°
-	// 		relAngleB = trigo.FullCircleAngleToSignedHalfCircleAngle(relAngleB)
-
-	// 		if math.Abs(relAngleB) <= halfvisionangle {
-	// 			// point dans le champ de vision !
-	// 			edges = append(edges, relvecB.Add(absoluteposition))
-	// 		} else {
-	// 			//rejectededges = append(rejectededges, relvecB.Add(absoluteposition))
-	// 		}
-	// 	}
-
-	// 	{
-	// 		// Sur les bords de la perception
-	// 		if point, intersects, colinear, _ := trigo.IntersectionWithLineSegment(vector.MakeNullVector2(), leftvisionrelvec, relvecA, relvecB); intersects && !colinear {
-	// 			// INTERSECT LEFT
-	// 			edges = append(edges, point.Add(absoluteposition))
-	// 		}
-
-	// 		if point, intersects, colinear, _ := trigo.IntersectionWithLineSegment(vector.MakeNullVector2(), rightvisionrelvec, relvecA, relvecB); intersects && !colinear {
-	// 			// INTERSECT RIGHT
-	// 			edges = append(edges, point.Add(absoluteposition))
-	// 		}
-	// 	}
-
-	// 	{
-	// 		// Sur l'horizon de perception (arc de cercle)
-	// 		intersections := trigo.LineCircleIntersectionPoints(
-	// 			relvecA,
-	// 			relvecB,
-	// 			vector.MakeNullVector2(),
-	// 			agentstate.VisionRadius,
-	// 		)
-
-	// 		for _, point := range intersections {
-	// 			// il faut vérifier que le point se trouve bien sur le segment
-	// 			// il faut vérifier que l'angle du point de collision se trouve bien dans le champ de vision de l'agent
-
-	// 			if trigo.PointOnLineSegment(point, relvecA, relvecB) {
-	// 				relvecangle := point.Angle() - orientation
-
-	// 				// On passe de 0° / 360° à -180° / +180°
-	// 				relvecangle = trigo.FullCircleAngleToSignedHalfCircleAngle(relvecangle)
-
-	// 				if math.Abs(relvecangle) <= halfvisionangle {
-	// 					edges = append(edges, point.Add(absoluteposition))
-	// 				} else {
-	// 					//rejectededges = append(rejectededges, point.Add(absoluteposition))
-	// 				}
-	// 			} else {
-	// 				//rejectededges = append(rejectededges, point.Add(absoluteposition))
-	// 			}
-	// 		}
-	// 	}
-
-	// 	if len(edges) == 2 {
-	// 		edgeone := edges[0]
-	// 		edgetwo := edges[1]
-	// 		center := edgetwo.Add(edgeone).DivScalar(2)
-
-	// 		//visiblemag := edgetwo.Sub(edgeone).Mag()
-
-	// 		relcenter := center.Sub(absoluteposition) // aligned on north
-	// 		relcenterangle := relcenter.Angle()
-	// 		relcenteragentaligned := relcenter.SetAngle(relcenterangle - orientation)
-
-	// 		relEdgeOne := edgeone.Sub(absoluteposition)
-	// 		relEdgeTwo := edgetwo.Sub(absoluteposition)
-
-	// 		relEdgeOneAgentAligned := relEdgeOne.SetAngle(relEdgeOne.Angle() - orientation)
-	// 		relEdgeTwoAgentAligned := relEdgeTwo.SetAngle(relEdgeTwo.Angle() - orientation)
-
-	// 		var closeEdge, farEdge vector.Vector2
-	// 		if relEdgeTwoAgentAligned.MagSq() > relEdgeOneAgentAligned.MagSq() {
-	// 			closeEdge = relEdgeOneAgentAligned
-	// 			farEdge = relEdgeTwoAgentAligned
-	// 		} else {
-	// 			closeEdge = relEdgeTwoAgentAligned
-	// 			farEdge = relEdgeOneAgentAligned
-	// 		}
-
-	// 		obstacleperception := types.AgentPerceptionVisionItem{
-	// 			CloseEdge: closeEdge,
-	// 			Center:    relcenteragentaligned,
-	// 			FarEdge:   farEdge,
-	// 			Velocity:  vector.MakeNullVector2(),
-	// 			Tag:       types.AgentPerceptionVisionItemTag.Obstacle,
-	// 		}
-
-	// 		vision = append(vision, obstacleperception)
-
-	// 	} else if len(edges) > 0 {
-	// 		// problems with FOV > 180
-	// 	}
-	// }
-
-	return vision
 }
