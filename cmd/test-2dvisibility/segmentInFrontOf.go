@@ -5,7 +5,7 @@ func leftOf(segment *Segment, point Point) bool {
 	return cross < 0
 }
 
-func interpolate(pointA EndPoint, pointB EndPoint, f float64) Point {
+func interpolate(pointA *EndPoint, pointB *EndPoint, f float64) Point {
 	return Point{
 		pointA.x*(1-f) + pointB.x*f,
 		pointA.y*(1-f) + pointB.y*f,

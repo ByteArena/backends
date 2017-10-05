@@ -1,6 +1,12 @@
 package main
 
-import "github.com/davecgh/go-spew/spew"
+import (
+	"fmt"
+	"time"
+
+	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/davecgh/go-spew/spew"
+)
 
 func main() {
 
@@ -19,8 +25,15 @@ func main() {
 		MakeRectangle(400, 400, 40, 40),
 	}
 
-	lightSource := MakePoint(100, 100)
+	lightSource := MakePoint(300, 300)
 
+	begin := time.Now()
 	endpoints := loadMap(room, blocks, walls, lightSource)
-	spew.Dump(endpoints)
+	var visibility []vector.Segment2
+	for k := 0; k < 1000; k++ {
+		visibility = calculateVisibility(lightSource, endpoints)
+	}
+
+	fmt.Println("Took ", float64(time.Now().UnixNano()-begin.UnixNano())/1000000.0, "ms")
+	spew.Dump(visibility)
 }

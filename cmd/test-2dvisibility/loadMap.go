@@ -39,13 +39,13 @@ func processSegments(lightSource Point, segments []*Segment) []*Segment {
 	return segments
 }
 
-func getSegmentEndPoints(segment *Segment) [2]EndPoint {
-	return [2]EndPoint{segment.p1, segment.p2}
+func getSegmentEndPoints(segment *Segment) []*EndPoint {
+	return []*EndPoint{segment.p1, segment.p2}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-func loadMap(room Rectangle, blocks []Rectangle, walls []*Segment, lightSource Point) [][2]EndPoint {
+func loadMap(room Rectangle, blocks []Rectangle, walls []*Segment, lightSource Point) []*EndPoint {
 
 	blocksegments := make([]*Segment, 0)
 	for _, block := range blocks {
@@ -59,9 +59,9 @@ func loadMap(room Rectangle, blocks []Rectangle, walls []*Segment, lightSource P
 
 	segments = processSegments(lightSource, segments)
 
-	endpoints := make([][2]EndPoint, 0)
+	endpoints := make([]*EndPoint, 0)
 	for _, segment := range segments {
-		endpoints = append(endpoints, getSegmentEndPoints(segment))
+		endpoints = append(endpoints, getSegmentEndPoints(segment)...)
 	}
 
 	return endpoints

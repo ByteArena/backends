@@ -1,6 +1,6 @@
 package main
 
-func endpointCompare(pointA, pointB EndPoint) int {
+func endpointCompare(pointA, pointB *EndPoint) int {
 
 	if pointA.angle > pointB.angle {
 		return 1
