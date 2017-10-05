@@ -18,8 +18,8 @@ type State struct {
 	runningArenas map[string]ArenaServerState
 	pendingArenas map[string]ArenaServerState
 
-	bootingVM map[string]Container
-	runningVM map[string]Container
+	bootingVM map[int]Container
+	runningVM map[int]Container
 }
 
 func NewState() *State {
@@ -28,15 +28,15 @@ func NewState() *State {
 		runningArenas: make(map[string]ArenaServerState),
 		pendingArenas: make(map[string]ArenaServerState),
 
-		bootingVM: make(map[string]Container),
-		runningVM: make(map[string]Container),
+		bootingVM: make(map[int]Container),
+		runningVM: make(map[int]Container),
 	}
 }
 
-func (s *State) UpdateAddBootingVM(name string) (stateUpdated bool) {
+func (s *State) UpdateAddBootingVM(id int) (stateUpdated bool) {
 	s.LockState()
 
-	s.bootingVM[name] = nil
+	s.bootingVM[id] = nil
 
 	s.UnlockState()
 
@@ -45,11 +45,11 @@ func (s *State) UpdateAddBootingVM(name string) (stateUpdated bool) {
 	return stateUpdated
 }
 
-func (s *State) UpdateVMHalted(name string) (stateUpdated bool) {
+func (s *State) UpdateVMHalted(id int) (stateUpdated bool) {
 	s.LockState()
 
-	if _, ok := s.runningVM[name]; ok {
-		delete(s.runningVM, name)
+	if _, ok := s.runningVM[id]; ok {
+		delete(s.runningVM, id)
 		stateUpdated = true
 	}
 
@@ -58,15 +58,15 @@ func (s *State) UpdateVMHalted(name string) (stateUpdated bool) {
 	return stateUpdated
 }
 
-func (s *State) UpdateVMBooted(name string, data interface{}) (stateUpdated bool) {
+func (s *State) UpdateVMBooted(id int, data interface{}) (stateUpdated bool) {
 	stateUpdated = false
 
 	s.LockState()
 
-	if _, ok := s.bootingVM[name]; ok {
-		delete(s.bootingVM, name)
+	if _, ok := s.bootingVM[id]; ok {
+		delete(s.bootingVM, id)
 
-		s.runningVM[name] = data
+		s.runningVM[id] = data
 
 		stateUpdated = true
 	}

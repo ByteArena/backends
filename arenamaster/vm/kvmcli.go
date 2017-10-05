@@ -12,7 +12,7 @@ import (
 func CreateKVMCommand(kvmbin string, config VMConfig) *exec.Cmd {
 
 	args := []string{
-		"-name", config.Name,
+		"-name", strconv.Itoa(config.Id),
 		"-m", strconv.Itoa(config.MegMemory) + "M",
 		"-snapshot",
 		"-smp", strconv.Itoa(config.CPUAmount) + ",cores=" + strconv.Itoa(config.CPUCoreAmount),
@@ -82,7 +82,7 @@ func buildQMPServer(config *types.QMPServer) []string {
 	args := []string{}
 
 	if config != nil {
-		return []string{"-qmp", config.Addr + ",server,nowait"}
+		return []string{"-qmp", config.Protocol + ":" + config.Addr + ",server"}
 	}
 
 	return args

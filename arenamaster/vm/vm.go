@@ -7,24 +7,19 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/bytearena/bytearena/arenamaster/vm/types"
 	"github.com/bytearena/bytearena/common/utils"
+	"github.com/digitalocean/go-qemu/qmp"
 )
 
-type NIC struct {
-	Type    string
-	Connect string
-	Model   string
-	Name    string
-	Ifname  string
-	Script  string
-}
+const EVENT_SHUTDOWN = "SHUTDOWN"
 
 type VMConfig struct {
 	NICs          []interface{}
-	Name          string
+	Id            int
 	ImageLocation string
 	QMPServer     *types.QMPServer
 	MegMemory     int
@@ -38,9 +33,17 @@ type VM struct {
 	stdout  io.ReadCloser
 	stderr  io.ReadCloser
 	process *os.Process
+	qmp     *qmp.SocketMonitor
+	events  chan qmp.Event
 }
 
 func NewVM(config VMConfig) *VM {
+
+	config.QMPServer = &types.QMPServer{
+		Protocol: "tcp",
+		Addr:     "localhost:444" + strconv.Itoa(config.Id),
+	}
+
 	return &VM{
 		Config: config,
 	}
@@ -65,7 +68,7 @@ func (vm *VM) readStdout(reader io.Reader) {
 }
 
 func (vm *VM) Log(msg string) {
-	fmt.Printf("[%s] %s\n", vm.Config.Name, msg)
+	fmt.Printf("[VM %d] %s\n", vm.Config.Id, msg)
 }
 
 func (vm *VM) SendStdin(command string) error {
@@ -82,13 +85,38 @@ func (vm *VM) SendStdin(command string) error {
 	return nil
 }
 
-func (vm *VM) SendHalt() error {
+func (vm *VM) Quit() error {
 	vm.Log("Halting...")
 
-	return vm.SendStdin("halt")
+	command := []byte("{ \"execute\": \"quit\" }")
+
+	_, err := vm.qmp.Run(command)
+
+	if err != nil {
+		return err
+	}
+
+	timeout := time.After(3 * time.Second)
+
+	for {
+		select {
+		case e := <-vm.events:
+			if e.Event == EVENT_SHUTDOWN {
+				break
+			}
+		case <-timeout:
+			err := vm.killProcess()
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
-func (vm *VM) KillProcess() error {
+func (vm *VM) killProcess() error {
 	vm.Log("Killing process...")
 
 	if vm.process == nil {
@@ -101,16 +129,26 @@ func (vm *VM) KillProcess() error {
 }
 
 func (vm *VM) Close() {
+	vm.Log("Releasing resources...")
+
 	var closeErr error
 
+	closeErr = vm.qmp.Disconnect()
+	utils.RecoverableCheck(closeErr, "Could not disconnect from qmp server")
+
 	closeErr = vm.stdout.Close()
-	utils.Check(closeErr, "Could not close stdout")
+	utils.RecoverableCheck(closeErr, "Could not close stdout")
 
 	closeErr = vm.stderr.Close()
-	utils.Check(closeErr, "Could not close stderr")
+	utils.RecoverableCheck(closeErr, "Could not close stderr")
 
 	closeErr = vm.stdin.Close()
-	utils.Check(closeErr, "Could not close stdin")
+	utils.RecoverableCheck(closeErr, "Could not close stdin")
+
+	closeErr = vm.process.Release()
+	utils.RecoverableCheck(closeErr, "Could not close process")
+
+	vm.process = nil
 }
 
 func (vm *VM) Start() error {
@@ -148,6 +186,33 @@ func (vm *VM) Start() error {
 	go vm.readStdout(stdout)
 	go vm.readStdout(stderr)
 
+	// Connect QMP
+	go func() {
+		<-time.After(1 * time.Second)
+
+		qmp, socketMonitorErr := qmp.NewSocketMonitor(vm.Config.QMPServer.Protocol, vm.Config.QMPServer.Addr, 20*time.Second)
+		utils.Check(socketMonitorErr, "Could not connect to QMP socket")
+
+		monitorErr := qmp.Connect()
+		utils.Check(monitorErr, "Could not connect monitoring to QMP server")
+
+		vm.qmp = qmp
+
+		// Register event consumer
+		events, eventsErr := vm.qmp.Events()
+		utils.Check(eventsErr, "could not consume events")
+
+		for {
+			select {
+			case e := <-events:
+				if e.Event != "" {
+					vm.events <- e
+				}
+			}
+
+		}
+	}()
+
 	go func() {
 		waitErr := cmd.Wait()
 		utils.Check(waitErr, "Could not wait VM process")
@@ -159,25 +224,22 @@ func (vm *VM) Start() error {
 	return nil
 }
 
-func SpawnArena(vmName string) *VM {
+func SpawnArena(id int) *VM {
 
 	config := VMConfig{
-		// QMPServer: &types.QMPServer{
-		// 	Addr: "tcp:localhost:4444",
-		// },
 		NICs: []interface{}{
 			types.NICUser{
 				DHCPStart: "10.0.0.50",
 				Net:       "10.0.0.1/24",
 			},
 			types.NICTap{
-				Ifname: "tun" + vmName,
+				Ifname: "tun" + strconv.Itoa(id),
 			},
 			types.NICIface{
 				Model: "virtio",
 			},
 		},
-		Name:          vmName,
+		Id:            id,
 		MegMemory:     2048,
 		CPUAmount:     1,
 		CPUCoreAmount: 1,
@@ -194,20 +256,4 @@ func SpawnArena(vmName string) *VM {
 	vm.SendStdin("tail -f /var/log/arenaserver.*")
 
 	return vm
-}
-
-func Test() {
-	// // vm.SendStdin("route -n")
-	// // vm.SendStdin("ping 8.8.8.8 -W 3 -w 3")
-	// // vm.SendStdin("ping " + hostIp + " -W 3 -w 3")
-	// // vm.SendStdin("ping bytearena.com -W 3 -w 3")
-
-	// <-time.After(3 * time.Minute)
-
-	// if haltErr := vm.SendHalt(); haltErr != nil {
-	// 	vm.Log(haltErr.Error())
-
-	// 	killErr := vm.KillProcess()
-	// 	utils.Check(killErr, "Could not kill VM process")
-	// }
 }

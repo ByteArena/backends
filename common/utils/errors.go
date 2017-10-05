@@ -10,9 +10,15 @@ import (
 
 func Check(err error, msg string) {
 	if err != nil {
+		RecoverableCheck(err, msg)
+		os.Exit(1)
+	}
+}
+
+func RecoverableCheck(err error, msg string) {
+	if err != nil {
 		fmt.Print(chalk.Red)
 		log.Print(msg+"; "+err.Error(), chalk.Reset)
-		os.Exit(1)
 	}
 }
 

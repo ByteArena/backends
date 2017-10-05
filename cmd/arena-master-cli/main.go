@@ -67,9 +67,12 @@ func (s Session) handleArenaHaltCommand(c *ishell.Context) {
 	c.Print("VM ID: ")
 	vmId := c.ReadLine()
 
-	err := s.mqClient.Publish("arena", "halt", types.MQPayload{
+	err := s.mqClient.Publish("arena", "halt", types.NewMQMessage(
+		"arena-master",
+		"halt",
+	).SetPayload(types.MQPayload{
 		"id": vmId,
-	})
+	}))
 
 	if err != nil {
 		c.Println("MQ error: " + err.Error())

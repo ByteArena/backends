@@ -1,10 +1,14 @@
 package arenamaster
 
 import (
+	"encoding/json"
+
 	"github.com/bytearena/bytearena/common/mq"
+	"github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/common/utils"
 )
 
-type Res chan mq.BrokerMessage
+type Res chan types.MQMessage
 
 type Listener struct {
 	arenaAdd  Res
@@ -21,9 +25,18 @@ func MakeListener(mqClient *mq.Client) Listener {
 func subscribeToChannelAndGetChan(mqClient *mq.Client, channel, topic string) Res {
 	res := make(Res)
 
-	mqClient.Subscribe(channel, topic, func(msg mq.BrokerMessage) {
-		res <- msg
+	err := mqClient.Subscribe(channel, topic, func(msg mq.BrokerMessage) {
+		var message types.MQMessage
+		err := json.Unmarshal(msg.Data, &message)
+
+		if err != nil {
+			utils.RecoverableError("event listener", err.Error())
+		}
+
+		res <- message
 	})
+
+	utils.Check(err, "Could not subscribe to mq")
 
 	return res
 }

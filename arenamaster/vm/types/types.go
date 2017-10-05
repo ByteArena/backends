@@ -18,5 +18,6 @@ type NICUser struct {
 }
 
 type QMPServer struct {
-	Addr string
+	Protocol string
+	Addr     string
 }

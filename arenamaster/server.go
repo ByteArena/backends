@@ -78,24 +78,22 @@ func (server *Server) Start() ListeningChanStruct {
 		select {
 		case <-listener.arenaAdd:
 			inc++
-
-			id := strconv.Itoa(inc)
+			id := inc
 
 			server.state.UpdateAddBootingVM(id)
-			vm := vm.SpawnArena("arenaserver" + id)
+			vm := vm.SpawnArena(id)
 			server.state.UpdateVMBooted(id, vm)
 
 		case msg := <-listener.arenaHalt:
-			err, message := unmarshalMQMessage(msg)
+			id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
 
-			if err != nil {
-				utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
+			if data, hasRunningVm := server.state.runningVM[id]; hasRunningVm {
+				server.state.UpdateVMHalted(id)
+
+				runningVM := data.(*vm.VM)
+				runningVM.Quit()
 			} else {
-				id := (*message.Payload)["id"].(string)
-
-				if _, hasRunningVm := server.state.runningVM[id]; hasRunningVm {
-					server.state.UpdateVMHalted(id)
-				}
+				utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): VM is not running")
 			}
 		}
 	}
