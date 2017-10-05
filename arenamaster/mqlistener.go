@@ -11,14 +11,23 @@ import (
 type Res chan types.MQMessage
 
 type Listener struct {
-	arenaAdd  Res
-	arenaHalt Res
+	arenaAdd      Res
+	arenaHalt     Res
+	gameLaunch    Res
+	gameLaunched  Res
+	gameHandshake Res
+	gameStopped   Res
 }
 
 func MakeListener(mqClient *mq.Client) Listener {
 	return Listener{
 		arenaAdd:  subscribeToChannelAndGetChan(mqClient, "arena", "add"),
 		arenaHalt: subscribeToChannelAndGetChan(mqClient, "arena", "halt"),
+
+		gameLaunch:    subscribeToChannelAndGetChan(mqClient, "game", "launch"),
+		gameLaunched:  subscribeToChannelAndGetChan(mqClient, "game", "launched"),
+		gameHandshake: subscribeToChannelAndGetChan(mqClient, "game", "handshake"),
+		gameStopped:   subscribeToChannelAndGetChan(mqClient, "game", "stopped"),
 	}
 }
 

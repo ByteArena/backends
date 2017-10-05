@@ -29,6 +29,7 @@ type Client struct {
 	subscriptions map[string]*redis.PubSub
 	mu            sync.Mutex
 	host          string
+	isClosed      bool
 }
 
 func NewClient(host string) (*Client, error) {
@@ -36,6 +37,7 @@ func NewClient(host string) (*Client, error) {
 		conn:          nil,
 		subscriptions: make(map[string]*redis.PubSub, 0),
 		host:          host,
+		isClosed:      false,
 	}
 
 	hasConnected := c.connect()
@@ -65,6 +67,7 @@ func (client *Client) connect() bool {
 }
 
 func (client *Client) Stop() {
+	client.isClosed = true
 
 	// Stop all current Redis PubSub subscriptions
 	for _, pubsub := range client.subscriptions {
@@ -98,12 +101,15 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 	*/
 	go func() {
 		for {
+			if client.isClosed == true {
+				break
+			}
+
 			msg, err := pubsub.ReceiveMessage()
 
 			if err != nil {
 				utils.RecoverableError("mqclient", "Could not receive message: "+err.Error())
 				continue
-
 			}
 
 			var mqMessage BrokerMessage

@@ -2,6 +2,7 @@ package arenamaster
 
 import (
 	"encoding/json"
+	"log"
 	"strconv"
 
 	"github.com/bytearena/bytearena/arenamaster/vm"
@@ -14,25 +15,30 @@ import (
 
 var inc = 0
 
-type ListeningChanStruct chan struct{}
+type ListeningChanStruct chan bool
 type Server struct {
-	listeningChan ListeningChanStruct
-	brokerclient  *mq.Client
-	graphqlclient *graphql.Client
-	state         *State
+	stopChan       ListeningChanStruct
+	brokerclient   *mq.Client
+	graphqlclient  *graphql.Client
+	state          *State
+	influxdbClient *influxdb.Client
 }
 
 func NewServer(mq *mq.Client, gql *graphql.Client) *Server {
-	s := &Server{
-		brokerclient:  mq,
-		graphqlclient: gql,
-		state:         NewState(),
-	}
+	stopChan := make(ListeningChanStruct)
 
 	influxdbClient, influxdbClientErr := influxdb.NewClient("arenamaster")
 	utils.Check(influxdbClientErr, "Unable to create influxdb client")
 
-	err := s.startStateReporting(influxdbClient)
+	s := &Server{
+		brokerclient:   mq,
+		graphqlclient:  gql,
+		state:          NewState(),
+		stopChan:       stopChan,
+		influxdbClient: influxdbClient,
+	}
+
+	err := s.startStateReporting()
 
 	utils.CheckWithFunc(err, func() string {
 		panic("Could not start state reporting: " + err.Error())
@@ -41,9 +47,9 @@ func NewServer(mq *mq.Client, gql *graphql.Client) *Server {
 	return s
 }
 
-func (server *Server) startStateReporting(influxdbClient *influxdb.Client) error {
+func (server *Server) startStateReporting() error {
 
-	influxdbClient.Loop(func() {
+	server.influxdbClient.Loop(func() {
 		server.state.LockState()
 
 		fields := map[string]interface{}{
@@ -55,7 +61,7 @@ func (server *Server) startStateReporting(influxdbClient *influxdb.Client) error
 
 		server.state.UnlockState()
 
-		influxdbClient.WriteAppMetric("arenamaster", fields)
+		server.influxdbClient.WriteAppMetric("arenamaster", fields)
 	})
 
 	return nil
@@ -71,11 +77,14 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 	}
 }
 
-func (server *Server) Start() ListeningChanStruct {
+func (server *Server) Run() {
 	listener := MakeListener(server.brokerclient)
 
 	for {
 		select {
+		case <-server.stopChan:
+			return
+
 		case <-listener.arenaAdd:
 			inc++
 			id := inc
@@ -95,56 +104,25 @@ func (server *Server) Start() ListeningChanStruct {
 			} else {
 				utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): VM is not running")
 			}
+
+		case msg := <-listener.gameLaunch:
+			onGameLaunch(server.state, msg.Payload, server.brokerclient, server.graphqlclient)
+
+		case msg := <-listener.gameLaunched:
+			onGameLaunched(server.state, msg.Payload, server.brokerclient, server.graphqlclient)
+
+		case msg := <-listener.gameHandshake:
+			onGameHandshake(server.state, msg.Payload)
+
+		case msg := <-listener.gameHandshake:
+			onGameStop(server.state, msg.Payload, server.graphqlclient)
 		}
 	}
-
-	server.brokerclient.Subscribe("game", "launch", func(msg mq.BrokerMessage) {
-		err, message := unmarshalMQMessage(msg)
-
-		if err != nil {
-			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-		} else {
-			onGameLaunch(server.state, message.Payload, server.brokerclient, server.graphqlclient)
-		}
-	})
-
-	server.brokerclient.Subscribe("game", "launched", func(msg mq.BrokerMessage) {
-		err, message := unmarshalMQMessage(msg)
-
-		if err != nil {
-			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-		} else {
-			onGameLaunched(server.state, message.Payload, server.brokerclient, server.graphqlclient)
-		}
-	})
-
-	server.brokerclient.Subscribe("game", "handshake", func(msg mq.BrokerMessage) {
-		err, message := unmarshalMQMessage(msg)
-
-		if err != nil {
-			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-		} else {
-			onGameHandshake(server.state, message.Payload)
-		}
-	})
-
-	server.brokerclient.Subscribe("game", "stopped", func(msg mq.BrokerMessage) {
-		err, message := unmarshalMQMessage(msg)
-
-		if err != nil {
-			utils.Debug("arenamaster", "Invalid MQMessage "+string(msg.Data))
-		} else {
-			onGameStop(server.state, message.Payload, server.graphqlclient)
-		}
-	})
-
-	server.listeningChan = make(ListeningChanStruct)
-
-	utils.Debug("arenamaster", "Listening")
-
-	return server.listeningChan
 }
 
 func (server *Server) Stop() {
-	close(server.listeningChan)
+	server.stopChan <- true
+	server.influxdbClient.TearDown()
+
+	close(server.stopChan)
 }

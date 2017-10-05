@@ -36,7 +36,6 @@ func main() {
 	}
 
 	go func() {
-
 		<-common.SignalHandler()
 		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 
@@ -48,5 +47,5 @@ func main() {
 		}
 	}()
 
-	<-server.Start()
+	server.Run()
 }
