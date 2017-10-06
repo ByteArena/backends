@@ -51,11 +51,12 @@ func (server *Server) startStateReporting() error {
 	server.influxdbClient.Loop(func() {
 		server.state.LockState()
 
-		fields := map[string]interface{}{
-			"state-idle":       len(server.state.idleArenas),
-			"state-running":    len(server.state.runningArenas),
-			"state-pending":    len(server.state.pendingArenas),
-			"state-booting-vm": len(server.state.bootingVM),
+		fields := make(map[string]interface{})
+
+		// Transform map[string]int into map[string]interface{}
+		// it works somehow
+		for k, v := range server.state.DebugGetStateDistribution() {
+			fields[k] = v
 		}
 
 		server.state.UnlockState()
@@ -95,7 +96,7 @@ func (server *Server) Run() {
 		case msg := <-listener.arenaHalt:
 			id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
 
-			if data, hasRunningVm := server.state.runningVM[id]; hasRunningVm {
+			if data := server.state.QueryState(id, STATE_RUNNING_VM); data != nil {
 				server.state.UpdateStateVMHalted(id)
 
 				runningVM := data.(*vm.VM)

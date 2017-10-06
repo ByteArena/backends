@@ -79,8 +79,8 @@ func (c *Client) WriteAppMetric(name string, fields map[string]interface{}) {
 		str := ""
 
 		for k, v := range fields {
-			if vs, isString := v.(int); isString {
-				str += k + "=" + strconv.Itoa(vs)
+			if vs, isInt := v.(int); isInt {
+				str += k + "=" + strconv.Itoa(vs) + ","
 			}
 		}
 

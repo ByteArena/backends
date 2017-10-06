@@ -1,7 +1,19 @@
 package arenamaster
 
 import (
+	"fmt"
 	"sync"
+)
+
+const (
+	STATE_BOOTING_VM    byte = 1 << iota // 00000001
+	STATE_RUNNING_VM                     // 00000010
+	STATE_HALTED_VM                      // 00000100
+	STATE_ERRORED_VM                     // 00001000
+	STATE_IDLE_ARENA                     // 00010000
+	STATE_RUNNING_ARENA                  // 00100000
+	STATE_PENDING_ARENA                  // 01000000
+	STATE_ERRORED_ARENA                  // 10000000
 )
 
 type ArenaServerState struct {
@@ -9,17 +21,80 @@ type ArenaServerState struct {
 	GameId string
 }
 
-type Container interface{}
+type Data interface{}
+type DataContainer struct {
+	Data   Data
+	Status byte
+}
 
 type State struct {
 	mutex sync.Mutex
 
+	state map[int]*DataContainer
+
 	idleArenas    map[string]ArenaServerState
 	runningArenas map[string]ArenaServerState
 	pendingArenas map[string]ArenaServerState
+}
 
-	bootingVM map[int]Container
-	runningVM map[int]Container
+func (s *State) DebugGetStateDistribution() map[string]int {
+	res := make(map[string]int)
+
+	res["STATE_BOOTING_VM"] = 0
+	res["STATE_RUNNING_VM"] = 0
+	res["STATE_HALTED_VM"] = 0
+	res["STATE_ERRORED_VM"] = 0
+	res["STATE_IDLE_ARENA"] = 0
+	res["STATE_RUNNING_ARENA"] = 0
+	res["STATE_PENDING_ARENA"] = 0
+	res["STATE_ERRORED_ARENA"] = 0
+
+	for k, _ := range s.state {
+		for _, status := range s.DebugGetStatus(k) {
+			res[status]++
+		}
+	}
+
+	return res
+}
+
+func (s *State) DebugGetStatus(id int) []string {
+	res := make([]string, 0)
+	bin := s.state[id].Status
+
+	if bin&STATE_BOOTING_VM != 0 {
+		res = append(res, "STATE_BOOTING_VM")
+	}
+
+	if bin&STATE_RUNNING_VM != 0 {
+		res = append(res, "STATE_RUNNING_VM")
+	}
+
+	if bin&STATE_HALTED_VM != 0 {
+		res = append(res, "STATE_HALTED_VM")
+	}
+
+	if bin&STATE_ERRORED_VM != 0 {
+		res = append(res, "STATE_ERRORED_VM")
+	}
+
+	if bin&STATE_IDLE_ARENA != 0 {
+		res = append(res, "STATE_IDLE_ARENA")
+	}
+
+	if bin&STATE_RUNNING_ARENA != 0 {
+		res = append(res, "STATE_RUNNING_ARENA")
+	}
+
+	if bin&STATE_PENDING_ARENA != 0 {
+		res = append(res, "STATE_PENDING_ARENA")
+	}
+
+	if bin&STATE_ERRORED_ARENA != 0 {
+		res = append(res, "STATE_ERRORED_ARENA")
+	}
+
+	return res
 }
 
 func NewState() *State {
@@ -28,15 +103,29 @@ func NewState() *State {
 		runningArenas: make(map[string]ArenaServerState),
 		pendingArenas: make(map[string]ArenaServerState),
 
-		bootingVM: make(map[int]Container),
-		runningVM: make(map[int]Container),
+		state: make(map[int]*DataContainer),
 	}
+}
+
+func (s *State) QueryState(id int, flag byte) Data {
+	if data, ok := s.state[id]; ok {
+		if data.Status&flag != 0 {
+			return data.Data
+		} else {
+			return nil
+		}
+	}
+
+	return nil
 }
 
 func (s *State) UpdateStateAddBootingVM(id int) (stateUpdated bool) {
 	s.LockState()
 
-	s.bootingVM[id] = nil
+	s.state[id] = &DataContainer{
+		Data:   nil,
+		Status: STATE_BOOTING_VM,
+	}
 
 	s.UnlockState()
 
@@ -48,8 +137,10 @@ func (s *State) UpdateStateAddBootingVM(id int) (stateUpdated bool) {
 func (s *State) UpdateStateVMHalted(id int) (stateUpdated bool) {
 	s.LockState()
 
-	if _, ok := s.runningVM[id]; ok {
-		delete(s.runningVM, id)
+	if state, ok := s.state[id]; ok {
+		state.Status ^= STATE_RUNNING_VM
+		state.Status |= STATE_HALTED_VM
+
 		stateUpdated = true
 	}
 
@@ -63,10 +154,13 @@ func (s *State) UpdateStateVMBooted(id int, data interface{}) (stateUpdated bool
 
 	s.LockState()
 
-	if _, ok := s.bootingVM[id]; ok {
-		delete(s.bootingVM, id)
+	if state, ok := s.state[id]; ok {
+		state.Status ^= STATE_BOOTING_VM
+		state.Status |= STATE_RUNNING_VM
 
-		s.runningVM[id] = data
+		state.Data = data
+
+		fmt.Printf("%b\n", state.Status)
 
 		stateUpdated = true
 	}
