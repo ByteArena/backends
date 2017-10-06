@@ -88,15 +88,15 @@ func (server *Server) Run() {
 			inc++
 			id := inc
 
-			server.state.UpdateAddBootingVM(id)
+			server.state.UpdateStateAddBootingVM(id)
 			vm := vm.SpawnArena(id)
-			server.state.UpdateVMBooted(id, vm)
+			server.state.UpdateStateVMBooted(id, vm)
 
 		case msg := <-listener.arenaHalt:
 			id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
 
 			if data, hasRunningVm := server.state.runningVM[id]; hasRunningVm {
-				server.state.UpdateVMHalted(id)
+				server.state.UpdateStateVMHalted(id)
 
 				runningVM := data.(*vm.VM)
 				runningVM.Quit()
@@ -105,16 +105,33 @@ func (server *Server) Run() {
 			}
 
 		case msg := <-listener.gameLaunch:
-			onGameLaunch(server.state, msg.Payload, server.brokerclient, server.graphqlclient)
+			onGameLaunch(
+				server.state,
+				msg.Payload,
+				server.brokerclient,
+				server.graphqlclient,
+			)
 
 		case msg := <-listener.gameLaunched:
-			onGameLaunched(server.state, msg.Payload, server.brokerclient, server.graphqlclient)
+			onGameLaunched(
+				server.state,
+				msg.Payload,
+				server.brokerclient,
+				server.graphqlclient,
+			)
 
 		case msg := <-listener.gameHandshake:
-			onGameHandshake(server.state, msg.Payload)
+			onGameHandshake(
+				server.state,
+				msg.Payload,
+			)
 
 		case msg := <-listener.gameHandshake:
-			onGameStop(server.state, msg.Payload, server.graphqlclient)
+			onGameStop(
+				server.state,
+				msg.Payload,
+				server.graphqlclient,
+			)
 		}
 	}
 }

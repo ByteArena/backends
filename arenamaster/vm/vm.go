@@ -253,7 +253,5 @@ func SpawnArena(id int) *VM {
 
 	<-time.After(5 * time.Second)
 
-	vm.SendStdin("tail -f /var/log/arenaserver.*")
-
 	return vm
 }

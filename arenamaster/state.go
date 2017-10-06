@@ -33,7 +33,7 @@ func NewState() *State {
 	}
 }
 
-func (s *State) UpdateAddBootingVM(id int) (stateUpdated bool) {
+func (s *State) UpdateStateAddBootingVM(id int) (stateUpdated bool) {
 	s.LockState()
 
 	s.bootingVM[id] = nil
@@ -45,7 +45,7 @@ func (s *State) UpdateAddBootingVM(id int) (stateUpdated bool) {
 	return stateUpdated
 }
 
-func (s *State) UpdateVMHalted(id int) (stateUpdated bool) {
+func (s *State) UpdateStateVMHalted(id int) (stateUpdated bool) {
 	s.LockState()
 
 	if _, ok := s.runningVM[id]; ok {
@@ -58,7 +58,7 @@ func (s *State) UpdateVMHalted(id int) (stateUpdated bool) {
 	return stateUpdated
 }
 
-func (s *State) UpdateVMBooted(id int, data interface{}) (stateUpdated bool) {
+func (s *State) UpdateStateVMBooted(id int, data interface{}) (stateUpdated bool) {
 	stateUpdated = false
 
 	s.LockState()
