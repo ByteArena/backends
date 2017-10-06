@@ -2,7 +2,6 @@ package arenamaster
 
 import (
 	"encoding/json"
-	"log"
 	"strconv"
 
 	"github.com/bytearena/bytearena/arenamaster/vm"
