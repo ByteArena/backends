@@ -2,7 +2,9 @@ package arenamaster
 
 import (
 	"encoding/json"
+	"log"
 	"strconv"
+	"strings"
 
 	"github.com/bytearena/bytearena/arenamaster/vm"
 	"github.com/bytearena/bytearena/common/graphql"
@@ -137,10 +139,16 @@ func (server *Server) Run() {
 			)
 
 		case msg := <-listener.gameHandshake:
-			onGameHandshake(
-				server.state,
-				msg.Payload,
-			)
+			mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
+			log.Println(mac)
+			id, _ := strconv.Atoi(strings.Split(mac, ":")[0])
+
+			server.state.UpdateStateAddIdleArena(id)
+
+			// onGameHandshake(
+			// 	server.state,
+			// 	msg.Payload,
+			// )
 
 		case msg := <-listener.gameHandshake:
 			onGameStop(

@@ -241,12 +241,16 @@ func (vm *VM) Start() error {
 }
 
 func SpawnArena(id int) (*VM, error) {
+	buf := make([]byte, 6)
+	buf[0] = []byte(strconv.Itoa(id))[0]
+
+	mac := fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])
 
 	config := VMConfig{
 		NICs: []interface{}{
 			types.NICBridge{
 				Bridge: "brtest",
-				MAC:    strconv.Itoa(id) + "2:42:11:47:7b:1d",
+				MAC:    mac,
 			},
 		},
 		Id:            id,

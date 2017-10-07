@@ -1,7 +1,6 @@
 package arenamaster
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -173,7 +172,21 @@ func (s *State) UpdateStateVMBooted(id int, data interface{}) (stateUpdated bool
 
 		state.Data = data
 
-		fmt.Printf("%b\n", state.Status)
+		stateUpdated = true
+	}
+
+	s.UnlockState()
+
+	return stateUpdated
+}
+
+func (s *State) UpdateStateAddIdleArena(id int) (stateUpdated bool) {
+	stateUpdated = false
+
+	s.LockState()
+
+	if state, ok := s.state[id]; ok {
+		state.Status |= STATE_IDLE_ARENA
 
 		stateUpdated = true
 	}
