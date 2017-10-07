@@ -5,7 +5,6 @@ import (
 	"flag"
 	"math/rand"
 	"os"
-	"os/exec"
 	"time"
 
 	notify "github.com/bitly/go-notify"
@@ -61,26 +60,39 @@ func main() {
 
 	go func() {
 		for {
-			testDocker()
+			err := brokerclient.Ping()
+
+			if err != nil {
+				utils.Debug("test-mq", "err: "+err.Error())
+			} else {
+				utils.Debug("test-mq", "ok")
+			}
+
 			<-testDockerTicker.C
 		}
 	}()
 
-	handshakeTicker := time.NewTicker(time.Duration(*timeout/2) * time.Minute)
-
+	// For some reasons we can't handshake straight after the start.
+	// Just delay it a bit for now
+	// FIXME(sven): find a better solution
 	go func() {
-		for {
-			utils.Debug("arena-server", "send handshake")
+		<-time.After(time.Duration(10) * time.Second)
+		handshakeTicker := time.NewTicker(time.Duration(*timeout/2) * time.Minute)
 
-			brokerclient.Publish("game", "handshake", types.NewMQMessage(
-				"arena-server",
-				"Arena Server "+(*arenaServerUUID)+" reporting for duty.",
-			).SetPayload(types.MQPayload{
-				"arenaserveruuid": (*arenaServerUUID),
-			}))
+		go func() {
+			for {
+				utils.Debug("arena-server", "send handshake")
 
-			<-handshakeTicker.C
-		}
+				brokerclient.Publish("game", "handshake", types.NewMQMessage(
+					"arena-server",
+					"Arena Server "+(*arenaServerUUID)+" reporting for duty.",
+				).SetPayload(types.MQPayload{
+					"arenaserveruuid": (*arenaServerUUID),
+				}))
+
+				<-handshakeTicker.C
+			}
+		}()
 	}()
 
 	var hc *healthcheck.HealthCheckServer
@@ -168,23 +180,23 @@ func startGame(arenaSubmitted messageArenaLaunch, orch arenaservertypes.Containe
 	notify.PostTimeout("game:stopped", nil, time.Millisecond)
 }
 
-func testDocker() {
+// func testDocker() {
 
-	dockerBin, LookPatherr := exec.LookPath("docker")
+// 	dockerBin, LookPatherr := exec.LookPath("docker")
 
-	if LookPatherr != nil {
-		panic(LookPatherr)
-	}
+// 	if LookPatherr != nil {
+// 		panic(LookPatherr)
+// 	}
 
-	command := exec.Command(dockerBin, "ps")
+// 	command := exec.Command(dockerBin, "ps")
 
-	out, stderr := command.CombinedOutput()
+// 	out, stderr := command.CombinedOutput()
 
-	if stderr != nil {
-		utils.Debug("test-docker", "err: "+string(out))
-	}
+// 	if stderr != nil {
+// 		utils.Debug("test-docker", "err: "+string(out))
+// 	}
 
-	if out != nil {
-		utils.Debug("test-docker", "docker ps: "+string(out))
-	}
-}
+// 	if out != nil {
+// 		utils.Debug("test-docker", "docker ps: "+string(out))
+// 	}
+// }
