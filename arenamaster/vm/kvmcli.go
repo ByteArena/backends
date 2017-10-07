@@ -37,6 +37,17 @@ func buildNetArgs(NICs []interface{}) []string {
 
 	for _, e := range NICs {
 		switch nic := e.(type) {
+		case types.NICBridge:
+			args = append(
+				args,
+				[]string{
+					"-netdev",
+					fmt.Sprintf("bridge,br=%s,id=net0", nic.Bridge),
+					"-device",
+					fmt.Sprintf("virtio-net,netdev=net0,mac=%s", nic.MAC),
+				}...,
+			)
+
 		case types.NICIface:
 			args = append(
 				args,

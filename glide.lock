@@ -1,6 +1,8 @@
-hash: 6f810c1e8cce5881e9052d7e176a9e33bf750bb3b2ba819dd5199968902330c6
-updated: 2017-09-20T22:24:38.440037298+02:00
+hash: 1d59f8699cd03c848b9ba22f54483a7de4d403ab50c77c4079974aa4d8f6d41d
+updated: 2017-10-07T13:36:14.402490492+02:00
 imports:
+- name: github.com/abiosoft/ishell
+  version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
 - name: github.com/akavel/polyclip-go
   version: 2cfdb71461bde9115450eb65688337e3f8ee715e
 - name: github.com/bitly/go-notify
@@ -9,10 +11,24 @@ imports:
   version: 6a120bfe0653a6b77776488137fb5bcf364d27af
 - name: github.com/cenkalti/backoff
   version: 61153c768f31ee5f130071d08fc82b85208528de
+- name: github.com/chzyer/readline
+  version: 6a4bc7b4feaeff8feb63f87d5fb2cf3e3610a559
 - name: github.com/davecgh/go-spew
   version: 346938d642f2ec3594ed81d874461961cd0faa76
+- name: github.com/davecgh/go-xdr
+  version: e6a2ba005892b6a5b27cb5352f64c2e96942dd28
+  subpackages:
+  - xdr2
 - name: github.com/dhconnelly/rtreego
   version: 1323b09fe8f32430ea7e16ea1df99e106e3e6250
+- name: github.com/digitalocean/go-libvirt
+  version: a339d0ac95059a40f3e505ef3be370e9a902b852
+  subpackages:
+  - internal/constants
+- name: github.com/digitalocean/go-qemu
+  version: aef5f55304078f4eb20159220f786972be49dfb4
+  subpackages:
+  - qmp
 - name: github.com/docker/distribution
   version: f86db6b22663a27ba4d278220b7e34be528b1e79
   subpackages:
@@ -54,6 +70,10 @@ imports:
   version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
 - name: github.com/docker/libtrust
   version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+- name: github.com/fatih/color
+  version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
+- name: github.com/flynn-archive/go-shlex
+  version: 3f9db97f856818214da2e1057f8ad84803971cff
 - name: github.com/go-redis/redis
   version: fdafb11e5fa5d52d965e12073c8a58468c98ebe2
   subpackages:
@@ -63,7 +83,7 @@ imports:
   - internal/pool
   - internal/proto
 - name: github.com/gorilla/context
-  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+  version: 50c25fb3b2b3b3cc724e9b6ac75fb44b3bccd0da
 - name: github.com/gorilla/handlers
   version: a4043c62cc2329bacda331d33fc908ab11ef0ec3
 - name: github.com/gorilla/mux
@@ -71,13 +91,19 @@ imports:
 - name: github.com/gorilla/websocket
   version: ea4d1f681babbce9545c9c5f3d5194a789c89f5b
 - name: github.com/influxdata/influxdb
-  version: 9d9001036d3585cf21925c13a57881bc6c8dcc7e
+  version: a7c3d3c0f7b74f71919047adbc4933460967a576
   subpackages:
   - client/v2
   - models
   - pkg/escape
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
+- name: github.com/mattn/go-colorable
+  version: 5411d3eea5978e6cdc258b30de592b60df6aba96
+  repo: https://github.com/mattn/go-colorable
+- name: github.com/mattn/go-isatty
+  version: 57fdcb988a5c543893cc61bce354a6e24ab70022
+  repo: https://github.com/mattn/go-isatty
 - name: github.com/Microsoft/go-winio
   version: 78439966b38d69bf38227fbf57ac8a6fee70f69a
 - name: github.com/netgusto/poly2tri-go
@@ -99,6 +125,8 @@ imports:
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
   - open
+- name: github.com/songgao/water
+  version: dc106b419556b93288adff21fe0c86e8c9b10f9b
 - name: github.com/ttacon/chalk
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
 - name: golang.org/x/crypto
@@ -106,14 +134,15 @@ imports:
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 8351a756f30f1297fe94bbf4b767ec589c6ea6d0
+  version: 6a513affb38dc9788b449d59ffed099b8de18fa0
   subpackages:
   - context
   - context/ctxhttp
   - proxy
 - name: golang.org/x/sys
-  version: 062cd7e4e68206d8bab9b18396626e855c992658
+  version: b44883b474ffefa37335017174e397412b633a4f
   subpackages:
   - unix
   - windows
+  - windows/registry
 testImports: []

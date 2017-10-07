@@ -90,8 +90,23 @@ func (server *Server) Run() {
 			id := inc
 
 			server.state.UpdateStateAddBootingVM(id)
-			vm := vm.SpawnArena(id)
-			server.state.UpdateStateVMBooted(id, vm)
+			vm, err := vm.SpawnArena(id)
+
+			if err != nil {
+				utils.RecoverableError("vm", "Could not start ("+strconv.Itoa(id)+"): "+err.Error())
+				server.state.UpdateStateVMErrored(id)
+			} else {
+				go func() {
+					err := vm.WaitUntilBooted()
+
+					if err != nil {
+						utils.RecoverableError("vm", "Could not wait until VM is booted")
+						server.state.UpdateStateVMErrored(id)
+					}
+
+					server.state.UpdateStateVMBooted(id, vm)
+				}()
+			}
 
 		case msg := <-listener.arenaHalt:
 			id, _ := strconv.Atoi((*msg.Payload)["id"].(string))

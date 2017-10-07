@@ -21,3 +21,8 @@ type QMPServer struct {
 	Protocol string
 	Addr     string
 }
+
+type NICBridge struct {
+	Bridge string
+	MAC    string
+}

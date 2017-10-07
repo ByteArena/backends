@@ -16,6 +16,7 @@ import (
 )
 
 const EVENT_SHUTDOWN = "SHUTDOWN"
+const EVENT_RUNNING = "RUNNING"
 
 type VMConfig struct {
 	NICs          []interface{}
@@ -133,8 +134,10 @@ func (vm *VM) Close() {
 
 	var closeErr error
 
-	closeErr = vm.qmp.Disconnect()
-	utils.RecoverableCheck(closeErr, "Could not disconnect from qmp server")
+	if vm.qmp != nil {
+		closeErr = vm.qmp.Disconnect()
+		utils.RecoverableCheck(closeErr, "Could not disconnect from qmp server")
+	}
 
 	closeErr = vm.stdout.Close()
 	utils.RecoverableCheck(closeErr, "Could not close stdout")
@@ -149,6 +152,14 @@ func (vm *VM) Close() {
 	utils.RecoverableCheck(closeErr, "Could not close process")
 
 	vm.process = nil
+}
+
+// FIXME(sven): determine if KVM has booted the VM
+func (vm *VM) WaitUntilBooted() error {
+	fakeProcess := time.After(10 * time.Second)
+
+	<-fakeProcess
+	return nil
 }
 
 func (vm *VM) Start() error {
@@ -187,21 +198,26 @@ func (vm *VM) Start() error {
 	go vm.readStdout(stderr)
 
 	// Connect QMP
+	<-time.After(1 * time.Second)
+
+	qmp, socketMonitorErr := qmp.NewSocketMonitor(vm.Config.QMPServer.Protocol, vm.Config.QMPServer.Addr, 20*time.Second)
+	utils.Check(socketMonitorErr, "Could not connect to QMP socket")
+
+	monitorErr := qmp.Connect()
+
+	if monitorErr != nil {
+		vm.Close()
+
+		return errors.New("Could not connect monitoring to QMP server")
+	}
+
+	vm.qmp = qmp
+
+	// Register event consumer
+	events, eventsErr := vm.qmp.Events()
+	utils.Check(eventsErr, "could not consume events")
+
 	go func() {
-		<-time.After(1 * time.Second)
-
-		qmp, socketMonitorErr := qmp.NewSocketMonitor(vm.Config.QMPServer.Protocol, vm.Config.QMPServer.Addr, 20*time.Second)
-		utils.Check(socketMonitorErr, "Could not connect to QMP socket")
-
-		monitorErr := qmp.Connect()
-		utils.Check(monitorErr, "Could not connect monitoring to QMP server")
-
-		vm.qmp = qmp
-
-		// Register event consumer
-		events, eventsErr := vm.qmp.Events()
-		utils.Check(eventsErr, "could not consume events")
-
 		for {
 			select {
 			case e := <-events:
@@ -224,34 +240,29 @@ func (vm *VM) Start() error {
 	return nil
 }
 
-func SpawnArena(id int) *VM {
+func SpawnArena(id int) (*VM, error) {
 
 	config := VMConfig{
 		NICs: []interface{}{
-			types.NICUser{
-				DHCPStart: "10.0.0.50",
-				Net:       "10.0.0.1/24",
-			},
-			types.NICTap{
-				Ifname: "tun" + strconv.Itoa(id),
-			},
-			types.NICIface{
-				Model: "virtio",
+			types.NICBridge{
+				Bridge: "brtest",
+				MAC:    strconv.Itoa(id) + "2:42:11:47:7b:1d",
 			},
 		},
 		Id:            id,
 		MegMemory:     2048,
 		CPUAmount:     1,
 		CPUCoreAmount: 1,
-		ImageLocation: "/home/sven/go/src/github.com/bytearena/linuxkit/linuxkit.raw",
+		ImageLocation: "/linuxkit.raw",
 	}
 
 	vm := NewVM(config)
 
 	startErr := vm.Start()
-	utils.Check(startErr, "Could not start VM")
 
-	<-time.After(5 * time.Second)
+	if startErr != nil {
+		return nil, startErr
+	}
 
-	return vm
+	return vm, nil
 }

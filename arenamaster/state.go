@@ -134,6 +134,19 @@ func (s *State) UpdateStateAddBootingVM(id int) (stateUpdated bool) {
 	return stateUpdated
 }
 
+func (s *State) UpdateStateVMErrored(id int) (stateUpdated bool) {
+	s.LockState()
+
+	if state, ok := s.state[id]; ok {
+		state.Status |= STATE_ERRORED_VM
+		stateUpdated = true
+	}
+
+	s.UnlockState()
+
+	return stateUpdated
+}
+
 func (s *State) UpdateStateVMHalted(id int) (stateUpdated bool) {
 	s.LockState()
 
