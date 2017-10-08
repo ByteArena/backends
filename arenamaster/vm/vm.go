@@ -36,6 +36,9 @@ type VM struct {
 	process *os.Process
 	qmp     *qmp.SocketMonitor
 	events  chan qmp.Event
+
+	// FIXME(sven): find a better datacontainer
+	Gameid string
 }
 
 func NewVM(config VMConfig) *VM {

@@ -7,19 +7,26 @@ import (
 	"github.com/bytearena/bytearena/arenamaster/vm/types"
 )
 
-func FindVMByMAC(state *State, mac string) *vm.VM {
-	upperMac := strings.ToUpper(mac)
+func GetVMMAC(vm *vm.VM) (mac string, found bool) {
+
+	for _, nic := range vm.Config.NICs {
+		if bridge, ok := nic.(types.NICBridge); ok {
+			return bridge.MAC, true
+		}
+	}
+
+	return "", false
+}
+
+func FindVMByMAC(state *State, searchMac string) *vm.VM {
+	searchUpperMac := strings.ToUpper(searchMac)
 
 	for _, element := range state.state {
 		if vm, isVm := element.Data.(*vm.VM); isVm {
+			mac, found := GetVMMAC(vm)
 
-			for _, nic := range vm.Config.NICs {
-				if bridge, ok := nic.(types.NICBridge); ok {
-					if bridge.MAC == upperMac {
-						return vm
-					}
-
-				}
+			if searchUpperMac == mac && found {
+				return vm
 			}
 
 		}

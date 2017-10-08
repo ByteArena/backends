@@ -3,6 +3,7 @@ package arenamaster
 import (
 	"time"
 
+	"github.com/bytearena/bytearena/arenamaster/vm"
 	"github.com/bytearena/bytearena/common/graphql"
 	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/mq"
@@ -10,106 +11,80 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
+func onGameLaunch(gameid string, mqclient *mq.Client, gql *graphql.Client, vm *vm.VM) {
 
-	if gameid, ok := (*payload)["id"].(string); ok {
-		state.LockState()
+	// FIXME(sven) re-enable already running game id protection
+	// Ignore if the game is already running
+	// if isGameAlreadyRunning(state, gameid) {
+	// 	state.UnlockState()
 
-		if len(state.idleArenas) > 0 {
+	// 	utils.Debug("master", "ERROR: game "+gameid+" is already running "+getMasterStatus(state))
+	// 	return
+	// }
 
-			// Ignore if the game is already running
-			if isGameAlreadyRunning(state, gameid) {
-				state.UnlockState()
+	vm.Gameid = gameid
+	mac, _ := GetVMMAC(vm)
 
-				utils.Debug("master", "ERROR: game "+gameid+" is already running "+getMasterStatus(state))
-				return
-			}
+	// TODO: should be wrapped in types.NewMQMessage
+	mqclient.Publish("game", mac+".launch", types.MQPayload{
+		"id": gameid,
+	})
 
-			var astate ArenaServerState
+	utils.Debug("master", "Launched game "+gameid+" on server "+mac)
 
-			// Take the first arena
-			for _, value := range state.idleArenas {
-				astate = value
-				break
-			}
-
-			// Remove from idle pool
-			delete(state.idleArenas, astate.id)
-
-			astate.GameId = gameid
-
-			// Put it into pending arenas (waiting for arena comfirmation)
-			state.pendingArenas[astate.id] = astate
-
-			state.UnlockState()
-
-			// TODO: should be wrapped in types.NewMQMessage
-			mqclient.Publish("game", astate.id+".launch", types.MQPayload{
+	go func() {
+		_, err := gql.RequestSync(
+			graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{
 				"id": gameid,
-			})
+				"game": graphql.Variables{
+					"runStatus":       gqltypes.GameRunStatus.Running,
+					"launchedAt":      time.Now().Format(time.RFC822Z),
+					"arenaServerUUID": mac,
+				},
+			}),
+		)
 
-			utils.Debug("master", "Launched game "+gameid+" on server "+astate.id+"; "+getMasterStatus(state))
-
-			go func() {
-				_, err := gql.RequestSync(
-					graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{
-						"id": gameid,
-						"game": graphql.Variables{
-							"runStatus":       gqltypes.GameRunStatus.Running,
-							"launchedAt":      time.Now().Format(time.RFC822Z),
-							"arenaServerUUID": astate.id,
-						},
-					}),
-				)
-
-				if err != nil {
-					utils.Debug("master", "ERROR: could not set game state to running for Game "+gameid+" on server "+astate.id)
-				} else {
-					utils.Debug("master", "Game state set to running for Game "+gameid+" on server "+astate.id)
-				}
-			}()
-
-			go waitForLaunchedOrRetry(state, payload, mqclient, gql, astate)
+		if err != nil {
+			utils.Debug("master", "ERROR: could not set game state to running for Game "+gameid+" on server "+mac)
 		} else {
-			state.UnlockState()
-			utils.Debug("master", "No arena available for game "+gameid)
+			utils.Debug("master", "Game state set to running for Game "+gameid+" on server "+mac)
 		}
-	} else {
-		utils.Debug("master", "Received game launch event but payload is not parsable")
-	}
+	}()
+
+	// go waitForLaunchedOrRetry(state, gameid, mqclient, gql, astate, vm)
 }
 
-func waitForLaunchedOrRetry(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client, astate ArenaServerState) {
-	timeout := 30
-	timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Second)
-	<-timeoutTimer.C
+// FIXME(sven) re-enable retry mecasim
+// func waitForLaunchedOrRetry(state *State, gameid string, mqclient *mq.Client, gql *graphql.Client, astate ArenaServerState, vm *vm.VM) {
+// 	timeout := 30
+// 	timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Second)
+// 	<-timeoutTimer.C
 
-	state.LockState()
+// 	state.LockState()
 
-	_, isPending := state.pendingArenas[astate.id]
+// 	_, isPending := state.pendingArenas[astate.id]
 
-	if isPending {
-		utils.Debug("pending", "Arena "+astate.id+" couldn't be launched")
+// 	if isPending {
+// 		utils.Debug("pending", "Arena "+astate.id+" couldn't be launched")
 
-		delete(state.pendingArenas, astate.id)
-		state.UnlockState()
+// 		delete(state.pendingArenas, astate.id)
+// 		state.UnlockState()
 
-		// Retry to launch a game
-		onGameStop(state, payload, gql)
-		onGameLaunch(state, payload, mqclient, gql)
-	} else {
-		state.UnlockState()
-	}
-}
+// 		// Retry to launch a game
+// 		// TODO(sven): stop only if needed
+// 		// onGameStop(state, "?", gameid, gql)
+// 		onGameLaunch(state, gameid, mqclient, gql, vm)
+// 	} else {
+// 		state.UnlockState()
+// 	}
+// }
 
-func isGameAlreadyRunning(state *State, id string) bool {
-	// FIXME(sven): missing check in pending arenas
+// func isGameAlreadyRunning(state *State, id string) bool {
+// 	for _, a := range state.runningArenas {
+// 		if a.GameId == id {
+// 			return true
+// 		}
+// 	}
 
-	for _, a := range state.runningArenas {
-		if a.GameId == id {
-			return true
-		}
-	}
-
-	return false
-}
+// 	return false
+// }

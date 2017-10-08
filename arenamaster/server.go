@@ -121,26 +121,37 @@ func (server *Server) Run() {
 			}
 
 		case msg := <-listener.gameLaunch:
-			vm := server.state.FindState(STATE_IDLE_ARENA)
+			gameid, _ := (*msg.Payload)["id"].(string)
+			vm := server.state.FindState(STATE_IDLE_ARENA).(*vm.VM)
 
-			if vm == nil {
+			if vm != nil {
+				server.state.UpdateStateTriedLaunchArena(vm.Config.Id)
+
+				onGameLaunch(
+					gameid,
+					server.brokerclient,
+					server.graphqlclient,
+					vm,
+				)
+
+			} else {
 				utils.RecoverableError("vm", "Could not launch game: no arena is currently idle")
 			}
 
-			onGameLaunch(
-				server.state,
-				msg.Payload,
-				server.brokerclient,
-				server.graphqlclient,
-			)
-
 		case msg := <-listener.gameLaunched:
-			onGameLaunched(
-				server.state,
-				msg.Payload,
-				server.brokerclient,
-				server.graphqlclient,
-			)
+			mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
+			gameid, _ := (*msg.Payload)["id"].(string)
+			vm := FindVMByMAC(server.state, mac)
+
+			if vm != nil {
+				server.state.UpdateStateConfirmedLaunchArena(vm.Config.Id)
+				go onGameLaunched(gameid, mac, server.graphqlclient)
+
+				utils.Debug("master", mac+" launched ")
+
+			} else {
+				utils.RecoverableError("vm", "VM with MAC ("+mac+") does not exists")
+			}
 
 		case msg := <-listener.gameHandshake:
 			mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
@@ -148,19 +159,19 @@ func (server *Server) Run() {
 
 			if vm != nil {
 				server.state.UpdateStateAddIdleArena(vm.Config.Id)
+				utils.Debug("master", mac+" joined")
 			} else {
 				utils.RecoverableError("vm", "VM with MAC ("+mac+") does not exists")
 			}
 
-			// onGameHandshake(
-			// 	server.state,
-			// 	msg.Payload,
-			// )
+		case msg := <-listener.gameStopped:
+			gameid, _ := (*msg.Payload)["id"].(string)
+			mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
 
-		case msg := <-listener.gameHandshake:
 			onGameStop(
 				server.state,
-				msg.Payload,
+				mac,
+				gameid,
 				server.graphqlclient,
 			)
 		}

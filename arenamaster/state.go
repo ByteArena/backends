@@ -207,6 +207,40 @@ func (s *State) UpdateStateAddIdleArena(id int) (stateUpdated bool) {
 	return stateUpdated
 }
 
+func (s *State) UpdateStateTriedLaunchArena(id int) (stateUpdated bool) {
+	stateUpdated = false
+
+	s.LockState()
+
+	if state, ok := s.state[id]; ok {
+		state.Status ^= STATE_IDLE_ARENA
+		state.Status |= STATE_PENDING_ARENA
+
+		stateUpdated = true
+	}
+
+	s.UnlockState()
+
+	return stateUpdated
+}
+
+func (s *State) UpdateStateConfirmedLaunchArena(id int) (stateUpdated bool) {
+	stateUpdated = false
+
+	s.LockState()
+
+	if state, ok := s.state[id]; ok {
+		state.Status ^= STATE_PENDING_ARENA
+		state.Status |= STATE_RUNNING_ARENA
+
+		stateUpdated = true
+	}
+
+	s.UnlockState()
+
+	return stateUpdated
+}
+
 // TODO(sven): don't expose
 func (s *State) LockState() {
 	s.mutex.Lock()
