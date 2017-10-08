@@ -2,9 +2,7 @@ package arenamaster
 
 import (
 	"encoding/json"
-	"log"
 	"strconv"
-	"strings"
 
 	"github.com/bytearena/bytearena/arenamaster/vm"
 	"github.com/bytearena/bytearena/common/graphql"
@@ -123,6 +121,12 @@ func (server *Server) Run() {
 			}
 
 		case msg := <-listener.gameLaunch:
+			vm := server.state.FindState(STATE_IDLE_ARENA)
+
+			if vm == nil {
+				utils.RecoverableError("vm", "Could not launch game: no arena is currently idle")
+			}
+
 			onGameLaunch(
 				server.state,
 				msg.Payload,
@@ -140,10 +144,13 @@ func (server *Server) Run() {
 
 		case msg := <-listener.gameHandshake:
 			mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
-			log.Println(mac)
-			id, _ := strconv.Atoi(strings.Split(mac, ":")[0])
+			vm := FindVMByMAC(server.state, mac)
 
-			server.state.UpdateStateAddIdleArena(id)
+			if vm != nil {
+				server.state.UpdateStateAddIdleArena(vm.Config.Id)
+			} else {
+				utils.RecoverableError("vm", "VM with MAC ("+mac+") does not exists")
+			}
 
 			// onGameHandshake(
 			// 	server.state,

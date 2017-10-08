@@ -118,6 +118,17 @@ func (s *State) QueryState(id int, flag byte) Data {
 	return nil
 }
 
+func (s *State) FindState(flag byte) Data {
+	for _, data := range s.state {
+
+		if data.Status&flag != 0 {
+			return data.Data
+		}
+	}
+
+	return nil
+}
+
 func (s *State) UpdateStateAddBootingVM(id int) (stateUpdated bool) {
 	s.LockState()
 

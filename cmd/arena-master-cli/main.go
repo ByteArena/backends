@@ -45,9 +45,15 @@ func main() {
 	})
 
 	shell.AddCmd(&ishell.Cmd{
+		Name: "game/start",
+		Help: "Start game",
+		Func: session.handleStartGameCommand,
+	})
+
+	shell.AddCmd(&ishell.Cmd{
 		Name: "arena/game/start",
 		Help: "Start game on a given arena",
-		Func: session.handleStartGameCommand,
+		Func: session.handleStartGameOnArenaCommand,
 	})
 
 	shell.Run()
@@ -81,7 +87,7 @@ func (s Session) handleArenaHaltCommand(c *ishell.Context) {
 	}
 }
 
-func (s Session) handleStartGameCommand(c *ishell.Context) {
+func (s Session) handleStartGameOnArenaCommand(c *ishell.Context) {
 	c.Print("Game ID: ")
 	gameId := c.ReadLine()
 
@@ -89,6 +95,21 @@ func (s Session) handleStartGameCommand(c *ishell.Context) {
 	arenaId := c.ReadLine()
 
 	err := s.mqClient.Publish("game", arenaId+".launch", types.MQPayload{
+		"id": gameId,
+	})
+
+	if err != nil {
+		c.Println("MQ error: " + err.Error())
+	} else {
+		c.Println("OK")
+	}
+}
+
+func (s Session) handleStartGameCommand(c *ishell.Context) {
+	c.Print("Game ID: ")
+	gameId := c.ReadLine()
+
+	err := s.mqClient.Publish("game", "launch", types.MQPayload{
 		"id": gameId,
 	})
 
