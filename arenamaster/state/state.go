@@ -95,7 +95,7 @@ func NewState() *State {
 
 func (s *State) QueryState(id int, flag byte) Data {
 	if data, ok := s.state[id]; ok {
-		if data.Status&flag != 0 {
+		if data.Status&flag != 0 && data.Status&STATE_ERRORED_ARENA == 0 && data.Status&STATE_ERRORED_VM == 0 {
 			return data.Data
 		} else {
 			return nil
