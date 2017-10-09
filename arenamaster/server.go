@@ -122,9 +122,10 @@ func (server *Server) Run() {
 
 		case msg := <-listener.gameLaunch:
 			gameid, _ := (*msg.Payload)["id"].(string)
-			vm := server.state.FindState(STATE_IDLE_ARENA).(*vm.VM)
+			element := server.state.FindState(STATE_IDLE_ARENA)
 
-			if vm != nil {
+			if element != nil {
+				vm := element.(*vm.VM)
 				server.state.UpdateStateTriedLaunchArena(vm.Config.Id)
 
 				onGameLaunch(
@@ -147,10 +148,10 @@ func (server *Server) Run() {
 				server.state.UpdateStateConfirmedLaunchArena(vm.Config.Id)
 				go onGameLaunched(gameid, mac, server.graphqlclient)
 
-				utils.Debug("master", mac+" launched ")
+				utils.Debug("master", mac+" launched")
 
 			} else {
-				utils.RecoverableError("vm", "VM with MAC ("+mac+") does not exists")
+				utils.RecoverableError("game-launched", "VM with MAC ("+mac+") does not exists")
 			}
 
 		case msg := <-listener.gameHandshake:
@@ -161,7 +162,7 @@ func (server *Server) Run() {
 				server.state.UpdateStateAddIdleArena(vm.Config.Id)
 				utils.Debug("master", mac+" joined")
 			} else {
-				utils.RecoverableError("vm", "VM with MAC ("+mac+") does not exists")
+				utils.RecoverableError("game-handshake", "VM with MAC ("+mac+") does not exists")
 			}
 
 		case msg := <-listener.gameStopped:

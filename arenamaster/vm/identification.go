@@ -3,12 +3,11 @@ package vm
 import (
 	"fmt"
 	"math/rand"
-	"strings"
 	"time"
 )
 
 const (
-	HEXCHARS = "0123456789ABCDEF"
+	HEXCHARS = "0123456789abcdef"
 )
 
 var r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -22,7 +21,5 @@ func RandomHex(strlen int) string {
 }
 
 func GetRandomMAC() string {
-	return strings.ToUpper(
-		fmt.Sprintf("00:F0:%s:%s:%s:%s", RandomHex(2), RandomHex(2), RandomHex(2), RandomHex(2)),
-	)
+	return fmt.Sprintf("00:f0:%s:%s:%s:%s", RandomHex(2), RandomHex(2), RandomHex(2), RandomHex(2))
 }

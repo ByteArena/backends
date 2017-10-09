@@ -1,8 +1,6 @@
 package arenamaster
 
 import (
-	"strings"
-
 	"github.com/bytearena/bytearena/arenamaster/vm"
 	"github.com/bytearena/bytearena/arenamaster/vm/types"
 )
@@ -19,13 +17,12 @@ func GetVMMAC(vm *vm.VM) (mac string, found bool) {
 }
 
 func FindVMByMAC(state *State, searchMac string) *vm.VM {
-	searchUpperMac := strings.ToUpper(searchMac)
 
 	for _, element := range state.state {
 		if vm, isVm := element.Data.(*vm.VM); isVm {
 			mac, found := GetVMMAC(vm)
 
-			if searchUpperMac == mac && found {
+			if searchMac == mac && found {
 				return vm
 			}
 

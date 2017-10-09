@@ -56,7 +56,21 @@ func main() {
 	utils.Check(err, "ERROR: Could not connect to messagebroker on "+*mqhost)
 
 	// Just test docker
-	testDockerTicker := time.NewTicker(time.Duration(10) * time.Second)
+	testTicker := time.NewTicker(time.Duration(10) * time.Second)
+
+	go func() {
+		for {
+			err := graphqlclient.Ping()
+
+			if err != nil {
+				utils.Debug("test-graphql", "err: "+err.Error())
+			} else {
+				utils.Debug("test-graphql", "ok")
+			}
+
+			<-testTicker.C
+		}
+	}()
 
 	go func() {
 		for {
@@ -68,7 +82,7 @@ func main() {
 				utils.Debug("test-mq", "ok")
 			}
 
-			<-testDockerTicker.C
+			<-testTicker.C
 		}
 	}()
 
@@ -102,7 +116,7 @@ func main() {
 	}
 
 	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
-		utils.Debug("arenamaster", "Received launching order")
+		utils.Debug("from-master", "Received launching order")
 
 		var payload messageArenaLaunch
 		err := json.Unmarshal(msg.Data, &payload)

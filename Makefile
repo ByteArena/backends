@@ -19,3 +19,6 @@ run-arenamaster:
 create-br:
 	brctl addbr $(BRIDGE)
 	ifconfig $(BRIDGE) $(SUBNET) up
+
+run-mq:
+	docker run -p 6379:6379 redis

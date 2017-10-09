@@ -109,9 +109,12 @@ func (s Session) handleStartGameCommand(c *ishell.Context) {
 	c.Print("Game ID: ")
 	gameId := c.ReadLine()
 
-	err := s.mqClient.Publish("game", "launch", types.MQPayload{
+	err := s.mqClient.Publish("game", "launch", types.NewMQMessage(
+		"arena-master",
+		"launch",
+	).SetPayload(types.MQPayload{
 		"id": gameId,
-	})
+	}))
 
 	if err != nil {
 		c.Println("MQ error: " + err.Error())
