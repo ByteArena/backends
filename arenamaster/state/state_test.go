@@ -1,4 +1,4 @@
-package arenamaster
+package state
 
 import (
 	"testing"
@@ -16,7 +16,7 @@ func TestQueryState(t *testing.T) {
 		panic("State should have been updated")
 	}
 
-	queryRes := state.QueryState(id, STATE_RUNNINGVM)
+	queryRes := state.QueryState(id, STATE_RUNNING_VM)
 
 	if queryRes == nil {
 		panic("Query should have returned our data")

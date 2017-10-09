@@ -1,22 +1,23 @@
 package arenamaster
 
 import (
+	"github.com/bytearena/bytearena/arenamaster/state"
 	"github.com/bytearena/schnapps"
 	vmid "github.com/bytearena/schnapps/id"
 )
 
-func FindVMByMAC(state *State, searchMac string) *vm.VM {
+func FindVMByMAC(s *state.State, searchMac string) *vm.VM {
+	var res *vm.VM
 
-	for _, element := range state.state {
+	s.Map(func(element *state.DataContainer) {
 		if vm, isVm := element.Data.(*vm.VM); isVm {
 			mac, found := vmid.GetVMMAC(vm)
 
 			if searchMac == mac && found {
-				return vm
+				res = vm
 			}
-
 		}
-	}
+	})
 
-	return nil
+	return res
 }

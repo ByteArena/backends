@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strconv"
 
+	arenamasterGraphql "github.com/bytearena/bytearena/arenamaster/graphql"
+	"github.com/bytearena/bytearena/arenamaster/state"
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/influxdb"
 	"github.com/bytearena/bytearena/common/mq"
@@ -21,12 +23,13 @@ type Server struct {
 	stopChan           ListeningChanStruct
 	brokerclient       *mq.Client
 	graphqlclient      *graphql.Client
-	state              *State
+	state              *state.State
 	influxdbClient     *influxdb.Client
 	vmRawImageLocation string
+	vmBridgeName       string
 }
 
-func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation string) *Server {
+func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation, vmBridgeName string) *Server {
 	stopChan := make(ListeningChanStruct)
 
 	influxdbClient, influxdbClientErr := influxdb.NewClient("arenamaster")
@@ -35,10 +38,11 @@ func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation string) *S
 	s := &Server{
 		brokerclient:       mq,
 		graphqlclient:      gql,
-		state:              NewState(),
+		state:              state.NewState(),
 		stopChan:           stopChan,
 		influxdbClient:     influxdbClient,
 		vmRawImageLocation: vmRawImageLocation,
+		vmBridgeName:       vmBridgeName,
 	}
 
 	err := s.startStateReporting()
@@ -53,8 +57,6 @@ func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation string) *S
 func (server *Server) startStateReporting() error {
 
 	server.influxdbClient.Loop(func() {
-		server.state.LockState()
-
 		fields := make(map[string]interface{})
 
 		// Transform map[string]int into map[string]interface{}
@@ -62,8 +64,6 @@ func (server *Server) startStateReporting() error {
 		for k, v := range server.state.DebugGetStateDistribution() {
 			fields[k] = v
 		}
-
-		server.state.UnlockState()
 
 		server.influxdbClient.WriteAppMetric("arenamaster", fields)
 	})
@@ -115,7 +115,7 @@ func (server *Server) Run() {
 		case msg := <-listener.arenaHalt:
 			id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
 
-			if data := server.state.QueryState(id, STATE_RUNNING_VM); data != nil {
+			if data := server.state.QueryState(id, state.STATE_RUNNING_VM); data != nil {
 				server.state.UpdateStateVMHalted(id)
 
 				runningVM := data.(*vm.VM)
@@ -126,7 +126,7 @@ func (server *Server) Run() {
 
 		case msg := <-listener.gameLaunch:
 			gameid, _ := (*msg.Payload)["id"].(string)
-			element := server.state.FindState(STATE_IDLE_ARENA)
+			element := server.state.FindState(state.STATE_IDLE_ARENA)
 
 			if element != nil {
 				vm := element.(*vm.VM)
@@ -150,7 +150,7 @@ func (server *Server) Run() {
 
 			if vm != nil {
 				server.state.UpdateStateConfirmedLaunchArena(vm.Config.Id)
-				go onGameLaunched(gameid, mac, server.graphqlclient)
+				go arenamasterGraphql.ReportGameLaunched(gameid, mac, server.graphqlclient)
 
 				utils.Debug("master", mac+" launched")
 
@@ -173,12 +173,21 @@ func (server *Server) Run() {
 			gameid, _ := (*msg.Payload)["id"].(string)
 			mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
 
-			onGameStop(
-				server.state,
-				mac,
-				gameid,
-				server.graphqlclient,
-			)
+			vm := FindVMByMAC(server.state, mac)
+
+			if vm != nil {
+				server.state.UpdateStateStoppedArena(vm.Config.Id)
+
+				go arenamasterGraphql.ReportGameStopped(
+					server.state,
+					mac,
+					gameid,
+					server.graphqlclient,
+				)
+
+			} else {
+				utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
+			}
 		}
 	}
 }
@@ -194,7 +203,7 @@ func (server *Server) SpawnArena(id int) (*vm.VM, error) {
 	config := vmtypes.VMConfig{
 		NICs: []interface{}{
 			vmtypes.NICBridge{
-				Bridge: "brtest",
+				Bridge: server.vmBridgeName,
 				MAC:    vmid.GenerateRandomMAC(),
 			},
 		},

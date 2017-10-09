@@ -1,24 +1,19 @@
-package arenamaster
+package state
 
 import (
 	"sync"
 )
 
 const (
-	STATE_BOOTING_VM    byte = 1 << iota // 00000001
-	STATE_RUNNING_VM                     // 00000010
-	STATE_HALTED_VM                      // 00000100
-	STATE_ERRORED_VM                     // 00001000
-	STATE_IDLE_ARENA                     // 00010000
-	STATE_RUNNING_ARENA                  // 00100000
-	STATE_PENDING_ARENA                  // 01000000
-	STATE_ERRORED_ARENA                  // 10000000
+	STATE_BOOTING_VM byte = 1 << iota
+	STATE_RUNNING_VM
+	STATE_HALTED_VM
+	STATE_ERRORED_VM
+	STATE_IDLE_ARENA
+	STATE_RUNNING_ARENA
+	STATE_PENDING_ARENA
+	STATE_ERRORED_ARENA
 )
-
-type ArenaServerState struct {
-	id     string
-	GameId string
-}
 
 type Data interface{}
 type DataContainer struct {
@@ -30,10 +25,6 @@ type State struct {
 	mutex sync.Mutex
 
 	state map[int]*DataContainer
-
-	idleArenas    map[string]ArenaServerState
-	runningArenas map[string]ArenaServerState
-	pendingArenas map[string]ArenaServerState
 }
 
 func (s *State) DebugGetStateDistribution() map[string]int {
@@ -98,10 +89,6 @@ func (s *State) DebugGetStatus(id int) []string {
 
 func NewState() *State {
 	return &State{
-		idleArenas:    make(map[string]ArenaServerState),
-		runningArenas: make(map[string]ArenaServerState),
-		pendingArenas: make(map[string]ArenaServerState),
-
 		state: make(map[int]*DataContainer),
 	}
 }
@@ -130,14 +117,14 @@ func (s *State) FindState(flag byte) Data {
 }
 
 func (s *State) UpdateStateAddBootingVM(id int) (stateUpdated bool) {
-	s.LockState()
+	s.lockState()
 
 	s.state[id] = &DataContainer{
 		Data:   nil,
 		Status: STATE_BOOTING_VM,
 	}
 
-	s.UnlockState()
+	s.unlockState()
 
 	stateUpdated = true
 
@@ -145,20 +132,20 @@ func (s *State) UpdateStateAddBootingVM(id int) (stateUpdated bool) {
 }
 
 func (s *State) UpdateStateVMErrored(id int) (stateUpdated bool) {
-	s.LockState()
+	s.lockState()
 
 	if state, ok := s.state[id]; ok {
 		state.Status |= STATE_ERRORED_VM
 		stateUpdated = true
 	}
 
-	s.UnlockState()
+	s.unlockState()
 
 	return stateUpdated
 }
 
 func (s *State) UpdateStateVMHalted(id int) (stateUpdated bool) {
-	s.LockState()
+	s.lockState()
 
 	if state, ok := s.state[id]; ok {
 		state.Status ^= STATE_RUNNING_VM
@@ -167,7 +154,7 @@ func (s *State) UpdateStateVMHalted(id int) (stateUpdated bool) {
 		stateUpdated = true
 	}
 
-	s.UnlockState()
+	s.unlockState()
 
 	return stateUpdated
 }
@@ -175,7 +162,7 @@ func (s *State) UpdateStateVMHalted(id int) (stateUpdated bool) {
 func (s *State) UpdateStateVMBooted(id int, data interface{}) (stateUpdated bool) {
 	stateUpdated = false
 
-	s.LockState()
+	s.lockState()
 
 	if state, ok := s.state[id]; ok {
 		state.Status ^= STATE_BOOTING_VM
@@ -186,7 +173,7 @@ func (s *State) UpdateStateVMBooted(id int, data interface{}) (stateUpdated bool
 		stateUpdated = true
 	}
 
-	s.UnlockState()
+	s.unlockState()
 
 	return stateUpdated
 }
@@ -194,7 +181,7 @@ func (s *State) UpdateStateVMBooted(id int, data interface{}) (stateUpdated bool
 func (s *State) UpdateStateAddIdleArena(id int) (stateUpdated bool) {
 	stateUpdated = false
 
-	s.LockState()
+	s.lockState()
 
 	if state, ok := s.state[id]; ok {
 		state.Status |= STATE_IDLE_ARENA
@@ -202,7 +189,7 @@ func (s *State) UpdateStateAddIdleArena(id int) (stateUpdated bool) {
 		stateUpdated = true
 	}
 
-	s.UnlockState()
+	s.unlockState()
 
 	return stateUpdated
 }
@@ -210,7 +197,7 @@ func (s *State) UpdateStateAddIdleArena(id int) (stateUpdated bool) {
 func (s *State) UpdateStateTriedLaunchArena(id int) (stateUpdated bool) {
 	stateUpdated = false
 
-	s.LockState()
+	s.lockState()
 
 	if state, ok := s.state[id]; ok {
 		state.Status ^= STATE_IDLE_ARENA
@@ -219,7 +206,7 @@ func (s *State) UpdateStateTriedLaunchArena(id int) (stateUpdated bool) {
 		stateUpdated = true
 	}
 
-	s.UnlockState()
+	s.unlockState()
 
 	return stateUpdated
 }
@@ -227,7 +214,7 @@ func (s *State) UpdateStateTriedLaunchArena(id int) (stateUpdated bool) {
 func (s *State) UpdateStateConfirmedLaunchArena(id int) (stateUpdated bool) {
 	stateUpdated = false
 
-	s.LockState()
+	s.lockState()
 
 	if state, ok := s.state[id]; ok {
 		state.Status ^= STATE_PENDING_ARENA
@@ -236,17 +223,37 @@ func (s *State) UpdateStateConfirmedLaunchArena(id int) (stateUpdated bool) {
 		stateUpdated = true
 	}
 
-	s.UnlockState()
+	s.unlockState()
 
 	return stateUpdated
 }
 
-// TODO(sven): don't expose
-func (s *State) LockState() {
+func (s *State) UpdateStateStoppedArena(id int) (stateUpdated bool) {
+	stateUpdated = false
+
+	s.lockState()
+
+	if state, ok := s.state[id]; ok {
+		state.Status ^= STATE_RUNNING_ARENA
+
+		stateUpdated = true
+	}
+
+	s.unlockState()
+
+	return stateUpdated
+}
+
+func (s *State) lockState() {
 	s.mutex.Lock()
 }
 
-// TODO(sven): don't expose
-func (s *State) UnlockState() {
+func (s *State) unlockState() {
 	s.mutex.Unlock()
+}
+
+func (s *State) Map(fn func(element *DataContainer)) {
+	for _, element := range s.state {
+		fn(element)
+	}
 }

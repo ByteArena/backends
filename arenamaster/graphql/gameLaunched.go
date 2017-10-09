@@ -1,4 +1,4 @@
-package arenamaster
+package graphql
 
 import (
 	"time"
@@ -8,7 +8,7 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
-func onGameLaunched(gameid, mac string, gql *graphql.Client) {
+func ReportGameLaunched(gameid, mac string, gql *graphql.Client) {
 
 	// syncing state in graphql db
 	_, err := gql.RequestSync(
