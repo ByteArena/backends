@@ -4,6 +4,9 @@ DOCKERFILE=Dockerfile
 BRIDGE=brtest
 SUBNET=10.0.5.0/24
 
+build:
+	cd cmd && bash buildall.sh
+
 build-arenamaster:
 	docker build -f docker/arena-master/$(DOCKERFILE) -t arenamaster .
 
