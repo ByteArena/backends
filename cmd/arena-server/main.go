@@ -33,7 +33,7 @@ func main() {
 
 	host := flag.String("host", "", "IP serving the arena (TCP listen); required")
 	arenaServerUUID := flag.String("id", "", "ID of the arena; required")
-	port := flag.Int("port", 8080, "Port serving the arena")
+	port := flag.Int("port", 7777, "Port serving the arena")
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
 	apiurl := flag.String("apiurl", "https://graphql.net.bytearena.com", "GQL API URL")
 	timeout := flag.Int("timeout", 60, "Limit the time of the game (in minutes)")

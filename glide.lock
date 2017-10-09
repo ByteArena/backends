@@ -1,5 +1,5 @@
-hash: 1d59f8699cd03c848b9ba22f54483a7de4d403ab50c77c4079974aa4d8f6d41d
-updated: 2017-10-07T13:36:14.402490492+02:00
+hash: 75535cfc0f0dc46470337730f72e8b90237b46944016c1d330c1d19a34ec78d5
+updated: 2017-10-09T15:02:39.679165759+02:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -9,6 +9,16 @@ imports:
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
 - name: github.com/bytearena/box2d
   version: 6a120bfe0653a6b77776488137fb5bcf364d27af
+- name: github.com/ByteArena/schnapps
+  version: 6dbd54bfca04e06c7c5250561b0e7592e2cb9e9e
+- name: github.com/bytearena/schnapps
+  version: 6dbd54bfca04e06c7c5250561b0e7592e2cb9e9e
+  subpackages:
+  - cli
+  - id
+  - libvirt
+  - types
+  - utils
 - name: github.com/cenkalti/backoff
   version: 61153c768f31ee5f130071d08fc82b85208528de
 - name: github.com/chzyer/readline

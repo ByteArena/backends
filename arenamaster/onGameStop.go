@@ -25,8 +25,6 @@ func onGameStop(state *State, arenaServerUUID, gameid string, gql *graphql.Clien
 	delete(state.runningArenas, arena.id)
 	state.UnlockState()
 
-	utils.Debug("master", "Game "+gameid+" running on server "+arenaServerUUID+" stopped "+getMasterStatus(state))
-
 	go func() {
 		_, err := gql.RequestSync(
 			graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{

@@ -13,11 +13,14 @@ import (
 	"github.com/bytearena/bytearena/arenamaster"
 )
 
-func main() {
-	env := os.Getenv("ENV")
-	mqHost := os.Getenv("MQ")
-	apiUrl := os.Getenv("APIURL")
+var (
+	env                = os.Getenv("ENV")
+	mqHost             = os.Getenv("MQ")
+	apiUrl             = os.Getenv("APIURL")
+	vmRawImageLocation = utils.GetenvOrDefault("VM_RAW_IMAGE_LOCATION", "/linuxkit.raw")
+)
 
+func main() {
 	utils.Assert(mqHost != "", "MQ must be set")
 	utils.Assert(apiUrl != "", "APIURL must be set")
 
@@ -26,7 +29,7 @@ func main() {
 
 	graphqlclient := graphql.NewClient(apiUrl)
 
-	server := arenamaster.NewServer(brokerclient, graphqlclient)
+	server := arenamaster.NewServer(brokerclient, graphqlclient, vmRawImageLocation)
 
 	// handling signals
 	var hc *healthcheck.HealthCheckServer

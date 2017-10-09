@@ -3,12 +3,13 @@ package arenamaster
 import (
 	"time"
 
-	"github.com/bytearena/bytearena/arenamaster/vm"
 	"github.com/bytearena/bytearena/common/graphql"
 	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/schnapps"
+	vmid "github.com/bytearena/schnapps/id"
 )
 
 func onGameLaunch(gameid string, mqclient *mq.Client, gql *graphql.Client, vm *vm.VM) {
@@ -18,12 +19,11 @@ func onGameLaunch(gameid string, mqclient *mq.Client, gql *graphql.Client, vm *v
 	// if isGameAlreadyRunning(state, gameid) {
 	// 	state.UnlockState()
 
-	// 	utils.Debug("master", "ERROR: game "+gameid+" is already running "+getMasterStatus(state))
 	// 	return
 	// }
 
-	vm.Gameid = gameid
-	mac, _ := GetVMMAC(vm)
+	vm.Metadata["gameid"] = gameid
+	mac, _ := vmid.GetVMMAC(vm)
 
 	// TODO: should be wrapped in types.NewMQMessage
 	mqclient.Publish("game", mac+".launch", types.MQPayload{

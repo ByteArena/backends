@@ -4,37 +4,41 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/bytearena/bytearena/arenamaster/vm"
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/influxdb"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/schnapps"
+	vmid "github.com/bytearena/schnapps/id"
+	vmtypes "github.com/bytearena/schnapps/types"
 )
 
 var inc = 0
 
 type ListeningChanStruct chan bool
 type Server struct {
-	stopChan       ListeningChanStruct
-	brokerclient   *mq.Client
-	graphqlclient  *graphql.Client
-	state          *State
-	influxdbClient *influxdb.Client
+	stopChan           ListeningChanStruct
+	brokerclient       *mq.Client
+	graphqlclient      *graphql.Client
+	state              *State
+	influxdbClient     *influxdb.Client
+	vmRawImageLocation string
 }
 
-func NewServer(mq *mq.Client, gql *graphql.Client) *Server {
+func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation string) *Server {
 	stopChan := make(ListeningChanStruct)
 
 	influxdbClient, influxdbClientErr := influxdb.NewClient("arenamaster")
 	utils.Check(influxdbClientErr, "Unable to create influxdb client")
 
 	s := &Server{
-		brokerclient:   mq,
-		graphqlclient:  gql,
-		state:          NewState(),
-		stopChan:       stopChan,
-		influxdbClient: influxdbClient,
+		brokerclient:       mq,
+		graphqlclient:      gql,
+		state:              NewState(),
+		stopChan:           stopChan,
+		influxdbClient:     influxdbClient,
+		vmRawImageLocation: vmRawImageLocation,
 	}
 
 	err := s.startStateReporting()
@@ -90,7 +94,7 @@ func (server *Server) Run() {
 			id := inc
 
 			server.state.UpdateStateAddBootingVM(id)
-			vm, err := vm.SpawnArena(id)
+			vm, err := server.SpawnArena(id)
 
 			if err != nil {
 				utils.RecoverableError("vm", "Could not start ("+strconv.Itoa(id)+"): "+err.Error())
@@ -184,4 +188,30 @@ func (server *Server) Stop() {
 	server.influxdbClient.TearDown()
 
 	close(server.stopChan)
+}
+
+func (server *Server) SpawnArena(id int) (*vm.VM, error) {
+	config := vmtypes.VMConfig{
+		NICs: []interface{}{
+			vmtypes.NICBridge{
+				Bridge: "brtest",
+				MAC:    vmid.GenerateRandomMAC(),
+			},
+		},
+		Id:            id,
+		MegMemory:     2048,
+		CPUAmount:     1,
+		CPUCoreAmount: 1,
+		ImageLocation: server.vmRawImageLocation,
+	}
+
+	arenaVm := vm.NewVM(config)
+
+	startErr := arenaVm.Start()
+
+	if startErr != nil {
+		return nil, startErr
+	}
+
+	return arenaVm, nil
 }

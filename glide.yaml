@@ -44,3 +44,4 @@ import:
 - package: github.com/digitalocean/go-qemu
   subpackages:
   - qmp
+- package: github.com/ByteArena/schnapps
