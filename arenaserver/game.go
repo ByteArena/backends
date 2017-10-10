@@ -41,6 +41,7 @@ func FetchUrl(url string) ([]byte, error) {
 }
 
 func NewGameGql(game graphqltype.GameType) *GameImpGql {
+	utils.Debug("game", "Fetching map...")
 
 	// TODO(jerome): parametrize this
 	jsonsource, err := FetchUrl("https://static.bytearena.com/assets/bytearena/maps/deathmatch/desert/death-valley/map.json")

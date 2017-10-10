@@ -128,7 +128,7 @@ func (server *Server) Run() {
 	utils.Debug("vm", "Scheduler running and initialized")
 
 	dnsRecords := map[string]string{
-		"static.net." + dnsZone:   server.vmBridgeIP,
+		"static." + dnsZone:       server.vmBridgeIP,
 		"redis.net." + dnsZone:    server.vmBridgeIP,
 		"graphql.net." + dnsZone:  server.vmBridgeIP,
 		"registry.net." + dnsZone: server.vmBridgeIP,
