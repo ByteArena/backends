@@ -1,5 +1,7 @@
 FROM golang:1.8-stretch
 
+ARG BRIDGE
+
 ENV APP_HOME $GOPATH/src/github.com/bytearena/bytearena
 
 RUN \
@@ -21,7 +23,7 @@ WORKDIR $APP_HOME/cmd/arena-master
 RUN go build
 
 RUN mkdir /etc/qemu/
-RUN echo "allow brtest" > /etc/qemu/bridge.conf
+RUN echo "allow ${BRIDGE}" > /etc/qemu/bridge.conf
 
 # HEALTHCHECK --interval=1m --timeout=2s --retries=3 CMD ["curl", "--fail", "localhost:8099/health"]
 

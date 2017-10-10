@@ -19,6 +19,7 @@ var (
 	apiUrl             = os.Getenv("APIURL")
 	vmRawImageLocation = utils.GetenvOrDefault("VM_RAW_IMAGE_LOCATION", "/linuxkit.raw")
 	vmBridgeName       = utils.GetenvOrDefault("VM_BRIDGE_NAME", "brtest")
+	vmBridgeIP         = utils.GetenvOrDefault("VM_BRIDGE_IP", "172.19.0.1")
 )
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 
 	graphqlclient := graphql.NewClient(apiUrl)
 
-	server := arenamaster.NewServer(brokerclient, graphqlclient, vmRawImageLocation, vmBridgeName)
+	server := arenamaster.NewServer(brokerclient, graphqlclient, vmRawImageLocation, vmBridgeName, vmBridgeIP)
 
 	// handling signals
 	var hc *healthcheck.HealthCheckServer

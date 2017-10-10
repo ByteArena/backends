@@ -60,6 +60,7 @@ func main() {
 
 	go func() {
 		for {
+			utils.Debug("test-graphql", "probe")
 			err := graphqlclient.Ping()
 
 			if err != nil {
@@ -74,6 +75,7 @@ func main() {
 
 	go func() {
 		for {
+			utils.Debug("test-mq", "probe")
 			err := brokerclient.Ping()
 
 			if err != nil {
@@ -91,7 +93,7 @@ func main() {
 	// FIXME(sven): find a better solution
 	go func() {
 		<-time.After(time.Duration(10) * time.Second)
-		handshakeTicker := time.NewTicker(time.Duration(*timeout/2) * time.Minute)
+		handshakeTicker := time.NewTicker(time.Duration(10/2) * time.Minute)
 
 		go func() {
 			for {

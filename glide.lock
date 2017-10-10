@@ -1,5 +1,5 @@
 hash: 75535cfc0f0dc46470337730f72e8b90237b46944016c1d330c1d19a34ec78d5
-updated: 2017-10-09T15:02:39.679165759+02:00
+updated: 2017-10-10T07:59:13.77701115+02:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -10,11 +10,12 @@ imports:
 - name: github.com/bytearena/box2d
   version: 6a120bfe0653a6b77776488137fb5bcf364d27af
 - name: github.com/ByteArena/schnapps
-  version: 6dbd54bfca04e06c7c5250561b0e7592e2cb9e9e
+  version: 65b31f0535e187b839ef1dd3ab4e7e7696559536
 - name: github.com/bytearena/schnapps
-  version: 6dbd54bfca04e06c7c5250561b0e7592e2cb9e9e
+  version: 65b31f0535e187b839ef1dd3ab4e7e7696559536
   subpackages:
   - cli
+  - dns
   - id
   - libvirt
   - types
@@ -116,6 +117,10 @@ imports:
   repo: https://github.com/mattn/go-isatty
 - name: github.com/Microsoft/go-winio
   version: 78439966b38d69bf38227fbf57ac8a6fee70f69a
+- name: github.com/miekg/dns
+  version: 946bd9fbed05568b0f3cd188353d8aa28f38b688
+  subpackages:
+  - internal/socket
 - name: github.com/netgusto/poly2tri-go
   version: d102ad91854fea433a859be7b7de879439911aeb
 - name: github.com/opencontainers/go-digest
@@ -135,8 +140,6 @@ imports:
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
   - open
-- name: github.com/songgao/water
-  version: dc106b419556b93288adff21fe0c86e8c9b10f9b
 - name: github.com/ttacon/chalk
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
 - name: golang.org/x/crypto
@@ -154,5 +157,4 @@ imports:
   subpackages:
   - unix
   - windows
-  - windows/registry
 testImports: []

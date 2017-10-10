@@ -12,11 +12,15 @@ import (
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/schnapps"
+	vmdns "github.com/bytearena/schnapps/dns"
 	vmid "github.com/bytearena/schnapps/id"
 	vmtypes "github.com/bytearena/schnapps/types"
 )
 
-var inc = 0
+var (
+	inc     = 0
+	dnsZone = "bytearena.com."
+)
 
 type ListeningChanStruct chan bool
 type Server struct {
@@ -25,11 +29,13 @@ type Server struct {
 	graphqlclient      *graphql.Client
 	state              *state.State
 	influxdbClient     *influxdb.Client
+	DNSServer          *vmdns.Server
 	vmRawImageLocation string
 	vmBridgeName       string
+	vmBridgeIP         string
 }
 
-func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation, vmBridgeName string) *Server {
+func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation, vmBridgeName, vmBridgeIP string) *Server {
 	stopChan := make(ListeningChanStruct)
 
 	influxdbClient, influxdbClientErr := influxdb.NewClient("arenamaster")
@@ -43,6 +49,7 @@ func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation, vmBridgeN
 		influxdbClient:     influxdbClient,
 		vmRawImageLocation: vmRawImageLocation,
 		vmBridgeName:       vmBridgeName,
+		vmBridgeIP:         vmBridgeIP,
 	}
 
 	err := s.startStateReporting()
@@ -84,110 +91,143 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 func (server *Server) Run() {
 	listener := MakeListener(server.brokerclient)
 
+	dnsRecords := map[string]string{
+		"static.net." + dnsZone:   server.vmBridgeIP,
+		"redis.net." + dnsZone:    server.vmBridgeIP,
+		"graphql.net." + dnsZone:  server.vmBridgeIP,
+		"registry.net." + dnsZone: server.vmBridgeIP,
+	}
+
+	DNSServer := vmdns.MakeServer(server.vmBridgeIP+":53", dnsZone, dnsRecords)
+
+	DNSServer.SetOnRequestHook(func(addr string) {
+		utils.Debug("dns-server", "query for "+addr)
+	})
+
+	go func() {
+		err := DNSServer.Start()
+		utils.Check(err, "Could not start DNS server")
+
+		server.DNSServer = &DNSServer
+	}()
+
 	for {
 		select {
 		case <-server.stopChan:
 			return
 
 		case <-listener.arenaAdd:
-			inc++
-			id := inc
+			go func() {
+				inc++
+				id := inc
 
-			server.state.UpdateStateAddBootingVM(id)
-			vm, err := server.SpawnArena(id)
+				server.state.UpdateStateAddBootingVM(id)
+				vm, err := server.SpawnArena(id)
 
-			if err != nil {
-				utils.RecoverableError("vm", "Could not start ("+strconv.Itoa(id)+"): "+err.Error())
-				server.state.UpdateStateVMErrored(id)
-			} else {
-				go func() {
+				if err != nil {
+					utils.RecoverableError("vm", "Could not start ("+strconv.Itoa(id)+"): "+err.Error())
+					server.state.UpdateStateVMErrored(id)
+				} else {
 					err := vm.WaitUntilBooted()
 
 					if err != nil {
 						utils.RecoverableError("vm", "Could not wait until VM is booted")
 						server.state.UpdateStateVMErrored(id)
+					} else {
+						server.state.UpdateStateVMBooted(id, vm)
+						utils.Debug("vm", "VM ("+strconv.Itoa(id)+") booted")
 					}
-
-					server.state.UpdateStateVMBooted(id, vm)
-				}()
-			}
+				}
+			}()
 
 		case msg := <-listener.arenaHalt:
-			id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
+			go func() {
+				id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
 
-			if data := server.state.QueryState(id, state.STATE_RUNNING_VM); data != nil {
-				server.state.UpdateStateVMHalted(id)
+				if data := server.state.QueryState(id, state.STATE_RUNNING_VM); data != nil {
+					server.state.UpdateStateVMHalted(id)
 
-				runningVM := data.(*vm.VM)
-				runningVM.Quit()
-			} else {
-				utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): VM is not running")
-			}
+					runningVM := data.(*vm.VM)
+					runningVM.Quit()
+				} else {
+					utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): VM is not running")
+				}
+			}()
 
 		case msg := <-listener.gameLaunch:
-			gameid, _ := (*msg.Payload)["id"].(string)
-			element := server.state.FindState(state.STATE_IDLE_ARENA)
+			go func() {
+				gameid, _ := (*msg.Payload)["id"].(string)
+				element := server.state.FindState(state.STATE_IDLE_ARENA)
 
-			if element != nil {
-				vm := element.(*vm.VM)
-				server.state.UpdateStateTriedLaunchArena(vm.Config.Id)
+				if element != nil {
+					vm := element.(*vm.VM)
+					server.state.UpdateStateTriedLaunchArena(vm.Config.Id)
 
-				onGameLaunch(
-					gameid,
-					server.brokerclient,
-					server.graphqlclient,
-					vm,
-				)
+					onGameLaunch(
+						gameid,
+						server.brokerclient,
+						server.graphqlclient,
+						vm,
+					)
 
-			} else {
-				utils.RecoverableError("vm", "Could not launch game: no arena is currently idle")
-			}
+				} else {
+					utils.RecoverableError("vm", "Could not launch game: no arena is currently idle")
+				}
+			}()
 
 		case msg := <-listener.gameLaunched:
-			mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
-			gameid, _ := (*msg.Payload)["id"].(string)
-			vm := FindVMByMAC(server.state, mac)
+			go func() {
+				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
+				gameid, _ := (*msg.Payload)["id"].(string)
+				vm := FindVMByMAC(server.state, mac)
 
-			if vm != nil {
-				server.state.UpdateStateConfirmedLaunchArena(vm.Config.Id)
-				go arenamasterGraphql.ReportGameLaunched(gameid, mac, server.graphqlclient)
+				if vm != nil {
+					server.state.UpdateStateConfirmedLaunchArena(vm.Config.Id)
 
-				utils.Debug("master", mac+" launched")
+					arenamasterGraphql.ReportGameLaunched(gameid, mac, server.graphqlclient)
+					utils.Debug("master", mac+" launched")
 
-			} else {
-				utils.RecoverableError("game-launched", "VM with MAC ("+mac+") does not exists")
-			}
+				} else {
+					utils.RecoverableError("game-launched", "VM with MAC ("+mac+") does not exists")
+				}
 
+			}()
 		case msg := <-listener.gameHandshake:
-			mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
-			vm := FindVMByMAC(server.state, mac)
+			go func() {
+				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
+				vm := FindVMByMAC(server.state, mac)
 
-			if vm != nil {
-				server.state.UpdateStateAddIdleArena(vm.Config.Id)
-				utils.Debug("master", mac+" joined")
-			} else {
-				utils.RecoverableError("game-handshake", "VM with MAC ("+mac+") does not exists")
-			}
+				if vm != nil {
+					server.state.UpdateStateAddIdleArena(vm.Config.Id)
+					utils.Debug("master", mac+" joined")
+				} else {
+					utils.RecoverableError("game-handshake", "VM with MAC ("+mac+") does not exists")
+				}
+			}()
 
 		case msg := <-listener.gameStopped:
-			gameid, _ := (*msg.Payload)["id"].(string)
-			mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
+			go func() {
+				gameid, _ := (*msg.Payload)["id"].(string)
+				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
 
-			vm := FindVMByMAC(server.state, mac)
+				vm := FindVMByMAC(server.state, mac)
 
-			if vm != nil {
-				server.state.UpdateStateStoppedArena(vm.Config.Id)
+				if vm != nil {
+					server.state.UpdateStateStoppedArena(vm.Config.Id)
 
-				go arenamasterGraphql.ReportGameStopped(
-					server.state,
-					mac,
-					gameid,
-					server.graphqlclient,
-				)
+					arenamasterGraphql.ReportGameStopped(
+						server.state,
+						mac,
+						gameid,
+						server.graphqlclient,
+					)
 
-			} else {
-				utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
-			}
+					// Add a new VM
+					listener.arenaAdd <- types.MQMessage{}
+				} else {
+					utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
+				}
+			}()
 		}
 	}
 }
@@ -196,15 +236,21 @@ func (server *Server) Stop() {
 	server.stopChan <- true
 	server.influxdbClient.TearDown()
 
+	if server.DNSServer != nil {
+		server.DNSServer.Stop()
+	}
+
 	close(server.stopChan)
 }
 
 func (server *Server) SpawnArena(id int) (*vm.VM, error) {
+	mac := vmid.GenerateRandomMAC()
+
 	config := vmtypes.VMConfig{
 		NICs: []interface{}{
 			vmtypes.NICBridge{
 				Bridge: server.vmBridgeName,
-				MAC:    vmid.GenerateRandomMAC(),
+				MAC:    mac,
 			},
 		},
 		Id:            id,
@@ -221,6 +267,8 @@ func (server *Server) SpawnArena(id int) (*vm.VM, error) {
 	if startErr != nil {
 		return nil, startErr
 	}
+
+	utils.Debug("vm", "Started new VM ("+mac+")")
 
 	return arenaVm, nil
 }
