@@ -14,6 +14,7 @@ import (
 	"github.com/bytearena/schnapps"
 	vmdns "github.com/bytearena/schnapps/dns"
 	vmid "github.com/bytearena/schnapps/id"
+	vmscheduler "github.com/bytearena/schnapps/scheduler"
 	vmtypes "github.com/bytearena/schnapps/types"
 )
 
@@ -91,6 +92,41 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 func (server *Server) Run() {
 	listener := MakeListener(server.brokerclient)
 
+	provisionVmFn := func() *vm.VM {
+		inc++
+		id := inc
+
+		server.state.UpdateStateAddBootingVM(id)
+		vm, err := server.SpawnArena(id)
+
+		if err != nil {
+			utils.RecoverableError("vm", "Could not start ("+strconv.Itoa(id)+"): "+err.Error())
+			server.state.UpdateStateVMErrored(id)
+
+			return nil
+		} else {
+			err := vm.WaitUntilBooted()
+
+			if err != nil {
+				utils.RecoverableError("vm", "Could not wait until VM is booted")
+				server.state.UpdateStateVMErrored(id)
+			} else {
+				server.state.UpdateStateVMBooted(id, vm)
+				utils.Debug("vm", "VM ("+strconv.Itoa(id)+") booted")
+			}
+
+			return vm
+		}
+	}
+
+	pool, schedulerErr := vmscheduler.NewFixedVMPool(3, provisionVmFn)
+
+	if schedulerErr != nil {
+		panic(schedulerErr)
+	}
+
+	utils.Debug("vm", "Scheduler running and initialized")
+
 	dnsRecords := map[string]string{
 		"static.net." + dnsZone:   server.vmBridgeIP,
 		"redis.net." + dnsZone:    server.vmBridgeIP,
@@ -117,28 +153,7 @@ func (server *Server) Run() {
 			return
 
 		case <-listener.arenaAdd:
-			go func() {
-				inc++
-				id := inc
-
-				server.state.UpdateStateAddBootingVM(id)
-				vm, err := server.SpawnArena(id)
-
-				if err != nil {
-					utils.RecoverableError("vm", "Could not start ("+strconv.Itoa(id)+"): "+err.Error())
-					server.state.UpdateStateVMErrored(id)
-				} else {
-					err := vm.WaitUntilBooted()
-
-					if err != nil {
-						utils.RecoverableError("vm", "Could not wait until VM is booted")
-						server.state.UpdateStateVMErrored(id)
-					} else {
-						server.state.UpdateStateVMBooted(id, vm)
-						utils.Debug("vm", "VM ("+strconv.Itoa(id)+") booted")
-					}
-				}
-			}()
+			utils.Debug("err", "implement this")
 
 		case msg := <-listener.arenaHalt:
 			go func() {
@@ -149,6 +164,8 @@ func (server *Server) Run() {
 
 					runningVM := data.(*vm.VM)
 					runningVM.Quit()
+
+					pool.Delete(runningVM)
 				} else {
 					utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): VM is not running")
 				}
@@ -157,10 +174,11 @@ func (server *Server) Run() {
 		case msg := <-listener.gameLaunch:
 			go func() {
 				gameid, _ := (*msg.Payload)["id"].(string)
-				element := server.state.FindState(state.STATE_IDLE_ARENA)
+				vm, err := pool.SelectAndPop(func(vm *vm.VM) bool {
+					return server.state.GetStatus(vm.Config.Id)&state.STATE_IDLE_ARENA != 0
+				})
 
-				if element != nil {
-					vm := element.(*vm.VM)
+				if vm != nil && err == nil {
 					server.state.UpdateStateTriedLaunchArena(vm.Config.Id)
 
 					onGameLaunch(
@@ -170,8 +188,12 @@ func (server *Server) Run() {
 						vm,
 					)
 
+					// FIXME(sven): let's assume it has been launched for now
+					server.state.UpdateStateConfirmedLaunchArena(vm.Config.Id)
+				} else if vm == nil {
+					utils.RecoverableError("vm", "Could not launch game: no arena available")
 				} else {
-					utils.RecoverableError("vm", "Could not launch game: no arena is currently idle")
+					utils.RecoverableError("vm", "Could not launch game: "+err.Error())
 				}
 			}()
 
@@ -222,8 +244,11 @@ func (server *Server) Run() {
 						server.graphqlclient,
 					)
 
-					// Add a new VM
-					listener.arenaAdd <- types.MQMessage{}
+					// FIXME(sven): We could send a message in listener.arenaHalt here
+					server.state.UpdateStateVMHalted(vm.Config.Id)
+					vm.Quit()
+
+					pool.Delete(vm)
 				} else {
 					utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
 				}

@@ -32,6 +32,11 @@ func (s *State) UpdateStateVMHalted(id int) (stateUpdated bool) {
 	s.lockState()
 
 	if state, ok := s.state[id]; ok {
+
+		state.Status ^= STATE_IDLE_ARENA
+		state.Status ^= STATE_RUNNING_ARENA
+		state.Status ^= STATE_PENDING_ARENA
+
 		state.Status ^= STATE_RUNNING_VM
 		state.Status |= STATE_HALTED_VM
 

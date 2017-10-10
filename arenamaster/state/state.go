@@ -48,6 +48,10 @@ func (s *State) DebugGetStateDistribution() map[string]int {
 	return res
 }
 
+func (s *State) GetStatus(id int) byte {
+	return s.state[id].Status
+}
+
 func (s *State) DebugGetStatus(id int) []string {
 	res := make([]string, 0)
 	bin := s.state[id].Status
