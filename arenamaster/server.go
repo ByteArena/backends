@@ -14,6 +14,7 @@ import (
 	"github.com/bytearena/schnapps"
 	vmdns "github.com/bytearena/schnapps/dns"
 	vmid "github.com/bytearena/schnapps/id"
+	vmmeta "github.com/bytearena/schnapps/metadata"
 	vmscheduler "github.com/bytearena/schnapps/scheduler"
 	vmtypes "github.com/bytearena/schnapps/types"
 )
@@ -31,6 +32,7 @@ type Server struct {
 	state              *state.State
 	influxdbClient     *influxdb.Client
 	DNSServer          *vmdns.Server
+	MetadataServer     *vmmeta.MetadataHTTPServer
 	vmRawImageLocation string
 	vmBridgeName       string
 	vmBridgeIP         string
@@ -92,6 +94,8 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 func (server *Server) Run() {
 	listener := MakeListener(server.brokerclient)
 
+	// scheduler
+
 	provisionVmFn := func() *vm.VM {
 		inc++
 		id := inc
@@ -127,6 +131,8 @@ func (server *Server) Run() {
 
 	utils.Debug("vm", "Scheduler running and initialized")
 
+	// DNS
+
 	dnsRecords := map[string]string{
 		"static." + dnsZone:       server.vmBridgeIP,
 		"redis.net." + dnsZone:    server.vmBridgeIP,
@@ -145,6 +151,21 @@ func (server *Server) Run() {
 		utils.Check(err, "Could not start DNS server")
 
 		server.DNSServer = &DNSServer
+	}()
+
+	// Metadata server
+
+	retrieveVMFn := func(id string) *vm.VM {
+		return FindVMByMAC(server.state, id)
+	}
+
+	metadataServer := vmmeta.NewServer(server.vmBridgeIP+":8080", retrieveVMFn)
+
+	go func() {
+		err := metadataServer.Start()
+		utils.Check(err, "Could not start metadata server")
+
+		server.MetadataServer = metadataServer
 	}()
 
 	for {
@@ -185,7 +206,7 @@ func (server *Server) Run() {
 					vm := element.Data.(*vm.VM)
 					isRunning := element.Status&state.STATE_RUNNING_ARENA != 0
 
-					vmGameId, hasVmGameId := vm.Metadata["gameid"]
+					vmGameId, hasVmGameId := vm.Config.Metadata["gameid"]
 
 					if isRunning && hasVmGameId && vmGameId == gameid {
 						isGameAlreadyRunning = true
@@ -272,6 +293,8 @@ func (server *Server) Run() {
 					vm.Quit()
 
 					pool.Delete(vm)
+
+					delete(vm.Config.Metadata, "gameid")
 				} else {
 					utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
 				}
@@ -288,11 +311,23 @@ func (server *Server) Stop() {
 		server.DNSServer.Stop()
 	}
 
+	if server.MetadataServer != nil {
+		server.MetadataServer.Stop()
+	}
+
 	close(server.stopChan)
 }
 
 func (server *Server) SpawnArena(id int) (*vm.VM, error) {
 	mac := vmid.GenerateRandomMAC()
+
+	if id > 243 {
+		panic("Network limit reached")
+	}
+
+	meta := vmtypes.VMMetadata{
+		"IP": "172.19.0." + strconv.Itoa(id+10),
+	}
 
 	config := vmtypes.VMConfig{
 		NICs: []interface{}{
@@ -306,6 +341,7 @@ func (server *Server) SpawnArena(id int) (*vm.VM, error) {
 		CPUAmount:     1,
 		CPUCoreAmount: 1,
 		ImageLocation: server.vmRawImageLocation,
+		Metadata:      meta,
 	}
 
 	arenaVm := vm.NewVM(config)

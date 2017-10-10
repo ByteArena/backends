@@ -19,7 +19,7 @@ func onGameLaunch(gameid string, mqclient *mq.Client, gql *graphql.Client, vm *v
 	// 	return
 	// }
 
-	vm.Metadata["gameid"] = gameid
+	vm.Config.Metadata["gameid"] = gameid
 	mac, _ := vmid.GetVMMAC(vm)
 
 	// TODO: should be wrapped in types.NewMQMessage
