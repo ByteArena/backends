@@ -174,6 +174,29 @@ func (server *Server) Run() {
 		case msg := <-listener.gameLaunch:
 			go func() {
 				gameid, _ := (*msg.Payload)["id"].(string)
+
+				// Check if the gameid isn't running already
+				var isGameAlreadyRunning bool
+				server.state.Map(func(element *state.DataContainer) {
+					if isGameAlreadyRunning == true {
+						return
+					}
+
+					vm := element.Data.(*vm.VM)
+					isRunning := element.Status&state.STATE_RUNNING_ARENA != 0
+
+					vmGameId, hasVmGameId := vm.Metadata["gameid"]
+
+					if isRunning && hasVmGameId && vmGameId == gameid {
+						isGameAlreadyRunning = true
+					}
+				})
+
+				if isGameAlreadyRunning == true {
+					utils.RecoverableError("vm", "Could not launch game: Game is already running")
+					return
+				}
+
 				vm, err := pool.SelectAndPop(func(vm *vm.VM) bool {
 					return server.state.GetStatus(vm.Config.Id)&state.STATE_IDLE_ARENA != 0
 				})
