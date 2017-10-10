@@ -93,7 +93,7 @@ func main() {
 	// FIXME(sven): find a better solution
 	go func() {
 		<-time.After(time.Duration(10) * time.Second)
-		handshakeTicker := time.NewTicker(time.Duration(10/2) * time.Minute)
+		handshakeTicker := time.NewTicker(time.Duration(1) * time.Minute)
 
 		go func() {
 			for {

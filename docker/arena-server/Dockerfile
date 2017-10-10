@@ -21,12 +21,15 @@ FROM docker:17.07 as dockerbuilder
 FROM alpine:3.5
 
 ENV MQHOST=redis.net.bytearena.com
-ENV APIURL=http://graphql.net.bytearena.com:9000/privateapi/graphql
-ENV GAME_TIMEOUT=1
-# ENV GAME_TIMEOUT=10
-ENV REGISTRY_ADDR=registry.net.bytearena.com:5000
+ENV APIURL=https://graphql.net.bytearena.com
+ENV GAME_TIMEOUT=10
+ENV REGISTRY_ADDR=registry.net.bytearena.com
 ENV DOCKER_HOST=tcp://127.0.0.1:2375
 ENV AGENT_LOGS_PATH=/tmp/agent-logs
+
+# local
+# ENV REGISTRY_ADDR=registry.net.bytearena.com:5000
+# ENV APIURL=http://graphql.net.bytearena.com:9000/privateapi/graphql
 
 # Docker gateway (force in .bip)
 ENV ARENA_ADDR=172.17.0.1
