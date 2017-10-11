@@ -1,5 +1,5 @@
 hash: d09b5f818a3751cf0aebe5e27cab5da9d37b2d4e9f3a359667966fd669ed74c1
-updated: 2017-10-11T11:57:04.50062193+02:00
+updated: 2017-10-11T16:32:55.938523714+02:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -10,9 +10,10 @@ imports:
 - name: github.com/bytearena/box2d
   version: 6a120bfe0653a6b77776488137fb5bcf364d27af
 - name: github.com/bytearena/schnapps
-  version: 4834d0b97bfcb75e1a8571e76f183e2215d0a780
+  version: 1a42a2e11efeafecb2ea85415c6aa8f0a9ac6649
   subpackages:
   - cli
+  - dhcp
   - dns
   - id
   - libvirt
