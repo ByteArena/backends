@@ -15,6 +15,7 @@ func FindVMByMAC(s *state.State, searchMac string) *vm.VM {
 
 			if searchMac == mac && found {
 				res = vm
+				return
 			}
 		}
 	})

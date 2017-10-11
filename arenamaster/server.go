@@ -12,6 +12,7 @@ import (
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/schnapps"
+	vmdhcp "github.com/bytearena/schnapps/dhcp"
 	vmdns "github.com/bytearena/schnapps/dns"
 	vmid "github.com/bytearena/schnapps/id"
 	vmmeta "github.com/bytearena/schnapps/metadata"
@@ -33,12 +34,14 @@ type Server struct {
 	influxdbClient     *influxdb.Client
 	DNSServer          *vmdns.Server
 	MetadataServer     *vmmeta.MetadataHTTPServer
+	DHCPServer         *vmdhcp.DHCPServer
 	vmRawImageLocation string
 	vmBridgeName       string
 	vmBridgeIP         string
+	vmSubnet           string
 }
 
-func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation, vmBridgeName, vmBridgeIP string) *Server {
+func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation, vmBridgeName, vmBridgeIP, vmSubnet string) *Server {
 	stopChan := make(ListeningChanStruct)
 
 	influxdbClient, influxdbClientErr := influxdb.NewClient("arenamaster")
@@ -53,6 +56,7 @@ func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation, vmBridgeN
 		vmRawImageLocation: vmRawImageLocation,
 		vmBridgeName:       vmBridgeName,
 		vmBridgeIP:         vmBridgeIP,
+		vmSubnet:           vmSubnet,
 	}
 
 	err := s.startStateReporting()
@@ -96,8 +100,8 @@ func (server *Server) createScheduler() *vmscheduler.Pool {
 		inc++
 		id := inc
 
-		server.state.UpdateStateAddBootingVM(id)
 		vm, err := server.SpawnArena(id)
+		server.state.UpdateStateAddBootingVM(id, vm)
 
 		if err != nil {
 			utils.RecoverableError("vm", "Could not start ("+strconv.Itoa(id)+"): "+err.Error())
@@ -111,7 +115,7 @@ func (server *Server) createScheduler() *vmscheduler.Pool {
 				utils.RecoverableError("vm", "Could not wait until VM is booted")
 				server.state.UpdateStateVMErrored(id)
 			} else {
-				server.state.UpdateStateVMBooted(id, vm)
+				server.state.UpdateStateVMBooted(id)
 				utils.Debug("vm", "VM ("+strconv.Itoa(id)+") booted")
 			}
 
@@ -153,7 +157,9 @@ func (server *Server) createDNSServer() {
 
 func (server *Server) createMetadataServer() {
 	retrieveVMFn := func(id string) *vm.VM {
-		return FindVMByMAC(server.state, id)
+		vm := FindVMByMAC(server.state, id)
+
+		return vm
 	}
 
 	metadataServer := vmmeta.NewServer(server.vmBridgeIP+":8080", retrieveVMFn)
@@ -166,14 +172,23 @@ func (server *Server) createMetadataServer() {
 	}()
 }
 
+func (server *Server) createDHCPServer() {
+	var err error
+	cidr := server.vmSubnet
+
+	server.DHCPServer, err = vmdhcp.NewDHCPServer(cidr)
+	utils.Check(err, "Could not create DHCP server")
+}
+
 func (server *Server) Run() {
 	listener := MakeListener(server.brokerclient)
 
-	pool := server.createScheduler()
-	utils.Debug("vm", "Scheduler running and initialized")
-
+	server.createDHCPServer()
 	server.createDNSServer()
 	server.createMetadataServer()
+
+	pool := server.createScheduler()
+	utils.Debug("vm", "Scheduler running and initialized")
 
 	for {
 		select {
@@ -327,13 +342,14 @@ func (server *Server) Stop() {
 
 func (server *Server) SpawnArena(id int) (*vm.VM, error) {
 	mac := vmid.GenerateRandomMAC()
+	ip, ipErr := server.DHCPServer.Pop()
 
-	if id > 243 {
-		panic("Network limit reached")
+	if ipErr != nil {
+		return nil, ipErr
 	}
 
 	meta := vmtypes.VMMetadata{
-		"IP": "172.19.0." + strconv.Itoa(id+10),
+		"IP": ip,
 	}
 
 	config := vmtypes.VMConfig{

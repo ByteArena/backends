@@ -1,10 +1,10 @@
 package state
 
-func (s *State) UpdateStateAddBootingVM(id int) (stateUpdated bool) {
+func (s *State) UpdateStateAddBootingVM(id int, data interface{}) (stateUpdated bool) {
 	s.lockState()
 
 	s.state[id] = &DataContainer{
-		Data:   nil,
+		Data:   data,
 		Status: STATE_BOOTING_VM,
 	}
 
@@ -48,7 +48,7 @@ func (s *State) UpdateStateVMHalted(id int) (stateUpdated bool) {
 	return stateUpdated
 }
 
-func (s *State) UpdateStateVMBooted(id int, data interface{}) (stateUpdated bool) {
+func (s *State) UpdateStateVMBooted(id int) (stateUpdated bool) {
 	stateUpdated = false
 
 	s.lockState()
@@ -56,8 +56,6 @@ func (s *State) UpdateStateVMBooted(id int, data interface{}) (stateUpdated bool
 	if state, ok := s.state[id]; ok {
 		state.Status ^= STATE_BOOTING_VM
 		state.Status |= STATE_RUNNING_VM
-
-		state.Data = data
 
 		stateUpdated = true
 	}
