@@ -285,6 +285,11 @@ func (server *Server) Run() {
 				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
 				vm := FindVMByMAC(server.state, mac)
 
+				// Refuse handshakes from already running arenas
+				if server.state.GetStatus(vm.Config.Id)&state.STATE_RUNNING_ARENA != 0 {
+					return
+				}
+
 				if vm != nil {
 					server.state.UpdateStateAddIdleArena(vm.Config.Id)
 					utils.Debug("master", mac+" joined")
