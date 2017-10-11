@@ -49,7 +49,11 @@ func (s *State) DebugGetStateDistribution() map[string]int {
 }
 
 func (s *State) GetStatus(id int) byte {
-	return s.state[id].Status
+	if state, hasInState := s.state[id]; hasInState {
+		return state.Status
+	} else {
+		return 0
+	}
 }
 
 func (s *State) DebugGetStatus(id int) []string {
@@ -110,13 +114,17 @@ func (s *State) QueryState(id int, flag byte) Data {
 }
 
 func (s *State) FindState(flag byte) Data {
+	s.lockState()
+
 	for _, data := range s.state {
 
 		if data.Status&flag != 0 {
+			s.unlockState()
 			return data.Data
 		}
 	}
 
+	s.unlockState()
 	return nil
 }
 
@@ -129,9 +137,13 @@ func (s *State) unlockState() {
 }
 
 func (s *State) Map(fn func(element *DataContainer)) {
+	s.lockState()
+
 	for _, element := range s.state {
 		fn(element)
 	}
+
+	s.unlockState()
 }
 
 func (s *State) remove(id int) {
