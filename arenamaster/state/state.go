@@ -133,3 +133,7 @@ func (s *State) Map(fn func(element *DataContainer)) {
 		fn(element)
 	}
 }
+
+func (s *State) remove(id int) {
+	delete(s.state, id)
+}
