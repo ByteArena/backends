@@ -143,9 +143,9 @@ func (server *Server) createDNSServer() {
 
 	DNSServer := vmdns.MakeServer(server.vmBridgeIP+":53", dnsZone, dnsRecords)
 
-	DNSServer.SetOnRequestHook(func(addr string) {
-		utils.Debug("dns-server", "query for "+addr)
-	})
+	// DNSServer.SetOnRequestHook(func(addr string) {
+	// 	utils.Debug("dns-server", "query for "+addr)
+	// })
 
 	go func() {
 		err := DNSServer.Start()
@@ -321,6 +321,9 @@ func (server *Server) Run() {
 					utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
 				}
 			}()
+
+		case <-listener.debugGetVMStatus:
+			go handleDebugGetVMStatus(server.brokerclient, server.state)
 		}
 	}
 }

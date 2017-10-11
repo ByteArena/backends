@@ -6,7 +6,10 @@ func (s *State) UpdateStateAddIdleArena(id int) (stateUpdated bool) {
 	s.lockState()
 
 	if state, ok := s.state[id]; ok {
-		state.Status ^= STATE_BOOTING_VM
+		if state.Status&STATE_BOOTING_VM != 0 {
+			state.Status ^= STATE_BOOTING_VM
+		}
+
 		state.Status |= STATE_IDLE_ARENA
 
 		stateUpdated = true

@@ -17,6 +17,8 @@ type Listener struct {
 	gameLaunched  Res
 	gameHandshake Res
 	gameStopped   Res
+
+	debugGetVMStatus Res
 }
 
 func MakeListener(mqClient *mq.Client) Listener {
@@ -28,6 +30,8 @@ func MakeListener(mqClient *mq.Client) Listener {
 		gameLaunched:  subscribeToChannelAndGetChan(mqClient, "game", "launched"),
 		gameHandshake: subscribeToChannelAndGetChan(mqClient, "game", "handshake"),
 		gameStopped:   subscribeToChannelAndGetChan(mqClient, "game", "stopped"),
+
+		debugGetVMStatus: subscribeToChannelAndGetChan(mqClient, "debug", "getvmstatus"),
 	}
 }
 

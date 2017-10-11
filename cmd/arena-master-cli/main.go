@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
 
 	"github.com/abiosoft/ishell"
 
@@ -30,7 +32,26 @@ func main() {
 		mqClient: mqClient,
 	}
 
+	session.mqClient.Subscribe("debug", "getvmstatus-res", func(msg mq.BrokerMessage) {
+		var dat map[string]interface{}
+
+		if err := json.Unmarshal(msg.Data, &dat); err != nil {
+			panic(err)
+		}
+
+		b, err := json.MarshalIndent(dat, "", "  ")
+		utils.Check(err, "Could not prettify JSON")
+
+		fmt.Println(string(b))
+	})
+
 	shell.Println("arena-master cli")
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "debug/GetVmStatus",
+		Help: "Get VMs status",
+		Func: session.handleDebugGetVmStatus,
+	})
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "arena/add",
@@ -115,6 +136,19 @@ func (s Session) handleStartGameCommand(c *ishell.Context) {
 	).SetPayload(types.MQPayload{
 		"id": gameId,
 	}))
+
+	if err != nil {
+		c.Println("MQ error: " + err.Error())
+	} else {
+		c.Println("OK")
+	}
+}
+
+func (s Session) handleDebugGetVmStatus(c *ishell.Context) {
+	err := s.mqClient.Publish("debug", "getvmstatus", types.NewMQMessage(
+		"arena-master",
+		"debug",
+	))
 
 	if err != nil {
 		c.Println("MQ error: " + err.Error())
