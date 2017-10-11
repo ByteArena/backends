@@ -91,11 +91,7 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 	}
 }
 
-func (server *Server) Run() {
-	listener := MakeListener(server.brokerclient)
-
-	// scheduler
-
+func (server *Server) createScheduler() *vmscheduler.Pool {
 	provisionVmFn := func() *vm.VM {
 		inc++
 		id := inc
@@ -129,9 +125,10 @@ func (server *Server) Run() {
 		panic(schedulerErr)
 	}
 
-	utils.Debug("vm", "Scheduler running and initialized")
+	return pool
+}
 
-	// DNS
+func (server *Server) createDNSServer() {
 
 	dnsRecords := map[string]string{
 		"static." + dnsZone:       server.vmBridgeIP,
@@ -152,9 +149,9 @@ func (server *Server) Run() {
 
 		server.DNSServer = &DNSServer
 	}()
+}
 
-	// Metadata server
-
+func (server *Server) createMetadataServer() {
 	retrieveVMFn := func(id string) *vm.VM {
 		return FindVMByMAC(server.state, id)
 	}
@@ -167,6 +164,16 @@ func (server *Server) Run() {
 
 		server.MetadataServer = metadataServer
 	}()
+}
+
+func (server *Server) Run() {
+	listener := MakeListener(server.brokerclient)
+
+	pool := server.createScheduler()
+	utils.Debug("vm", "Scheduler running and initialized")
+
+	server.createDNSServer()
+	server.createMetadataServer()
 
 	for {
 		select {

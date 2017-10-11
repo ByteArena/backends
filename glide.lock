@@ -9,8 +9,6 @@ imports:
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
 - name: github.com/bytearena/box2d
   version: 6a120bfe0653a6b77776488137fb5bcf364d27af
-- name: github.com/ByteArena/schnapps
-  version: 4834d0b97bfcb75e1a8571e76f183e2215d0a780
 - name: github.com/bytearena/schnapps
   version: 4834d0b97bfcb75e1a8571e76f183e2215d0a780
   subpackages:
