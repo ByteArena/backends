@@ -99,12 +99,18 @@ func main() {
 			for {
 				utils.Debug("arena-server", "send handshake")
 
-				brokerclient.Publish("game", "handshake", types.NewMQMessage(
+				handshakeErr := brokerclient.Publish("game", "handshake", types.NewMQMessage(
 					"arena-server",
 					"Arena Server "+(*arenaServerUUID)+" reporting for duty.",
 				).SetPayload(types.MQPayload{
 					"arenaserveruuid": (*arenaServerUUID),
 				}))
+
+				if handshakeErr != nil {
+					utils.Debug("arena-server", "Cannot handshake: "+handshakeErr.Error())
+				} else {
+					break
+				}
 
 				<-handshakeTicker.C
 			}
