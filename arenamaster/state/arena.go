@@ -56,7 +56,7 @@ func (s *State) UpdateStateStoppedArena(id int) (stateUpdated bool) {
 
 	s.lockState()
 
-	if state, ok := s.state[id]; ok {
+	if _, ok := s.state[id]; ok {
 		s.remove(id)
 
 		stateUpdated = true
