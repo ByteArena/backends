@@ -10,7 +10,7 @@ imports:
 - name: github.com/bytearena/box2d
   version: 6a120bfe0653a6b77776488137fb5bcf364d27af
 - name: github.com/bytearena/schnapps
-  version: 16ac0c4de81f31ab79ca5e6baffe023d5fe4b22a
+  version: cde8517e98a0065307f3ba4eba64b825b3c3e6e7
   subpackages:
   - cli
   - dhcp
