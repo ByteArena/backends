@@ -72,6 +72,12 @@ func main() {
 	})
 
 	shell.AddCmd(&ishell.Cmd{
+		Name: "game/stop",
+		Help: "Fake stop game",
+		Func: session.handleStopGameCommand,
+	})
+
+	shell.AddCmd(&ishell.Cmd{
 		Name: "arena/game/start",
 		Help: "Start game on a given arena",
 		Func: session.handleStartGameOnArenaCommand,
@@ -135,6 +141,28 @@ func (s Session) handleStartGameCommand(c *ishell.Context) {
 		"launch",
 	).SetPayload(types.MQPayload{
 		"id": gameId,
+	}))
+
+	if err != nil {
+		c.Println("MQ error: " + err.Error())
+	} else {
+		c.Println("OK")
+	}
+}
+
+func (s Session) handleStopGameCommand(c *ishell.Context) {
+	c.Print("Game ID: ")
+	gameId := c.ReadLine()
+
+	c.Print("Arena MAC: ")
+	arenaserveruuid := c.ReadLine()
+
+	err := s.mqClient.Publish("game", "stopped", types.NewMQMessage(
+		"arena-master",
+		"launch",
+	).SetPayload(types.MQPayload{
+		"id":              gameId,
+		"arenaserveruuid": arenaserveruuid,
 	}))
 
 	if err != nil {

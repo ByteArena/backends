@@ -3,6 +3,7 @@ package arenamaster
 import (
 	"encoding/json"
 	"strconv"
+	"time"
 
 	arenamasterGraphql "github.com/bytearena/bytearena/arenamaster/graphql"
 	"github.com/bytearena/bytearena/arenamaster/state"
@@ -134,7 +135,11 @@ func (server *Server) createScheduler() *vmscheduler.Pool {
 		// <-blockChan
 
 		// return false
-		return true
+		if vm == nil {
+			return false
+		} else {
+			return true
+		}
 	}
 
 	pool, schedulerErr := vmscheduler.NewFixedVMPool(3, provisionVmFn, healtcheckVmFn)
@@ -276,8 +281,18 @@ func (server *Server) Run() {
 					server.state.UpdateStateConfirmedLaunchArena(vm.Config.Id)
 				} else if vm == nil {
 					utils.RecoverableError("vm", "Could not launch game: no arena available")
+
+					// Retry in 1min
+					<-time.After(1 * time.Minute)
+					listener.gameLaunch <- msg
 				} else {
 					utils.RecoverableError("vm", "Could not launch game: "+err.Error())
+
+					pool.Release(vm)
+
+					// Retry in 30sec
+					<-time.After(30 * time.Second)
+					listener.gameLaunch <- msg
 				}
 			}()
 
@@ -334,15 +349,14 @@ func (server *Server) Run() {
 						server.graphqlclient,
 					)
 
-					// FIXME(sven): We could send a message in listener.arenaHalt here
-					server.state.UpdateStateVMHalted(id)
-					vm.Quit()
+					haltMsg := types.NewMQMessage(
+						"arena-master",
+						"halt",
+					).SetPayload(types.MQPayload{
+						"id": strconv.Itoa(id),
+					})
 
-					err := pool.Delete(vm)
-
-					if err != nil {
-						utils.RecoverableError("game-stopped", "Could not halt ("+strconv.Itoa(id)+"): "+err.Error())
-					}
+					listener.arenaHalt <- *haltMsg
 				} else {
 					utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
 				}
