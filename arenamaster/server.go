@@ -2,7 +2,6 @@ package arenamaster
 
 import (
 	"encoding/json"
-	"log"
 	"strconv"
 	"time"
 
@@ -219,15 +218,10 @@ func (server *Server) Run() {
 			utils.Debug("err", "implement this")
 
 		case msg := <-listener.arenaHalt:
-			log.Println("Received halt message")
 			go func() {
-				// Test: wait a bit for app shutdown
-				<-time.After(30 * time.Second)
 				id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
 
 				if data := server.state.QueryState(id, state.STATE_RUNNING_VM); data != nil {
-					server.state.UpdateStateVMHalted(id)
-
 					runningVM := data.(*vm.VM)
 					quitErr := runningVM.Quit()
 
@@ -240,6 +234,8 @@ func (server *Server) Run() {
 					if err != nil {
 						utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): "+err.Error())
 					}
+
+					server.state.UpdateStateVMHalted(id)
 				} else {
 					utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): VM is not running")
 				}
@@ -341,7 +337,6 @@ func (server *Server) Run() {
 			}()
 
 		case msg := <-listener.gameStopped:
-			log.Println("Received stop message")
 			go func() {
 				gameid, _ := (*msg.Payload)["id"].(string)
 				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)

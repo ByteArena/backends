@@ -185,24 +185,3 @@ func startGame(arenaSubmitted messageArenaLaunch, orch arenaservertypes.Containe
 
 	notify.PostTimeout("game:stopped", nil, time.Millisecond)
 }
-
-// func testDocker() {
-
-// 	dockerBin, LookPatherr := exec.LookPath("docker")
-
-// 	if LookPatherr != nil {
-// 		panic(LookPatherr)
-// 	}
-
-// 	command := exec.Command(dockerBin, "ps")
-
-// 	out, stderr := command.CombinedOutput()
-
-// 	if stderr != nil {
-// 		utils.Debug("test-docker", "err: "+string(out))
-// 	}
-
-// 	if out != nil {
-// 		utils.Debug("test-docker", "docker ps: "+string(out))
-// 	}
-// }
