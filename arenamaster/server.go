@@ -276,9 +276,6 @@ func (server *Server) Run() {
 						server.graphqlclient,
 						vm,
 					)
-
-					// FIXME(sven): let's assume it has been launched for now
-					server.state.UpdateStateConfirmedLaunchArena(vm.Config.Id)
 				} else if vm == nil {
 					utils.RecoverableError("vm", "Could not launch game: no arena available")
 
