@@ -12,7 +12,6 @@ import (
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/graphql"
 	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
-	"github.com/bytearena/bytearena/common/healthcheck"
 
 	"github.com/bytearena/bytearena/arenaserver/container"
 	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
@@ -27,8 +26,6 @@ type messageArenaLaunch struct {
 }
 
 func main() {
-	env := os.Getenv("ENV")
-
 	rand.Seed(time.Now().UnixNano())
 
 	host := flag.String("host", "", "IP serving the arena (TCP listen); required")
@@ -117,11 +114,7 @@ func main() {
 		}()
 	}()
 
-	var hc *healthcheck.HealthCheckServer
-	if env == "prod" {
-		hc = NewHealthCheck(brokerclient, graphqlclient)
-		hc.Start()
-	}
+	StartMQHealthCheckServer(brokerclient, graphqlclient, *arenaServerUUID)
 
 	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
 		utils.Debug("from-master", "Received launching order")
@@ -138,15 +131,6 @@ func main() {
 
 		orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
 		srv := arenaserver.NewServer(*host, *port, orch, arena, *arenaServerUUID, brokerclient)
-
-		srv.AddTearDownCall(func() error {
-			if hc != nil {
-				utils.Debug("arena-server", "Stop healthcheck")
-				hc.Stop()
-			}
-
-			return nil
-		})
 
 		srv.AddTearDownCall(func() error {
 			brokerclient.Stop()

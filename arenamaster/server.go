@@ -123,7 +123,21 @@ func (server *Server) createScheduler() *vmscheduler.Pool {
 		}
 	}
 
-	pool, schedulerErr := vmscheduler.NewFixedVMPool(3, provisionVmFn)
+	healtcheckVmFn := func(vm *vm.VM) bool {
+		// blockChan := make(chan bool)
+		// mac := vmid.GetVMMAC(vm)
+
+		// go func() {
+		// 	server.mqclient.Publish("game", mac+".healthcheck", types.MQPayload{})
+		// }()
+
+		// <-blockChan
+
+		// return false
+		return true
+	}
+
+	pool, schedulerErr := vmscheduler.NewFixedVMPool(3, provisionVmFn, healtcheckVmFn)
 
 	if schedulerErr != nil {
 		panic(schedulerErr)
@@ -208,7 +222,11 @@ func (server *Server) Run() {
 					runningVM := data.(*vm.VM)
 					runningVM.Quit()
 
-					pool.Delete(runningVM)
+					err := pool.Delete(runningVM)
+
+					if err != nil {
+						utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): "+err.Error())
+					}
 				} else {
 					utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): VM is not running")
 				}
@@ -306,7 +324,8 @@ func (server *Server) Run() {
 				vm := FindVMByMAC(server.state, mac)
 
 				if vm != nil {
-					server.state.UpdateStateStoppedArena(vm.Config.Id)
+					id := vm.Config.Id
+					server.state.UpdateStateStoppedArena(id)
 
 					arenamasterGraphql.ReportGameStopped(
 						server.state,
@@ -316,12 +335,14 @@ func (server *Server) Run() {
 					)
 
 					// FIXME(sven): We could send a message in listener.arenaHalt here
-					server.state.UpdateStateVMHalted(vm.Config.Id)
+					server.state.UpdateStateVMHalted(id)
 					vm.Quit()
 
-					pool.Delete(vm)
+					err := pool.Delete(vm)
 
-					delete(vm.Config.Metadata, "gameid")
+					if err != nil {
+						utils.RecoverableError("game-stopped", "Could not halt ("+strconv.Itoa(id)+"): "+err.Error())
+					}
 				} else {
 					utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
 				}
