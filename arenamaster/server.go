@@ -2,6 +2,7 @@ package arenamaster
 
 import (
 	"encoding/json"
+	"log"
 	"strconv"
 	"time"
 
@@ -218,6 +219,7 @@ func (server *Server) Run() {
 			utils.Debug("err", "implement this")
 
 		case msg := <-listener.arenaHalt:
+			log.Println("Received halt message")
 			go func() {
 				id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
 
@@ -337,6 +339,7 @@ func (server *Server) Run() {
 			}()
 
 		case msg := <-listener.gameStopped:
+			log.Println("Received stop message")
 			go func() {
 				gameid, _ := (*msg.Payload)["id"].(string)
 				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
