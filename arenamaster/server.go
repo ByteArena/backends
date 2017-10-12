@@ -221,6 +221,8 @@ func (server *Server) Run() {
 		case msg := <-listener.arenaHalt:
 			log.Println("Received halt message")
 			go func() {
+				// Test: wait a bit for app shutdown
+				<-time.After(30 * time.Second)
 				id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
 
 				if data := server.state.QueryState(id, state.STATE_RUNNING_VM); data != nil {
