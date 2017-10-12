@@ -225,7 +225,11 @@ func (server *Server) Run() {
 					server.state.UpdateStateVMHalted(id)
 
 					runningVM := data.(*vm.VM)
-					runningVM.Quit()
+					quitErr := runningVM.Quit()
+
+					if quitErr != nil {
+						utils.RecoverableError("vm", "Could not quit ("+strconv.Itoa(id)+"): "+quitErr.Error())
+					}
 
 					err := pool.Delete(runningVM)
 
@@ -285,7 +289,11 @@ func (server *Server) Run() {
 				} else {
 					utils.RecoverableError("vm", "Could not launch game: "+err.Error())
 
-					pool.Release(vm)
+					err := pool.Release(vm)
+
+					if err != nil {
+						utils.RecoverableError("vm", "Could not release ("+strconv.Itoa(vm.Config.Id)+"): "+err.Error())
+					}
 
 					// Retry in 30sec
 					<-time.After(30 * time.Second)
