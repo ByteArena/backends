@@ -31,3 +31,6 @@ create-br:
 
 run-mq:
 	docker run -p 6379:6379 redis
+
+test:
+	go test -v `go list ./... | grep -v /vendor/`

@@ -56,9 +56,8 @@ func (s *State) GetStatus(id int) byte {
 	}
 }
 
-func (s *State) DebugGetStatus(id int) []string {
+func (s *State) DebugFlagToString(bin byte) []string {
 	res := make([]string, 0)
-	bin := s.state[id].Status
 
 	if bin&STATE_BOOTING_VM != 0 {
 		res = append(res, "STATE_BOOTING_VM")
@@ -93,6 +92,10 @@ func (s *State) DebugGetStatus(id int) []string {
 	}
 
 	return res
+}
+
+func (s *State) DebugGetStatus(id int) []string {
+	return s.DebugFlagToString(s.GetStatus(id))
 }
 
 func NewState() *State {
@@ -144,6 +147,13 @@ func (s *State) Map(fn func(element *DataContainer)) {
 	}
 
 	s.unlockState()
+}
+
+func (s *State) create(id int, data interface{}, status byte) {
+	s.state[id] = &DataContainer{
+		Data:   data,
+		Status: status,
+	}
 }
 
 func (s *State) remove(id int) {

@@ -2,12 +2,7 @@ package state
 
 func (s *State) UpdateStateAddBootingVM(id int, data interface{}) (stateUpdated bool) {
 	s.lockState()
-
-	s.state[id] = &DataContainer{
-		Data:   data,
-		Status: STATE_BOOTING_VM,
-	}
-
+	s.create(id, data, STATE_BOOTING_VM)
 	s.unlockState()
 
 	stateUpdated = true
