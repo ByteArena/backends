@@ -282,10 +282,6 @@ func (server *Server) Run() {
 					)
 				} else if vm == nil {
 					utils.RecoverableError("vm", "Could not launch game: no arena available")
-
-					// Retry in 1min
-					<-time.After(1 * time.Minute)
-					listener.gameLaunch <- msg
 				} else {
 					utils.RecoverableError("vm", "Could not launch game: "+err.Error())
 
