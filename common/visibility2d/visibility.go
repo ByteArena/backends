@@ -1,4 +1,4 @@
-package main
+package visibility2d
 
 import (
 	"math"
@@ -10,37 +10,44 @@ import (
 func getTrianglePoints(origin Point, angle1, angle2 float64, segment *Segment) [2]Point {
 
 	p1 := origin
-	p2 := MakePoint(origin.x+math.Cos(angle1), origin.y+math.Sin(angle1))
+	p2 := MakePoint(origin.X+math.Cos(angle1), origin.Y+math.Sin(angle1))
 	p3 := MakePoint(0, 0)
 	p4 := MakePoint(0, 0)
 
 	if segment != nil {
-		p3.x = segment.p1.x
-		p3.y = segment.p1.y
-		p4.x = segment.p2.x
-		p4.y = segment.p2.y
+		p3.X = segment.p1.X
+		p3.Y = segment.p1.Y
+		p4.X = segment.p2.X
+		p4.Y = segment.p2.Y
 	} else {
-		p3.x = origin.x + math.Cos(angle1)*200
-		p3.y = origin.y + math.Sin(angle1)*200
-		p4.x = origin.x + math.Cos(angle2)*200
-		p4.y = origin.y + math.Sin(angle2)*200
+		p3.X = origin.X + math.Cos(angle1)*200
+		p3.Y = origin.Y + math.Sin(angle1)*200
+		p4.X = origin.X + math.Cos(angle2)*200
+		p4.Y = origin.Y + math.Sin(angle2)*200
 	}
 
 	pBegin := lineIntersection(p3, p4, p1, p2)
 
-	p2.x = origin.x + math.Cos(angle2)
-	p2.y = origin.y + math.Sin(angle2)
+	p2.X = origin.X + math.Cos(angle2)
+	p2.Y = origin.Y + math.Sin(angle2)
 
 	pEnd := lineIntersection(p3, p4, p1, p2)
 
 	return [2]Point{pBegin, pEnd}
 }
 
-func calculateVisibility(origin Point, endpoints []*EndPoint) []vector.Segment2 {
+type Visible struct {
+	Visible  vector.Segment2
+	Complete vector.Segment2
+	Userdata interface{}
+}
+
+func CalculateVisibility(origin Point, segments []*Segment) []Visible {
 	openSegments := make([]*Segment, 0)
-	output := make([][2]Point, 0)
+	output := make([]Visible, 0)
 	beginAngle := 0.0
 
+	endpoints := endpointsFromSegments(origin, segments)
 	sort.Sort(ByEndpoint(endpoints))
 
 	//spew.Dump(endpoints)
@@ -124,8 +131,20 @@ func calculateVisibility(origin Point, endpoints []*EndPoint) []vector.Segment2 
 				// fmt.Println("####### CHECK D1")
 				if pass == 1 {
 					// fmt.Println("####### CHECK D2", origin, beginAngle, endpoint.angle, openSegment.d, openSegment.p1.x, openSegment.p1.y, openSegment.p2.x, openSegment.p2.y)
-					trianglePoints := getTrianglePoints(origin, beginAngle, endpoint.angle, openSegment)
-					output = append(output, trianglePoints)
+					if openSegment != nil {
+						trianglePoints := getTrianglePoints(origin, beginAngle, endpoint.angle, openSegment)
+						output = append(output, Visible{
+							Visible: vector.MakeSegment2(
+								vector.MakeVector2(trianglePoints[0].X, trianglePoints[0].Y),
+								vector.MakeVector2(trianglePoints[1].X, trianglePoints[1].Y),
+							),
+							Complete: vector.MakeSegment2(
+								vector.MakeVector2(openSegment.p1.X, openSegment.p1.Y),
+								vector.MakeVector2(openSegment.p2.X, openSegment.p2.Y),
+							),
+							Userdata: openSegment.userdata,
+						})
+					}
 				}
 				// fmt.Println("####### CHECK D3", endpoint.x, endpoint.y, endpoint.segment.d, endpoint.angle)
 				beginAngle = endpoint.angle
@@ -136,15 +155,10 @@ func calculateVisibility(origin Point, endpoints []*EndPoint) []vector.Segment2 
 	// fmt.Println("####### CHECK E")
 	// remove visible segments whose length is shorter than a iota
 
-	res := make([]vector.Segment2, 0)
-	for _, points := range output {
-		seg2 := vector.MakeSegment2(
-			vector.MakeVector2(points[0].x, points[0].y),
-			vector.MakeVector2(points[1].x, points[1].y),
-		)
-
-		if seg2.LengthSq() > 0.001 {
-			res = append(res, seg2)
+	res := make([]Visible, 0)
+	for _, visible := range output {
+		if visible.Visible.LengthSq() > 0.001 {
+			res = append(res, visible)
 		}
 	}
 

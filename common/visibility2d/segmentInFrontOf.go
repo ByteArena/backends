@@ -1,14 +1,14 @@
-package main
+package visibility2d
 
 func leftOf(segment *Segment, point Point) bool {
-	cross := (segment.p2.x-segment.p1.x)*(point.y-segment.p1.y) - (segment.p2.y-segment.p1.y)*(point.x-segment.p1.x)
+	cross := (segment.p2.X-segment.p1.X)*(point.Y-segment.p1.Y) - (segment.p2.Y-segment.p1.Y)*(point.X-segment.p1.X)
 	return cross < 0
 }
 
 func interpolate(pointA *EndPoint, pointB *EndPoint, f float64) Point {
 	return Point{
-		pointA.x*(1-f) + pointB.x*f,
-		pointA.y*(1-f) + pointB.y*f,
+		pointA.X*(1-f) + pointB.X*f,
+		pointA.Y*(1-f) + pointB.Y*f,
 	}
 }
 

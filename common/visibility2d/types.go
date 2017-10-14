@@ -1,26 +1,7 @@
-package main
-
-type Rectangle struct {
-	x      float64
-	y      float64
-	width  float64
-	height float64
-}
-
-func MakeRectangle(x, y, width, height float64) Rectangle {
-	return Rectangle{
-		x:      x,
-		y:      y,
-		width:  width,
-		height: height,
-	}
-}
-
-type Block Rectangle
-type room Rectangle
+package visibility2d
 
 type Point struct {
-	x, y float64
+	X, Y float64
 }
 
 func MakePoint(x, y float64) Point {
@@ -54,23 +35,29 @@ func (coll ByEndpoint) Less(i, j int) bool {
 }
 
 type Segment struct {
-	p1 *EndPoint
-	p2 *EndPoint
-	d  float64
+	p1       *EndPoint
+	p2       *EndPoint
+	d        float64
+	userdata interface{}
 }
 
-func NewSegment(x1, y1, x2, y2 float64) *Segment {
+func NewSegment(x1, y1, x2, y2 float64, userdata interface{}) *Segment {
 
 	p1 := NewEndPoint(x1, y1)
 	p2 := NewEndPoint(x2, y2)
 	segment := &Segment{
-		p1: p1,
-		p2: p2,
-		d:  0,
+		p1:       p1,
+		p2:       p2,
+		d:        0,
+		userdata: userdata,
 	}
 
 	p1.segment = segment
 	p2.segment = segment
 
 	return segment
+}
+
+func (s Segment) GetEndPoints() []*EndPoint {
+	return []*EndPoint{s.p1, s.p2}
 }

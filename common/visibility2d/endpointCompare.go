@@ -1,4 +1,4 @@
-package main
+package visibility2d
 
 func endpointCompare(pointA, pointB *EndPoint) int {
 
