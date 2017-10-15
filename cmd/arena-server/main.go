@@ -81,7 +81,7 @@ func main() {
 		}()
 	}()
 
-	StartMQHealthCheckServer(brokerclient, graphqlclient, *arenaServerUUID)
+	StartMQHealthCheckServer(brokerclient, graphqlclient, *arenaServerUUID, time.Duration(*timeout*2)*time.Minute)
 
 	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
 		utils.Debug("from-master", "Received launching order")

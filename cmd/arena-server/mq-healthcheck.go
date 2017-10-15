@@ -1,16 +1,31 @@
 package main
 
 import (
+	"errors"
+	"os/exec"
+	"time"
+
 	"github.com/bytearena/bytearena/common/graphql"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
-
-	"errors"
-	"os/exec"
 )
 
-func StartMQHealthCheckServer(brokerclient *mq.Client, graphqlclient graphql.Client, id string) {
+var (
+	startedAt = time.Now()
+)
+
+func StartMQHealthCheckServer(brokerclient *mq.Client, graphqlclient graphql.Client, id string, duration time.Duration) {
+
+	testTimeElapsed := func() error {
+		now := time.Now()
+
+		if now.Sub(startedAt) >= duration {
+			return errors.New("Game is over")
+		} else {
+			return nil
+		}
+	}
 
 	testMq := func() error {
 		pingErr := brokerclient.Ping()
@@ -52,6 +67,10 @@ func StartMQHealthCheckServer(brokerclient *mq.Client, graphqlclient graphql.Cli
 
 	brokerclient.Subscribe("game", "healthcheck", func(msg mq.BrokerMessage) {
 		var status = "OK"
+
+		if err := testTimeElapsed(); err != nil {
+			status = "NOK"
+		}
 
 		if err := testMq(); err != nil {
 			status = "NOK"
