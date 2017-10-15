@@ -10,24 +10,33 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 )
 
+const (
+	TIME_AFTER_UNHEALTHY = 30 * time.Second
+)
+
+type LastSeenNodes map[string]time.Time
 type MemorizedHealtchecks map[string]bool
 
 type ArenaHealthCheck struct {
 	gameHealthcheckRes Res
-	cache              MemorizedHealtchecks
 	ticker             *time.Ticker
 	mutex              sync.Mutex
 	mqclient           *mq.Client
+
+	lastSeen LastSeenNodes
+	cache    MemorizedHealtchecks
 }
 
 func NewArenaHealthcheck(gameHealthcheckRes Res, mqclient *mq.Client) *ArenaHealthCheck {
 	ticker := time.NewTicker(time.Duration(5) * time.Second)
 
 	instance := &ArenaHealthCheck{
-		cache:              make(MemorizedHealtchecks),
 		ticker:             ticker,
 		gameHealthcheckRes: gameHealthcheckRes,
 		mqclient:           mqclient,
+
+		cache:    make(MemorizedHealtchecks),
+		lastSeen: make(LastSeenNodes),
 	}
 
 	go instance.startTicker()
@@ -46,6 +55,16 @@ func (s *ArenaHealthCheck) startTicker() {
 			utils.RecoverableError("healtcheck", "error: "+err.Error())
 			continue
 		}
+
+		// Check last seen nodes
+		now := time.Now()
+		for k, date := range s.GetLastSeen() {
+			if now.Sub(date) >= TIME_AFTER_UNHEALTHY {
+				s.mutex.Lock()
+				s.cache[k] = false
+				s.mutex.Unlock()
+			}
+		}
 	}
 }
 
@@ -61,6 +80,8 @@ func (s *ArenaHealthCheck) startConsumer() {
 
 			s.mutex.Lock()
 
+			s.lastSeen[mac] = time.Now()
+
 			if res == "NOK" {
 				s.cache[mac] = false
 			} else {
@@ -75,4 +96,8 @@ func (s *ArenaHealthCheck) startConsumer() {
 // We want to copy here
 func (s ArenaHealthCheck) GetCache() MemorizedHealtchecks {
 	return s.cache
+}
+
+func (s ArenaHealthCheck) GetLastSeen() LastSeenNodes {
+	return s.lastSeen
 }
