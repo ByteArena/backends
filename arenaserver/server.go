@@ -61,7 +61,14 @@ type Server struct {
 	collisionListener *CollisionListener
 }
 
-func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrator, game GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
+func NewServer(
+	host string,
+	port int,
+	orch arenaservertypes.ContainerOrchestrator,
+	game GameInterface,
+	arenaServerUUID string,
+	mqClient mq.ClientInterface,
+) *Server {
 
 	gamehost := host
 
