@@ -3,6 +3,7 @@ package arenamaster
 import (
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/bytearena/bytearena/arenamaster/state"
 	"github.com/bytearena/bytearena/common/mq"
@@ -35,6 +36,12 @@ func handleDebugGetVMStatus(mqClient *mq.Client, s *state.State, healthchecks *A
 			} else {
 				debugState[id]["health"] = "NOK"
 			}
+		}
+
+		lastSeen := healthchecks.GetLastSeen()
+
+		if res, hasRes := lastSeen[mac]; hasRes {
+			debugState[id]["lastseen"] = res.Format(time.RFC3339)
 		}
 
 		metadatajson, err := json.Marshal(vm.Config.Metadata)
