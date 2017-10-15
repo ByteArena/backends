@@ -52,39 +52,6 @@ func main() {
 	brokerclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: Could not connect to messagebroker on "+*mqhost)
 
-	// Just test docker
-	testTicker := time.NewTicker(time.Duration(10) * time.Second)
-
-	go func() {
-		for {
-			utils.Debug("test-graphql", "probe")
-			err := graphqlclient.Ping()
-
-			if err != nil {
-				utils.Debug("test-graphql", "err: "+err.Error())
-			} else {
-				utils.Debug("test-graphql", "ok")
-			}
-
-			<-testTicker.C
-		}
-	}()
-
-	go func() {
-		for {
-			utils.Debug("test-mq", "probe")
-			err := brokerclient.Ping()
-
-			if err != nil {
-				utils.Debug("test-mq", "err: "+err.Error())
-			} else {
-				utils.Debug("test-mq", "ok")
-			}
-
-			<-testTicker.C
-		}
-	}()
-
 	// For some reasons we can't handshake straight after the start.
 	// Just delay it a bit for now
 	// FIXME(sven): find a better solution
