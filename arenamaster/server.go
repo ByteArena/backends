@@ -24,6 +24,8 @@ import (
 var (
 	inc     = 0
 	dnsZone = "bytearena.com."
+
+	TIME_BETWEEN_VM_RUNNING_AND_ARENA_IDLE = 1 * time.Minute
 )
 
 type ListeningChanStruct chan bool
@@ -96,7 +98,7 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 	}
 }
 
-func (server *Server) createScheduler() *vmscheduler.Pool {
+func (server *Server) createScheduler(listener Listener, healthchecks *ArenaHealthCheck) *vmscheduler.Pool {
 	provisionVmFn := func() *vm.VM {
 		inc++
 		id := inc
@@ -120,25 +122,58 @@ func (server *Server) createScheduler() *vmscheduler.Pool {
 				utils.Debug("vm", "VM ("+strconv.Itoa(id)+") booted")
 			}
 
+			// Start timer between VM running and arena idle
+			// If the VM has no arena running or idle, we better halt it
+			go func() {
+				<-time.After(TIME_BETWEEN_VM_RUNNING_AND_ARENA_IDLE)
+
+				status := server.state.GetStatus(vm.Config.Id)
+				isIdle := status&state.STATE_IDLE_ARENA == 0
+				isRunning := status&state.STATE_RUNNING_ARENA == 0
+
+				if !isIdle && !isRunning {
+
+					haltMsg := types.NewMQMessage(
+						"arena-master",
+						"halt",
+					).SetPayload(types.MQPayload{
+						"id": strconv.Itoa(id),
+					})
+
+					listener.arenaHalt <- *haltMsg
+				}
+			}()
+
 			return vm
 		}
 	}
 
 	healtcheckVmFn := func(vm *vm.VM) bool {
-		// blockChan := make(chan bool)
-		// mac := vmid.GetVMMAC(vm)
+		cache := healthchecks.GetCache()
+		mac, found := vmid.GetVMMAC(vm)
 
-		// go func() {
-		// 	server.mqclient.Publish("game", mac+".healthcheck", types.MQPayload{})
-		// }()
-
-		// <-blockChan
-
-		// return false
-		if vm == nil {
+		if !found {
+			utils.RecoverableError("healthcheck", "Error during healthcheck: mac not found")
 			return false
-		} else {
+		}
+
+		// Ignore healthcheck if the VM is currenly booting
+		isBooting := server.state.GetStatus(vm.Config.Id)&state.STATE_BOOTING_VM != 0
+
+		if isBooting {
 			return true
+		}
+
+		if res, hasRes := cache[mac]; hasRes {
+
+			// Unhealthy
+			if res == false {
+				server.state.UpdateStateVMErrored(vm.Config.Id)
+			}
+
+			return res
+		} else {
+			return false
 		}
 	}
 
@@ -206,7 +241,9 @@ func (server *Server) Run() {
 	server.createDNSServer()
 	server.createMetadataServer()
 
-	pool := server.createScheduler()
+	healthchecks := NewArenaHealthcheck(listener.gameHealthcheckRes, server.brokerclient)
+
+	pool := server.createScheduler(listener, healthchecks)
 	utils.Debug("vm", "Scheduler running and initialized")
 
 	for {
@@ -364,7 +401,7 @@ func (server *Server) Run() {
 			}()
 
 		case <-listener.debugGetVMStatus:
-			go handleDebugGetVMStatus(server.brokerclient, server.state)
+			go handleDebugGetVMStatus(server.brokerclient, server.state, healthchecks)
 		}
 	}
 }

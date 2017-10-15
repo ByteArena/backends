@@ -11,12 +11,13 @@ import (
 type Res chan types.MQMessage
 
 type Listener struct {
-	arenaAdd      Res
-	arenaHalt     Res
-	gameLaunch    Res
-	gameLaunched  Res
-	gameHandshake Res
-	gameStopped   Res
+	arenaAdd           Res
+	arenaHalt          Res
+	gameLaunch         Res
+	gameLaunched       Res
+	gameHandshake      Res
+	gameStopped        Res
+	gameHealthcheckRes Res
 
 	debugGetVMStatus Res
 }
@@ -26,10 +27,11 @@ func MakeListener(mqClient *mq.Client) Listener {
 		arenaAdd:  subscribeToChannelAndGetChan(mqClient, "arena", "add"),
 		arenaHalt: subscribeToChannelAndGetChan(mqClient, "arena", "halt"),
 
-		gameLaunch:    subscribeToChannelAndGetChan(mqClient, "game", "launch"),
-		gameLaunched:  subscribeToChannelAndGetChan(mqClient, "game", "launched"),
-		gameHandshake: subscribeToChannelAndGetChan(mqClient, "game", "handshake"),
-		gameStopped:   subscribeToChannelAndGetChan(mqClient, "game", "stopped"),
+		gameLaunch:         subscribeToChannelAndGetChan(mqClient, "game", "launch"),
+		gameLaunched:       subscribeToChannelAndGetChan(mqClient, "game", "launched"),
+		gameHandshake:      subscribeToChannelAndGetChan(mqClient, "game", "handshake"),
+		gameStopped:        subscribeToChannelAndGetChan(mqClient, "game", "stopped"),
+		gameHealthcheckRes: subscribeToChannelAndGetChan(mqClient, "game", "healthcheck-res"),
 
 		debugGetVMStatus: subscribeToChannelAndGetChan(mqClient, "debug", "getvmstatus"),
 	}
@@ -44,6 +46,7 @@ func subscribeToChannelAndGetChan(mqClient *mq.Client, channel, topic string) Re
 
 		if err != nil {
 			utils.RecoverableError("event listener", err.Error())
+			return
 		}
 
 		res <- message

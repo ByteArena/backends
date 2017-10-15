@@ -50,8 +50,10 @@ func StartMQHealthCheckServer(brokerclient *mq.Client, graphqlclient graphql.Cli
 		}
 	}
 
-	brokerclient.Subscribe("game", id+".healthcheck", func(msg mq.BrokerMessage) {
+	brokerclient.Subscribe("game", "healthcheck", func(msg mq.BrokerMessage) {
 		var status = "OK"
+
+		utils.Debug("healthcheck", "Probing")
 
 		if err := testMq(); err != nil {
 			status = "NOK"

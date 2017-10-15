@@ -11,7 +11,7 @@ import (
 	vmid "github.com/bytearena/schnapps/id"
 )
 
-func handleDebugGetVMStatus(mqClient *mq.Client, s *state.State) {
+func handleDebugGetVMStatus(mqClient *mq.Client, s *state.State, healthchecks *ArenaHealthCheck) {
 	debugState := make(map[int]map[string]string)
 
 	s.Map(func(element *state.DataContainer) {
@@ -25,6 +25,16 @@ func handleDebugGetVMStatus(mqClient *mq.Client, s *state.State) {
 
 		if found {
 			debugState[id]["mac"] = mac
+		}
+
+		cache := healthchecks.GetCache()
+
+		if res, hasRes := cache[mac]; hasRes {
+			if res {
+				debugState[id]["health"] = "OK"
+			} else {
+				debugState[id]["health"] = "NOK"
+			}
 		}
 
 		metadatajson, err := json.Marshal(vm.Config.Metadata)

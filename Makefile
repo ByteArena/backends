@@ -4,6 +4,7 @@ DOCKERFILE=Dockerfile
 BRIDGE=brtest
 GATEWAY_IP=172.19.0.1
 SUBNET=$(GATEWAY_IP)/24
+BA_PREFIX=bytearena/
 
 build:
 	cd cmd && bash buildall.sh
@@ -12,18 +13,26 @@ build-arenamaster:
 	docker build \
 		-f docker/arena-master/$(DOCKERFILE) \
 		--build-arg BRIDGE=$(BRIDGE) \
-		-t arenamaster .
+		-t $(BA_PREFIX)arenamaster .
 
 build-arenaserver:
 	docker build \
 		-f docker/arena-server/$(DOCKERFILE) \
-		-t arenaserver .
+		-t $(BA_PREFIX)arenaserver .
 
 build-linuxkit:
-	make -C ~/go/src/github.com/bytearena/linuxkit build
+	make -C ~/Documents/Bytearena/ansible-deploy generate-arenaserver-image
 
 run-arenamaster:
-	docker run -it --privileged -e APIURL=$(APIURL) -e MQ=$(MQ) --net host -v ~/go/src/github.com/bytearena/linuxkit/linuxkit.raw:/linuxkit.raw -v /lib/modules:/lib/modules arenamaster
+	docker run \
+		-it \
+		--privileged \
+		-e APIURL=$(APIURL) \
+		-e MQ=$(MQ) \
+		--net host \
+		-v ~/Documents/Bytearena/ansible-deploy/linuxkit/linuxkit.raw:/linuxkit.raw \
+		-v /lib/modules:/lib/modules \
+		$(BA_PREFIX)arenamaster
 
 create-br:
 	brctl addbr $(BRIDGE)
