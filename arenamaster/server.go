@@ -165,23 +165,53 @@ func (server *Server) createScheduler(listener Listener, healthchecks *ArenaHeal
 		}
 
 		if res, hasRes := cache[mac]; hasRes {
-
-			// Unhealthy
-			if res == false {
-				server.state.UpdateStateVMErrored(vm.Config.Id)
-			}
-
 			return res
 		} else {
 			return false
 		}
 	}
 
-	pool, schedulerErr := vmscheduler.NewFixedVMPool(3, provisionVmFn, healtcheckVmFn)
+	pool, schedulerErr := vmscheduler.NewFixedVMPool(3)
 
 	if schedulerErr != nil {
 		panic(schedulerErr)
 	}
+
+	go func() {
+		events := pool.Events()
+
+		for {
+			select {
+			case msg := <-events:
+				switch msg := msg.(type) {
+				case vmscheduler.HEALTHCHECK:
+					res := healtcheckVmFn(msg.VM)
+
+					pool.Consumer() <- vmscheduler.HEALTHCHECK_RESULT{
+						VM:  msg.VM,
+						Res: res,
+					}
+				case vmscheduler.PROVISION:
+					utils.Debug("master", "Provisioning new VM")
+					vm := provisionVmFn()
+
+					pool.Consumer() <- vmscheduler.PROVISION_RESULT{vm}
+				case vmscheduler.VM_UNHEALTHY:
+					id := msg.VM.Config.Id
+					server.state.UpdateStateVMErrored(id)
+
+					haltMsg := types.NewMQMessage(
+						"arena-master",
+						"halt",
+					).SetPayload(types.MQPayload{
+						"id": strconv.Itoa(id),
+					})
+
+					listener.arenaHalt <- *haltMsg
+				}
+			}
+		}
+	}()
 
 	return pool
 }
