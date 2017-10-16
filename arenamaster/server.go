@@ -334,9 +334,7 @@ func (server *Server) Run() {
 					return
 				}
 
-				vm, err := pool.SelectAndPop(func(vm *vm.VM) bool {
-					return server.state.GetStatus(vm.Config.Id)&state.STATE_IDLE_ARENA != 0
-				})
+				vm, err := pool.Pop()
 
 				if vm != nil && err == nil {
 					server.state.UpdateStateTriedLaunchArena(vm.Config.Id)
