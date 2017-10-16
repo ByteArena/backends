@@ -11,6 +11,9 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
+
+	"github.com/go-gl/mathgl/mgl64"
+	"github.com/go-gl/mathgl/mgl64/matstack"
 )
 
 func main() {
@@ -97,10 +100,15 @@ func main() {
 						json.Unmarshal(child3.Properties[0].Value, &geometry.indices)
 
 						if len(geometry.indices) > 0 {
-							poly := make(polygon, 0)
+
+							spew.Dump(geometry.indices)
+
+							poly := make(face, 0)
+
 							for _, geometryIndex := range geometry.indices {
 								endPoly := false
 								if geometryIndex < 0 {
+									// https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-polygon-mesh/polygon-mesh-file-formats
 									geometryIndex = geometryIndex*-1 - 1
 									endPoly = true
 								}
@@ -111,23 +119,23 @@ func main() {
 								poly = append(poly, p)
 
 								if endPoly {
-									geometry.polygons = append(geometry.polygons, poly)
-									poly = make(polygon, 0)
+									geometry.faces = append(geometry.faces, poly)
+									poly = make(face, 0)
 								}
 							}
 
 							if len(poly) > 0 {
-								geometry.polygons = append(geometry.polygons, poly)
+								geometry.faces = append(geometry.faces, poly)
 							}
 						} else {
-							poly := make(polygon, 0)
+							poly := make(face, 0)
 							for i := 0; i < len(geometry.vertices)/3; i++ {
 								offset := i * 3
 								p := point{geometry.vertices[offset+0], geometry.vertices[offset+1], geometry.vertices[offset+2]}
 								poly = append(poly, p)
 							}
 
-							geometry.polygons = append(geometry.polygons, poly)
+							geometry.faces = append(geometry.faces, poly)
 						}
 					}
 				}
@@ -182,6 +190,8 @@ func main() {
 									json.Unmarshal(child4.Properties[4].Value, &transform.rotation[0])
 									json.Unmarshal(child4.Properties[5].Value, &transform.rotation[1])
 									json.Unmarshal(child4.Properties[6].Value, &transform.rotation[2])
+
+									transform.rotation[0] -= 90 // it seems that every object is rotated -90° on x in FBX
 								}
 							case "Lcl Scaling":
 								{ // position (local scaling)
@@ -246,12 +256,46 @@ func main() {
 	}
 
 	for _, model := range models {
-		spew.Dump(model.name, model.transform, model.geometry)
+		if model.geometry != nil {
+			fmt.Println("")
+			fmt.Println("########### " + model.name)
+			fmt.Println("")
+
+			for _, poly := range model.geometry.faces {
+				fmt.Println(poly.applyTransform(model.getFullTransform()))
+			}
+		}
 	}
 }
 
 type point [3]float64
-type polygon []point
+type face []point
+
+func (p point) String() string {
+	return fmt.Sprintf("<point(%.5f, %.5f, %.5f)>", p[0], p[1], p[2])
+}
+
+func (p point) applyTransform(transform mgl64.Mat4) point {
+	res := transform.Mul4x1(mgl64.Vec4{
+		p[0], p[1], p[2], 1,
+	})
+
+	return point{
+		res.X(),
+		res.Y(),
+		res.Z(),
+	}
+}
+
+func (poly face) applyTransform(transform mgl64.Mat4) face {
+	res := make(face, len(poly))
+
+	for i, p := range poly {
+		res[i] = p.applyTransform(transform)
+	}
+
+	return res
+}
 
 type fbxTransform struct {
 	translation [3]float64
@@ -268,12 +312,46 @@ type fbxModel struct {
 	geometry  *fbxGeometry
 }
 
+func (model *fbxModel) getFullTransform() mgl64.Mat4 {
+
+	// ordre : local -> global
+
+	stack := matstack.NewTransformStack()
+
+	current := model
+	for current != nil {
+
+		// TODO: it seems that blender and FBX coordinates are not the same
+		// axis may be swapped (to be determined)
+		// axis might be inversed (to be determined)
+		// canvas rotation may be applied (to be determined)
+		// canvas scale may be applied (to be determined)
+		// GlobalSettings.children.Properties70.[UpAxis | UpAxisSign | FrontAxis | FrontAxisSign | ...]
+
+		scale := mgl64.Scale3D(current.transform.scaling[0]/100.0, current.transform.scaling[1]/100.0, current.transform.scaling[2]/100.0)
+		rotx := mgl64.HomogRotate3DX(mgl64.DegToRad(current.transform.rotation[0]))
+		roty := mgl64.HomogRotate3DY(mgl64.DegToRad(current.transform.rotation[1]))
+		rotz := mgl64.HomogRotate3DZ(mgl64.DegToRad(current.transform.rotation[2]))
+		trans := mgl64.Translate3D(current.transform.translation[0]/100.0, current.transform.translation[1]/100.0, current.transform.translation[2]/100.0)
+
+		stack.Push(trans)
+		stack.Push(rotx)
+		stack.Push(roty)
+		stack.Push(rotz)
+		stack.Push(scale)
+
+		current = current.parent
+	}
+
+	return stack.Peek()
+}
+
 type fbxGeometry struct {
 	id       int64
 	name     string
 	vertices []float64
 	indices  []int
-	polygons []polygon
+	faces    []face
 }
 
 type marshChild struct {

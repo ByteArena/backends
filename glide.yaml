@@ -42,3 +42,7 @@ import:
 - package: github.com/bytearena/box2d
   version: ^1.0.0
 - package: github.com/bytearena/ecs
+- package: github.com/go-gl/mathgl
+- package: golang.org/x/image
+  subpackages:
+  - math/f64
