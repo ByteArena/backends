@@ -3,6 +3,7 @@ package arenamaster
 import (
 	"encoding/json"
 	"strconv"
+	"sync"
 	"time"
 
 	arenamasterGraphql "github.com/bytearena/bytearena/arenamaster/graphql"
@@ -148,7 +149,11 @@ func (server *Server) createScheduler(listener Listener, healthchecks *ArenaHeal
 		}
 	}
 
+	var healthcheckFnMutex sync.Mutex
 	healtcheckVmFn := func(vm *vm.VM) bool {
+		healthcheckFnMutex.Lock()
+		defer healthcheckFnMutex.Unlock()
+
 		cache := healthchecks.GetCache()
 		mac, found := vmid.GetVMMAC(vm)
 
