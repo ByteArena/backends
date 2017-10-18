@@ -8,6 +8,8 @@ import (
 )
 
 var (
+	inc = 0
+
 	MEG_MEMORY      = 2048
 	CPU_AMOUNT      = 1
 	CPU_CORE_AMOUNT = 1

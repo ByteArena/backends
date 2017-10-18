@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	inc = 0
+	EVENT_COUNTER = influxdb.NewCounter()
 
 	TIME_BETWEEN_VM_RUNNING_AND_ARENA_IDLE = 1 * time.Minute
 )
@@ -78,6 +78,8 @@ func (server *Server) startStateReporting() error {
 			fields[k] = v
 		}
 
+		fields["events-per-period"] = EVENT_COUNTER.GetAndReset()
+
 		server.influxdbClient.WriteAppMetric("arenamaster", fields)
 	})
 
@@ -110,9 +112,6 @@ func (server *Server) Run() {
 		select {
 		case <-server.stopChan:
 			return
-
-		case <-listener.arenaAdd:
-			utils.Debug("err", "implement this")
 
 		case msg := <-listener.arenaHalt:
 			go func() {
@@ -261,6 +260,8 @@ func (server *Server) Run() {
 		case <-listener.debugGetVMStatus:
 			go handleDebugGetVMStatus(server.brokerclient, server.state, healthchecks)
 		}
+
+		EVENT_COUNTER.Add(1)
 	}
 }
 
