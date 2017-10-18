@@ -253,14 +253,18 @@ func (server *Server) Run() {
 						"id": strconv.Itoa(id),
 					})
 
-					listener.arenaHalt <- *haltMsg
+					go func() {
+						listener.arenaHalt <- *haltMsg
+					}()
 				} else {
 					utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
 				}
 			}
 
 		case <-listener.debugGetVMStatus:
-			go handleDebugGetVMStatus(server.brokerclient, server.state, healthchecks)
+			{
+				handleDebugGetVMStatus(server.brokerclient, server.state, healthchecks)
+			}
 		}
 
 		EVENT_COUNTER.Add(1)

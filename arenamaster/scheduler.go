@@ -13,6 +13,10 @@ import (
 	vmscheduler "github.com/bytearena/schnapps/scheduler"
 )
 
+var (
+	inc = 0
+)
+
 func (server *Server) createScheduler(listener Listener, healthchecks *ArenaHealthCheck) *vmscheduler.Pool {
 	provisionVmFn := func() *vm.VM {
 		inc++
