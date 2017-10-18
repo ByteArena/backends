@@ -11,14 +11,6 @@ import (
 
 func onGameLaunch(gameid string, mqclient *mq.Client, gql *graphql.Client, vm *vm.VM) {
 
-	// FIXME(sven) re-enable already running game id protection
-	// Ignore if the game is already running
-	// if isGameAlreadyRunning(state, gameid) {
-	// 	state.UnlockState()
-
-	// 	return
-	// }
-
 	vm.Config.Metadata["gameid"] = gameid
 	mac, _ := vmid.GetVMMAC(vm)
 
@@ -50,38 +42,3 @@ func onGameLaunch(gameid string, mqclient *mq.Client, gql *graphql.Client, vm *v
 
 	// go waitForLaunchedOrRetry(state, gameid, mqclient, gql, astate, vm)
 }
-
-// FIXME(sven) re-enable retry mecasim
-// func waitForLaunchedOrRetry(state *State, gameid string, mqclient *mq.Client, gql *graphql.Client, astate ArenaServerState, vm *vm.VM) {
-// 	timeout := 30
-// 	timeoutTimer := time.NewTimer(time.Duration(timeout) * time.Second)
-// 	<-timeoutTimer.C
-
-// 	state.LockState()
-
-// 	_, isPending := state.pendingArenas[astate.id]
-
-// 	if isPending {
-// 		utils.Debug("pending", "Arena "+astate.id+" couldn't be launched")
-
-// 		delete(state.pendingArenas, astate.id)
-// 		state.UnlockState()
-
-// 		// Retry to launch a game
-// 		// TODO(sven): stop only if needed
-// 		// onGameStop(state, "?", gameid, gql)
-// 		onGameLaunch(state, gameid, mqclient, gql, vm)
-// 	} else {
-// 		state.UnlockState()
-// 	}
-// }
-
-// func isGameAlreadyRunning(state *State, id string) bool {
-// 	for _, a := range state.runningArenas {
-// 		if a.GameId == id {
-// 			return true
-// 		}
-// 	}
-
-// 	return false
-// }

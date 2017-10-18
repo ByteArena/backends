@@ -114,7 +114,7 @@ func (server *Server) Run() {
 			return
 
 		case msg := <-listener.arenaHalt:
-			go func() {
+			{
 				id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
 
 				if data := server.state.QueryState(id, state.STATE_RUNNING_VM); data != nil {
@@ -135,10 +135,10 @@ func (server *Server) Run() {
 				} else {
 					utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): VM is not running")
 				}
-			}()
+			}
 
 		case msg := <-listener.gameLaunch:
-			go func() {
+			{
 				gameid, _ := (*msg.Payload)["id"].(string)
 
 				// Check if the gameid isn't running already
@@ -185,14 +185,16 @@ func (server *Server) Run() {
 						utils.RecoverableError("vm", "Could not release ("+strconv.Itoa(vm.Config.Id)+"): "+err.Error())
 					}
 
-					// Retry in 30sec
-					<-time.After(30 * time.Second)
-					listener.gameLaunch <- msg
+					go func() {
+						// Retry in 30sec
+						<-time.After(30 * time.Second)
+						listener.gameLaunch <- msg
+					}()
 				}
-			}()
+			}
 
 		case msg := <-listener.gameLaunched:
-			go func() {
+			{
 				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
 				gameid, _ := (*msg.Payload)["id"].(string)
 				vm := FindVMByMAC(server.state, mac)
@@ -206,10 +208,10 @@ func (server *Server) Run() {
 				} else {
 					utils.RecoverableError("game-launched", "VM with MAC ("+mac+") does not exists")
 				}
+			}
 
-			}()
 		case msg := <-listener.gameHandshake:
-			go func() {
+			{
 				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
 				vm := FindVMByMAC(server.state, mac)
 
@@ -224,10 +226,10 @@ func (server *Server) Run() {
 				} else {
 					utils.RecoverableError("game-handshake", "VM with MAC ("+mac+") does not exists")
 				}
-			}()
+			}
 
 		case msg := <-listener.gameStopped:
-			go func() {
+			{
 				gameid, _ := (*msg.Payload)["id"].(string)
 				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
 
@@ -255,7 +257,7 @@ func (server *Server) Run() {
 				} else {
 					utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
 				}
-			}()
+			}
 
 		case <-listener.debugGetVMStatus:
 			go handleDebugGetVMStatus(server.brokerclient, server.state, healthchecks)
