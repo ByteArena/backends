@@ -3,7 +3,6 @@ package arenamaster
 import (
 	"encoding/json"
 	"strconv"
-	"sync"
 	"time"
 
 	arenamasterGraphql "github.com/bytearena/bytearena/arenamaster/graphql"
@@ -16,15 +15,11 @@ import (
 	"github.com/bytearena/schnapps"
 	vmdhcp "github.com/bytearena/schnapps/dhcp"
 	vmdns "github.com/bytearena/schnapps/dns"
-	vmid "github.com/bytearena/schnapps/id"
 	vmmeta "github.com/bytearena/schnapps/metadata"
-	vmscheduler "github.com/bytearena/schnapps/scheduler"
-	vmtypes "github.com/bytearena/schnapps/types"
 )
 
 var (
-	inc     = 0
-	dnsZone = "bytearena.com."
+	inc = 0
 
 	TIME_BETWEEN_VM_RUNNING_AND_ARENA_IDLE = 1 * time.Minute
 )
@@ -97,176 +92,6 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 	} else {
 		return nil, &message
 	}
-}
-
-func (server *Server) createScheduler(listener Listener, healthchecks *ArenaHealthCheck) *vmscheduler.Pool {
-	provisionVmFn := func() *vm.VM {
-		inc++
-		id := inc
-
-		vm, err := server.SpawnArena(id)
-		server.state.UpdateStateAddBootingVM(id, vm)
-
-		if err != nil {
-			utils.RecoverableError("vm", "Could not start ("+strconv.Itoa(id)+"): "+err.Error())
-			server.state.UpdateStateVMErrored(id)
-
-			return nil
-		} else {
-			err := vm.WaitUntilBooted()
-
-			if err != nil {
-				utils.RecoverableError("vm", "Could not wait until VM is booted")
-				server.state.UpdateStateVMErrored(id)
-			} else {
-				server.state.UpdateStateVMBooted(id)
-				utils.Debug("vm", "VM ("+strconv.Itoa(id)+") booted")
-			}
-
-			// Start timer between VM running and arena idle
-			// If the VM has no arena running or idle, we better halt it
-			go func() {
-				<-time.After(TIME_BETWEEN_VM_RUNNING_AND_ARENA_IDLE)
-
-				status := server.state.GetStatus(vm.Config.Id)
-				isIdle := status&state.STATE_IDLE_ARENA == 0
-				isRunning := status&state.STATE_RUNNING_ARENA == 0
-
-				if !isIdle && !isRunning {
-
-					haltMsg := types.NewMQMessage(
-						"arena-master",
-						"halt",
-					).SetPayload(types.MQPayload{
-						"id": strconv.Itoa(id),
-					})
-
-					listener.arenaHalt <- *haltMsg
-				}
-			}()
-
-			return vm
-		}
-	}
-
-	var healthcheckFnMutex sync.Mutex
-	healtcheckVmFn := func(vm *vm.VM) bool {
-		healthcheckFnMutex.Lock()
-		defer healthcheckFnMutex.Unlock()
-
-		cache := healthchecks.GetCache()
-		mac, found := vmid.GetVMMAC(vm)
-
-		if !found {
-			utils.RecoverableError("healthcheck", "Error during healthcheck: mac not found")
-			return false
-		}
-
-		// Ignore healthcheck if the VM is currenly booting
-		isBooting := server.state.GetStatus(vm.Config.Id)&state.STATE_BOOTING_VM != 0
-
-		if isBooting {
-			return true
-		}
-
-		if res, hasRes := cache[mac]; hasRes {
-			return res
-		} else {
-			return false
-		}
-	}
-
-	pool, schedulerErr := vmscheduler.NewFixedVMPool(3)
-
-	if schedulerErr != nil {
-		panic(schedulerErr)
-	}
-
-	go func() {
-		events := pool.Events()
-
-		for {
-			select {
-			case msg := <-events:
-				switch msg := msg.(type) {
-				case vmscheduler.HEALTHCHECK:
-					res := healtcheckVmFn(msg.VM)
-
-					pool.Consumer() <- vmscheduler.HEALTHCHECK_RESULT{
-						VM:  msg.VM,
-						Res: res,
-					}
-				case vmscheduler.PROVISION:
-					utils.Debug("master", "Provisioning new VM")
-					vm := provisionVmFn()
-
-					pool.Consumer() <- vmscheduler.PROVISION_RESULT{vm}
-				case vmscheduler.VM_UNHEALTHY:
-					id := msg.VM.Config.Id
-					server.state.UpdateStateVMErrored(id)
-
-					haltMsg := types.NewMQMessage(
-						"arena-master",
-						"halt",
-					).SetPayload(types.MQPayload{
-						"id": strconv.Itoa(id),
-					})
-
-					listener.arenaHalt <- *haltMsg
-				}
-			}
-		}
-	}()
-
-	return pool
-}
-
-func (server *Server) createDNSServer() {
-
-	dnsRecords := map[string]string{
-		"static." + dnsZone:       server.vmBridgeIP,
-		"redis.net." + dnsZone:    server.vmBridgeIP,
-		"graphql.net." + dnsZone:  server.vmBridgeIP,
-		"registry.net." + dnsZone: server.vmBridgeIP,
-	}
-
-	DNSServer := vmdns.MakeServer(server.vmBridgeIP+":53", dnsZone, dnsRecords)
-
-	// DNSServer.SetOnRequestHook(func(addr string) {
-	// 	utils.Debug("dns-server", "query for "+addr)
-	// })
-
-	go func() {
-		err := DNSServer.Start()
-		utils.Check(err, "Could not start DNS server")
-
-		server.DNSServer = &DNSServer
-	}()
-}
-
-func (server *Server) createMetadataServer() {
-	retrieveVMFn := func(id string) *vm.VM {
-		vm := FindVMByMAC(server.state, id)
-
-		return vm
-	}
-
-	metadataServer := vmmeta.NewServer(server.vmBridgeIP+":8080", retrieveVMFn)
-
-	go func() {
-		err := metadataServer.Start()
-		utils.Check(err, "Could not start metadata server")
-
-		server.MetadataServer = metadataServer
-	}()
-}
-
-func (server *Server) createDHCPServer() {
-	var err error
-	cidr := server.vmSubnet
-
-	server.DHCPServer, err = vmdhcp.NewDHCPServer(cidr)
-	utils.Check(err, "Could not create DHCP server")
 }
 
 func (server *Server) Run() {
@@ -452,44 +277,4 @@ func (server *Server) Stop() {
 	}
 
 	close(server.stopChan)
-}
-
-func (server *Server) SpawnArena(id int) (*vm.VM, error) {
-	mac := vmid.GenerateRandomMAC()
-	ip, ipErr := server.DHCPServer.Pop()
-
-	if ipErr != nil {
-		return nil, ipErr
-	}
-
-	meta := vmtypes.VMMetadata{
-		"IP": ip,
-	}
-
-	config := vmtypes.VMConfig{
-		NICs: []interface{}{
-			vmtypes.NICBridge{
-				Bridge: server.vmBridgeName,
-				MAC:    mac,
-			},
-		},
-		Id:            id,
-		MegMemory:     2048,
-		CPUAmount:     1,
-		CPUCoreAmount: 1,
-		ImageLocation: server.vmRawImageLocation,
-		Metadata:      meta,
-	}
-
-	arenaVm := vm.NewVM(config)
-
-	startErr := arenaVm.Start()
-
-	if startErr != nil {
-		return nil, startErr
-	}
-
-	utils.Debug("vm", "Started new VM ("+mac+")")
-
-	return arenaVm, nil
 }
