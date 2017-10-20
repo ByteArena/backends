@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -94,6 +95,25 @@ func main() {
 	filecopy[zipid+".json"] = "assets/json/scene.json"
 
 	assetsRename := make(map[string]string)
+
+	// On applique le patch
+	curdir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		panic(err)
+	}
+
+	cmd := exec.Command(
+		"patch",
+		"-p", "1",
+		"--directory", zipOutPath,
+		"-i", curdir+"/patches/island.patch",
+	)
+	cmd.Env = nil
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println("Error: error while patching source files.")
+		os.Exit(1)
+	}
 
 	for _, filepath := range unzippedfiles {
 
