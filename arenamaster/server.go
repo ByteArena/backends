@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/xtuc/schaloop"
+
 	arenamasterGraphql "github.com/bytearena/bytearena/arenamaster/graphql"
 	"github.com/bytearena/bytearena/arenamaster/state"
 	"github.com/bytearena/bytearena/common/graphql"
@@ -24,9 +26,8 @@ var (
 	TIME_BETWEEN_VM_RUNNING_AND_ARENA_IDLE = 1 * time.Minute
 )
 
-type ListeningChanStruct chan bool
 type Server struct {
-	stopChan           ListeningChanStruct
+	stopChan           chan bool
 	brokerclient       *mq.Client
 	graphqlclient      *graphql.Client
 	state              *state.State
@@ -41,7 +42,7 @@ type Server struct {
 }
 
 func NewServer(mq *mq.Client, gql *graphql.Client, vmRawImageLocation, vmBridgeName, vmBridgeIP, vmSubnet string) *Server {
-	stopChan := make(ListeningChanStruct)
+	stopChan := make(chan bool)
 
 	influxdbClient, influxdbClientErr := influxdb.NewClient("arenamaster")
 	utils.Check(influxdbClientErr, "Unable to create influxdb client")
@@ -96,8 +97,38 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 	}
 }
 
+func resToGeneric(old Res) chan interface{} {
+	new := make(chan interface{})
+
+	go func() {
+		for {
+			v := <-old
+			new <- v
+		}
+	}()
+
+	return new
+}
+
+func boolToGeneric(old chan bool) chan interface{} {
+	new := make(chan interface{})
+
+	go func() {
+		for {
+			v := <-old
+			new <- v
+		}
+	}()
+
+	return new
+}
+
 func (server *Server) Run() {
+	waitChan := make(chan bool)
 	listener := MakeListener(server.brokerclient)
+
+	eventloop := schaloop.NewEventLoop()
+	eventloop.StartWithTimeout(time.Duration(2 * time.Minute))
 
 	server.createDHCPServer()
 	server.createDNSServer()
@@ -105,170 +136,170 @@ func (server *Server) Run() {
 
 	healthchecks := NewArenaHealthcheck(listener.gameHealthcheckRes, server.brokerclient)
 
-	pool := server.createScheduler(listener, healthchecks)
+	pool, waitUntilReady := server.createScheduler(eventloop, listener, healthchecks)
 	utils.Debug("vm", "Scheduler running and initialized")
 
-	for {
-		select {
-		case <-server.stopChan:
+	<-waitUntilReady
+	healthchecks.StartChecks(eventloop)
+
+	eventloop.QueueWorkFromChannel("arena-halt", resToGeneric(listener.arenaHalt), func(data interface{}) {
+		msg := data.(types.MQMessage)
+		id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
+
+		if data := server.state.QueryState(id, state.STATE_RUNNING_VM); data != nil {
+			runningVM := data.(*vm.VM)
+			quitErr := runningVM.Quit()
+
+			if quitErr != nil {
+				utils.RecoverableError("vm", "Could not quit ("+strconv.Itoa(id)+"): "+quitErr.Error())
+			}
+
+			err := pool.Delete(runningVM)
+
+			if err != nil {
+				utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): "+err.Error())
+			}
+
+			server.state.UpdateStateVMHalted(id)
+		} else {
+			utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): VM is not running")
+		}
+	})
+
+	eventloop.QueueWorkFromChannel("game-launch", resToGeneric(listener.gameLaunch), func(data interface{}) {
+		msg := data.(types.MQMessage)
+		gameid, _ := (*msg.Payload)["id"].(string)
+
+		// Check if the gameid isn't running already
+		var isGameAlreadyRunning bool
+		server.state.Map(func(element *state.DataContainer) {
+			if isGameAlreadyRunning == true {
+				return
+			}
+
+			vm := element.Data.(*vm.VM)
+			isRunning := element.Status&state.STATE_RUNNING_ARENA != 0
+
+			vmGameId, hasVmGameId := vm.Config.Metadata["gameid"]
+
+			if isRunning && hasVmGameId && vmGameId == gameid {
+				isGameAlreadyRunning = true
+			}
+		})
+
+		if isGameAlreadyRunning == true {
+			utils.RecoverableError("vm", "Could not launch game: Game is already running")
 			return
-
-		case msg := <-listener.arenaHalt:
-			{
-				id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
-
-				if data := server.state.QueryState(id, state.STATE_RUNNING_VM); data != nil {
-					runningVM := data.(*vm.VM)
-					quitErr := runningVM.Quit()
-
-					if quitErr != nil {
-						utils.RecoverableError("vm", "Could not quit ("+strconv.Itoa(id)+"): "+quitErr.Error())
-					}
-
-					err := pool.Delete(runningVM)
-
-					if err != nil {
-						utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): "+err.Error())
-					}
-
-					server.state.UpdateStateVMHalted(id)
-				} else {
-					utils.RecoverableError("vm", "Could not halt ("+strconv.Itoa(id)+"): VM is not running")
-				}
-			}
-
-		case msg := <-listener.gameLaunch:
-			{
-				gameid, _ := (*msg.Payload)["id"].(string)
-
-				// Check if the gameid isn't running already
-				var isGameAlreadyRunning bool
-				server.state.Map(func(element *state.DataContainer) {
-					if isGameAlreadyRunning == true {
-						return
-					}
-
-					vm := element.Data.(*vm.VM)
-					isRunning := element.Status&state.STATE_RUNNING_ARENA != 0
-
-					vmGameId, hasVmGameId := vm.Config.Metadata["gameid"]
-
-					if isRunning && hasVmGameId && vmGameId == gameid {
-						isGameAlreadyRunning = true
-					}
-				})
-
-				if isGameAlreadyRunning == true {
-					utils.RecoverableError("vm", "Could not launch game: Game is already running")
-					return
-				}
-
-				vm, err := pool.Pop()
-
-				if vm != nil && err == nil {
-					server.state.UpdateStateTriedLaunchArena(vm.Config.Id)
-
-					onGameLaunch(
-						gameid,
-						server.brokerclient,
-						server.graphqlclient,
-						vm,
-					)
-				} else if vm == nil {
-					utils.RecoverableError("vm", "Could not launch game: no arena available")
-				} else {
-					utils.RecoverableError("vm", "Could not launch game: "+err.Error())
-
-					err := pool.Release(vm)
-
-					if err != nil {
-						utils.RecoverableError("vm", "Could not release ("+strconv.Itoa(vm.Config.Id)+"): "+err.Error())
-					}
-
-					go func() {
-						// Retry in 30sec
-						<-time.After(30 * time.Second)
-						listener.gameLaunch <- msg
-					}()
-				}
-			}
-
-		case msg := <-listener.gameLaunched:
-			{
-				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
-				gameid, _ := (*msg.Payload)["id"].(string)
-				vm := FindVMByMAC(server.state, mac)
-
-				if vm != nil {
-					server.state.UpdateStateConfirmedLaunchArena(vm.Config.Id)
-
-					arenamasterGraphql.ReportGameLaunched(gameid, mac, server.graphqlclient)
-					utils.Debug("master", mac+" launched")
-
-				} else {
-					utils.RecoverableError("game-launched", "VM with MAC ("+mac+") does not exists")
-				}
-			}
-
-		case msg := <-listener.gameHandshake:
-			{
-				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
-				vm := FindVMByMAC(server.state, mac)
-
-				// Refuse handshakes from already running arenas
-				if server.state.GetStatus(vm.Config.Id)&state.STATE_RUNNING_ARENA != 0 {
-					return
-				}
-
-				if vm != nil {
-					server.state.UpdateStateAddIdleArena(vm.Config.Id)
-					utils.Debug("master", mac+" joined")
-				} else {
-					utils.RecoverableError("game-handshake", "VM with MAC ("+mac+") does not exists")
-				}
-			}
-
-		case msg := <-listener.gameStopped:
-			{
-				gameid, _ := (*msg.Payload)["id"].(string)
-				mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
-
-				vm := FindVMByMAC(server.state, mac)
-
-				if vm != nil {
-					id := vm.Config.Id
-					server.state.UpdateStateStoppedArena(id)
-
-					arenamasterGraphql.ReportGameStopped(
-						server.state,
-						mac,
-						gameid,
-						server.graphqlclient,
-					)
-
-					haltMsg := types.NewMQMessage(
-						"arena-master",
-						"halt",
-					).SetPayload(types.MQPayload{
-						"id": strconv.Itoa(id),
-					})
-
-					go func() {
-						listener.arenaHalt <- *haltMsg
-					}()
-				} else {
-					utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
-				}
-			}
-
-		case <-listener.debugGetVMStatus:
-			{
-				handleDebugGetVMStatus(server.brokerclient, server.state, healthchecks)
-			}
 		}
 
-		EVENT_COUNTER.Add(1)
-	}
+		vm, err := pool.Pop()
+
+		if vm != nil && err == nil {
+			server.state.UpdateStateTriedLaunchArena(vm.Config.Id)
+
+			onGameLaunch(
+				gameid,
+				server.brokerclient,
+				server.graphqlclient,
+				vm,
+			)
+		} else if vm == nil {
+			utils.RecoverableError("vm", "Could not launch game: no arena available")
+		} else {
+			utils.RecoverableError("vm", "Could not launch game: "+err.Error())
+
+			err := pool.Release(vm)
+
+			if err != nil {
+				utils.RecoverableError("vm", "Could not release ("+strconv.Itoa(vm.Config.Id)+"): "+err.Error())
+			}
+
+			go func() {
+				// Retry in 30sec
+				<-time.After(30 * time.Second)
+				listener.gameLaunch <- msg
+			}()
+		}
+	})
+
+	eventloop.QueueWorkFromChannel("game-launched", resToGeneric(listener.gameLaunched), func(data interface{}) {
+		msg := data.(types.MQMessage)
+		mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
+		gameid, _ := (*msg.Payload)["id"].(string)
+		vm := FindVMByMAC(server.state, mac)
+
+		if vm != nil {
+			server.state.UpdateStateConfirmedLaunchArena(vm.Config.Id)
+
+			arenamasterGraphql.ReportGameLaunched(gameid, mac, server.graphqlclient)
+			utils.Debug("master", mac+" launched")
+
+		} else {
+			utils.RecoverableError("game-launched", "VM with MAC ("+mac+") does not exists")
+		}
+	})
+
+	eventloop.QueueWorkFromChannel("game-handshake", resToGeneric(listener.gameHandshake), func(data interface{}) {
+		msg := data.(types.MQMessage)
+		mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
+		vm := FindVMByMAC(server.state, mac)
+
+		// Refuse handshakes from already running arenas
+		if server.state.GetStatus(vm.Config.Id)&state.STATE_RUNNING_ARENA != 0 {
+			return
+		}
+
+		if vm != nil {
+			server.state.UpdateStateAddIdleArena(vm.Config.Id)
+			utils.Debug("master", mac+" joined")
+		} else {
+			utils.RecoverableError("game-handshake", "VM with MAC ("+mac+") does not exists")
+		}
+	})
+
+	eventloop.QueueWorkFromChannel("game-stopped", resToGeneric(listener.gameStopped), func(data interface{}) {
+		msg := data.(types.MQMessage)
+		gameid, _ := (*msg.Payload)["id"].(string)
+		mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
+
+		vm := FindVMByMAC(server.state, mac)
+
+		if vm != nil {
+			id := vm.Config.Id
+			server.state.UpdateStateStoppedArena(id)
+
+			arenamasterGraphql.ReportGameStopped(
+				server.state,
+				mac,
+				gameid,
+				server.graphqlclient,
+			)
+
+			haltMsg := types.NewMQMessage(
+				"arena-master",
+				"halt",
+			).SetPayload(types.MQPayload{
+				"id": strconv.Itoa(id),
+			})
+
+			go func() {
+				listener.arenaHalt <- *haltMsg
+			}()
+		} else {
+			utils.RecoverableError("game-stopped", "VM with MAC ("+mac+") does not exists")
+		}
+	})
+
+	eventloop.QueueWorkFromChannel("debug-getvmstatus", resToGeneric(listener.debugGetVMStatus), func(data interface{}) {
+		go handleDebugGetVMStatus(server.brokerclient, server.state, healthchecks)
+	})
+
+	eventloop.QueueWorkFromChannel("stop", boolToGeneric(server.stopChan), func(data interface{}) {
+		waitChan <- false
+	})
+
+	<-waitChan
+	eventloop.Stop()
 }
 
 func (server *Server) Stop() {

@@ -143,6 +143,7 @@ func (client *Client) Publish(channel, topic string, payload interface{}) error 
 	jsonPayload, err := json.Marshal(brokerAction)
 
 	if err != nil {
+		client.mu.Unlock()
 		return err
 	}
 

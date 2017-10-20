@@ -11,13 +11,16 @@ import (
 	"github.com/bytearena/schnapps"
 	vmid "github.com/bytearena/schnapps/id"
 	vmscheduler "github.com/bytearena/schnapps/scheduler"
+	"github.com/xtuc/schaloop"
 )
 
 var (
 	inc = 0
 )
 
-func (server *Server) createScheduler(listener Listener, healthchecks *ArenaHealthCheck) *vmscheduler.Pool {
+func (server *Server) createScheduler(eventloop *schaloop.EventLoop, listener Listener, healthchecks *ArenaHealthCheck) (*vmscheduler.Pool, chan bool) {
+	ready := make(chan bool)
+
 	provisionVmFn := func() *vm.VM {
 		inc++
 		id := inc
@@ -100,41 +103,57 @@ func (server *Server) createScheduler(listener Listener, healthchecks *ArenaHeal
 		panic(schedulerErr)
 	}
 
-	go func() {
-		events := pool.Events()
+	events := pool.Events()
 
-		for {
-			select {
-			case msg := <-events:
-				switch msg := msg.(type) {
-				case vmscheduler.HEALTHCHECK:
-					res := healtcheckVmFn(msg.VM)
+	eventloop.QueueWorkFromChannel("pool-events", events, func(data interface{}) {
 
+		switch msg := data.(type) {
+		case vmscheduler.HEALTHCHECK:
+			{
+				res := healtcheckVmFn(msg.VM)
+
+				go func() {
 					pool.Consumer() <- vmscheduler.HEALTHCHECK_RESULT{
 						VM:  msg.VM,
 						Res: res,
 					}
-				case vmscheduler.PROVISION:
-					utils.Debug("master", "Provisioning new VM")
-					vm := provisionVmFn()
+				}()
+			}
 
+		case vmscheduler.PROVISION:
+			{
+				utils.Debug("master", "Provisioning new VM")
+				vm := provisionVmFn()
+
+				go func() {
 					pool.Consumer() <- vmscheduler.PROVISION_RESULT{vm}
-				case vmscheduler.VM_UNHEALTHY:
-					id := msg.VM.Config.Id
-					server.state.UpdateStateVMErrored(id)
+				}()
+			}
 
-					haltMsg := types.NewMQMessage(
-						"arena-master",
-						"halt",
-					).SetPayload(types.MQPayload{
-						"id": strconv.Itoa(id),
-					})
+		case vmscheduler.READY:
+			{
+				ready <- true
+				close(ready)
+			}
 
+		case vmscheduler.VM_UNHEALTHY:
+			{
+				id := msg.VM.Config.Id
+				server.state.UpdateStateVMErrored(id)
+
+				haltMsg := types.NewMQMessage(
+					"arena-master",
+					"halt",
+				).SetPayload(types.MQPayload{
+					"id": strconv.Itoa(id),
+				})
+
+				go func() {
 					listener.arenaHalt <- *haltMsg
-				}
+				}()
 			}
 		}
-	}()
+	})
 
-	return pool
+	return pool, ready
 }
