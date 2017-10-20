@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/xtuc/schaloop"
+
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -12,7 +14,20 @@ import (
 
 const (
 	TIME_AFTER_UNHEALTHY = 30 * time.Second
+	HEALTHCHECK_FREQ     = 5 * time.Second
 )
+
+func timerToGeneric(old *time.Ticker) chan interface{} {
+	new := make(chan interface{})
+	go func() {
+		for {
+			<-old.C
+			new <- true
+		}
+	}()
+
+	return new
+}
 
 type LastSeenNodes map[string]time.Time
 type MemorizedHealtchecks map[string]bool
@@ -28,10 +43,8 @@ type ArenaHealthCheck struct {
 }
 
 func NewArenaHealthcheck(gameHealthcheckRes Res, mqclient *mq.Client) *ArenaHealthCheck {
-	ticker := time.NewTicker(time.Duration(5) * time.Second)
 
 	instance := &ArenaHealthCheck{
-		ticker:             ticker,
 		gameHealthcheckRes: gameHealthcheckRes,
 		mqclient:           mqclient,
 
@@ -39,58 +52,59 @@ func NewArenaHealthcheck(gameHealthcheckRes Res, mqclient *mq.Client) *ArenaHeal
 		lastSeen: make(LastSeenNodes),
 	}
 
-	go instance.startTicker()
-	go instance.startConsumer()
-
 	return instance
 }
 
-func (s *ArenaHealthCheck) startTicker() {
-	for {
-		<-s.ticker.C
+func (s *ArenaHealthCheck) StartChecks(eventloop *schaloop.EventLoop) {
+	s.ticker = time.NewTicker(HEALTHCHECK_FREQ)
 
+	s.startConsumer(eventloop)
+	s.startTicker(eventloop)
+}
+
+func (s *ArenaHealthCheck) startTicker(eventloop *schaloop.EventLoop) {
+	eventloop.QueueWorkFromChannel("healtcheck-ticker", timerToGeneric(s.ticker), func(data interface{}) {
 		err := s.mqclient.Publish("game", "healthcheck", types.MQPayload{})
 
 		if err != nil {
 			utils.RecoverableError("healtcheck", "error: "+err.Error())
-			continue
-		}
+		} else {
 
-		// Check last seen nodes
-		now := time.Now()
-		for k, date := range s.GetLastSeen() {
-			if now.Sub(date) >= TIME_AFTER_UNHEALTHY {
-				s.mutex.Lock()
-				s.cache[k] = false
-				s.mutex.Unlock()
+			// Check last seen nodes
+			now := time.Now()
+			for k, date := range s.GetLastSeen() {
+				if now.Sub(date) >= TIME_AFTER_UNHEALTHY {
+					s.mutex.Lock()
+					s.cache[k] = false
+					s.mutex.Unlock()
+				}
 			}
 		}
-	}
+	})
 }
 
-func (s *ArenaHealthCheck) startConsumer() {
+func (s *ArenaHealthCheck) startConsumer(eventloop *schaloop.EventLoop) {
 
-	for {
-		select {
-		case msg := <-s.gameHealthcheckRes:
-			mac, _ := (*msg.Payload)["id"].(string)
-			res, _ := (*msg.Payload)["health"].(string)
+	eventloop.QueueWorkFromChannel("healtcheck-consumer", resToGeneric(s.gameHealthcheckRes), func(data interface{}) {
+		msg := data.(types.MQMessage)
 
-			utils.Debug("healthcheck", fmt.Sprintf("Arena %s reported health %s", mac, res))
+		mac, _ := (*msg.Payload)["id"].(string)
+		res, _ := (*msg.Payload)["health"].(string)
 
-			s.mutex.Lock()
+		utils.Debug("healthcheck", fmt.Sprintf("Arena %s reported health %s", mac, res))
 
-			s.lastSeen[mac] = time.Now()
+		s.mutex.Lock()
 
-			if res == "NOK" {
-				s.cache[mac] = false
-			} else {
-				s.cache[mac] = true
-			}
+		s.lastSeen[mac] = time.Now()
 
-			s.mutex.Unlock()
+		if res == "NOK" {
+			s.cache[mac] = false
+		} else {
+			s.cache[mac] = true
 		}
-	}
+
+		s.mutex.Unlock()
+	})
 }
 
 // We want to copy here
