@@ -2,6 +2,8 @@ package types
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 
 	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
@@ -22,6 +24,20 @@ type GameDescriptionInterface interface {
 type GameDescriptionGQL struct {
 	gqlgame      graphqltype.GameType
 	mapContainer *mapcontainer.MapContainer
+}
+
+func FetchUrl(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+
+	if err != nil && resp.StatusCode != 200 {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	return body, nil
 }
 
 func NewGameDescriptionGQL(game graphqltype.GameType) *GameDescriptionGQL {

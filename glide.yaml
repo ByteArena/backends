@@ -42,7 +42,19 @@ import:
 - package: github.com/bytearena/box2d
   version: ^1.0.0
 - package: github.com/bytearena/ecs
+  version: 9807b7a979332b86419262a53b2b7e2295f98a9a
 - package: github.com/go-gl/mathgl
 - package: golang.org/x/image
   subpackages:
   - math/f64
+- package: github.com/digitalocean/go-qemu
+  subpackages:
+  - qmp
+- package: github.com/bytearena/schnapps
+- package: github.com/stretchr/testify
+  version: ~1.1.4
+  subpackages:
+  - assert
+- package: github.com/xtuc/schaloop
+  version: ef613bf6bffebd16d9ef62b5de0b5c36f15b9386
+- package: github.com/digitalocean/go-libvirt

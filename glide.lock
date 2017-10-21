@@ -1,22 +1,50 @@
-hash: ff4c5e78052ebd0bcf8cf26f1e159b66370758b6f7d88a75e84939f0063cc680
-updated: 2017-10-16T23:09:00.14171345+02:00
+hash: ea51789667aa049796c5c720855e947ada79150ca27002c66ce04f76cc476454
+updated: 2017-10-21T10:51:47.278013651+02:00
 imports:
+- name: github.com/abiosoft/ishell
+  version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
 - name: github.com/akavel/polyclip-go
   version: 2cfdb71461bde9115450eb65688337e3f8ee715e
 - name: github.com/bitly/go-notify
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
 - name: github.com/bytearena/box2d
-  version: 6a120bfe0653a6b77776488137fb5bcf364d27af
+  version: 58acea7fee08a5fbb5a3a4c8f867205dd9826ae1
 - name: github.com/bytearena/ecs
-  version: 45f5efd6621bf828c672d6736ae2b202a7a82643
+  version: 9807b7a979332b86419262a53b2b7e2295f98a9a
+- name: github.com/bytearena/schnapps
+  version: ed07da3a3680385b955e7b0c39d7e8b17a781c34
+  subpackages:
+  - cli
+  - dhcp
+  - dns
+  - id
+  - libvirt
+  - metadata
+  - scheduler
+  - types
+  - utils
 - name: github.com/cenkalti/backoff
   version: 61153c768f31ee5f130071d08fc82b85208528de
+- name: github.com/chzyer/readline
+  version: 6a4bc7b4feaeff8feb63f87d5fb2cf3e3610a559
 - name: github.com/davecgh/go-spew
   version: 346938d642f2ec3594ed81d874461961cd0faa76
   subpackages:
   - spew
+- name: github.com/davecgh/go-xdr
+  version: e6a2ba005892b6a5b27cb5352f64c2e96942dd28
+  subpackages:
+  - xdr2
 - name: github.com/dhconnelly/rtreego
   version: 1323b09fe8f32430ea7e16ea1df99e106e3e6250
+- name: github.com/digitalocean/go-libvirt
+  version: a339d0ac95059a40f3e505ef3be370e9a902b852
+  subpackages:
+  - internal/constants
+- name: github.com/digitalocean/go-qemu
+  version: 73697a4a0f532c1fe3f6b5f00479272788915d51
+  subpackages:
+  - qmp
 - name: github.com/docker/distribution
   version: f86db6b22663a27ba4d278220b7e34be528b1e79
   subpackages:
@@ -58,11 +86,14 @@ imports:
   version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
 - name: github.com/docker/libtrust
   version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+- name: github.com/fatih/color
+  version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
+- name: github.com/flynn-archive/go-shlex
+  version: 3f9db97f856818214da2e1057f8ad84803971cff
 - name: github.com/go-gl/mathgl
   version: 4c3fc6b4bf30179013667e5d0b926e024d9a13c1
   subpackages:
   - mgl64
-  - mgl64/matstack
 - name: github.com/go-redis/redis
   version: fdafb11e5fa5d52d965e12073c8a58468c98ebe2
   subpackages:
@@ -87,19 +118,29 @@ imports:
   - pkg/escape
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
+- name: github.com/mattn/go-colorable
+  version: 5411d3eea5978e6cdc258b30de592b60df6aba96
+  repo: https://github.com/mattn/go-colorable
+- name: github.com/mattn/go-isatty
+  version: 57fdcb988a5c543893cc61bce354a6e24ab70022
+  repo: https://github.com/mattn/go-isatty
 - name: github.com/Microsoft/go-winio
   version: 78439966b38d69bf38227fbf57ac8a6fee70f69a
+- name: github.com/miekg/dns
+  version: 822ae18e7187e1bbde923a37081f6c1b8e9ba68a
+  subpackages:
+  - internal/socket
 - name: github.com/netgusto/poly2tri-go
   version: d102ad91854fea433a859be7b7de879439911aeb
 - name: github.com/opencontainers/go-digest
   version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
 - name: github.com/opencontainers/image-spec
-  version: ebd93fd0782379ca3d821f0fa74f0651a9347a3e
+  version: 7c889fafd04a893f5c5f50b7ab9963d5d64e5242
   subpackages:
   - specs-go
   - specs-go/v1
 - name: github.com/pkg/errors
-  version: 2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb
+  version: f15c970de5b76fac0b59abb32d62c17cc7bed265
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/Sirupsen/logrus
@@ -108,8 +149,14 @@ imports:
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
   - open
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  subpackages:
+  - assert
 - name: github.com/ttacon/chalk
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
+- name: github.com/xtuc/schaloop
+  version: ef613bf6bffebd16d9ef62b5de0b5c36f15b9386
 - name: golang.org/x/crypto
   version: 9477e0b78b9ac3d0b03822fd95422e2fe07627cd
   subpackages:
@@ -119,14 +166,18 @@ imports:
   subpackages:
   - math/f64
 - name: golang.org/x/net
-  version: 8351a756f30f1297fe94bbf4b767ec589c6ea6d0
+  version: aabf50738bcdd9b207582cbe796b59ed65d56680
   subpackages:
   - context
   - context/ctxhttp
   - proxy
 - name: golang.org/x/sys
-  version: 062cd7e4e68206d8bab9b18396626e855c992658
+  version: e24f485414aeafb646f6fca458b0bf869c0880a1
   subpackages:
   - unix
   - windows
-testImports: []
+testImports:
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
