@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/bytearena/bytearena/arenaserver/container"
-	"github.com/bytearena/bytearena/arenaserver/protocol"
-	"github.com/bytearena/bytearena/common/types"
+	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
+	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
 	uuid "github.com/satori/go.uuid"
 )
@@ -53,7 +53,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = orch.StartAgentContainer(container, func(types.TearDownCallback) {})
+	err = orch.StartAgentContainer(container, func(commontypes.TearDownCallback) {})
 
 	if err != nil {
 		utils.Debug("debug-server", "Failed to start docker container for "+agentid.String()+": "+err.Error())
@@ -94,7 +94,7 @@ func main() {
 					}
 
 					// Unmarshal message (unwrapping in an AgentMessage structure)
-					var msg protocol.MessageWrapperImp
+					var msg arenaservertypes.AgentMessage
 					err = json.Unmarshal(buf, &msg)
 					if err != nil {
 						utils.Debug("commserver", "Failed to unmarshal incoming JSON in CommServer::Listen(); "+string(buf)+";"+err.Error())

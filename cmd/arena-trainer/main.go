@@ -13,12 +13,11 @@ import (
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
-	"github.com/bytearena/bytearena/arenatrainer"
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/protocol"
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/bytearena/game/deathmatch"
 	"github.com/bytearena/bytearena/vizserver"
 	"github.com/bytearena/bytearena/vizserver/types"
 )
@@ -60,18 +59,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	game := NewMockGame(*tickspersec)
+	gamedescription := NewMockGame(*tickspersec)
 	for _, contestant := range agentimages {
-		game.AddContestant(contestant)
+		gamedescription.AddContestant(contestant)
 	}
 
 	// Make message broker client
-	brokerclient, err := arenatrainer.NewMemoryMessageClient()
+	brokerclient, err := NewMemoryMessageClient()
 	utils.Check(err, "ERROR: Could not connect to messagebroker")
 
-	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(*host), game, "", brokerclient)
+	game := deathmatch.NewDeathmatchGame(gamedescription)
 
-	for _, contestant := range game.GetContestants() {
+	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(*host), gamedescription, game, "", brokerclient)
+
+	for _, contestant := range gamedescription.GetContestants() {
 		var image string
 
 		if contestant.AgentRegistry == "" {
@@ -90,17 +91,17 @@ func main() {
 		srv.Stop()
 	}()
 
-	go protocol.StreamState(srv, brokerclient, "trainer")
+	go common.StreamState(srv, brokerclient, "trainer")
 
 	var recorder recording.RecorderInterface = recording.MakeEmptyRecorder()
 	if *recordFile != "" {
 		recorder = recording.MakeSingleArenaRecorder(*recordFile)
 	}
 
-	recorder.RecordMetadata(game.GetId(), game.GetMapContainer())
+	recorder.RecordMetadata(gamedescription.GetId(), gamedescription.GetMapContainer())
 
 	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
-		gameId := game.GetId()
+		gameId := gamedescription.GetId()
 
 		recorder.Record(gameId, string(msg.Data))
 		notify.PostTimeout("viz:message:"+gameId, string(msg.Data), time.Millisecond)
@@ -109,7 +110,7 @@ func main() {
 	// TODO(jerome): refac webclient path / serving
 
 	vizgames := make([]*types.VizGame, 1)
-	vizgames[0] = types.NewVizGame(game)
+	vizgames[0] = types.NewVizGame(gamedescription)
 
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
 	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]*types.VizGame, error) {
@@ -139,7 +140,7 @@ func main() {
 
 	srv.TearDown()
 
-	recorder.Close(game.GetId())
+	recorder.Close(gamedescription.GetId())
 	recorder.Stop()
 
 	vizservice.Stop()

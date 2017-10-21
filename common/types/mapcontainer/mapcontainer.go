@@ -12,7 +12,6 @@ type MapContainer struct {
 	Meta struct {
 		Readme         string `json:"readme"`
 		Kind           string `json:"kind"`
-		Theme          string `json:"theme"`
 		MaxContestants int    `json:"maxcontestants"`
 		Date           string `json:"date"`
 		Repository     string `json:"repository"`
@@ -22,7 +21,6 @@ type MapContainer struct {
 		Starts          []MapStart          `json:"starts"`
 		Obstacles       []MapObstacleObject `json:"obstacles"`
 		CollisionMeshes []CollisionMesh     `json:"collisionmeshes"`
-		Objects         []MapPrefabObject   `json:"objects"`
 	} `json:"data"`
 }
 
@@ -58,17 +56,10 @@ func (a *MapPoint) UnmarshalJSON(b []byte) error {
 }
 
 type MapGround struct {
-	Id      string       `json:"id"`
-	Outline []MapPolygon `json:"outline"`
-	Mesh    Mesh         `json:"mesh"`
-}
-
-func MakeMapGround(id string, polygons []MapPolygon) MapGround {
-	return MapGround{
-		Id:      id,
-		Outline: polygons,
-		Mesh:    Mesh{},
-	}
+	Id      string     `json:"id"`
+	Name    string     `json:"name"`
+	Polygon MapPolygon `json:"polygon"`
+	Mesh    Mesh       `json:"mesh"`
 }
 
 type Mesh struct {
@@ -83,8 +74,7 @@ type CollisionMesh struct {
 }
 
 type MapPolygon struct {
-	Points  []MapPoint `json:"points"`
-	Normals []MapPoint `json:"normals"`
+	Points []MapPoint `json:"points"`
 }
 
 func (a *MapPolygon) ToVector2Array() []vector.Vector2 {
@@ -103,13 +93,6 @@ type MapStart struct {
 
 type MapObstacleObject struct {
 	Id      string     `json:"id"`
+	Name    string     `json:"name"`
 	Polygon MapPolygon `json:"polygon"`
-}
-
-type MapPrefabObject struct {
-	Id          string   `json:"id"`
-	Point       MapPoint `json:"point"`
-	Type        string   `json:"type"`
-	Diameter    float64  `json:"diameter"`
-	Orientation float64  `json:"orientation"`
 }

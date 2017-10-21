@@ -191,7 +191,7 @@ func main() {
 		err := json.Unmarshal([]byte(msg.Data), &vizMessage)
 
 		if err != nil {
-			utils.Debug("vizserver", "Failes to decode vizmessage: "+err.Error())
+			utils.Debug("vizserver", "Failed to decode vizmessage: "+err.Error())
 			return
 		}
 

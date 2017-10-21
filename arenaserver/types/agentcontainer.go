@@ -9,7 +9,7 @@ import (
 
 type AgentContainer struct {
 	AgentId     uuid.UUID
-	Containerid ContainerId
+	Containerid string
 	ImageName   string
 	IPAddress   string
 
@@ -17,7 +17,7 @@ type AgentContainer struct {
 	LogWriter *os.File
 }
 
-func NewAgentContainer(agentid uuid.UUID, containerid ContainerId, imageName string) *AgentContainer {
+func NewAgentContainer(agentid uuid.UUID, containerid string, imageName string) *AgentContainer {
 	return &AgentContainer{
 		AgentId:     agentid,
 		Containerid: containerid,

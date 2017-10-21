@@ -31,7 +31,7 @@ func (orch *RemoteContainerOrchestrator) startContainerRemoteOrch(ctner *arenase
 
 	err := orch.cli.ContainerStart(
 		orch.ctx,
-		ctner.Containerid.String(),
+		ctner.Containerid,
 		types.ContainerStartOptions{},
 	)
 
@@ -42,7 +42,7 @@ func (orch *RemoteContainerOrchestrator) startContainerRemoteOrch(ctner *arenase
 	err = orch.SetAgentLogger(ctner)
 
 	if err != nil {
-		return errors.New("Failed to follow docker container logs for " + ctner.Containerid.String())
+		return errors.New("Failed to follow docker container logs for " + ctner.Containerid)
 	}
 
 	addTearDownCall(func() error {
@@ -58,10 +58,10 @@ func (orch *RemoteContainerOrchestrator) startContainerRemoteOrch(ctner *arenase
 
 	containerInfo, err := orch.cli.ContainerInspect(
 		orch.ctx,
-		ctner.Containerid.String(),
+		ctner.Containerid,
 	)
 	if err != nil {
-		return errors.New("Could not inspect container " + ctner.Containerid.String())
+		return errors.New("Could not inspect container " + ctner.Containerid)
 	}
 
 	ctner.SetIPAddress(containerInfo.NetworkSettings.IPAddress)
@@ -97,7 +97,7 @@ func (orch *RemoteContainerOrchestrator) StartAgentContainer(ctner *arenaservert
 func (orch *RemoteContainerOrchestrator) SetAgentLogger(container *arenaservertypes.AgentContainer) error {
 
 	go func(orch *RemoteContainerOrchestrator, container *arenaservertypes.AgentContainer) {
-		reader, err := orch.cli.ContainerLogs(orch.ctx, container.Containerid.String(), types.ContainerLogsOptions{
+		reader, err := orch.cli.ContainerLogs(orch.ctx, container.Containerid, types.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Follow:     true,
@@ -105,7 +105,7 @@ func (orch *RemoteContainerOrchestrator) SetAgentLogger(container *arenaserverty
 			Timestamps: false,
 		})
 
-		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.Containerid.String())
+		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.Containerid)
 
 		// Create log file
 		filename := logDir + "/" + container.AgentId.String() + ".log"
@@ -126,7 +126,7 @@ func (orch *RemoteContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID,
 }
 
 func (orch *RemoteContainerOrchestrator) TearDown(container *arenaservertypes.AgentContainer) {
-	orch.cli.ContainerKill(orch.ctx, container.Containerid.String(), "KILL")
+	orch.cli.ContainerKill(orch.ctx, container.Containerid, "KILL")
 
 	err := orch.RemoveAgentContainer(container)
 	if err != nil {
@@ -154,7 +154,7 @@ func (orch *RemoteContainerOrchestrator) RemoveAgentContainer(ctner *arenaserver
 func (orch *RemoteContainerOrchestrator) Wait(ctner arenaservertypes.AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
 	waitChan, errorChan := orch.cli.ContainerWait(
 		orch.ctx,
-		ctner.Containerid.String(),
+		ctner.Containerid,
 		container.WaitConditionRemoved,
 	)
 
