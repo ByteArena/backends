@@ -16,9 +16,9 @@ import (
 
 	"github.com/go-gl/mathgl/mgl64"
 
-	polygonutils "github.com/bytearena/bytearena/cmd/map-builder/polygon"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils/number"
+	polygonutils "github.com/bytearena/bytearena/common/utils/polygon"
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
