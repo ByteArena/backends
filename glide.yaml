@@ -41,3 +41,13 @@ import:
   - client/v2
 - package: github.com/bytearena/box2d
   version: ^1.0.0
+- package: github.com/digitalocean/go-qemu
+  subpackages:
+  - qmp
+- package: github.com/bytearena/schnapps
+- package: github.com/stretchr/testify
+  version: ~1.1.4
+  subpackages:
+  - assert
+- package: github.com/xtuc/schaloop
+  version: 3411720261ffd76c4914328c330094b8a857a423

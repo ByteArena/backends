@@ -13,11 +13,17 @@ import (
 	"github.com/bytearena/bytearena/arenamaster"
 )
 
-func main() {
-	env := os.Getenv("ENV")
-	mqHost := os.Getenv("MQ")
-	apiUrl := os.Getenv("APIURL")
+var (
+	env                = os.Getenv("ENV")
+	mqHost             = os.Getenv("MQ")
+	apiUrl             = os.Getenv("APIURL")
+	vmRawImageLocation = utils.GetenvOrDefault("VM_RAW_IMAGE_LOCATION", "/linuxkit.raw")
+	vmBridgeName       = utils.GetenvOrDefault("VM_BRIDGE_NAME", "brtest")
+	vmBridgeIP         = utils.GetenvOrDefault("VM_BRIDGE_IP", "172.19.0.1")
+	vmSubnet           = utils.GetenvOrDefault("VM_SUBNET", "172.19.0.10/24")
+)
 
+func main() {
 	utils.Assert(mqHost != "", "MQ must be set")
 	utils.Assert(apiUrl != "", "APIURL must be set")
 
@@ -26,7 +32,7 @@ func main() {
 
 	graphqlclient := graphql.NewClient(apiUrl)
 
-	server := arenamaster.NewServer(brokerclient, graphqlclient)
+	server := arenamaster.NewServer(brokerclient, graphqlclient, vmRawImageLocation, vmBridgeName, vmBridgeIP, vmSubnet)
 
 	// handling signals
 	var hc *healthcheck.HealthCheckServer
@@ -36,7 +42,6 @@ func main() {
 	}
 
 	go func() {
-
 		<-common.SignalHandler()
 		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 
@@ -48,5 +53,5 @@ func main() {
 		}
 	}()
 
-	<-server.Start()
+	server.Run()
 }
