@@ -3,7 +3,6 @@ package arenamaster
 import (
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
-	"log"
 )
 
 func onGameHandshake(state *State, payload *types.MQPayload) {
@@ -19,7 +18,6 @@ func onGameHandshake(state *State, payload *types.MQPayload) {
 
 		utils.Debug("master", id+" joined "+getMasterStatus(state))
 	} else {
-		log.Println(*payload)
 		utils.Debug("master", "Received handshake event but payload is not parsable")
 	}
 }

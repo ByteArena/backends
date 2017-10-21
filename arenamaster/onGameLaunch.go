@@ -1,7 +1,6 @@
 package arenamaster
 
 import (
-	"log"
 	"time"
 
 	"github.com/bytearena/bytearena/common/graphql"
@@ -14,7 +13,6 @@ import (
 func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, gql *graphql.Client) {
 
 	if gameid, ok := (*payload)["id"].(string); ok {
-
 		state.LockState()
 
 		if len(state.idleArenas) > 0 {
@@ -42,6 +40,8 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 
 			// Put it into pending arenas (waiting for arena comfirmation)
 			state.pendingArenas[astate.id] = astate
+
+			state.UnlockState()
 
 			// TODO: should be wrapped in types.NewMQMessage
 			mqclient.Publish("game", astate.id+".launch", types.MQPayload{
@@ -71,13 +71,11 @@ func onGameLaunch(state *State, payload *types.MQPayload, mqclient *mq.Client, g
 
 			go waitForLaunchedOrRetry(state, payload, mqclient, gql, astate)
 		} else {
+			state.UnlockState()
 			utils.Debug("master", "No arena available for game "+gameid)
 		}
-
-		state.UnlockState()
 	} else {
 		utils.Debug("master", "Received game launch event but payload is not parsable")
-		log.Println(*payload)
 	}
 }
 
@@ -87,7 +85,6 @@ func waitForLaunchedOrRetry(state *State, payload *types.MQPayload, mqclient *mq
 	<-timeoutTimer.C
 
 	state.LockState()
-	defer state.UnlockState()
 
 	_, isPending := state.pendingArenas[astate.id]
 
@@ -95,10 +92,13 @@ func waitForLaunchedOrRetry(state *State, payload *types.MQPayload, mqclient *mq
 		utils.Debug("pending", "Arena "+astate.id+" couldn't be launched")
 
 		delete(state.pendingArenas, astate.id)
+		state.UnlockState()
 
 		// Retry to launch a game
 		onGameStop(state, payload, gql)
 		onGameLaunch(state, payload, mqclient, gql)
+	} else {
+		state.UnlockState()
 	}
 }
 

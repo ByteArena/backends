@@ -98,6 +98,8 @@ func (c *Client) WriteAppMetric(name string, fields map[string]interface{}) {
 
 	c.batchpointsClient.AddPoint(pt)
 	c.influxdbClient.Write(c.batchpointsClient)
+
+	utils.Debug("influxdb-debug", "reported: "+pt.String())
 }
 
 func (c *Client) Loop(fn func()) {
