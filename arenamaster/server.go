@@ -97,32 +97,6 @@ func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
 	}
 }
 
-func resToGeneric(old Res) chan interface{} {
-	new := make(chan interface{})
-
-	go func() {
-		for {
-			v := <-old
-			new <- v
-		}
-	}()
-
-	return new
-}
-
-func boolToGeneric(old chan bool) chan interface{} {
-	new := make(chan interface{})
-
-	go func() {
-		for {
-			v := <-old
-			new <- v
-		}
-	}()
-
-	return new
-}
-
 func (server *Server) Run() {
 	waitChan := make(chan bool)
 	listener := MakeListener(server.brokerclient)
@@ -142,7 +116,7 @@ func (server *Server) Run() {
 	<-waitUntilReady
 	healthchecks.StartChecks(eventloop)
 
-	eventloop.QueueWorkFromChannel("arena-halt", resToGeneric(listener.arenaHalt), func(data interface{}) {
+	eventloop.QueueWorkFromChannel("arena-halt", listener.arenaHalt, func(data interface{}) {
 		msg := data.(types.MQMessage)
 		id, _ := strconv.Atoi((*msg.Payload)["id"].(string))
 
@@ -166,7 +140,7 @@ func (server *Server) Run() {
 		}
 	})
 
-	eventloop.QueueWorkFromChannel("game-launch", resToGeneric(listener.gameLaunch), func(data interface{}) {
+	eventloop.QueueWorkFromChannel("game-launch", listener.gameLaunch, func(data interface{}) {
 		msg := data.(types.MQMessage)
 		gameid, _ := (*msg.Payload)["id"].(string)
 
@@ -222,7 +196,7 @@ func (server *Server) Run() {
 		}
 	})
 
-	eventloop.QueueWorkFromChannel("game-launched", resToGeneric(listener.gameLaunched), func(data interface{}) {
+	eventloop.QueueWorkFromChannel("game-launched", listener.gameLaunched, func(data interface{}) {
 		msg := data.(types.MQMessage)
 		mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
 		gameid, _ := (*msg.Payload)["id"].(string)
@@ -239,7 +213,7 @@ func (server *Server) Run() {
 		}
 	})
 
-	eventloop.QueueWorkFromChannel("game-handshake", resToGeneric(listener.gameHandshake), func(data interface{}) {
+	eventloop.QueueWorkFromChannel("game-handshake", listener.gameHandshake, func(data interface{}) {
 		msg := data.(types.MQMessage)
 		mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
 		vm := FindVMByMAC(server.state, mac)
@@ -257,7 +231,7 @@ func (server *Server) Run() {
 		}
 	})
 
-	eventloop.QueueWorkFromChannel("game-stopped", resToGeneric(listener.gameStopped), func(data interface{}) {
+	eventloop.QueueWorkFromChannel("game-stopped", listener.gameStopped, func(data interface{}) {
 		msg := data.(types.MQMessage)
 		gameid, _ := (*msg.Payload)["id"].(string)
 		mac, _ := (*msg.Payload)["arenaserveruuid"].(string)
@@ -290,11 +264,11 @@ func (server *Server) Run() {
 		}
 	})
 
-	eventloop.QueueWorkFromChannel("debug-getvmstatus", resToGeneric(listener.debugGetVMStatus), func(data interface{}) {
+	eventloop.QueueWorkFromChannel("debug-getvmstatus", listener.debugGetVMStatus, func(data interface{}) {
 		go handleDebugGetVMStatus(server.brokerclient, server.state, healthchecks)
 	})
 
-	eventloop.QueueWorkFromChannel("stop", boolToGeneric(server.stopChan), func(data interface{}) {
+	eventloop.QueueWorkFromChannel("stop", server.stopChan, func(data interface{}) {
 		waitChan <- false
 	})
 
