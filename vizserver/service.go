@@ -1,9 +1,11 @@
 package vizserver
 
 import (
+	"log"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
@@ -18,23 +20,45 @@ type FetchArenasCbk func() ([]*types.VizGame, error)
 type VizService struct {
 	addr          string
 	webclientpath string
+	mapkey        string
 	fetchGames    FetchArenasCbk
 	listener      *http.Server
 	recordStore   recording.RecordStoreInterface
-	pathToAssets  string
 }
 
-func NewVizService(addr string, webclientpath string, fetchArenas FetchArenasCbk, recordStore recording.RecordStoreInterface) *VizService {
+func NewVizService(addr string, webclientpath string, mapkey string, fetchArenas FetchArenasCbk, recordStore recording.RecordStoreInterface) *VizService {
 	return &VizService{
 		addr:          addr,
 		webclientpath: webclientpath,
+		mapkey:        mapkey,
 		fetchGames:    fetchArenas,
 		recordStore:   recordStore,
 	}
 }
 
-func (viz *VizService) SetPathToAssets(path string) {
-	viz.pathToAssets = path
+type GZIPMiddleware struct {
+	handler http.Handler
+}
+
+func (f GZIPMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if strings.HasSuffix(r.URL.Path, "model.json") {
+		r.URL.Path += ".gz"
+		w.Header().Set("Content-Encoding", "gzip")
+	}
+
+	f.handler.ServeHTTP(w, r)
+}
+
+type MapRouterMiddleware struct {
+	mapkey  string
+	handler http.Handler
+}
+
+func (m MapRouterMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	r.URL.Path = "/map/" + m.mapkey + "/" + strings.TrimPrefix(r.URL.Path, "/map/")
+	log.Println(r.URL.Path)
+	log.Println("MapRouterMiddleware", r.URL.Path)
+	m.handler.ServeHTTP(w, r)
 }
 
 func (viz *VizService) Start() chan struct{} {
@@ -43,20 +67,20 @@ func (viz *VizService) Start() chan struct{} {
 	router := mux.NewRouter()
 
 	// Les assets de la viz (js, modèles, textures)
-	router.PathPrefix("/lib/").Handler(http.StripPrefix("/lib/", http.FileServer(http.Dir(viz.webclientpath+"/lib/"))))
-	cdnBaseURL := "https://static.bytearena.com/assets/bytearena"
-
-	if viz.pathToAssets != "" {
-		router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(viz.pathToAssets))))
-		cdnBaseURL = "/assets"
-	}
+	router.PathPrefix("/lib/").Handler(http.FileServer(http.Dir(viz.webclientpath)))
+	router.PathPrefix("/map/").Handler(MapRouterMiddleware{
+		mapkey: viz.mapkey,
+		handler: GZIPMiddleware{
+			handler: http.FileServer(http.Dir(viz.webclientpath)),
+		},
+	})
 
 	router.Handle("/", handlers.CombinedLoggingHandler(logger,
 		http.HandlerFunc(apphandler.Home(viz.fetchGames)),
 	)).Methods("GET")
 
 	router.Handle("/record/{recordId:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Replay(viz.recordStore, viz.webclientpath, cdnBaseURL)),
+		http.HandlerFunc(apphandler.Replay(viz.recordStore, viz.webclientpath)),
 	)).Methods("GET")
 
 	router.Handle("/record/{recordId:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
@@ -64,7 +88,7 @@ func (viz *VizService) Start() chan struct{} {
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Game(viz.fetchGames, viz.webclientpath, cdnBaseURL)),
+		http.HandlerFunc(apphandler.Game(viz.fetchGames, viz.webclientpath)),
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,

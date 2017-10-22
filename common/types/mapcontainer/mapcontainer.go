@@ -88,6 +88,7 @@ func (a *MapPolygon) ToVector2Array() []vector.Vector2 {
 
 type MapStart struct {
 	Id    string   `json:"id"`
+	Name  string   `json:"name"`
 	Point MapPoint `json:"point"`
 }
 

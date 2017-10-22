@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Game(fetchVizGames func() ([]*types.VizGame, error), basepath string, CDNBaseURL string) func(w http.ResponseWriter, r *http.Request) {
+func Game(fetchVizGames func() ([]*types.VizGame, error), basepath string) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -59,10 +59,9 @@ func Game(fetchVizGames func() ([]*types.VizGame, error), basepath string, CDNBa
 			Rand       int64
 			Tps        int
 		}{
-			WsURL:      protocol + "://" + r.Host + "/arena/" + gameDescription.GetId() + "/ws",
-			CDNBaseURL: CDNBaseURL,
-			Rand:       time.Now().Unix(),
-			Tps:        gameDescription.GetTps(),
+			WsURL: protocol + "://" + r.Host + "/arena/" + gameDescription.GetId() + "/ws",
+			Rand:  time.Now().Unix(),
+			Tps:   gameDescription.GetTps(),
 		})
 	}
 }

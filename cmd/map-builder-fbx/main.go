@@ -365,7 +365,7 @@ func main() {
 	starts := make([]mapcontainer.MapStart, 0)
 
 	for _, model := range modelsObstacle {
-		fmt.Println("# " + model.name)
+		//fmt.Println("# " + model.name)
 		obstacles = append(obstacles, mapcontainer.MapObstacleObject{
 			Id:   strconv.Itoa(int(model.id)),
 			Name: model.name,
@@ -376,13 +376,25 @@ func main() {
 	}
 
 	for _, model := range modelsGround {
-		fmt.Println("# " + model.name)
+		//fmt.Println("# " + model.name)
 		grounds = append(grounds, mapcontainer.MapGround{
 			Id:   strconv.Itoa(int(model.id)),
 			Name: model.name,
 			Polygon: polygonFrom2DMesh(
 				model.geometry.getTransformedFaces(model.getFullTransform()),
 			),
+		})
+	}
+
+	for _, start := range modelsStart {
+		origin := vertexType{0, 0, 0}.applyTransform(start.getFullTransform())
+		starts = append(starts, mapcontainer.MapStart{
+			Id:   strconv.Itoa(int(start.id)),
+			Name: start.name,
+			Point: mapcontainer.MapPoint{
+				X: origin[0],
+				Y: origin[1],
+			},
 		})
 	}
 

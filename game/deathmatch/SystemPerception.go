@@ -2,15 +2,12 @@ package deathmatch
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"sync"
-	"time"
 
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/bytearena/bytearena/common/visibility2d"
 
 	"github.com/bytearena/box2d"
 
@@ -434,36 +431,37 @@ func (a byAngleRatio) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a byAngleRatio) Less(i, j int) bool { return a[i].angleRatioFrom < a[j].angleRatioFrom }
 
 func processOcclusions(vision []agentPerceptionVisionItem, agentPosition vector.Vector2) []agentPerceptionVisionItem {
+	return vision
 
-	segments := make([]*visibility2d.Segment, len(vision))
+	// segments := make([]*visibility2d.Segment, len(vision))
 
-	for i, visionItem := range vision {
-		segments[i] = visibility2d.NewSegment(
-			visionItem.CloseEdge.GetX(),
-			visionItem.CloseEdge.GetY(),
-			visionItem.FarEdge.GetX(),
-			visionItem.FarEdge.GetY(),
-			visionItem,
-		)
-	}
+	// for i, visionItem := range vision {
+	// 	segments[i] = visibility2d.NewSegment(
+	// 		visionItem.CloseEdge.GetX(),
+	// 		visionItem.CloseEdge.GetY(),
+	// 		visionItem.FarEdge.GetX(),
+	// 		visionItem.FarEdge.GetY(),
+	// 		visionItem,
+	// 	)
+	// }
 
-	pov := visibility2d.Point{agentPosition.GetX(), agentPosition.GetY()}
+	// pov := visibility2d.Point{agentPosition.GetX(), agentPosition.GetY()}
 
-	begin := time.Now()
-	visibility := visibility2d.CalculateVisibility(pov, segments)
-	fmt.Println("Took ", float64(time.Now().UnixNano()-begin.UnixNano())/1000000.0, "ms")
+	// begin := time.Now()
+	// visibility := visibility2d.CalculateVisibility(pov, segments)
+	// fmt.Println("Took ", float64(time.Now().UnixNano()-begin.UnixNano())/1000000.0, "ms")
 
-	realVision := make([]agentPerceptionVisionItem, len(visibility))
+	// realVision := make([]agentPerceptionVisionItem, len(visibility))
 
-	for i, v := range visibility {
-		agentVisionItem := v.Userdata.(agentPerceptionVisionItem)
-		agentVisionItem.CloseEdge = v.Visible.GetPointA()
-		agentVisionItem.FarEdge = v.Visible.GetPointB()
-		agentVisionItem.Center = v.Visible.Center()
-		realVision[i] = agentVisionItem
-	}
+	// for i, v := range visibility {
+	// 	agentVisionItem := v.Userdata.(agentPerceptionVisionItem)
+	// 	agentVisionItem.CloseEdge = v.Visible.GetPointA()
+	// 	agentVisionItem.FarEdge = v.Visible.GetPointB()
+	// 	agentVisionItem.Center = v.Visible.Center()
+	// 	realVision[i] = agentVisionItem
+	// }
 
-	return realVision
+	// return realVision
 }
 
 func getCircleSegmentAABB(center vector.Vector2, radius float64, angleARad float64, angleBRad float64) (lowerBound vector.Vector2, upperBound vector.Vector2) {

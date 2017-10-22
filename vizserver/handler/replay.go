@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Replay(recordStore recording.RecordStoreInterface, basepath string, CDNBaseURL string) func(w http.ResponseWriter, r *http.Request) {
+func Replay(recordStore recording.RecordStoreInterface, basepath string) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -36,15 +36,13 @@ func Replay(recordStore recording.RecordStoreInterface, basepath string, CDNBase
 
 		var vizhtmlTemplate = template.Must(template.New("").Parse(string(vizhtml)))
 		vizhtmlTemplate.Execute(w, struct {
-			WsURL      string
-			CDNBaseURL string
-			Rand       int64
-			Tps        int
+			WsURL string
+			Rand  int64
+			Tps   int
 		}{
-			WsURL:      protocol + "://" + r.Host + "/record/" + id + "/ws",
-			CDNBaseURL: CDNBaseURL,
-			Rand:       time.Now().Unix(),
-			Tps:        10, // FIXME(sven): get metadata from record
+			WsURL: protocol + "://" + r.Host + "/record/" + id + "/ws",
+			Rand:  time.Now().Unix(),
+			Tps:   10, // FIXME(sven): get metadata from record
 		})
 
 	}

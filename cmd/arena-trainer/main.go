@@ -113,13 +113,9 @@ func main() {
 	vizgames[0] = types.NewVizGame(gamedescription)
 
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
-	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, func() ([]*types.VizGame, error) {
+	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, "viz-island", func() ([]*types.VizGame, error) {
 		return vizgames, nil
 	}, recorder)
-
-	// Below line is used to serve assets locally
-	// TODO(jerome): find a way to bundle the trainer with the assets
-	vizservice.SetPathToAssets("/Users/jerome/Code/other/assets/")
 
 	vizservice.Start()
 
