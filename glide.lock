@@ -12,7 +12,7 @@ imports:
 - name: github.com/bytearena/ecs
   version: 9807b7a979332b86419262a53b2b7e2295f98a9a
 - name: github.com/bytearena/schnapps
-  version: ed07da3a3680385b955e7b0c39d7e8b17a781c34
+  version: 26c1054ec1fe6c48e8e84bf10ee7f69552765c4f
   subpackages:
   - cli
   - dhcp
