@@ -103,8 +103,7 @@ func (server *Server) createScheduler(eventloop *schaloop.EventLoop, listener Li
 		panic(schedulerErr)
 	}
 
-	events := pool.Events()
-
+	events := chan interface{}(pool.Events())
 	eventloop.QueueWorkFromChannel("pool-events", events, func(data interface{}) {
 
 		switch msg := data.(type) {
