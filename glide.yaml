@@ -56,5 +56,4 @@ import:
   subpackages:
   - assert
 - package: github.com/xtuc/schaloop
-  version: ef613bf6bffebd16d9ef62b5de0b5c36f15b9386
 - package: github.com/digitalocean/go-libvirt
