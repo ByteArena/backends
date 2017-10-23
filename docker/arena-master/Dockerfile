@@ -27,4 +27,7 @@ RUN echo "allow ${BRIDGE}" > /etc/qemu/bridge.conf
 
 # HEALTHCHECK --interval=1m --timeout=2s --retries=3 CMD ["curl", "--fail", "localhost:8099/health"]
 
-CMD ["./arena-master"]
+COPY ./docker/arena-master/start.sh .
+RUN chmod +x start.sh
+
+CMD ["./start.sh"]

@@ -1,3 +1,4 @@
+ENV=dev
 APIURL=http://127.0.0.1
 MQ=127.0.0.1
 DOCKERFILE=Dockerfile
@@ -29,9 +30,11 @@ run-arenamaster:
 		--privileged \
 		-e APIURL=$(APIURL) \
 		-e MQ=$(MQ) \
+		-e ENV=$(ENV) \
 		--net host \
 		-v ~/Documents/Bytearena/ansible-deploy/linuxkit/linuxkit.raw:/linuxkit.raw \
 		-v /lib/modules:/lib/modules \
+		-v $(CURDIR)/data/log:/var/log/ \
 		$(BA_PREFIX)arenamaster
 
 create-br:
