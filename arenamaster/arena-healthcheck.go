@@ -17,6 +17,18 @@ const (
 	HEALTHCHECK_FREQ     = 5 * time.Second
 )
 
+func timerToGeneric(old *time.Ticker) chan interface{} {
+	new := make(chan interface{})
+	go func() {
+		for {
+			<-old.C
+			new <- true
+		}
+	}()
+
+	return new
+}
+
 type LastSeenNodes map[string]time.Time
 type MemorizedHealtchecks map[string]bool
 
@@ -51,7 +63,7 @@ func (s *ArenaHealthCheck) StartChecks(eventloop *schaloop.EventLoop) {
 }
 
 func (s *ArenaHealthCheck) startTicker(eventloop *schaloop.EventLoop) {
-	eventloop.QueueWorkFromChannel("healtcheck-ticker", s.ticker, func(data interface{}) {
+	eventloop.QueueWorkFromChannel("healtcheck-ticker", timerToGeneric(s.ticker), func(data interface{}) {
 		err := s.mqclient.Publish("game", "healthcheck", types.MQPayload{})
 
 		if err != nil {
@@ -73,7 +85,7 @@ func (s *ArenaHealthCheck) startTicker(eventloop *schaloop.EventLoop) {
 
 func (s *ArenaHealthCheck) startConsumer(eventloop *schaloop.EventLoop) {
 
-	eventloop.QueueWorkFromChannel("healtcheck-consumer", s.gameHealthcheckRes, func(data interface{}) {
+	eventloop.QueueWorkFromChannel("healtcheck-consumer", resToGeneric(s.gameHealthcheckRes), func(data interface{}) {
 		msg := data.(types.MQMessage)
 
 		mac, _ := (*msg.Payload)["id"].(string)
