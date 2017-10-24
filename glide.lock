@@ -156,7 +156,7 @@ imports:
 - name: github.com/ttacon/chalk
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
 - name: github.com/xtuc/schaloop
-  version: 21c903fd0fb3fc108b9bae042ad9556de656a3ef
+  version: 4d8713f4728d547dcf2ba2b5c8f7ee72c41d54aa
 - name: golang.org/x/crypto
   version: 9477e0b78b9ac3d0b03822fd95422e2fe07627cd
   subpackages:
