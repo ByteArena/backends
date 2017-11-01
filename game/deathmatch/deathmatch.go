@@ -16,6 +16,10 @@ type DeathmatchGame struct {
 	gameDescription commontypes.GameDescriptionInterface
 	manager         *ecs.Manager
 
+	// transformPhysics    mgl64.Mat4
+	// transformPerception mgl64.Mat4
+	// transformViz        mgl64.Mat4
+
 	physicalBodyComponent *ecs.Component
 	healthComponent       *ecs.Component
 	playerComponent       *ecs.Component
@@ -50,6 +54,12 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 	game := &DeathmatchGame{
 		gameDescription: gameDescription,
 		manager:         manager,
+
+		// all transforms are expressed relatively to map json coords
+
+		// transformPhysics:    mgl64.Ident4(),
+		// transformPerception: mgl64.Ident4(),
+		// transformViz:        mgl64.Ident4(),
 
 		physicalBodyComponent: manager.NewComponent(),
 		healthComponent:       manager.NewComponent(),

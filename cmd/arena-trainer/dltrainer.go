@@ -69,7 +69,7 @@ func downloadMap(manifest manifest) error {
 	}
 
 	if head.StatusCode != 200 {
-		return errors.New(fmt.Sprintf("Could not get map (%s): server returned code %s", manifest.Url, head.Status))
+		return fmt.Errorf("Could not get map (%s): server returned code %s", manifest.Url, head.Status)
 	}
 
 	fileSize := int(head.ContentLength)
@@ -109,7 +109,7 @@ func downloadAndGetManifest() (manifest, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return manifest, errors.New(fmt.Sprintf("Could not download manifest (%s): server returned code %s", MANIFEST_URL, res.Status))
+		return manifest, fmt.Errorf("Could not download manifest (%s): server returned code %s", MANIFEST_URL, res.Status)
 	}
 
 	data, _ := ioutil.ReadAll(res.Body)

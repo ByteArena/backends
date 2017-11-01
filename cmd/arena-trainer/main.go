@@ -160,9 +160,14 @@ func main() {
 	}
 
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
-	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, "viz-island", func() ([]*types.VizGame, error) {
-		return vizgames, nil
-	}, recorder, mappack)
+	vizservice := vizserver.NewVizService(
+		"0.0.0.0:"+strconv.Itoa(*port+1),
+		webclientpath,
+		"training-dojo",
+		func() ([]*types.VizGame, error) { return vizgames, nil },
+		recorder,
+		mappack,
+	)
 
 	vizservice.Start()
 

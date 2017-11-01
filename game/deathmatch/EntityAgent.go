@@ -38,16 +38,18 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 	body.SetBullet(false)
 	//body.SetLinearDamping(agentstate.DragForce * float64(s.tickspersec)) // aerodynamic drag
 
+	scale := 1.0 / 10.0
+
 	return agent.
 		AddComponent(deathmatch.physicalBodyComponent, &PhysicalBody{
 			body:               body,
-			maxSpeed:           0.75,
-			maxAngularVelocity: number.DegreeToRadian(9),
-			dragForce:          0.015,
+			maxSpeed:           0.75 * scale,
+			maxAngularVelocity: number.DegreeToRadian(9.0),
+			dragForce:          0.015 * scale,
 		}).
 		AddComponent(deathmatch.perceptionComponent, &Perception{
-			visionAngle:  number.DegreeToRadian(140),
-			visionRadius: 60,
+			visionAngle:  number.DegreeToRadian(60),
+			visionRadius: 10,
 		}).
 		AddComponent(deathmatch.healthComponent, NewHealth(100)).
 		AddComponent(deathmatch.playerComponent, &Player{}).

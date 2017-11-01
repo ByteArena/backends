@@ -39,10 +39,10 @@ func newEntityGroundOrObstacle(deathmatch *DeathmatchGame, polygon mapcontainer.
 	bodydef.Type = box2d.B2BodyType.B2_staticBody
 
 	body := deathmatch.PhysicalWorld.CreateBody(&bodydef)
-	vertices := make([]box2d.B2Vec2, len(polygon.Points)-1) // -1: avoid last point because the last point of the loop should not be repeated
+	vertices := make([]box2d.B2Vec2, len(polygon.Points)) // -1: avoid last point because the last point of the loop should not be repeated
 
-	for i := 0; i < len(polygon.Points)-1; i++ {
-		vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
+	for i := 0; i < len(polygon.Points); i++ {
+		vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y*-1) // TODO(jerome): invert axes in transform, not here
 	}
 
 	defer func() {
