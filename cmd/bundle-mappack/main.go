@@ -34,15 +34,27 @@ func main() {
 		log.Fatal(err)
 	}
 
-	zipfilepath := flag.String("in", "", "Input zip file; required")
+	playcanvaszippath := flag.String("playcanvaszip", "", "Playcanvas zip file; required")
+	vizdirpath := flag.String("vizdir", "", "Viz checkout dir; required")
 	flag.Parse()
 
-	if *zipfilepath == "" {
-		fmt.Println("--in is required; ex: --in ~/file.zip")
+	paramError := false
+
+	if *playcanvaszippath == "" {
+		fmt.Println("--playcanvaszip is required")
+		paramError = true
+	}
+
+	if *vizdirpath == "" {
+		fmt.Println("--vizdirpath is required")
+		paramError = true
+	}
+
+	if paramError {
 		os.Exit(1)
 	}
 
-	unzippedfiles, err := unzip(*zipfilepath, zipOutPath)
+	unzippedfiles, err := unzip(*playcanvaszippath, zipOutPath)
 	if err != nil {
 		panic(err)
 	}
@@ -250,6 +262,67 @@ func main() {
 	}
 
 	fmt.Println("Output: " + newOutPath)
+
+	///////////////////////////////////////////////////////////////////////////
+	// Bundling mappack (map assets + viz lib)
+	///////////////////////////////////////////////////////////////////////////
+
+	// /map/* <= pc assets
+	// /lib/* <= viz lib
+	// /index.html <= the used by the viz service (trainer or viz-server)
+
+	bundleOutPath, err := ioutil.TempDir("", "bundle-mappack")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mapDistDirPath := bundleOutPath + "/map"
+	libDistDirPath := bundleOutPath + "/lib"
+
+	os.MkdirAll(libDistDirPath, os.ModePerm)
+
+	// Building viz lib
+	cmdBuild := exec.Command(
+		"npm",
+		"run",
+		"install-and-build",
+	)
+	cmdBuild.Dir = *vizdirpath
+
+	cmdBuild.Env = nil
+	cmdBuild.Stderr = os.Stderr
+	cmdBuild.Stdout = os.Stdout
+	err = cmdBuild.Run()
+	if err != nil {
+		fmt.Println("Error while building viz js.")
+		os.Exit(1)
+	}
+
+	// Bundling assets and js
+	utils.Check(utils.CopyDir(newOutPath, mapDistDirPath), "Could not copy map dir")
+	utils.Check(utils.CopyFile(*vizdirpath+"/lib/bytearenaviz.min.js", libDistDirPath+"/bytearenaviz.min.js"), "Could not copy lib js")
+	utils.Check(utils.CopyFile(*vizdirpath+"/index.html", bundleOutPath+"/index.html"), "Could not index.html")
+
+	// Zipping payload
+	zipPath := bundleOutPath + ".zip"
+	cmdZip := exec.Command(
+		"zip",
+		"-r",
+		zipPath,
+		".",
+	)
+	cmdZip.Dir = bundleOutPath
+
+	cmdZip.Env = nil
+	cmdZip.Stderr = os.Stderr
+	cmdZip.Stdout = os.Stdout
+	err = cmdZip.Run()
+	if err != nil {
+		fmt.Println("Error while zipping bundle.")
+		os.Exit(1)
+	}
+
+	fmt.Println("Bundle:", zipPath)
 }
 
 func unzip(src, dest string) ([]string, error) {
