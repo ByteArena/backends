@@ -151,6 +151,9 @@ func main() {
 		<-common.SignalHandler()
 		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
 		srv.Stop()
+
+		<-time.After(10 * time.Second)
+		os.Exit(1)
 	}()
 
 	go common.StreamState(srv, brokerclient, "trainer")
