@@ -8,7 +8,7 @@ import:
   subpackages:
   - reference
 - package: github.com/docker/docker
-  version: 82c2a08b6018586f3c8f35405c3bd6fce3c78ccd
+  version: 147ec3be2e7fe5d35553401990317cf49088ec86
   subpackages:
   - api/types
   - api/types/container
@@ -57,3 +57,5 @@ import:
   - assert
 - package: github.com/xtuc/schaloop
 - package: github.com/digitalocean/go-libvirt
+- package: github.com/cheggaaa/pb
+  version: v2.0.5

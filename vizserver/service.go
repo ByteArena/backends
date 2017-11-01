@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/bytearena/bytearena/common/mappack"
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
 	apphandler "github.com/bytearena/bytearena/vizserver/handler"
@@ -24,15 +25,17 @@ type VizService struct {
 	fetchGames    FetchArenasCbk
 	listener      *http.Server
 	recordStore   recording.RecordStoreInterface
+	mappack       *mappack.MappackInMemoryArchive
 }
 
-func NewVizService(addr string, webclientpath string, mapkey string, fetchArenas FetchArenasCbk, recordStore recording.RecordStoreInterface) *VizService {
+func NewVizService(addr string, webclientpath string, mapkey string, fetchArenas FetchArenasCbk, recordStore recording.RecordStoreInterface, mappack *mappack.MappackInMemoryArchive) *VizService {
 	return &VizService{
 		addr:          addr,
 		webclientpath: webclientpath,
 		mapkey:        mapkey,
 		fetchGames:    fetchArenas,
 		recordStore:   recordStore,
+		mappack:       mappack,
 	}
 }
 
@@ -118,5 +121,6 @@ func (viz *VizService) Start() chan struct{} {
 }
 
 func (viz *VizService) Stop() {
+	viz.mappack.Close()
 	viz.listener.Shutdown(nil)
 }

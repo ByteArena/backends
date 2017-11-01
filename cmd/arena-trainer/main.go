@@ -14,6 +14,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/common"
+	"github.com/bytearena/bytearena/common/mappack"
 	"github.com/bytearena/bytearena/common/mq"
 	"github.com/bytearena/bytearena/common/recording"
 	"github.com/bytearena/bytearena/common/utils"
@@ -31,6 +32,15 @@ func (i *arrayFlags) String() string {
 func (i *arrayFlags) Set(value string) error {
 	*i = append(*i, value)
 	return nil
+}
+
+func debug(str string) {
+	fmt.Println(str)
+}
+
+func failWith(err error) {
+	fmt.Println(err.Error())
+	os.Exit(1)
 }
 
 func main() {
@@ -57,6 +67,37 @@ func main() {
 	if len(agentimages) == 0 {
 		fmt.Println("Please, specify at least one agent image using --agent")
 		os.Exit(1)
+	}
+
+	// Make sure map exists locally and is update to date.
+	mapManifest, errManifest := downloadAndGetManifest()
+	if errManifest != nil {
+		failWith(errManifest)
+	}
+
+	if isMapLocally() {
+		mapChecksum, err := getLocalMapChecksum()
+		if err != nil {
+			failWith(err)
+		}
+
+		if mapChecksum != mapManifest.Md5 {
+			debug("The map is outdated, downloading the new version...")
+
+			err := downloadMap(mapManifest)
+
+			if err != nil {
+				failWith(err)
+			}
+		}
+	} else {
+		debug("Map doesn't exists locally, downloading...")
+
+		err := downloadMap(mapManifest)
+
+		if err != nil {
+			failWith(err)
+		}
 	}
 
 	gamedescription := NewMockGame(*tickspersec)
@@ -112,10 +153,16 @@ func main() {
 	vizgames := make([]*types.VizGame, 1)
 	vizgames[0] = types.NewVizGame(gamedescription)
 
+	mappack, errMappack := mappack.UnzipAndGetHandles(getMapLocation())
+
+	if errMappack != nil {
+		failWith(errMappack)
+	}
+
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
 	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(*port+1), webclientpath, "viz-island", func() ([]*types.VizGame, error) {
 		return vizgames, nil
-	}, recorder)
+	}, recorder, mappack)
 
 	vizservice.Start()
 

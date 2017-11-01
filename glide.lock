@@ -1,5 +1,5 @@
-hash: ea51789667aa049796c5c720855e947ada79150ca27002c66ce04f76cc476454
-updated: 2017-10-21T10:51:47.278013651+02:00
+hash: c6c8586b1ba79e676250760ef6451b8c1521d9c622e2f13e0c78e7d6cb9b3307
+updated: 2017-11-01T13:08:30.884018648+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -20,13 +20,20 @@ imports:
   - id
   - libvirt
   - metadata
+  - qmp
   - scheduler
   - types
   - utils
 - name: github.com/cenkalti/backoff
   version: 61153c768f31ee5f130071d08fc82b85208528de
+- name: github.com/cheggaaa/pb
+  version: fec330ed6ef74d0a026da2c639821ee0d9f97687
 - name: github.com/chzyer/readline
   version: 6a4bc7b4feaeff8feb63f87d5fb2cf3e3610a559
+- name: github.com/containerd/continuity
+  version: 1bed1ecb1dc42d8f4d2ac8c23e5cac64749e82c9
+  subpackages:
+  - pathdriver
 - name: github.com/davecgh/go-spew
   version: 346938d642f2ec3594ed81d874461961cd0faa76
   subpackages:
@@ -51,7 +58,7 @@ imports:
   - digestset
   - reference
 - name: github.com/docker/docker
-  version: 82c2a08b6018586f3c8f35405c3bd6fce3c78ccd
+  version: 147ec3be2e7fe5d35553401990317cf49088ec86
   subpackages:
   - api
   - api/types
@@ -65,17 +72,15 @@ imports:
   - api/types/registry
   - api/types/strslice
   - api/types/swarm
+  - api/types/swarm/runtime
   - api/types/time
   - api/types/versions
   - api/types/volume
   - builder/dockerfile/command
   - builder/dockerfile/parser
   - client
-  - pkg/ioutils
-  - pkg/longpath
   - pkg/mount
   - pkg/system
-  - pkg/tlsconfig
 - name: github.com/docker/go-connections
   version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
   subpackages:
@@ -84,8 +89,6 @@ imports:
   - tlsconfig
 - name: github.com/docker/go-units
   version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
-- name: github.com/docker/libtrust
-  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
 - name: github.com/fatih/color
   version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
 - name: github.com/flynn-archive/go-shlex
@@ -102,6 +105,10 @@ imports:
   - internal/hashtag
   - internal/pool
   - internal/proto
+- name: github.com/gogo/protobuf
+  version: 30433562cfbf487fe1df7cd26c7bab168d2f14d0
+  subpackages:
+  - proto
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/handlers
@@ -111,7 +118,7 @@ imports:
 - name: github.com/gorilla/websocket
   version: ea4d1f681babbce9545c9c5f3d5194a789c89f5b
 - name: github.com/influxdata/influxdb
-  version: a7c3d3c0f7b74f71919047adbc4933460967a576
+  version: 2d474a3089bcfce6b472779be9470a1f0ef3d5e4
   subpackages:
   - client/v2
   - models
@@ -143,7 +150,7 @@ imports:
   version: f15c970de5b76fac0b59abb32d62c17cc7bed265
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
-- name: github.com/Sirupsen/logrus
+- name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/skratchdot/open-golang
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
@@ -157,6 +164,8 @@ imports:
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
 - name: github.com/xtuc/schaloop
   version: 9638fcdc196e786f64d8584d7008dbb7cc91c089
+  subpackages:
+  - monitoring
 - name: golang.org/x/crypto
   version: 9477e0b78b9ac3d0b03822fd95422e2fe07627cd
   subpackages:
