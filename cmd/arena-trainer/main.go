@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -39,12 +40,20 @@ func debug(str string) {
 }
 
 func failWith(err error) {
+	msg := err.Error()
+
+	urlOptions := url.Values{}
+	urlOptions.Set("title", msg)
+
 	fmt.Println("=== ")
-	fmt.Println("=== ❌ sorry, an error occurred")
-	fmt.Println("=== ")
+	fmt.Println("=== ❌ an error occurred.")
+	fmt.Println("===")
+	fmt.Println("=== Please report this error here: https://github.com/ByteArena/trainer/issues/new?" + urlOptions.Encode())
+	fmt.Println("=== We will fix it as soon as possible.")
+	fmt.Println("===")
 	fmt.Println("")
 
-	fmt.Println(err.Error())
+	fmt.Printf("Error: %s\n", msg)
 
 	os.Exit(1)
 }
