@@ -3,7 +3,6 @@ package mappack
 import (
 	"archive/zip"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -16,12 +15,12 @@ import (
 
 type MappackInMemoryArchive struct {
 	Zip   zip.ReadCloser
-	Files map[string]io.ReadCloser
+	Files map[string][]byte
 }
 
 func UnzipAndGetHandles(filename string) (*MappackInMemoryArchive, error) {
 	mappackInMemoryArchive := &MappackInMemoryArchive{
-		Files: make(map[string]io.ReadCloser),
+		Files: make(map[string][]byte),
 	}
 
 	reader, err := zip.OpenReader(filename)
@@ -37,25 +36,28 @@ func UnzipAndGetHandles(filename string) (*MappackInMemoryArchive, error) {
 			return nil, errors.Wrapf(err, "Could not open file in archive (%s)", file.Name)
 		}
 
-		mappackInMemoryArchive.Files[file.Name] = fd
+		content, readErr := ioutil.ReadAll(fd)
+
+		if readErr != nil {
+			return nil, errors.Wrapf(err, "Could not read file in archive (%s)", file.Name)
+		}
+
+		mappackInMemoryArchive.Files[file.Name] = content
+		fd.Close()
 	}
 
 	return mappackInMemoryArchive, nil
 }
 
 func (m *MappackInMemoryArchive) Open(name string) ([]byte, error) {
-	if file, hasFile := m.Files[name]; hasFile {
-		return ioutil.ReadAll(file)
+	if content, hasFile := m.Files[name]; hasFile {
+		return content, nil
 	}
 
 	return nil, errors.New(fmt.Sprintf("File %s not found", name))
 }
 
 func (m *MappackInMemoryArchive) Close() {
-	for _, fd := range m.Files {
-		fd.Close()
-	}
-
 	m.Zip.Close()
 }
 
@@ -68,7 +70,7 @@ func (m *MappackInMemoryArchive) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	content, err := m.Open(r.URL.Path)
 
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		http.NotFound(w, r)
 	} else {
 		ctype := mime.TypeByExtension(filepath.Ext(r.URL.Path))
 

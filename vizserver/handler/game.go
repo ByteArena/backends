@@ -53,7 +53,7 @@ func Game(fetchVizGames func() ([]*types.VizGame, error), mappack *mappack.Mappa
 		}
 
 		var vizhtmlTemplate = template.Must(template.New("").Parse(string(vizhtml)))
-		vizhtmlTemplate.Execute(w, struct {
+		err = vizhtmlTemplate.Execute(w, struct {
 			WsURL      string
 			CDNBaseURL string
 			Rand       int64
@@ -65,5 +65,9 @@ func Game(fetchVizGames func() ([]*types.VizGame, error), mappack *mappack.Mappa
 			Tps:     gameDescription.GetTps(),
 			Mappack: "/mappack/",
 		})
+
+		if err != nil {
+			panic("err")
+		}
 	}
 }

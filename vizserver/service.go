@@ -42,7 +42,10 @@ func (viz *VizService) Start() chan struct{} {
 	logger := os.Stdout
 	router := mux.NewRouter()
 
-	router.PathPrefix("/mappack/").Handler(http.StripPrefix("/mappack/", viz.mappack))
+	router.PathPrefix("/mappack/").Handler(handlers.CombinedLoggingHandler(
+		logger,
+		http.StripPrefix("/mappack/", viz.mappack),
+	))
 
 	router.Handle("/", handlers.CombinedLoggingHandler(logger,
 		http.HandlerFunc(apphandler.Home(viz.fetchGames)),
@@ -56,7 +59,8 @@ func (viz *VizService) Start() chan struct{} {
 		http.HandlerFunc(apphandler.ReplayWebsocket(viz.recordStore, viz.webclientpath)),
 	)).Methods("GET")
 
-	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
+	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(
+		logger,
 		http.HandlerFunc(apphandler.Game(viz.fetchGames, viz.mappack)),
 	)).Methods("GET")
 
