@@ -87,12 +87,14 @@ func downloadMap(manifest manifest) error {
 	}
 
 	bar := pb.New(fileSize)
+	bar.SetWidth(80)
 	bar.Start()
 
 	rd := bar.NewProxyReader(res.Body)
 	io.Copy(file, rd)
 
-	defer file.Close()
+	file.Close()
+	bar.Finish()
 
 	return nil
 }
