@@ -39,8 +39,18 @@ func debug(str string) {
 }
 
 func failWith(err error) {
+	fmt.Println("=== ")
+	fmt.Println("=== ❌ sorry, an error occurred")
+	fmt.Println("=== ")
+	fmt.Println("")
+
 	fmt.Println(err.Error())
+
 	os.Exit(1)
+}
+
+func runPreflightChecks() {
+	ensureDockerIsAvailable()
 }
 
 func main() {
@@ -68,6 +78,8 @@ func main() {
 		fmt.Println("Please, specify at least one agent image using --agent")
 		os.Exit(1)
 	}
+
+	runPreflightChecks()
 
 	// Make sure map exists locally and is update to date.
 	mapManifest, errManifest := downloadAndGetManifest()
