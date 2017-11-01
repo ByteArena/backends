@@ -150,6 +150,7 @@ func main() {
 	filecopy["styles.css"] = "assets/css/styles.css"
 	filecopy["__loading__.js"] = "assets/js/loading.js"
 	filecopy["__start__.js"] = "assets/js/start.js"
+	filecopy["__game-scripts.js"] = "assets/js/game-scripts.js"
 	//filecopy["config.json"] = "assets/json/config.json"
 	filecopy[zipid+".json"] = "assets/json/scene.json"
 	filecopy[modelUrl] = "assets/json/model.json"
@@ -157,6 +158,7 @@ func main() {
 	assetsRename := make(map[string]string)
 	assetsRename[modelUrl] = "assets/json/model.json"
 	assetsRename[modelFilename] = "model.json"
+	assetsRename["__game-scripts.js"] = "assets/js/game-scripts.js"
 
 	for _, filepath := range unzippedfiles {
 

@@ -251,12 +251,12 @@ func initPhysicalWorld(deathmatch *DeathmatchGame) {
 
 	// Static obstacles formed by the grounds
 	for _, ground := range arenaMap.Data.Grounds {
-		deathmatch.NewEntityGround(ground.Polygon)
+		deathmatch.NewEntityGround(ground.Polygon, ground.Name)
 	}
 
 	// Explicit obstacles
 	for _, obstacle := range arenaMap.Data.Obstacles {
 		polygon := obstacle.Polygon
-		deathmatch.NewEntityObstacle(polygon)
+		deathmatch.NewEntityObstacle(polygon, obstacle.Name)
 	}
 }

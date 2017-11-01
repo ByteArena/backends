@@ -1,6 +1,8 @@
 package deathmatch
 
 import (
+	"fmt"
+
 	"github.com/bytearena/box2d"
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
@@ -8,8 +10,8 @@ import (
 	"github.com/bytearena/ecs"
 )
 
-func (deathmatch *DeathmatchGame) NewEntityGround(polygon mapcontainer.MapPolygon) *ecs.Entity {
-	return newEntityGroundOrObstacle(deathmatch, polygon, commontypes.PhysicalBodyDescriptorType.Ground).
+func (deathmatch *DeathmatchGame) NewEntityGround(polygon mapcontainer.MapPolygon, name string) *ecs.Entity {
+	return newEntityGroundOrObstacle(deathmatch, polygon, commontypes.PhysicalBodyDescriptorType.Ground, name).
 		AddComponent(deathmatch.collidableComponent, NewCollidable(
 			CollisionGroup.Ground,
 			utils.BuildTag(
@@ -18,8 +20,8 @@ func (deathmatch *DeathmatchGame) NewEntityGround(polygon mapcontainer.MapPolygo
 		))
 }
 
-func (deathmatch *DeathmatchGame) NewEntityObstacle(polygon mapcontainer.MapPolygon) *ecs.Entity {
-	return newEntityGroundOrObstacle(deathmatch, polygon, commontypes.PhysicalBodyDescriptorType.Obstacle).
+func (deathmatch *DeathmatchGame) NewEntityObstacle(polygon mapcontainer.MapPolygon, name string) *ecs.Entity {
+	return newEntityGroundOrObstacle(deathmatch, polygon, commontypes.PhysicalBodyDescriptorType.Obstacle, name).
 		AddComponent(deathmatch.collidableComponent, NewCollidable(
 			CollisionGroup.Obstacle,
 			utils.BuildTag(
@@ -29,7 +31,7 @@ func (deathmatch *DeathmatchGame) NewEntityObstacle(polygon mapcontainer.MapPoly
 		))
 }
 
-func newEntityGroundOrObstacle(deathmatch *DeathmatchGame, polygon mapcontainer.MapPolygon, obstacletype string) *ecs.Entity {
+func newEntityGroundOrObstacle(deathmatch *DeathmatchGame, polygon mapcontainer.MapPolygon, obstacletype string, name string) *ecs.Entity {
 
 	obstacle := deathmatch.manager.NewEntity()
 
@@ -42,6 +44,13 @@ func newEntityGroundOrObstacle(deathmatch *DeathmatchGame, polygon mapcontainer.
 	for i := 0; i < len(polygon.Points)-1; i++ {
 		vertices[i].Set(polygon.Points[i].X, polygon.Points[i].Y)
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("\n\nERROR - Obstacle or ground (type " + obstacletype + ") " + name + " is not valid; perhaps some vertices are duplicated?\n\n")
+			panic(r)
+		}
+	}()
 
 	shape := box2d.MakeB2ChainShape()
 	shape.CreateLoop(vertices, len(vertices))
