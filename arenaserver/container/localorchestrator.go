@@ -1,10 +1,8 @@
 package container
 
 import (
-	"bufio"
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -99,14 +97,14 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.Containerid)
 
 		defer reader.Close()
-		r := bufio.NewReader(reader)
+		// r := bufio.NewReader(reader)
 
-		for {
-			buf, _ := utils.ReadFullLine(r)
-			if buf != "" {
-				fmt.Printf("Message from %s: %s \n\n", container.AgentId.String()+"/"+container.ImageName, buf)
-			}
-		}
+		// for {
+		// 	buf, _ := utils.ReadFullLine(r)
+		// 	if buf != "" {
+		// 		fmt.Printf("Message from %s: %s \n\n", container.AgentId.String()+"/"+container.ImageName, buf)
+		// 	}
+		// }
 
 	}(orch, container)
 

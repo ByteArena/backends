@@ -3,13 +3,15 @@ package main
 import (
 	"os/exec"
 
-	"github.com/pkg/errors"
+	bettererrors "github.com/xtuc/better-errors"
 )
 
 func ensureDockerIsAvailable() {
 	_, err := exec.LookPath("docker")
 
 	if err != nil {
-		failWith(errors.New("Docker was not found in $PATH. Please install it."))
+		failWith(
+			bettererrors.NewFromString("Docker was not found in $PATH. Please install it."),
+		)
 	}
 }

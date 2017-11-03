@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/url"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
+	"github.com/jroimartin/gocui"
 	"github.com/skratchdot/open-golang/open"
 
 	"github.com/bytearena/bytearena/arenaserver"
@@ -22,6 +24,8 @@ import (
 	"github.com/bytearena/bytearena/game/deathmatch"
 	"github.com/bytearena/bytearena/vizserver"
 	"github.com/bytearena/bytearena/vizserver/types"
+	bettererrors "github.com/xtuc/better-errors"
+	bettererrorstree "github.com/xtuc/better-errors/printer/tree"
 )
 
 type arrayFlags []string
@@ -40,22 +44,27 @@ func debug(str string) {
 }
 
 func failWith(err error) {
-	msg := err.Error()
+	if bettererrors.IsBetterError(err) {
+		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
 
-	urlOptions := url.Values{}
-	urlOptions.Set("title", msg)
+		urlOptions := url.Values{}
+		urlOptions.Set("body", msg)
 
-	fmt.Println("=== ")
-	fmt.Println("=== ❌ an error occurred.")
-	fmt.Println("===")
-	fmt.Println("=== Please report this error here: https://github.com/ByteArena/trainer/issues/new?" + urlOptions.Encode())
-	fmt.Println("=== We will fix it as soon as possible.")
-	fmt.Println("===")
-	fmt.Println("")
+		fmt.Println("")
+		fmt.Println("=== ")
+		fmt.Println("=== ❌ an error occurred.")
+		fmt.Println("===")
+		fmt.Println("=== Please report this error here: https://github.com/ByteArena/trainer/issues/new?" + urlOptions.Encode())
+		fmt.Println("=== We will fix it as soon as possible.")
+		fmt.Println("===")
+		fmt.Println("")
 
-	fmt.Printf("Error: %s\n", msg)
+		fmt.Print(msg)
 
-	os.Exit(1)
+		os.Exit(1)
+	} else {
+		panic(err)
+	}
 }
 
 func runPreflightChecks() {
@@ -63,7 +72,6 @@ func runPreflightChecks() {
 }
 
 func main() {
-
 	rand.Seed(time.Now().UnixNano())
 	utils.Debug("arena-trainer", "Byte Arena Trainer v0.1")
 
@@ -199,14 +207,29 @@ func main() {
 
 	if startErr != nil {
 		srv.Stop()
-		fmt.Println("Cannot start server: " + startErr.Error())
-		os.Exit(1)
+		failWith(startErr)
 	}
 
 	url := "http://localhost:" + strconv.Itoa(*port+1) + "/arena/1"
 
 	fmt.Println("\033[0;34m\nGame running at " + url + "\033[0m\n")
 	open.Run(url)
+
+	g, err := gocui.NewGui(gocui.OutputNormal)
+	if err != nil {
+		log.Panicln(err)
+	}
+	defer g.Close()
+
+	g.SetManagerFunc(layout)
+
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+		log.Panicln(err)
+	}
+
+	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+		log.Panicln(err)
+	}
 
 	<-serverChan
 
@@ -216,4 +239,28 @@ func main() {
 	recorder.Stop()
 
 	vizservice.Stop()
+}
+
+func layout(g *gocui.Gui) error {
+	maxX, maxY := g.Size()
+
+	if v, err := g.SetView("log", -1, -1, maxX, maxY-5); err != nil && err != gocui.ErrUnknownView {
+		utils.LogFn = func(service, message string) {
+			fmt.Fprintln(v, message)
+		}
+
+		return err
+	}
+
+	if v, err := g.SetView("status", -1, maxY-5, maxX, maxY); err != nil && err != gocui.ErrUnknownView {
+		fmt.Fprintln(v, "tick here")
+
+		return err
+	}
+
+	return nil
+}
+
+func quit(g *gocui.Gui, v *gocui.View) error {
+	return gocui.ErrQuit
 }

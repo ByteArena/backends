@@ -2,7 +2,6 @@ package arenaserver
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"runtime"
 	"sync"
@@ -20,6 +19,7 @@ import (
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 	commongame "github.com/bytearena/bytearena/game/common"
+	bettererrors "github.com/xtuc/better-errors"
 )
 
 const debug = false
@@ -128,7 +128,7 @@ func (server *Server) Start() (chan interface{}, error) {
 	err := server.startAgentContainers()
 
 	if err != nil {
-		return nil, errors.New("Failed to start agent containers: " + err.Error())
+		return nil, bettererrors.NewFromString("Failed to start agent containers").With(err)
 	}
 
 	server.AddTearDownCall(func() error {

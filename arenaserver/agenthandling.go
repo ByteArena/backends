@@ -8,6 +8,7 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/common/utils"
 	uuid "github.com/satori/go.uuid"
+	bettererrors "github.com/xtuc/better-errors"
 )
 
 func (s *Server) RegisterAgent(agentimage, agentname string) {
@@ -48,19 +49,19 @@ func (s *Server) startAgentContainers() error {
 
 		arenaHostnameForAgents, err := s.containerorchestrator.GetHost()
 		if err != nil {
-			return errors.New("Failed to fetch arena hostname for agents; " + err.Error())
+			return bettererrors.NewFromString("Failed to fetch arena hostname for agents").With(bettererrors.NewFromErr(err))
 		}
 
-		container, err := s.containerorchestrator.CreateAgentContainer(agentproxy.GetProxyUUID(), arenaHostnameForAgents, s.port, dockerimage)
+		container, err1 := s.containerorchestrator.CreateAgentContainer(agentproxy.GetProxyUUID(), arenaHostnameForAgents, s.port, dockerimage)
 
-		if err != nil {
-			return errors.New("Failed to create docker container for " + agentproxy.String() + ": " + err.Error())
+		if err1 != nil {
+			return bettererrors.NewFromString("Failed to create docker container").With(err1).SetContext("id", agentproxy.String())
 		}
 
 		err = s.containerorchestrator.StartAgentContainer(container, s.AddTearDownCall)
 
 		if err != nil {
-			return errors.New("Failed to start docker container for " + agentproxy.String() + ": " + err.Error())
+			return bettererrors.NewFromString("Failed to start docker container").With(bettererrors.NewFromErr(err)).SetContext("id", agentproxy.String())
 		}
 
 		s.AddTearDownCall(func() error {
