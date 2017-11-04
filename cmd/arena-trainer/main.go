@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
+	"net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -11,6 +13,8 @@ import (
 
 	notify "github.com/bitly/go-notify"
 	"github.com/skratchdot/open-golang/open"
+
+	_ "net/http/pprof"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
@@ -92,6 +96,10 @@ func main() {
 
 	flag.Parse()
 
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	if *host == "" {
 		ip, err := utils.GetCurrentIP()
 		utils.Check(err, "Could not determine host IP; you can specify using the `--host` flag.")
@@ -168,12 +176,13 @@ func main() {
 			msg := <-events
 
 			switch t := msg.(type) {
-			case arenaserver.EventLog:
-				output.LogInfo(t.Value)
 			case arenaserver.EventStatusGameUpdate:
 				output.LogGameStatus(t.Status)
+
 			case arenaserver.EventAgentLog:
+			case arenaserver.EventLog:
 				output.LogInfo(t.Value)
+
 			case arenaserver.EventClose:
 				return
 			}

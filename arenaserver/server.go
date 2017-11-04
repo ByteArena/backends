@@ -131,10 +131,10 @@ func (s Server) getNbExpectedagents() int {
 
 func (server *Server) Start() (chan interface{}, error) {
 
-	server.events <- EventLog{"Listen"}
+	server.Log(EventLog{"Listen"})
 	block := server.listen()
 
-	server.events <- EventLog{"Starting agent containers"}
+	server.Log(EventLog{"Starting agent containers"})
 	err := server.startAgentContainers()
 
 	if err != nil {
@@ -142,7 +142,7 @@ func (server *Server) Start() (chan interface{}, error) {
 	}
 
 	server.AddTearDownCall(func() error {
-		server.events <- EventLog{"Publish game state (" + server.arenaServerUUID + "stopped)"}
+		server.Log(EventLog{"Publish game state (" + server.arenaServerUUID + "stopped)"})
 
 		game := server.GetGameDescription()
 
@@ -161,7 +161,7 @@ func (server *Server) Start() (chan interface{}, error) {
 }
 
 func (server *Server) Stop() {
-	server.events <- EventLog{"TearDown from stop"}
+	server.Log(EventLog{"TearDown from stop"})
 	server.TearDown()
 }
 
@@ -184,7 +184,7 @@ func (s *Server) SendLaunched() {
 
 	payloadJson, _ := json.Marshal(payload)
 
-	s.events <- EventLog{"Send game launched: " + string(payloadJson)}
+	s.Log(EventLog{"Send game launched: " + string(payloadJson)})
 }
 
 func (s Server) GetGameDescription() types.GameDescriptionInterface {
@@ -200,7 +200,7 @@ func (s Server) GetTicksPerSecond() int {
 }
 
 func (server *Server) onAgentsReady() {
-	server.events <- EventLog{"Agents are ready; starting in 1 second"}
+	server.Log(EventLog{"Agents are ready; starting in 1 second"})
 	time.Sleep(time.Duration(time.Second * 1))
 
 	server.startTicking()
@@ -224,7 +224,7 @@ func (server *Server) startTicking() {
 			select {
 			case <-server.stopticking:
 				{
-					server.events <- EventLog{"Received stop ticking signal"}
+					server.Log(EventLog{"Received stop ticking signal"})
 					notify.Post("app:stopticking", nil)
 					break
 				}
@@ -261,7 +261,7 @@ func (server *Server) doTick() {
 			totalDuration += duration
 		}
 		meanTick := float64(totalDuration) / float64(len(server.tickdurations))
-		server.events <- EventStatusGameUpdate{fmt.Sprintf("Tick %d; %.3f ms mean; %d goroutines", turn, meanTick/1000000.0, runtime.NumGoroutine())}
+		server.Log(EventStatusGameUpdate{fmt.Sprintf("Tick %d; %.3f ms mean; %d goroutines", turn, meanTick/1000000.0, runtime.NumGoroutine())})
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -285,7 +285,7 @@ func (server *Server) doTick() {
 				server,
 			)
 			if err != nil {
-				server.events <- EventLog{"ERROR: could not set perception on agent " + agentproxy.GetProxyUUID().String()}
+				server.Log(EventLog{"ERROR: could not set perception on agent " + agentproxy.GetProxyUUID().String()})
 			}
 
 		}(server, agentproxy, arenamap)
@@ -333,4 +333,10 @@ func (server *Server) TearDown() {
 
 func (server *Server) Events() chan interface{} {
 	return server.events
+}
+
+func (server *Server) Log(l interface{}) {
+	go func() {
+		server.events <- l
+	}()
 }

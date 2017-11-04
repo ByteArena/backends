@@ -115,7 +115,9 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 }
 
 func (orch *LocalContainerOrchestrator) StartAgentContainer(ctner *arenaservertypes.AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
-	orch.events <- EventDebug{"Spawning agent " + ctner.AgentId.String()}
+	go func() {
+		orch.events <- EventDebug{"Spawning agent " + ctner.AgentId.String()}
+	}()
 
 	return orch.startContainerLocalOrch(ctner, addTearDownCall)
 }

@@ -58,7 +58,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 
 			conn, err := s.listener.Accept()
 			if err != nil {
-				s.events <- EventError{"ERROR !! " + err.Error()}
+				s.Log(EventError{"ERROR !! " + err.Error()})
 				continue
 			}
 
@@ -70,7 +70,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 					buf, err := reader.ReadBytes('\n')
 					if err != nil {
 						// Avoid crashes when agent crashes Issue #108
-						s.events <- EventLog{"Connexion closed unexpectedly; " + err.Error()}
+						s.Log(EventLog{"Connexion closed unexpectedly; " + err.Error()})
 						return
 					}
 
@@ -78,14 +78,14 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 					var msg types.AgentMessage
 					err = json.Unmarshal(buf, &msg)
 					if err != nil {
-						s.events <- EventLog{"Failed to unmarshal incoming JSON in CommServer::Listen(); " + string(buf) + ";" + err.Error()}
+						s.Log(EventLog{"Failed to unmarshal incoming JSON in CommServer::Listen(); " + string(buf) + ";" + err.Error()})
 					} else {
 						msg.EmitterConn = conn
 
 						go func() {
 							err := dispatcher.DispatchAgentMessage(msg)
 							if err != nil {
-								s.events <- EventLog{"Failed to dispatch agent message; " + err.Error()}
+								s.Log(EventLog{"Failed to dispatch agent message; " + err.Error()})
 							}
 						}()
 					}
@@ -95,6 +95,12 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 	}()
 
 	return nil
+}
+
+func (s *CommServer) Log(l interface{}) {
+	go func() {
+		s.events <- l
+	}()
 }
 
 func (s *CommServer) Events() chan interface{} {

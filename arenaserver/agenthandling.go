@@ -21,7 +21,7 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 	agentSpawnPointIndex := len(s.agentproxies)
 
 	if agentSpawnPointIndex >= len(arenamap.Data.Starts) {
-		s.events <- EventLog{"Agent " + agentimage + " cannot spawn, no starting point left"}
+		s.Log(EventLog{"Agent " + agentimage + " cannot spawn, no starting point left"})
 		return
 	}
 
@@ -39,7 +39,7 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 	s.setAgentProxy(agentproxy)
 	s.agentimages[agentproxy.GetProxyUUID()] = agentimage
 
-	s.events <- EventLog{"Registrer agent " + agentimage}
+	s.Log(EventLog{"Registrer agent " + agentimage})
 }
 
 func (s *Server) startAgentContainers() error {
@@ -70,8 +70,7 @@ func (s *Server) startAgentContainers() error {
 
 				switch t := msg.(type) {
 				case containertypes.EventAgentLog:
-					s.events <- EventAgentLog{t.Value}
-
+					s.Log(EventAgentLog{t.Value})
 				}
 			}
 		}()
