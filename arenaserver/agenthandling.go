@@ -7,7 +7,6 @@ import (
 
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	containertypes "github.com/bytearena/bytearena/arenaserver/container"
-	"github.com/bytearena/bytearena/common/utils"
 	uuid "github.com/satori/go.uuid"
 	bettererrors "github.com/xtuc/better-errors"
 )
@@ -22,7 +21,7 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 	agentSpawnPointIndex := len(s.agentproxies)
 
 	if agentSpawnPointIndex >= len(arenamap.Data.Starts) {
-		utils.Debug("arena", "Agent "+agentimage+" cannot spawn, no starting point left")
+		s.events <- EventLog{"Agent " + agentimage + " cannot spawn, no starting point left"}
 		return
 	}
 
@@ -40,7 +39,7 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 	s.setAgentProxy(agentproxy)
 	s.agentimages[agentproxy.GetProxyUUID()] = agentimage
 
-	utils.Debug("arena", "Registrer agent "+agentimage)
+	s.events <- EventLog{"Registrer agent " + agentimage}
 }
 
 func (s *Server) startAgentContainers() error {

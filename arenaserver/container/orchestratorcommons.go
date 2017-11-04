@@ -70,7 +70,7 @@ func commonCreateAgentContainer(orch arenaservertypes.ContainerOrchestrator, age
 		defer reader.Close()
 
 		io.Copy(os.Stdout, reader)
-		utils.Debug("orch", "Pulled image successfully")
+		orch.Events() <- EventDebug{"Pulled image successfully"}
 	}
 
 	containerconfig := container.Config{

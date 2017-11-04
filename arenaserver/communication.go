@@ -23,7 +23,22 @@ func (s *Server) listen() chan interface{} {
 	serveraddress := LISTEN_ADDR.String() + ":" + strconv.Itoa(s.port)
 	s.commserver = comm.NewCommServer(serveraddress)
 
-	utils.Debug("arena", "Server listening on port "+strconv.Itoa(s.port))
+	// Consum com server events
+	go func() {
+		for {
+			msg := <-s.commserver.Events()
+
+			switch t := msg.(type) {
+			case comm.EventLog:
+			case comm.EventError:
+				s.events <- EventLog{t.Value}
+			}
+
+		}
+
+	}()
+
+	s.events <- EventLog{"Server listening on port " + strconv.Itoa(s.port)}
 
 	err := s.commserver.Listen(s)
 	utils.Check(err, "Failed to listen on "+serveraddress)
@@ -94,7 +109,7 @@ func (s *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
 			ag = ag.SetConn(msg.GetEmitterConn())
 			s.setAgentProxy(ag)
 
-			utils.Debug("arena", "Received handshake from agent "+ag.String()+"")
+			s.events <- EventLog{"Received handshake from agent " + ag.String() + ""}
 
 			s.nbhandshaked++
 

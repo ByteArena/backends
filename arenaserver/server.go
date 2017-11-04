@@ -203,16 +203,6 @@ func (server *Server) onAgentsReady() {
 	server.events <- EventLog{"Agents are ready; starting in 1 second"}
 	time.Sleep(time.Duration(time.Second * 1))
 
-	// go func() {
-	// 	stopChannel := make(chan bool)
-	// 	server.monitoring(stopChannel)
-
-	// 	server.AddTearDownCall(func() error {
-	// 		stopChannel <- true
-	// 		return nil
-	// 	})
-	// }()
-
 	server.startTicking()
 }
 

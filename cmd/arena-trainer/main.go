@@ -137,6 +137,16 @@ func main() {
 		}
 	}
 
+	// Run UI
+	output = NewTrainerOutput()
+
+	go func() {
+		err := output.Run()
+		if err != nil {
+			failWith(err)
+		}
+	}()
+
 	gamedescription := NewMockGame(*tickspersec)
 	for _, contestant := range agentimages {
 		gamedescription.AddContestant(contestant)
@@ -149,16 +159,6 @@ func main() {
 	game := deathmatch.NewDeathmatchGame(gamedescription)
 
 	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(*host), gamedescription, game, "", brokerclient)
-
-	// Run UI
-	output = NewTrainerOutput()
-
-	go func() {
-		err := output.Run()
-		if err != nil {
-			failWith(err)
-		}
-	}()
 
 	// consume server events
 	go func() {
