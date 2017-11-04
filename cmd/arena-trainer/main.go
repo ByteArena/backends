@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/url"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
-	"github.com/jroimartin/gocui"
 	"github.com/skratchdot/open-golang/open"
 
 	"github.com/bytearena/bytearena/arenaserver"
@@ -43,7 +41,14 @@ func debug(str string) {
 	fmt.Println(str)
 }
 
+// Will be used to shutdown properly the gm in case of a failure
+var output *TrainerOutput
+
 func failWith(err error) {
+	if output != nil {
+		output.Close()
+	}
+
 	if bettererrors.IsBetterError(err) {
 		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
 
@@ -71,14 +76,16 @@ func runPreflightChecks() {
 	ensureDockerIsAvailable()
 }
 
+var (
+	tickspersec      = flag.Int("tps", 10, "Number of ticks per second")
+	host             = flag.String("host", "", "IP serving the trainer; required")
+	port             = flag.Int("port", 8080, "Port serving the trainer")
+	recordFile       = flag.String("record-file", "", "Destination file for recording the game")
+	doNotOpenBrowser = flag.Bool("do-not-open-browser", false, "Disable automatic browser opening at start")
+)
+
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	utils.Debug("arena-trainer", "Byte Arena Trainer v0.1")
-
-	tickspersec := flag.Int("tps", 10, "Number of ticks per second")
-	host := flag.String("host", "", "IP serving the trainer; required")
-	port := flag.Int("port", 8080, "Port serving the trainer")
-	recordFile := flag.String("record-file", "", "Destination file for recording the game")
 
 	var agentimages arrayFlags
 	flag.Var(&agentimages, "agent", "Agent image in docker; example netgusto/meatgrinder")
@@ -93,6 +100,7 @@ func main() {
 
 	if len(agentimages) == 0 {
 		fmt.Println("Please, specify at least one agent image using --agent")
+		flag.Usage()
 		os.Exit(1)
 	}
 
@@ -141,6 +149,48 @@ func main() {
 	game := deathmatch.NewDeathmatchGame(gamedescription)
 
 	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(*host), gamedescription, game, "", brokerclient)
+
+	// Run UI
+	output = NewTrainerOutput()
+
+	go func() {
+		err := output.Run()
+		if err != nil {
+			failWith(err)
+		}
+	}()
+
+	// consume server events
+	go func() {
+		events := srv.Events()
+
+		for {
+			msg := <-events
+
+			switch t := msg.(type) {
+			case arenaserver.EventLog:
+				output.LogInfo(t.Value)
+			case arenaserver.EventStatusGameUpdate:
+				output.LogGameStatus(t.Status)
+			case arenaserver.EventAgentLog:
+				output.LogAgent(t.Value)
+			case arenaserver.EventClose:
+				return
+			}
+		}
+	}()
+
+	go func() {
+		utils.LogFn = func(service, message string) {
+			output.LogInfo(message)
+		}
+	}()
+
+	output.OnQuit(func() {
+		srv.Stop()
+		<-time.After(10 * time.Second)
+		os.Exit(1)
+	})
 
 	for _, contestant := range gamedescription.GetContestants() {
 		var image string
@@ -212,23 +262,8 @@ func main() {
 
 	url := "http://localhost:" + strconv.Itoa(*port+1) + "/arena/1"
 
-	fmt.Println("\033[0;34m\nGame running at " + url + "\033[0m\n")
-	open.Run(url)
-
-	g, err := gocui.NewGui(gocui.OutputNormal)
-	if err != nil {
-		log.Panicln(err)
-	}
-	defer g.Close()
-
-	g.SetManagerFunc(layout)
-
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-		log.Panicln(err)
-	}
-
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
-		log.Panicln(err)
+	if !*doNotOpenBrowser {
+		open.Run(url)
 	}
 
 	<-serverChan
@@ -239,28 +274,4 @@ func main() {
 	recorder.Stop()
 
 	vizservice.Stop()
-}
-
-func layout(g *gocui.Gui) error {
-	maxX, maxY := g.Size()
-
-	if v, err := g.SetView("log", -1, -1, maxX, maxY-5); err != nil && err != gocui.ErrUnknownView {
-		utils.LogFn = func(service, message string) {
-			fmt.Fprintln(v, message)
-		}
-
-		return err
-	}
-
-	if v, err := g.SetView("status", -1, maxY-5, maxX, maxY); err != nil && err != gocui.ErrUnknownView {
-		fmt.Fprintln(v, "tick here")
-
-		return err
-	}
-
-	return nil
-}
-
-func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.ErrQuit
 }

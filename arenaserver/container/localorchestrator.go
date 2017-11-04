@@ -1,6 +1,7 @@
 package container
 
 import (
+	"bufio"
 	"context"
 	"errors"
 
@@ -21,6 +22,7 @@ type LocalContainerOrchestrator struct {
 	registryAuth string
 	host         string
 	containers   []*arenaservertypes.AgentContainer
+	stdout       chan string
 }
 
 func (orch *LocalContainerOrchestrator) startContainerLocalOrch(ctner *arenaservertypes.AgentContainer, addTearDownCall func(commonTypes.TearDownCallback)) error {
@@ -66,6 +68,7 @@ func MakeLocalContainerOrchestrator(host string) arenaservertypes.ContainerOrche
 		cli:          cli,
 		host:         host,
 		registryAuth: registryAuth,
+		stdout:       make(chan string),
 	}
 }
 
@@ -97,14 +100,14 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.Containerid)
 
 		defer reader.Close()
-		// r := bufio.NewReader(reader)
+		r := bufio.NewReader(reader)
 
-		// for {
-		// 	buf, _ := utils.ReadFullLine(r)
-		// 	if buf != "" {
-		// 		fmt.Printf("Message from %s: %s \n\n", container.AgentId.String()+"/"+container.ImageName, buf)
-		// 	}
-		// }
+		for {
+			buf, _ := utils.ReadFullLine(r)
+			if buf != "" {
+				orch.stdout <- buf
+			}
+		}
 
 	}(orch, container)
 
@@ -177,4 +180,8 @@ func (orch *LocalContainerOrchestrator) GetRegistryAuth() string {
 
 func (orch *LocalContainerOrchestrator) AddContainer(ctner *arenaservertypes.AgentContainer) {
 	orch.containers = append(orch.containers, ctner)
+}
+
+func (orch *LocalContainerOrchestrator) GetStdout() chan string {
+	return orch.stdout
 }

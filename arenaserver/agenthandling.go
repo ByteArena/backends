@@ -64,6 +64,13 @@ func (s *Server) startAgentContainers() error {
 			return bettererrors.NewFromString("Failed to start docker container").With(bettererrors.NewFromErr(err)).SetContext("id", agentproxy.String())
 		}
 
+		go func() {
+			for {
+				msg := <-s.containerorchestrator.GetStdout()
+				s.events <- EventAgentLog{msg}
+			}
+		}()
+
 		s.AddTearDownCall(func() error {
 			s.containerorchestrator.TearDown(container)
 

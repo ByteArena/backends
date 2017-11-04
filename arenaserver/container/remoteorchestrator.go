@@ -184,3 +184,7 @@ func (orch *RemoteContainerOrchestrator) GetRegistryAuth() string {
 func (orch *RemoteContainerOrchestrator) AddContainer(ctner *arenaservertypes.AgentContainer) {
 	orch.containers = append(orch.containers, ctner)
 }
+
+func (orch *RemoteContainerOrchestrator) GetStdout() chan string {
+	return make(chan string)
+}

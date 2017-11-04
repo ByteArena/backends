@@ -24,6 +24,11 @@ import (
 
 const debug = false
 
+type EventStatusGameUpdate struct{ Status string }
+type EventClose struct{}
+type EventLog struct{ Value string }
+type EventAgentLog struct{ Value string }
+
 type Server struct {
 	host            string
 	port            int
@@ -57,6 +62,8 @@ type Server struct {
 	// Game logic
 
 	game commongame.GameInterface
+
+	events chan interface{}
 }
 
 func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrator, gameDescription types.GameDescriptionInterface, game commongame.GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
@@ -106,6 +113,8 @@ func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrato
 		///////////////////////////////////////////////////////////////////////
 
 		game: game,
+
+		events: make(chan interface{}),
 	}
 
 	return s
@@ -121,10 +130,10 @@ func (s Server) getNbExpectedagents() int {
 
 func (server *Server) Start() (chan interface{}, error) {
 
-	utils.Debug("arena", "Listen")
+	server.events <- EventLog{"Listen"}
 	block := server.listen()
 
-	utils.Debug("arena", "Starting agent containers")
+	server.events <- EventLog{"Starting agent containers"}
 	err := server.startAgentContainers()
 
 	if err != nil {
@@ -132,7 +141,7 @@ func (server *Server) Start() (chan interface{}, error) {
 	}
 
 	server.AddTearDownCall(func() error {
-		utils.Debug("arena", "Publish game state ("+server.arenaServerUUID+"stopped)")
+		server.events <- EventLog{"Publish game state (" + server.arenaServerUUID + "stopped)"}
 
 		game := server.GetGameDescription()
 
@@ -151,7 +160,7 @@ func (server *Server) Start() (chan interface{}, error) {
 }
 
 func (server *Server) Stop() {
-	utils.Debug("arena-server", "TearDown from stop")
+	server.events <- EventLog{"TearDown from stop"}
 	server.TearDown()
 }
 
@@ -174,7 +183,7 @@ func (s *Server) SendLaunched() {
 
 	payloadJson, _ := json.Marshal(payload)
 
-	utils.Debug("arena-server", "Send game launched: "+string(payloadJson))
+	s.events <- EventLog{"Send game launched: " + string(payloadJson)}
 }
 
 func (s Server) GetGameDescription() types.GameDescriptionInterface {
@@ -190,7 +199,7 @@ func (s Server) GetTicksPerSecond() int {
 }
 
 func (server *Server) onAgentsReady() {
-	utils.Debug("arena", "Agents are ready; starting in 1 second")
+	server.events <- EventLog{"Agents are ready; starting in 1 second"}
 	time.Sleep(time.Duration(time.Second * 1))
 
 	// go func() {
@@ -224,7 +233,7 @@ func (server *Server) startTicking() {
 			select {
 			case <-server.stopticking:
 				{
-					utils.Debug("core-loop", "Received stop ticking signal")
+					server.events <- EventLog{"Received stop ticking signal"}
 					notify.Post("app:stopticking", nil)
 					break
 				}
@@ -261,7 +270,7 @@ func (server *Server) doTick() {
 			totalDuration += duration
 		}
 		meanTick := float64(totalDuration) / float64(len(server.tickdurations))
-		utils.Debug("core-loop", fmt.Sprintf("Tick %d; %.3f ms mean; %d goroutines", turn, meanTick/1000000.0, runtime.NumGoroutine()))
+		server.events <- EventStatusGameUpdate{fmt.Sprintf("Tick %d; %.3f ms mean; %d goroutines", turn, meanTick/1000000.0, runtime.NumGoroutine())}
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -285,7 +294,7 @@ func (server *Server) doTick() {
 				server,
 			)
 			if err != nil {
-				utils.Debug("arenaserver", "ERROR: could not set perception on agent "+agentproxy.GetProxyUUID().String())
+				server.events <- EventLog{"ERROR: could not set perception on agent " + agentproxy.GetProxyUUID().String()}
 			}
 
 		}(server, agentproxy, arenamap)
@@ -313,13 +322,13 @@ func (s *Server) AddTearDownCall(fn types.TearDownCallback) {
 }
 
 func (server *Server) TearDown() {
-	utils.Debug("arena", "teardown")
+	server.events <- EventLog{"teardown"}
 	server.containerorchestrator.TearDownAll()
 
 	server.tearDownCallbacksMutex.Lock()
 
 	for i := len(server.tearDownCallbacks) - 1; i >= 0; i-- {
-		utils.Debug("teardown", "Executing TearDownCallback")
+		server.events <- EventLog{"Executing TearDownCallback"}
 		server.tearDownCallbacks[i]()
 	}
 
@@ -327,4 +336,10 @@ func (server *Server) TearDown() {
 	server.tearDownCallbacks = make([]types.TearDownCallback, 0)
 
 	server.tearDownCallbacksMutex.Unlock()
+
+	server.events <- EventClose{}
+}
+
+func (server *Server) Events() chan interface{} {
+	return server.events
 }
