@@ -28,6 +28,7 @@ type EventStatusGameUpdate struct{ Status string }
 type EventClose struct{}
 type EventLog struct{ Value string }
 type EventAgentLog struct{ Value string }
+type EventOrchestratorLog struct{ Value string }
 
 type Server struct {
 	host            string

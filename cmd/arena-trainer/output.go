@@ -79,10 +79,6 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func (ui *TrainerOutput) LogAgent(msg string) error {
-	return ui.LogInfo(msg)
-}
-
 func (ui *TrainerOutput) LogDebug(msg string) error {
 	// Nothing
 	return nil

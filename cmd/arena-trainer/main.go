@@ -173,7 +173,7 @@ func main() {
 			case arenaserver.EventStatusGameUpdate:
 				output.LogGameStatus(t.Status)
 			case arenaserver.EventAgentLog:
-				output.LogAgent(t.Value)
+				output.LogInfo(t.Value)
 			case arenaserver.EventClose:
 				return
 			}
@@ -207,7 +207,7 @@ func main() {
 	// handling signals
 	go func() {
 		<-common.SignalHandler()
-		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
+		debug("RECEIVED SHUTDOWN SIGNAL; closing.")
 		srv.Stop()
 
 		<-time.After(10 * time.Second)

@@ -22,7 +22,7 @@ type LocalContainerOrchestrator struct {
 	registryAuth string
 	host         string
 	containers   []*arenaservertypes.AgentContainer
-	stdout       chan string
+	events       chan interface{}
 }
 
 func (orch *LocalContainerOrchestrator) startContainerLocalOrch(ctner *arenaservertypes.AgentContainer, addTearDownCall func(commonTypes.TearDownCallback)) error {
@@ -68,7 +68,7 @@ func MakeLocalContainerOrchestrator(host string) arenaservertypes.ContainerOrche
 		cli:          cli,
 		host:         host,
 		registryAuth: registryAuth,
-		stdout:       make(chan string),
+		events:       make(chan interface{}),
 	}
 }
 
@@ -105,7 +105,7 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 		for {
 			buf, _ := utils.ReadFullLine(r)
 			if buf != "" {
-				orch.stdout <- buf
+				orch.events <- EventAgentLog{buf}
 			}
 		}
 
@@ -182,6 +182,6 @@ func (orch *LocalContainerOrchestrator) AddContainer(ctner *arenaservertypes.Age
 	orch.containers = append(orch.containers, ctner)
 }
 
-func (orch *LocalContainerOrchestrator) GetStdout() chan string {
-	return orch.stdout
+func (orch *LocalContainerOrchestrator) Events() chan interface{} {
+	return orch.events
 }

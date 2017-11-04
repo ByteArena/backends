@@ -6,6 +6,7 @@ import (
 	"github.com/bytearena/bytearena/common/utils/vector"
 
 	"github.com/bytearena/bytearena/arenaserver/agent"
+	containertypes "github.com/bytearena/bytearena/arenaserver/container"
 	"github.com/bytearena/bytearena/common/utils"
 	uuid "github.com/satori/go.uuid"
 	bettererrors "github.com/xtuc/better-errors"
@@ -66,8 +67,13 @@ func (s *Server) startAgentContainers() error {
 
 		go func() {
 			for {
-				msg := <-s.containerorchestrator.GetStdout()
-				s.events <- EventAgentLog{msg}
+				msg := <-s.containerorchestrator.Events()
+
+				switch t := msg.(type) {
+				case containertypes.EventAgentLog:
+					s.events <- EventAgentLog{t.Value}
+
+				}
 			}
 		}()
 
