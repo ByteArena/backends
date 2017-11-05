@@ -3,13 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
 
 	notify "github.com/bitly/go-notify"
 	"github.com/skratchdot/open-golang/open"
+
+	_ "net/http/pprof"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
@@ -21,6 +26,8 @@ import (
 	"github.com/bytearena/bytearena/game/deathmatch"
 	"github.com/bytearena/bytearena/vizserver"
 	"github.com/bytearena/bytearena/vizserver/types"
+	bettererrors "github.com/xtuc/better-errors"
+	bettererrorstree "github.com/xtuc/better-errors/printer/tree"
 )
 
 type arrayFlags []string
@@ -38,25 +45,60 @@ func debug(str string) {
 	fmt.Println(str)
 }
 
+// Will be used to shutdown properly the gm in case of a failure
+var output *TrainerOutput
+
 func failWith(err error) {
-	fmt.Println(err.Error())
-	os.Exit(1)
+	if output != nil {
+		output.Close()
+	}
+
+	if bettererrors.IsBetterError(err) {
+		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
+
+		urlOptions := url.Values{}
+		urlOptions.Set("body", msg)
+
+		fmt.Println("")
+		fmt.Println("=== ")
+		fmt.Println("=== ❌ an error occurred.")
+		fmt.Println("===")
+		fmt.Println("=== Please report this error here: https://github.com/ByteArena/trainer/issues/new?" + urlOptions.Encode())
+		fmt.Println("=== We will fix it as soon as possible.")
+		fmt.Println("===")
+		fmt.Println("")
+
+		fmt.Print(msg)
+
+		os.Exit(1)
+	} else {
+		panic(err)
+	}
 }
 
+func runPreflightChecks() {
+	ensureDockerIsAvailable()
+}
+
+var (
+	tickspersec      = flag.Int("tps", 10, "Number of ticks per second")
+	host             = flag.String("host", "", "IP serving the trainer; required")
+	port             = flag.Int("port", 8080, "Port serving the trainer")
+	recordFile       = flag.String("record-file", "", "Destination file for recording the game")
+	doNotOpenBrowser = flag.Bool("do-not-open-browser", false, "Disable automatic browser opening at start")
+)
+
 func main() {
-
 	rand.Seed(time.Now().UnixNano())
-	utils.Debug("arena-trainer", "Byte Arena Trainer v0.1")
-
-	tickspersec := flag.Int("tps", 10, "Number of ticks per second")
-	host := flag.String("host", "", "IP serving the trainer; required")
-	port := flag.Int("port", 8080, "Port serving the trainer")
-	recordFile := flag.String("record-file", "", "Destination file for recording the game")
 
 	var agentimages arrayFlags
 	flag.Var(&agentimages, "agent", "Agent image in docker; example netgusto/meatgrinder")
 
 	flag.Parse()
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	if *host == "" {
 		ip, err := utils.GetCurrentIP()
@@ -66,8 +108,11 @@ func main() {
 
 	if len(agentimages) == 0 {
 		fmt.Println("Please, specify at least one agent image using --agent")
+		flag.Usage()
 		os.Exit(1)
 	}
+
+	runPreflightChecks()
 
 	// Make sure map exists locally and is update to date.
 	mapManifest, errManifest := downloadAndGetManifest()
@@ -100,6 +145,16 @@ func main() {
 		}
 	}
 
+	// Run UI
+	output = NewTrainerOutput()
+
+	go func() {
+		err := output.Run()
+		if err != nil {
+			failWith(err)
+		}
+	}()
+
 	gamedescription := NewMockGame(*tickspersec)
 	for _, contestant := range agentimages {
 		gamedescription.AddContestant(contestant)
@@ -112,6 +167,39 @@ func main() {
 	game := deathmatch.NewDeathmatchGame(gamedescription)
 
 	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(*host), gamedescription, game, "", brokerclient)
+
+	// consume server events
+	go func() {
+		events := srv.Events()
+
+		for {
+			msg := <-events
+
+			switch t := msg.(type) {
+			case arenaserver.EventStatusGameUpdate:
+				output.LogGameStatus(t.Status)
+
+			case arenaserver.EventAgentLog:
+			case arenaserver.EventLog:
+				output.LogInfo(t.Value)
+
+			case arenaserver.EventClose:
+				return
+			}
+		}
+	}()
+
+	go func() {
+		utils.LogFn = func(service, message string) {
+			output.LogInfo(message)
+		}
+	}()
+
+	output.OnQuit(func() {
+		srv.Stop()
+		<-time.After(10 * time.Second)
+		os.Exit(1)
+	})
 
 	for _, contestant := range gamedescription.GetContestants() {
 		var image string
@@ -128,8 +216,11 @@ func main() {
 	// handling signals
 	go func() {
 		<-common.SignalHandler()
-		utils.Debug("sighandler", "RECEIVED SHUTDOWN SIGNAL; closing.")
+		debug("RECEIVED SHUTDOWN SIGNAL; closing.")
 		srv.Stop()
+
+		<-time.After(10 * time.Second)
+		os.Exit(1)
 	}()
 
 	go common.StreamState(srv, brokerclient, "trainer")
@@ -175,14 +266,14 @@ func main() {
 
 	if startErr != nil {
 		srv.Stop()
-		fmt.Println("Cannot start server: " + startErr.Error())
-		os.Exit(1)
+		failWith(startErr)
 	}
 
 	url := "http://localhost:" + strconv.Itoa(*port+1) + "/arena/1"
 
-	fmt.Println("\033[0;34m\nGame running at " + url + "\033[0m\n")
-	open.Run(url)
+	if !*doNotOpenBrowser {
+		open.Run(url)
+	}
 
 	<-serverChan
 

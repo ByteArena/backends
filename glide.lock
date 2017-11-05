@@ -1,5 +1,5 @@
-hash: c6c8586b1ba79e676250760ef6451b8c1521d9c622e2f13e0c78e7d6cb9b3307
-updated: 2017-11-01T13:08:30.884018648+01:00
+hash: 9e39eb05bdb47d3c8061e67f46abea1328f4d2963ed0e93f90b17069337f3ad9
+updated: 2017-11-03T18:53:19.63539649+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -123,6 +123,8 @@ imports:
   - client/v2
   - models
   - pkg/escape
+- name: github.com/jroimartin/gocui
+  version: 4e9ce9a8e26f2ef33dfe297dbdfca148733b6b9b
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/mattn/go-colorable
@@ -162,6 +164,10 @@ imports:
   - assert
 - name: github.com/ttacon/chalk
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
+- name: github.com/xtuc/better-errors
+  version: 4b0e7f49f3da3f85ccb93107a8a7454d2ad6f4b4
+  subpackages:
+  - printer/tree
 - name: github.com/xtuc/schaloop
   version: 9638fcdc196e786f64d8584d7008dbb7cc91c089
   subpackages:
@@ -185,6 +191,20 @@ imports:
   subpackages:
   - unix
   - windows
+- name: gopkg.in/cheggaaa/pb.v2
+  version: fec330ed6ef74d0a026da2c639821ee0d9f97687
+  subpackages:
+  - termutil
+- name: gopkg.in/fatih/color.v1
+  version: 570b54cabe6b8eb0bc2dfce68d964677d63b5260
+- name: gopkg.in/mattn/go-colorable.v0
+  version: 167de6bfdfba052fa6b2d3664c8f5272e23c9072
+- name: gopkg.in/mattn/go-isatty.v0
+  version: 0360b2af4f38e8d38c7fce2a9f4e702702d73a39
+- name: gopkg.in/mattn/go-runewidth.v0
+  version: 9e777a8366cce605130a531d2cd6363d07ad7317
+- name: gopkg.in/VividCortex/ewma.v1
+  version: b24eb346a94c3ba12c1da1e564dbac1b498a77ce
 testImports:
 - name: github.com/pmezard/go-difflib
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d

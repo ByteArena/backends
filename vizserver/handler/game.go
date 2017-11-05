@@ -2,17 +2,17 @@ package handler
 
 import (
 	"html/template"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/bytearena/bytearena/common/mappack"
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/vizserver/types"
 	"github.com/gorilla/mux"
 )
 
-func Game(fetchVizGames func() ([]*types.VizGame, error), basepath string) func(w http.ResponseWriter, r *http.Request) {
+func Game(fetchVizGames func() ([]*types.VizGame, error), mappack *mappack.MappackInMemoryArchive) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -40,7 +40,7 @@ func Game(fetchVizGames func() ([]*types.VizGame, error), basepath string) func(
 			return
 		}
 
-		vizhtml, err := ioutil.ReadFile(basepath + "index.html")
+		vizhtml, err := mappack.Open("index.html")
 		if err != nil {
 			w.Write([]byte("ERROR: could not render game"))
 			return
@@ -53,15 +53,21 @@ func Game(fetchVizGames func() ([]*types.VizGame, error), basepath string) func(
 		}
 
 		var vizhtmlTemplate = template.Must(template.New("").Parse(string(vizhtml)))
-		vizhtmlTemplate.Execute(w, struct {
+		err = vizhtmlTemplate.Execute(w, struct {
 			WsURL      string
 			CDNBaseURL string
 			Rand       int64
 			Tps        int
+			Mappack    string
 		}{
-			WsURL: protocol + "://" + r.Host + "/arena/" + gameDescription.GetId() + "/ws",
-			Rand:  time.Now().Unix(),
-			Tps:   gameDescription.GetTps(),
+			WsURL:   protocol + "://" + r.Host + "/arena/" + gameDescription.GetId() + "/ws",
+			Rand:    time.Now().Unix(),
+			Tps:     gameDescription.GetTps(),
+			Mappack: "/mappack/",
 		})
+
+		if err != nil {
+			panic("err")
+		}
 	}
 }

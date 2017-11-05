@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -23,6 +22,7 @@ type LocalContainerOrchestrator struct {
 	registryAuth string
 	host         string
 	containers   []*arenaservertypes.AgentContainer
+	events       chan interface{}
 }
 
 func (orch *LocalContainerOrchestrator) startContainerLocalOrch(ctner *arenaservertypes.AgentContainer, addTearDownCall func(commonTypes.TearDownCallback)) error {
@@ -68,6 +68,7 @@ func MakeLocalContainerOrchestrator(host string) arenaservertypes.ContainerOrche
 		cli:          cli,
 		host:         host,
 		registryAuth: registryAuth,
+		events:       make(chan interface{}),
 	}
 }
 
@@ -104,7 +105,7 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 		for {
 			buf, _ := utils.ReadFullLine(r)
 			if buf != "" {
-				fmt.Printf("Message from %s: %s \n\n", container.AgentId.String()+"/"+container.ImageName, buf)
+				orch.events <- EventAgentLog{buf}
 			}
 		}
 
@@ -114,7 +115,9 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 }
 
 func (orch *LocalContainerOrchestrator) StartAgentContainer(ctner *arenaservertypes.AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
-	utils.Debug("orch", "Spawning agent "+ctner.AgentId.String())
+	go func() {
+		orch.events <- EventDebug{"Spawning agent " + ctner.AgentId.String()}
+	}()
 
 	return orch.startContainerLocalOrch(ctner, addTearDownCall)
 }
@@ -179,4 +182,8 @@ func (orch *LocalContainerOrchestrator) GetRegistryAuth() string {
 
 func (orch *LocalContainerOrchestrator) AddContainer(ctner *arenaservertypes.AgentContainer) {
 	orch.containers = append(orch.containers, ctner)
+}
+
+func (orch *LocalContainerOrchestrator) Events() chan interface{} {
+	return orch.events
 }

@@ -1,12 +1,9 @@
 package vizserver
 
 import (
-	"context"
-	"log"
 	"net"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/bytearena/bytearena/common/mappack"
 	"github.com/bytearena/bytearena/common/recording"
@@ -40,44 +37,15 @@ func NewVizService(addr string, webclientpath string, mapkey string, fetchArenas
 	}
 }
 
-type GZIPMiddleware struct {
-	handler http.Handler
-}
-
-func (f GZIPMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if strings.HasSuffix(r.URL.Path, "model.json") {
-		r.URL.Path += ".gz"
-		w.Header().Set("Content-Encoding", "gzip")
-	}
-
-	f.handler.ServeHTTP(w, r)
-}
-
-type MapRouterMiddleware struct {
-	mapkey  string
-	handler http.Handler
-}
-
-func (m MapRouterMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	r.URL.Path = "/map/" + m.mapkey + "/" + strings.TrimPrefix(r.URL.Path, "/map/")
-	log.Println(r.URL.Path)
-	log.Println("MapRouterMiddleware", r.URL.Path)
-	m.handler.ServeHTTP(w, r)
-}
-
 func (viz *VizService) Start() chan struct{} {
 
 	logger := os.Stdout
 	router := mux.NewRouter()
 
-	// Les assets de la viz (js, modèles, textures)
-	router.PathPrefix("/lib/").Handler(http.FileServer(http.Dir(viz.webclientpath)))
-	router.PathPrefix("/map/").Handler(MapRouterMiddleware{
-		mapkey: viz.mapkey,
-		handler: GZIPMiddleware{
-			handler: http.FileServer(http.Dir(viz.webclientpath)),
-		},
-	})
+	router.PathPrefix("/mappack/").Handler(handlers.CombinedLoggingHandler(
+		logger,
+		http.StripPrefix("/mappack/", viz.mappack),
+	))
 
 	router.Handle("/", handlers.CombinedLoggingHandler(logger,
 		http.HandlerFunc(apphandler.Home(viz.fetchGames)),
@@ -91,8 +59,9 @@ func (viz *VizService) Start() chan struct{} {
 		http.HandlerFunc(apphandler.ReplayWebsocket(viz.recordStore, viz.webclientpath)),
 	)).Methods("GET")
 
-	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(logger,
-		http.HandlerFunc(apphandler.Game(viz.fetchGames, viz.webclientpath)),
+	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}", handlers.CombinedLoggingHandler(
+		logger,
+		http.HandlerFunc(apphandler.Game(viz.fetchGames, viz.mappack)),
 	)).Methods("GET")
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(logger,
@@ -123,5 +92,5 @@ func (viz *VizService) Start() chan struct{} {
 
 func (viz *VizService) Stop() {
 	viz.mappack.Close()
-	viz.listener.Shutdown(context.TODO())
+	viz.listener.Shutdown(nil)
 }

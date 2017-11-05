@@ -25,6 +25,7 @@ type RemoteContainerOrchestrator struct {
 	registryAuth string
 	arenaAddr    string
 	containers   []*arenaservertypes.AgentContainer
+	events       chan interface{}
 }
 
 func (orch *RemoteContainerOrchestrator) startContainerRemoteOrch(ctner *arenaservertypes.AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
@@ -46,7 +47,7 @@ func (orch *RemoteContainerOrchestrator) startContainerRemoteOrch(ctner *arenase
 	}
 
 	addTearDownCall(func() error {
-		utils.Debug("orch", "Closed agent container logger")
+		orch.events <- EventDebug{"Closed agent container logger"}
 
 		ctner.LogReader.Close()
 
@@ -81,6 +82,8 @@ func MakeRemoteContainerOrchestrator(arenaAddr string, registryAddr string) aren
 		cli:          cli,
 		registryAuth: registryAuth,
 		arenaAddr:    arenaAddr,
+
+		events: make(chan interface{}),
 	}
 }
 
@@ -89,7 +92,7 @@ func (orch *RemoteContainerOrchestrator) GetHost() (string, error) {
 }
 
 func (orch *RemoteContainerOrchestrator) StartAgentContainer(ctner *arenaservertypes.AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
-	utils.Debug("orch", "Spawning agent "+ctner.AgentId.String())
+	orch.events <- EventDebug{"Spawning agent " + ctner.AgentId.String()}
 
 	return orch.startContainerRemoteOrch(ctner, addTearDownCall)
 }
@@ -109,7 +112,7 @@ func (orch *RemoteContainerOrchestrator) SetAgentLogger(container *arenaserverty
 
 		// Create log file
 		filename := logDir + "/" + container.AgentId.String() + ".log"
-		utils.Debug("agent-logs", "created file "+filename)
+		orch.events <- EventDebug{"created file " + filename}
 
 		handle, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0777)
 
@@ -130,12 +133,12 @@ func (orch *RemoteContainerOrchestrator) TearDown(container *arenaservertypes.Ag
 
 	err := orch.RemoveAgentContainer(container)
 	if err != nil {
-		utils.Debug("orch", "Cannot remove agent container: "+err.Error())
+		orch.events <- EventDebug{"Cannot remove agent container: " + err.Error()}
 	}
 }
 
 func (orch *RemoteContainerOrchestrator) RemoveAgentContainer(ctner *arenaservertypes.AgentContainer) error {
-	utils.Debug("orch", "Remove agent image "+ctner.ImageName)
+	orch.events <- EventDebug{"Remove agent image " + ctner.ImageName}
 
 	out, errImageRemove := orch.cli.ImageRemove(
 		orch.ctx,
@@ -146,7 +149,7 @@ func (orch *RemoteContainerOrchestrator) RemoveAgentContainer(ctner *arenaserver
 		},
 	)
 
-	utils.Debug("orch", "Removed "+strconv.Itoa(len(out))+" layers")
+	orch.events <- EventDebug{"Removed " + strconv.Itoa(len(out)) + " layers"}
 
 	return errImageRemove
 }
@@ -183,4 +186,8 @@ func (orch *RemoteContainerOrchestrator) GetRegistryAuth() string {
 
 func (orch *RemoteContainerOrchestrator) AddContainer(ctner *arenaservertypes.AgentContainer) {
 	orch.containers = append(orch.containers, ctner)
+}
+
+func (orch *RemoteContainerOrchestrator) Events() chan interface{} {
+	return orch.events
 }

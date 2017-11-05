@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	uuid "github.com/satori/go.uuid"
+	bettererrors "github.com/xtuc/better-errors"
 
 	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -33,7 +34,7 @@ func commonCreateAgentContainer(orch arenaservertypes.ContainerOrchestrator, age
 	normalizedDockerimage, err := normalizeDockerRef(dockerimage)
 
 	if err != nil {
-		return nil, err
+		return nil, bettererrors.NewFromErr(err)
 	}
 
 	localimages, _ := orch.GetCli().ImageList(orch.GetContext(), types.ImageListOptions{})
@@ -63,13 +64,13 @@ func commonCreateAgentContainer(orch arenaservertypes.ContainerOrchestrator, age
 		)
 
 		if err != nil {
-			return nil, errors.New("Failed to pull " + dockerimage + " from registry; " + err.Error())
+			return nil, bettererrors.NewFromString("Failed to pull from registry").With(bettererrors.NewFromErr(err)).SetContext("image", dockerimage)
 		}
 
 		defer reader.Close()
 
 		io.Copy(os.Stdout, reader)
-		utils.Debug("orch", "Pulled image successfully")
+		orch.Events() <- EventDebug{"Pulled image successfully"}
 	}
 
 	containerconfig := container.Config{
@@ -106,7 +107,7 @@ func commonCreateAgentContainer(orch arenaservertypes.ContainerOrchestrator, age
 		"agent-"+agentid.String(), // container name
 	)
 	if err != nil {
-		return nil, errors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
+		return nil, bettererrors.NewFromString("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
 	}
 
 	agentcontainer := arenaservertypes.NewAgentContainer(agentid, resp.ID, normalizedDockerimage)

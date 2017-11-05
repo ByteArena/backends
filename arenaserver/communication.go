@@ -3,6 +3,7 @@ package arenaserver
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"strconv"
 
@@ -11,13 +12,33 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/comm"
 	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"
+	pkgerrors "github.com/pkg/errors"
+)
+
+var (
+	LISTEN_ADDR = net.IP{0, 0, 0, 0}
 )
 
 func (s *Server) listen() chan interface{} {
-	serveraddress := "0.0.0.0:" + strconv.Itoa(s.port)
+	serveraddress := LISTEN_ADDR.String() + ":" + strconv.Itoa(s.port)
 	s.commserver = comm.NewCommServer(serveraddress)
 
-	utils.Debug("arena", "Server listening on port "+strconv.Itoa(s.port))
+	// Consum com server events
+	go func() {
+		for {
+			msg := <-s.commserver.Events()
+
+			switch t := msg.(type) {
+			case comm.EventLog:
+			case comm.EventError:
+				s.events <- EventLog{t.Value}
+			}
+
+		}
+
+	}()
+
+	s.events <- EventLog{"Server listening on port " + strconv.Itoa(s.port)}
 
 	err := s.commserver.Listen(s)
 	utils.Check(err, "Failed to listen on "+serveraddress)
@@ -68,7 +89,7 @@ func (s *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
 			var handshake arenaservertypes.AgentMessagePayloadHandshake
 			err = json.Unmarshal(msg.GetPayload(), &handshake)
 			if err != nil {
-				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent handshake payload for agent " + msg.GetAgentId().String() + "; " + string(msg.GetPayload()))
+				return pkgerrors.Wrapf(err, "DispatchAgentMessage: Failed to unmarshal agent's (%s) handshake", msg.GetAgentId().String())
 			}
 
 			ag, ok := agentproxy.(agent.AgentProxyNetworkInterface)
@@ -76,10 +97,19 @@ func (s *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
 				return errors.New("DispatchAgentMessage: Failed to cast agent to NetAgent during handshake for " + ag.String())
 			}
 
+			// Check if the agent uses a protocol version we know
+			if !utils.IsStringInArray(arenaservertypes.PROTOCOL_VERSIONS, handshake.Version) {
+				return errors.New(fmt.Sprintf(
+					"Unsupported agent's (%s) protocol version: %s",
+					ag.String(),
+					handshake.Version,
+				))
+			}
+
 			ag = ag.SetConn(msg.GetEmitterConn())
 			s.setAgentProxy(ag)
 
-			utils.Debug("arena", "Received handshake from agent "+ag.String()+"; agent said \""+handshake.GetGreetings()+"\"")
+			s.events <- EventLog{"Received handshake from agent " + ag.String() + ""}
 
 			s.nbhandshaked++
 

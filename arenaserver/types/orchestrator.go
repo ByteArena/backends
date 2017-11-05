@@ -22,4 +22,5 @@ type ContainerOrchestrator interface {
 	GetContext() context.Context
 	GetRegistryAuth() string
 	AddContainer(*AgentContainer)
+	Events() chan interface{}
 }

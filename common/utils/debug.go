@@ -17,7 +17,15 @@ type Message struct {
 	Context Context `json:"context"`
 }
 
+var (
+	LogFn = debug
+)
+
 func Debug(service string, message string) {
+	LogFn(service, message)
+}
+
+func debug(service string, message string) {
 	context := make(Context, 0)
 
 	if hostname, err := os.Hostname(); err == nil {
