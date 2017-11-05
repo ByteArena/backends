@@ -3,19 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"math/rand"
-	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"time"
 
 	notify "github.com/bitly/go-notify"
-	"github.com/jroimartin/gocui"
 	"github.com/skratchdot/open-golang/open"
-
-	_ "net/http/pprof"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
@@ -46,14 +41,7 @@ func debug(str string) {
 	fmt.Println(str)
 }
 
-// Will be used to shutdown properly the gm in case of a failure
-var output *TrainerOutput
-
 func failWith(err error) {
-	if output != nil {
-		output.Close()
-	}
-
 	if bettererrors.IsBetterError(err) {
 
 		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
@@ -97,10 +85,6 @@ func main() {
 	flag.Var(&agentimages, "agent", "Agent image in docker; example netgusto/meatgrinder")
 
 	flag.Parse()
-
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
 
 	if *host == "" {
 		ip, err := utils.GetCurrentIP()
@@ -147,16 +131,6 @@ func main() {
 		}
 	}
 
-	// Run UI
-	output = NewTrainerOutput()
-
-	go func() {
-		err := output.Run()
-		if err != nil {
-			failWith(err)
-		}
-	}()
-
 	gamedescription := NewMockGame(*tickspersec)
 	for _, contestant := range agentimages {
 		gamedescription.AddContestant(contestant)
@@ -179,11 +153,11 @@ func main() {
 
 			switch t := msg.(type) {
 			case arenaserver.EventStatusGameUpdate:
-				output.LogGameStatus(t.Status)
+				fmt.Println(t.Status)
 
 			case arenaserver.EventAgentLog:
 			case arenaserver.EventLog:
-				output.LogInfo(t.Value)
+				fmt.Println(t.Value)
 
 			case arenaserver.EventClose:
 				return
@@ -193,15 +167,9 @@ func main() {
 
 	go func() {
 		utils.LogFn = func(service, message string) {
-			output.LogInfo(message)
+			fmt.Println(message)
 		}
 	}()
-
-	output.OnQuit(func() {
-		srv.Stop()
-		<-time.After(10 * time.Second)
-		os.Exit(1)
-	})
 
 	for _, contestant := range gamedescription.GetContestants() {
 		var image string
@@ -277,22 +245,6 @@ func main() {
 		open.Run(url)
 	}
 	fmt.Println("\033[0;34m\nGame running at " + url + "\033[0m\n")
-
-	g, err := gocui.NewGui(gocui.OutputNormal)
-	if err != nil {
-		panic(err)
-	}
-	defer g.Close()
-
-	g.SetManagerFunc(layout)
-
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-		log.Panicln(err)
-	}
-
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
-		log.Panicln(err)
-	}
 
 	<-serverChan
 

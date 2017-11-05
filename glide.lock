@@ -1,5 +1,5 @@
-hash: bc041c45b80484411fff6c5ba32a8ce7cf43eb3a035d68c38ebef5f7489a4b02
-updated: 2017-11-05T16:38:59.908829713+01:00
+hash: 9ead2b2b48f45c4c6110c979b5d5a243627610689dad18b9c667a9bde9cf8c24
+updated: 2017-11-05T18:30:17.07638717+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -12,7 +12,7 @@ imports:
 - name: github.com/bytearena/ecs
   version: 9807b7a979332b86419262a53b2b7e2295f98a9a
 - name: github.com/bytearena/schnapps
-  version: a0b7db4a82082dc65d17580b1f84464ba14cf6c8
+  version: 26c1054ec1fe6c48e8e84bf10ee7f69552765c4f
   subpackages:
   - cli
   - dhcp
@@ -29,7 +29,7 @@ imports:
 - name: github.com/cheggaaa/pb
   version: fec330ed6ef74d0a026da2c639821ee0d9f97687
 - name: github.com/chzyer/readline
-  version: a4d5111b617813c5d09df1ba6d76394ed71b1644
+  version: 6a4bc7b4feaeff8feb63f87d5fb2cf3e3610a559
 - name: github.com/containerd/continuity
   version: 1bed1ecb1dc42d8f4d2ac8c23e5cac64749e82c9
   subpackages:
@@ -45,7 +45,7 @@ imports:
 - name: github.com/dhconnelly/rtreego
   version: 1323b09fe8f32430ea7e16ea1df99e106e3e6250
 - name: github.com/digitalocean/go-libvirt
-  version: 8b2644f7ffc365c0375f1705c921ed72a399817d
+  version: a339d0ac95059a40f3e505ef3be370e9a902b852
   subpackages:
   - internal/constants
 - name: github.com/digitalocean/go-qemu
@@ -123,8 +123,6 @@ imports:
   - client/v2
   - models
   - pkg/escape
-- name: github.com/jroimartin/gocui
-  version: 4f518eddb04b8f73870836b6d1941e8aa3c06637
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/mattn/go-colorable
@@ -133,12 +131,10 @@ imports:
 - name: github.com/mattn/go-isatty
   version: 57fdcb988a5c543893cc61bce354a6e24ab70022
   repo: https://github.com/mattn/go-isatty
-- name: github.com/mattn/go-runewidth
-  version: 97311d9f7767e3d6f422ea06661bc2c7a19e8a5d
 - name: github.com/Microsoft/go-winio
   version: 78439966b38d69bf38227fbf57ac8a6fee70f69a
 - name: github.com/miekg/dns
-  version: b38dc3dcb734f6ca3a830a1f92edf188330956c5
+  version: 822ae18e7187e1bbde923a37081f6c1b8e9ba68a
   subpackages:
   - internal/socket
 - name: github.com/netgusto/poly2tri-go
@@ -148,7 +144,7 @@ imports:
 - name: github.com/opencontainers/go-digest
   version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
 - name: github.com/opencontainers/image-spec
-  version: 89b51c794e9113108a2914e38e66c826a649f2b5
+  version: 7c889fafd04a893f5c5f50b7ab9963d5d64e5242
   subpackages:
   - specs-go
   - specs-go/v1
@@ -185,7 +181,7 @@ imports:
   subpackages:
   - math/f64
 - name: golang.org/x/net
-  version: 01c190206fbdffa42f334f4b2bf2220f50e64920
+  version: aabf50738bcdd9b207582cbe796b59ed65d56680
   subpackages:
   - context
   - context/ctxhttp

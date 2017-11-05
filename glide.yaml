@@ -60,6 +60,4 @@ import:
 - package: github.com/cheggaaa/pb
   version: v2.0.5
 - package: github.com/xtuc/better-errors
-- package: github.com/jroimartin/gocui
-  version: 4f518eddb04b8f73870836b6d1941e8aa3c06637
 - package: github.com/nsf/termbox-go
