@@ -28,6 +28,7 @@ func NewTrainerOutput() *TrainerOutput {
 }
 
 func (ui *TrainerOutput) Run() error {
+
 	gm, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
 		panic(err)
@@ -89,6 +90,7 @@ func (ui *TrainerOutput) OnQuit(fn func()) {
 }
 
 func (ui *TrainerOutput) LogInfo(msg string) error {
+
 	view, err := ui.gm.View(LOG_VIEW_NAME)
 
 	if err != nil {
@@ -117,6 +119,7 @@ func (ui *TrainerOutput) LogInfo(msg string) error {
 }
 
 func (ui *TrainerOutput) LogGameStatus(msg string) error {
+
 	view, err := ui.gm.View(STATUS_VIEW_NAME)
 
 	if err != nil {

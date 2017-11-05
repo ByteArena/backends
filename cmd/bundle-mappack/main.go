@@ -99,7 +99,7 @@ func main() {
 	zipid := res[0][1]
 
 	// On détermine le chemin du fichier de modèle
-	configJson, err := ioutil.ReadFile(zipOutPath + "/config.json")
+	configJSON, err := ioutil.ReadFile(zipOutPath + "/config.json")
 	if err != nil {
 		panic(err)
 	}
@@ -109,26 +109,26 @@ func main() {
 		Name string `json:"name"`
 		File struct {
 			Filename string `json:"filename"`
-			Url      string `json:"url"`
+			URL      string `json:"url"`
 		} `json:"file"`
 	}
 
 	configWhole := make(map[string]json.RawMessage)
-	json.Unmarshal(configJson, &configWhole)
+	json.Unmarshal(configJSON, &configWhole)
 	configAssets := make(map[string]configAsset)
 	json.Unmarshal(configWhole["assets"], &configAssets)
 
-	modelUrl := ""
+	modelURL := ""
 	modelFilename := ""
 	for _, asset := range configAssets {
 		if asset.Type == "model" {
-			modelUrl = asset.File.Url
+			modelURL = asset.File.URL
 			modelFilename = asset.File.Filename
 			break
 		}
 	}
 
-	if modelUrl == "" || modelFilename == "" {
+	if modelURL == "" || modelFilename == "" {
 		panic("Could not determine the name of the model asset")
 	}
 
@@ -140,11 +140,10 @@ func main() {
 
 	// On crée les répertoires
 	dirs := []string{
-		"assets",
-		"assets/js",
-		"assets/css",
-		"assets/json",
-		"assets/img",
+		"js",
+		"css",
+		"json",
+		"img",
 	}
 
 	for _, dir := range dirs {
@@ -157,20 +156,19 @@ func main() {
 	// On copie les fichiers
 	filecopy := make(map[string]string)
 	//filecopy["index.html"] = "index.html"
-	filecopy["manifest.json"] = "assets/json/manifest.json"
-	filecopy["playcanvas-stable.min.js"] = "assets/js/playcanvas-stable.min.js"
-	filecopy["styles.css"] = "assets/css/styles.css"
-	filecopy["__loading__.js"] = "assets/js/loading.js"
-	filecopy["__start__.js"] = "assets/js/start.js"
-	filecopy["__game-scripts.js"] = "assets/js/game-scripts.js"
-	//filecopy["config.json"] = "assets/json/config.json"
-	filecopy[zipid+".json"] = "assets/json/scene.json"
-	filecopy[modelUrl] = "assets/json/model.json"
+	filecopy["manifest.json"] = "json/manifest.json"
+	filecopy["playcanvas-stable.min.js"] = "js/playcanvas-stable.min.js"
+	filecopy["styles.css"] = "css/styles.css"
+	filecopy["__loading__.js"] = "js/loading.js"
+	filecopy["__start__.js"] = "js/start.js"
+	filecopy["__game-scripts.js"] = "js/game-scripts.js"
+	filecopy[zipid+".json"] = "json/scene.json"
+	filecopy[modelURL] = "json/model.json"
 
 	assetsRename := make(map[string]string)
-	assetsRename[modelUrl] = "assets/json/model.json"
+	assetsRename[modelURL] = "json/model.json"
 	assetsRename[modelFilename] = "model.json"
-	assetsRename["__game-scripts.js"] = "assets/js/game-scripts.js"
+	assetsRename["__game-scripts.js"] = "js/game-scripts.js"
 
 	for _, filepath := range unzippedfiles {
 
@@ -189,11 +187,11 @@ func main() {
 		}
 
 		if strings.HasSuffix(filename, ".png") || strings.HasSuffix(filename, ".jpg") {
-			filecopy[relFilePath] = "assets/img/" + filename
+			filecopy[relFilePath] = "img/" + filename
 		} else if strings.HasSuffix(filename, ".json") {
-			filecopy[relFilePath] = "assets/json/" + filename
+			filecopy[relFilePath] = "json/" + filename
 		} else if strings.HasSuffix(filename, ".js") {
-			filecopy[relFilePath] = "assets/js/" + filename
+			filecopy[relFilePath] = "js/" + filename
 		} else {
 			panic("Unknown asset type " + filename)
 		}
@@ -209,14 +207,14 @@ func main() {
 	// On remplace les chemins dans index.html
 
 	indexReplacements := make(map[string]string)
-	indexReplacements["styles.css"] = "assets/css/styles.css"
-	indexReplacements["manifest.json"] = "assets/json/manifest.json"
-	indexReplacements["playcanvas-stable.min.js"] = "assets/js/playcanvas-stable.min.js"
-	indexReplacements[zipid+".json"] = "assets/json/scene.json"
-	indexReplacements["config.json"] = "assets/json/config.json"
+	indexReplacements["styles.css"] = "css/styles.css"
+	indexReplacements["manifest.json"] = "json/manifest.json"
+	indexReplacements["playcanvas-stable.min.js"] = "js/playcanvas-stable.min.js"
+	indexReplacements[zipid+".json"] = "json/scene.json"
+	indexReplacements["config.json"] = "json/config.json"
 	indexReplacements["SCRIPTS = ["] = "//SCRIPTS = ["
-	indexReplacements["__start__.js"] = "assets/js/start.js"
-	indexReplacements["__loading__.js"] = "assets/js/loading.js"
+	indexReplacements["__start__.js"] = "js/start.js"
+	indexReplacements["__loading__.js"] = "js/loading.js"
 
 	indexContentsStr := string(indexContents)
 	for from, to := range indexReplacements {
@@ -240,7 +238,7 @@ func main() {
 		configContentsStr = strings.Replace(configContentsStr, from, to, -1)
 	}
 
-	err = ioutil.WriteFile(newOutPath+"/assets/json/config.json", []byte(configContentsStr), 0700)
+	err = ioutil.WriteFile(newOutPath+"/json/config.json", []byte(configContentsStr), 0700)
 	if err != nil {
 		panic(err)
 	}
@@ -249,7 +247,7 @@ func main() {
 	cmdGzip := exec.Command(
 		"gzip",
 		"--best",
-		newOutPath+"/"+filecopy[modelUrl],
+		newOutPath+"/"+filecopy[modelURL],
 	)
 
 	cmdGzip.Env = nil

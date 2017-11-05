@@ -39,7 +39,7 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 	s.setAgentProxy(agentproxy)
 	s.agentimages[agentproxy.GetProxyUUID()] = agentimage
 
-	s.Log(EventLog{"Registrer agent " + agentimage})
+	s.Log(EventLog{"Register agent " + agentimage})
 }
 
 func (s *Server) startAgentContainers() error {
@@ -67,6 +67,8 @@ func (s *Server) startAgentContainers() error {
 		go func() {
 			for {
 				msg := <-s.containerorchestrator.Events()
+
+				//spew.Dump(msg)
 
 				switch t := msg.(type) {
 				case containertypes.EventAgentLog:

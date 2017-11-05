@@ -12,6 +12,7 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
+	"github.com/jroimartin/gocui"
 	"github.com/skratchdot/open-golang/open"
 
 	_ "net/http/pprof"
@@ -54,6 +55,7 @@ func failWith(err error) {
 	}
 
 	if bettererrors.IsBetterError(err) {
+
 		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
 
 		urlOptions := url.Values{}
@@ -85,7 +87,7 @@ var (
 	host             = flag.String("host", "", "IP serving the trainer; required")
 	port             = flag.Int("port", 8080, "Port serving the trainer")
 	recordFile       = flag.String("record-file", "", "Destination file for recording the game")
-	doNotOpenBrowser = flag.Bool("do-not-open-browser", false, "Disable automatic browser opening at start")
+	doNotOpenBrowser = flag.Bool("no-browser", false, "Disable automatic browser opening at start")
 )
 
 func main() {
@@ -233,10 +235,10 @@ func main() {
 	recorder.RecordMetadata(gamedescription.GetId(), gamedescription.GetMapContainer())
 
 	brokerclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
-		gameId := gamedescription.GetId()
+		gameID := gamedescription.GetId()
 
-		recorder.Record(gameId, string(msg.Data))
-		notify.PostTimeout("viz:message:"+gameId, string(msg.Data), time.Millisecond)
+		recorder.Record(gameID, string(msg.Data))
+		notify.PostTimeout("viz:message:"+gameID, string(msg.Data), time.Millisecond)
 	})
 
 	// TODO(jerome): refac webclient path / serving
@@ -273,6 +275,23 @@ func main() {
 
 	if !*doNotOpenBrowser {
 		open.Run(url)
+	}
+	fmt.Println("\033[0;34m\nGame running at " + url + "\033[0m\n")
+
+	g, err := gocui.NewGui(gocui.OutputNormal)
+	if err != nil {
+		panic(err)
+	}
+	defer g.Close()
+
+	g.SetManagerFunc(layout)
+
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+		log.Panicln(err)
+	}
+
+	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+		log.Panicln(err)
 	}
 
 	<-serverChan

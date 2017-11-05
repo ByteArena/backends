@@ -1,5 +1,5 @@
-hash: 9e39eb05bdb47d3c8061e67f46abea1328f4d2963ed0e93f90b17069337f3ad9
-updated: 2017-11-03T18:53:19.63539649+01:00
+hash: bc041c45b80484411fff6c5ba32a8ce7cf43eb3a035d68c38ebef5f7489a4b02
+updated: 2017-11-05T16:38:59.908829713+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -12,7 +12,7 @@ imports:
 - name: github.com/bytearena/ecs
   version: 9807b7a979332b86419262a53b2b7e2295f98a9a
 - name: github.com/bytearena/schnapps
-  version: 26c1054ec1fe6c48e8e84bf10ee7f69552765c4f
+  version: a0b7db4a82082dc65d17580b1f84464ba14cf6c8
   subpackages:
   - cli
   - dhcp
@@ -29,7 +29,7 @@ imports:
 - name: github.com/cheggaaa/pb
   version: fec330ed6ef74d0a026da2c639821ee0d9f97687
 - name: github.com/chzyer/readline
-  version: 6a4bc7b4feaeff8feb63f87d5fb2cf3e3610a559
+  version: a4d5111b617813c5d09df1ba6d76394ed71b1644
 - name: github.com/containerd/continuity
   version: 1bed1ecb1dc42d8f4d2ac8c23e5cac64749e82c9
   subpackages:
@@ -45,7 +45,7 @@ imports:
 - name: github.com/dhconnelly/rtreego
   version: 1323b09fe8f32430ea7e16ea1df99e106e3e6250
 - name: github.com/digitalocean/go-libvirt
-  version: a339d0ac95059a40f3e505ef3be370e9a902b852
+  version: 8b2644f7ffc365c0375f1705c921ed72a399817d
   subpackages:
   - internal/constants
 - name: github.com/digitalocean/go-qemu
@@ -124,7 +124,7 @@ imports:
   - models
   - pkg/escape
 - name: github.com/jroimartin/gocui
-  version: 4e9ce9a8e26f2ef33dfe297dbdfca148733b6b9b
+  version: 4f518eddb04b8f73870836b6d1941e8aa3c06637
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/mattn/go-colorable
@@ -133,18 +133,22 @@ imports:
 - name: github.com/mattn/go-isatty
   version: 57fdcb988a5c543893cc61bce354a6e24ab70022
   repo: https://github.com/mattn/go-isatty
+- name: github.com/mattn/go-runewidth
+  version: 97311d9f7767e3d6f422ea06661bc2c7a19e8a5d
 - name: github.com/Microsoft/go-winio
   version: 78439966b38d69bf38227fbf57ac8a6fee70f69a
 - name: github.com/miekg/dns
-  version: 822ae18e7187e1bbde923a37081f6c1b8e9ba68a
+  version: b38dc3dcb734f6ca3a830a1f92edf188330956c5
   subpackages:
   - internal/socket
 - name: github.com/netgusto/poly2tri-go
   version: d102ad91854fea433a859be7b7de879439911aeb
+- name: github.com/nsf/termbox-go
+  version: aa4a75b1c20a2b03751b1a9f7e41d58bd6f71c43
 - name: github.com/opencontainers/go-digest
   version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
 - name: github.com/opencontainers/image-spec
-  version: 7c889fafd04a893f5c5f50b7ab9963d5d64e5242
+  version: 89b51c794e9113108a2914e38e66c826a649f2b5
   subpackages:
   - specs-go
   - specs-go/v1
@@ -181,7 +185,7 @@ imports:
   subpackages:
   - math/f64
 - name: golang.org/x/net
-  version: aabf50738bcdd9b207582cbe796b59ed65d56680
+  version: 01c190206fbdffa42f334f4b2bf2220f50e64920
   subpackages:
   - context
   - context/ctxhttp
