@@ -230,7 +230,7 @@ func main() {
 	vizservice := vizserver.NewVizService(
 		"0.0.0.0:"+strconv.Itoa(*port+1),
 		webclientpath,
-		"training-dojo",
+		"viz-island",
 		func() ([]*types.VizGame, error) { return vizgames, nil },
 		recorder,
 		mappack,
