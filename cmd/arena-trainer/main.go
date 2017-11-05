@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -156,11 +157,16 @@ func main() {
 				fmt.Println(t.Status)
 
 			case arenaserver.EventAgentLog:
+				fmt.Println("agent", t.Value)
 			case arenaserver.EventLog:
-				fmt.Println(t.Value)
+				fmt.Println("log", t.Value)
 
 			case arenaserver.EventClose:
 				return
+
+			default:
+				msg := fmt.Sprintf("Unsupported message of type %s", reflect.TypeOf(msg))
+				panic(msg)
 			}
 		}
 	}()

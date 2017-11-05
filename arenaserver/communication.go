@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"reflect"
 	"strconv"
 
 	notify "github.com/bitly/go-notify"
@@ -32,6 +33,9 @@ func (s *Server) listen() chan interface{} {
 			case comm.EventLog:
 			case comm.EventError:
 				s.events <- EventLog{t.Value}
+			default:
+				msg := fmt.Sprintf("Unsupported message of type %s", reflect.TypeOf(msg))
+				panic(msg)
 			}
 
 		}

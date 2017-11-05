@@ -2,6 +2,8 @@ package arenaserver
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
 
 	"github.com/bytearena/bytearena/common/utils/vector"
 
@@ -68,11 +70,14 @@ func (s *Server) startAgentContainers() error {
 			for {
 				msg := <-s.containerorchestrator.Events()
 
-				//spew.Dump(msg)
-
 				switch t := msg.(type) {
+				case containertypes.EventDebug:
+					s.Log(EventLog{t.Value})
 				case containertypes.EventAgentLog:
 					s.Log(EventAgentLog{t.Value})
+				default:
+					msg := fmt.Sprintf("Unsupported Orchestrator message of type %s", reflect.TypeOf(msg))
+					panic(msg)
 				}
 			}
 		}()
