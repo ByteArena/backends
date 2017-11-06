@@ -26,6 +26,7 @@ type EventStatusGameUpdate struct{ Status string }
 type EventClose struct{}
 type EventLog struct{ Value string }
 type EventError struct{ Err error }
+type EventDebug struct{ Value string }
 type EventWarn struct{ Err error }
 type EventAgentLog struct{ Value string }
 type EventOrchestratorLog struct{ Value string }
@@ -168,7 +169,7 @@ func (server *Server) Start() (chan interface{}, error) {
 func (server *Server) Stop() {
 	server.gameIsRunning = false
 
-	server.Log(EventLog{"TearDown from stop"})
+	server.Log(EventDebug{"TearDown from stop"})
 	server.TearDown()
 }
 
@@ -324,7 +325,7 @@ func (s *Server) AddTearDownCall(fn types.TearDownCallback) {
 }
 
 func (server *Server) TearDown() {
-	server.events <- EventLog{"teardown"}
+	server.events <- EventDebug{"teardown"}
 	server.containerorchestrator.TearDownAll()
 
 	server.tearDownCallbacksMutex.Lock()

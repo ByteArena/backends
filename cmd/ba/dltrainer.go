@@ -162,7 +162,7 @@ func getMapLocally() (*os.File, error) {
 	return f, nil
 }
 
-func updateMap(mapManifest manifest) error {
+func updateMap(mapManifest manifest, debug func(str string)) error {
 	if isMapLocally() {
 		mapChecksum, err := getLocalMapChecksum()
 		if err != nil {

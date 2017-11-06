@@ -39,10 +39,6 @@ func (i *arrayFlags) Set(value string) error {
 	return nil
 }
 
-func debug(str string) {
-	fmt.Println(str)
-}
-
 func failWith(err error) {
 	if bettererrors.IsBetterError(err) {
 
@@ -79,7 +75,7 @@ func warnWith(err error) {
 		fmt.Print(msg)
 
 	} else {
-		debug(err.Error())
+		fmt.Println(err.Error())
 	}
 }
 
@@ -110,15 +106,17 @@ func makeapp() *cli.App {
 				cli.IntFlag{Name: "port", Value: 8080, Usage: "Port serving the trainer"},
 				cli.StringFlag{Name: "record-file", Value: "", Usage: "Destination file for recording the game"},
 				cli.BoolFlag{Name: "no-browser", Usage: "Disable automatic browser opening at start"},
+				cli.BoolFlag{Name: "debug", Usage: "Enable debug logging"},
 			},
 			Action: func(c *cli.Context) error {
 				nobrowser := c.Bool("no-browser")
+				isDebug := c.Bool("debug")
 				tps := c.Int("tps")
 				host := c.String("host")
 				port := c.Int("port")
 				recordFile := c.String("record-file")
 				agents := c.StringSlice("agent")
-				trainAction(tps, host, port, nobrowser, recordFile, agents)
+				trainAction(tps, host, port, nobrowser, recordFile, agents, isDebug)
 				return nil
 			},
 		},
@@ -126,12 +124,25 @@ func makeapp() *cli.App {
 			Name:    "map",
 			Aliases: []string{},
 			Usage:   "Operations on map packs",
+			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "debug", Usage: "Enable debug logging"},
+			},
 			Subcommands: []cli.Command{
 				{
 					Name:  "update",
 					Usage: "Update or fetch the trainer map",
 					Action: func(c *cli.Context) error {
-						mapUpdateAction()
+						isDebug := c.Bool("debug")
+
+						debug := func(str string) {}
+
+						if isDebug {
+							debug = func(str string) {
+								fmt.Println(str)
+							}
+						}
+
+						mapUpdateAction(debug)
 						return nil
 					},
 				},
@@ -142,7 +153,15 @@ func makeapp() *cli.App {
 	return app
 }
 
-func trainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string) {
+func trainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string, isDebug bool) {
+	debug := func(str string) {}
+
+	if isDebug {
+		debug = func(str string) {
+			fmt.Println(str)
+		}
+	}
+
 	if host == "" {
 		ip, err := utils.GetCurrentIP()
 		utils.Check(err, "Could not determine host IP; you can specify using the `--host` flag.")
@@ -207,6 +226,9 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 			case arenaserver.EventLog:
 				fmt.Println("log", t.Value)
 
+			case arenaserver.EventDebug:
+				debug(t.Value)
+
 			case arenaserver.EventError:
 				failWith(t.Err)
 
@@ -244,7 +266,7 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 	// handling signals
 	go func() {
 		<-common.SignalHandler()
-		debug("RECEIVED SHUTDOWN SIGNAL; closing.")
+		debug("Shutdown...")
 		srv.Stop()
 
 		<-time.After(10 * time.Second)
@@ -315,7 +337,7 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 }
 
-func mapUpdateAction() {
+func mapUpdateAction(debug func(str string)) {
 	mapChecksum, err := getLocalMapChecksum()
 	if err != nil {
 		// Local map has never been downloaded

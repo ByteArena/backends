@@ -125,7 +125,7 @@ func (s *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
 			ag = ag.SetConn(msg.GetEmitterConn())
 			s.setAgentProxy(ag)
 
-			s.events <- EventLog{"Received handshake from agent " + ag.String() + ""}
+			s.events <- EventDebug{"Received handshake from agent " + ag.String() + ""}
 
 			s.nbhandshaked++
 
