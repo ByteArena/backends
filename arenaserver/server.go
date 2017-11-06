@@ -27,6 +27,7 @@ const debug = false
 type EventStatusGameUpdate struct{ Status string }
 type EventClose struct{}
 type EventLog struct{ Value string }
+type EventError struct{ Err error }
 type EventAgentLog struct{ Value string }
 type EventOrchestratorLog struct{ Value string }
 
@@ -285,7 +286,11 @@ func (server *Server) doTick() {
 				server,
 			)
 			if err != nil {
-				server.Log(EventLog{"ERROR: could not set perception on agent " + agentproxy.GetProxyUUID().String()})
+				berror := bettererrors.
+					NewFromString("Failed to start agent containers").
+					SetContext("agent", agentproxy.GetProxyUUID().String())
+
+				server.Log(EventError{berror})
 			}
 
 		}(server, agentproxy, arenamap)

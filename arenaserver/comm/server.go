@@ -7,10 +7,12 @@ import (
 	"net"
 
 	"github.com/bytearena/bytearena/arenaserver/types"
+
+	bettererrors "github.com/xtuc/better-errors"
 )
 
 type EventLog struct{ Value string }
-type EventError struct{ Value string }
+type EventError struct{ Err error }
 
 type CommDispatcherInterface interface {
 	DispatchAgentMessage(msg types.AgentMessage) error
@@ -58,7 +60,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 
 			conn, err := s.listener.Accept()
 			if err != nil {
-				s.Log(EventError{"ERROR !! " + err.Error()})
+				s.Log(EventError{err})
 				continue
 			}
 
@@ -85,7 +87,11 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 						go func() {
 							err := dispatcher.DispatchAgentMessage(msg)
 							if err != nil {
-								s.Log(EventLog{"Failed to dispatch agent message; " + err.Error()})
+								berror := bettererrors.
+									NewFromString("Failed to dispatch agent message").
+									With(err)
+
+								s.Log(EventError{berror})
 							}
 						}()
 					}

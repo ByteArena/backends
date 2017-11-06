@@ -14,6 +14,8 @@ import (
 	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"
 	pkgerrors "github.com/pkg/errors"
+
+	bettererrors "github.com/xtuc/better-errors"
 )
 
 var (
@@ -31,8 +33,9 @@ func (s *Server) listen() chan interface{} {
 
 			switch t := msg.(type) {
 			case comm.EventLog:
+				s.Log(EventLog{t.Value})
 			case comm.EventError:
-				s.events <- EventLog{t.Value}
+				s.Log(EventError{t.Err})
 			default:
 				msg := fmt.Sprintf("Unsupported message of type %s", reflect.TypeOf(msg))
 				panic(msg)
@@ -102,12 +105,15 @@ func (s *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
 			}
 
 			// Check if the agent uses a protocol version we know
+			if handshake.Version == "" {
+				handshake.Version = "UNKNOWN"
+			}
+
 			if !utils.IsStringInArray(arenaservertypes.PROTOCOL_VERSIONS, handshake.Version) {
-				return errors.New(fmt.Sprintf(
-					"Unsupported agent's (%s) protocol version: %s",
-					ag.String(),
-					handshake.Version,
-				))
+				return bettererrors.
+					NewFromString("Unsupported agent protocol").
+					SetContext("agent", ag.String()).
+					SetContext("protocol version", handshake.Version)
 			}
 
 			ag = ag.SetConn(msg.GetEmitterConn())
