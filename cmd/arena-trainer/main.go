@@ -12,6 +12,7 @@ import (
 
 	notify "github.com/bitly/go-notify"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/urfave/cli"
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
@@ -71,26 +72,66 @@ func runPreflightChecks() {
 	ensureDockerIsAvailable()
 }
 
-var (
-	tickspersec      = flag.Int("tps", 10, "Number of ticks per second")
-	host             = flag.String("host", "", "IP serving the trainer; required")
-	port             = flag.Int("port", 8080, "Port serving the trainer")
-	recordFile       = flag.String("record-file", "", "Destination file for recording the game")
-	doNotOpenBrowser = flag.Bool("no-browser", false, "Disable automatic browser opening at start")
-)
-
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	var agentimages arrayFlags
-	flag.Var(&agentimages, "agent", "Agent image in docker; example netgusto/meatgrinder")
+	app := makeapp()
+	app.Run(os.Args)
 
-	flag.Parse()
+}
 
-	if *host == "" {
+func makeapp() *cli.App {
+	app := cli.NewApp()
+
+	app.Commands = []cli.Command{
+		{
+			Name:    "trainer",
+			Aliases: []string{"t"},
+			Usage:   "Train your agent",
+			Flags: []cli.Flag{
+				cli.IntFlag{Name: "tps", Value: 10, Usage: "Number of ticks per second"},
+				cli.StringFlag{Name: "host", Value: "", Usage: "IP serving the trainer; required"},
+				cli.StringSliceFlag{Name: "agent", Usage: "Agent images"},
+				cli.IntFlag{Name: "port", Value: 8080, Usage: "Port serving the trainer"},
+				cli.StringFlag{Name: "record-file", Value: "", Usage: "Destination file for recording the game"},
+				cli.BoolFlag{Name: "no-browser", Usage: "Disable automatic browser opening at start"},
+			},
+			Action: func(c *cli.Context) error {
+				nobrowser := c.Bool("no-browser")
+				tps := c.Int("tps")
+				host := c.String("host")
+				port := c.Int("port")
+				recordFile := c.String("record-file")
+				agents := c.StringSlice("agent")
+				trainAction(tps, host, port, nobrowser, recordFile, agents)
+				return nil
+			},
+		},
+		{
+			Name:    "map",
+			Aliases: []string{},
+			Usage:   "Operations on map packs",
+			Subcommands: []cli.Command{
+				{
+					Name:  "update",
+					Usage: "Update or fetch the trainer map",
+					Action: func(c *cli.Context) error {
+						mapUpdateAction()
+						return nil
+					},
+				},
+			},
+		},
+	}
+
+	return app
+}
+
+func trainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string) {
+	if host == "" {
 		ip, err := utils.GetCurrentIP()
 		utils.Check(err, "Could not determine host IP; you can specify using the `--host` flag.")
-		*host = ip
+		host = ip
 	}
 
 	if len(agentimages) == 0 {
@@ -101,30 +142,16 @@ func main() {
 
 	runPreflightChecks()
 
-	// Make sure map exists locally and is update to date.
-	mapManifest, errManifest := downloadAndGetManifest()
-	if errManifest != nil {
-		failWith(errManifest)
-	}
-
 	if isMapLocally() {
-		mapChecksum, err := getLocalMapChecksum()
-		if err != nil {
-			failWith(err)
-		}
-
-		if mapChecksum != mapManifest.Md5 {
-			debug("The map is outdated, downloading the new version...")
-
-			err := downloadMap(mapManifest)
-
-			if err != nil {
-				failWith(err)
-			}
-		}
+		// nothing to do
 	} else {
 		debug("Map doesn't exists locally, downloading...")
 
+		// Make sure map exists locally and is update to date.
+		mapManifest, errManifest := downloadAndGetManifest()
+		if errManifest != nil {
+			failWith(errManifest)
+		}
 		err := downloadMap(mapManifest)
 
 		if err != nil {
@@ -132,7 +159,7 @@ func main() {
 		}
 	}
 
-	gamedescription := NewMockGame(*tickspersec)
+	gamedescription := NewMockGame(tps)
 	for _, contestant := range agentimages {
 		gamedescription.AddContestant(contestant)
 	}
@@ -143,7 +170,7 @@ func main() {
 
 	game := deathmatch.NewDeathmatchGame(gamedescription)
 
-	srv := arenaserver.NewServer(*host, *port, container.MakeLocalContainerOrchestrator(*host), gamedescription, game, "", brokerclient)
+	srv := arenaserver.NewServer(host, port, container.MakeLocalContainerOrchestrator(host), gamedescription, game, "", brokerclient)
 
 	// consume server events
 	go func() {
@@ -202,8 +229,8 @@ func main() {
 	go common.StreamState(srv, brokerclient, "trainer")
 
 	var recorder recording.RecorderInterface = recording.MakeEmptyRecorder()
-	if *recordFile != "" {
-		recorder = recording.MakeSingleArenaRecorder(*recordFile)
+	if recordFile != "" {
+		recorder = recording.MakeSingleArenaRecorder(recordFile)
 	}
 
 	recorder.RecordMetadata(gamedescription.GetId(), gamedescription.GetMapContainer())
@@ -228,7 +255,7 @@ func main() {
 
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
 	vizservice := vizserver.NewVizService(
-		"0.0.0.0:"+strconv.Itoa(*port+1),
+		"0.0.0.0:"+strconv.Itoa(port+1),
 		webclientpath,
 		"viz-island",
 		func() ([]*types.VizGame, error) { return vizgames, nil },
@@ -245,9 +272,9 @@ func main() {
 		failWith(startErr)
 	}
 
-	url := "http://localhost:" + strconv.Itoa(*port+1) + "/arena/1"
+	url := "http://localhost:" + strconv.Itoa(port+1) + "/arena/1"
 
-	if !*doNotOpenBrowser {
+	if !nobrowser {
 		open.Run(url)
 	}
 	fmt.Println("\033[0;34m\nGame running at " + url + "\033[0m\n")
@@ -260,4 +287,33 @@ func main() {
 	recorder.Stop()
 
 	vizservice.Stop()
+
+}
+
+func mapUpdateAction() {
+	mapChecksum, err := getLocalMapChecksum()
+	if err != nil {
+		// failWith(err)
+		// Local map has never been downloaded
+		fmt.Println("Map does not exist locally; will have to be fetched.")
+	}
+
+	fmt.Println("Downloading map manifest from " + MANIFEST_URL)
+
+	mapManifest, errManifest := downloadAndGetManifest()
+	if errManifest != nil {
+		failWith(errManifest)
+	}
+
+	if mapChecksum != mapManifest.Md5 {
+		debug("The map is outdated, downloading the new version...")
+
+		err := downloadMap(mapManifest)
+
+		if err != nil {
+			failWith(err)
+		}
+	} else {
+		debug("The map is already up to date!")
+	}
 }
