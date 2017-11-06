@@ -74,7 +74,8 @@ func (s *Server) startAgentContainers() error {
 				case containertypes.EventDebug:
 					s.Log(EventLog{t.Value})
 				case containertypes.EventAgentLog:
-					s.Log(EventAgentLog{t.Value})
+					line := fmt.Sprintf("[%s] %s", t.AgentName, t.Value)
+					s.Log(EventAgentLog{line})
 				default:
 					msg := fmt.Sprintf("Unsupported Orchestrator message of type %s", reflect.TypeOf(msg))
 					panic(msg)

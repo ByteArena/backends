@@ -114,7 +114,10 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 					buf = buf[8:]
 				}
 
-				orch.events <- EventAgentLog{buf}
+				orch.events <- EventAgentLog{
+					Value:     buf,
+					AgentName: container.ImageName,
+				}
 			}
 		}
 

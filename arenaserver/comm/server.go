@@ -67,6 +67,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 
 			go func() {
 				defer conn.Close()
+
 				for {
 					reader := bufio.NewReader(conn)
 					buf, err := reader.ReadBytes('\n')
@@ -77,6 +78,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 
 						// Avoid crashes when agent crashes Issue #108
 						s.Log(EventWarn{berror})
+
 						return
 					}
 
@@ -84,7 +86,12 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 					var msg types.AgentMessage
 					err = json.Unmarshal(buf, &msg)
 					if err != nil {
-						s.Log(EventLog{"Failed to unmarshal incoming JSON in CommServer::Listen(); " + string(buf) + ";" + err.Error()})
+						berror := bettererrors.
+							NewFromString("Failed to unmarshal incoming JSON in CommServer::Listen()").
+							With(bettererrors.NewFromErr(err)).
+							SetContext("buff", string(buf))
+
+						s.Log(EventWarn{berror})
 					} else {
 						msg.EmitterConn = conn
 
