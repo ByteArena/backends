@@ -158,7 +158,7 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 	if isDebug {
 		debug = func(str string) {
-			fmt.Println(str)
+			fmt.Printf("debug %s\n", str)
 		}
 	}
 

@@ -292,10 +292,12 @@ func (server *Server) doTick() {
 				server.GetGame().GetAgentPerception(agentproxy.GetEntityId()),
 				server,
 			)
-			if err != nil {
+
+			if err != nil && server.gameIsRunning {
 				berror := bettererrors.
-					NewFromString("Failed to start agent containers").
-					SetContext("agent", agentproxy.GetProxyUUID().String())
+					NewFromString("Failed to send perception").
+					SetContext("agent", agentproxy.GetProxyUUID().String()).
+					With(bettererrors.NewFromErr(err))
 
 				server.Log(EventError{berror})
 			}
