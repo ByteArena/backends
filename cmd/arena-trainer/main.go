@@ -159,7 +159,10 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 		}
 	}
 
-	gamedescription := NewMockGame(tps)
+	gamedescription, err := NewMockGame(tps)
+	if err != nil {
+		failWith(err)
+	}
 	for _, contestant := range agentimages {
 		gamedescription.AddContestant(contestant)
 	}

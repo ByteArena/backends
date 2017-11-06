@@ -11,7 +11,8 @@ import (
 	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
-	"github.com/bytearena/bytearena/common/utils"
+
+	bettererrors "github.com/xtuc/better-errors"
 )
 
 type MockGame struct {
@@ -20,14 +21,17 @@ type MockGame struct {
 	mapContainer *mapcontainer.MapContainer
 }
 
-func NewMockGame(tps int) *MockGame {
+func NewMockGame(tps int) (*MockGame, error) {
 
 	// TODO(jerome): parametrize this
 	filepath := "../../maps/viz-island.json"
 	jsonsource, err := os.Open(filepath)
+
 	if err != nil {
-		utils.Debug("arena-trainer", "Error opening file:"+err.Error())
-		os.Exit(1)
+		return nil, bettererrors.
+			NewFromString("Error opening file").
+			With(bettererrors.NewFromErr(err)).
+			SetContext("file path", filepath)
 	}
 
 	defer jsonsource.Close()
@@ -36,15 +40,17 @@ func NewMockGame(tps int) *MockGame {
 
 	var mapContainer mapcontainer.MapContainer
 	if err := json.Unmarshal(bjsonmap, &mapContainer); err != nil {
-		utils.Debug("arena-trainer", "Could not load map JSON; "+err.Error())
-		os.Exit(1)
+
+		return nil, bettererrors.
+			NewFromString("Could not load map JSON; ").
+			With(bettererrors.NewFromErr(err))
 	}
 
 	return &MockGame{
 		tps:          tps,
 		contestants:  make([]types.Contestant, 0),
 		mapContainer: &mapContainer,
-	}
+	}, nil
 }
 
 func (game *MockGame) GetId() string {
