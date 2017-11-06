@@ -105,6 +105,17 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 		for {
 			buf, _ := utils.ReadFullLine(r)
 			if buf != "" {
+
+				/*
+					This is to remove Docker log header.
+					First 8 bytes are part of the header.
+
+					TODO(sven): disable it somehow in the deamon
+				*/
+				if len(buf) > 8 {
+					buf = buf[8:]
+				}
+
 				orch.events <- EventAgentLog{buf}
 			}
 		}

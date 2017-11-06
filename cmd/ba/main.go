@@ -190,6 +190,8 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 				fmt.Println("agent", t.Value)
 			case arenaserver.EventLog:
 				fmt.Println("log", t.Value)
+			case arenaserver.EventError:
+				failWith(t.Err)
 
 			case arenaserver.EventClose:
 				return
