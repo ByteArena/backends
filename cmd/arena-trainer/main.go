@@ -67,6 +67,23 @@ func failWith(err error) {
 	}
 }
 
+func warnWith(err error) {
+
+	if bettererrors.IsBetterError(err) {
+		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
+		fmt.Println("")
+		fmt.Println("=== ")
+		fmt.Println("=== warning")
+		fmt.Println("===")
+		fmt.Println("")
+
+		fmt.Print(msg)
+		fmt.Println("")
+	} else {
+		fmt.Println(err.Error())
+	}
+}
+
 func runPreflightChecks() {
 	ensureDockerIsAvailable()
 }
@@ -104,30 +121,9 @@ func main() {
 	// Make sure map exists locally and is update to date.
 	mapManifest, errManifest := downloadAndGetManifest()
 	if errManifest != nil {
-		failWith(errManifest)
-	}
-
-	if isMapLocally() {
-		mapChecksum, err := getLocalMapChecksum()
-		if err != nil {
-			failWith(err)
-		}
-
-		if mapChecksum != mapManifest.Md5 {
-			debug("The map is outdated, downloading the new version...")
-
-			err := downloadMap(mapManifest)
-
-			if err != nil {
-				failWith(err)
-			}
-		}
+		warnWith(errManifest)
 	} else {
-		debug("Map doesn't exists locally, downloading...")
-
-		err := downloadMap(mapManifest)
-
-		if err != nil {
+		if err := updateMap(mapManifest); err != nil {
 			failWith(err)
 		}
 	}

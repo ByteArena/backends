@@ -161,3 +161,32 @@ func getMapLocally() (*os.File, error) {
 
 	return f, nil
 }
+
+func updateMap(mapManifest manifest) error {
+	if isMapLocally() {
+		mapChecksum, err := getLocalMapChecksum()
+		if err != nil {
+			return err
+		}
+
+		if mapChecksum != mapManifest.Md5 {
+			debug("The map is outdated, downloading the new version...")
+
+			err := downloadMap(mapManifest)
+
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		debug("Map doesn't exists locally, downloading...")
+
+		err := downloadMap(mapManifest)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
