@@ -128,7 +128,12 @@ func main() {
 		}
 	}
 
-	gamedescription := NewMockGame(*tickspersec)
+	gamedescription, gameErr := NewMockGame(*tickspersec)
+
+	if gameErr != nil {
+		failWith(gameErr)
+	}
+
 	for _, contestant := range agentimages {
 		gamedescription.AddContestant(contestant)
 	}
@@ -212,7 +217,6 @@ func main() {
 	})
 
 	// TODO(jerome): refac webclient path / serving
-
 	vizgames := make([]*types.VizGame, 1)
 	vizgames[0] = types.NewVizGame(gamedescription)
 
@@ -223,17 +227,7 @@ func main() {
 	}
 
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
-	vizservice := vizserver.NewVizService(
-		"0.0.0.0:"+strconv.Itoa(*port+1),
-		webclientpath,
-		"viz-island",
-		func() ([]*types.VizGame, error) { return vizgames, nil },
-		recorder,
-		mappack,
-	)
-
-	vizservice.Start()
-
+	vizservice := createViz(webclientpath, vizgames, recorder, mappack)
 	serverChan, startErr := srv.Start()
 
 	if startErr != nil {
@@ -256,4 +250,42 @@ func main() {
 	recorder.Stop()
 
 	vizservice.Stop()
+}
+
+func createViz(
+	webclientpath string,
+	vizgames []*types.VizGame,
+	recorder recording.RecorderInterface,
+	mappack *mappack.MappackInMemoryArchive,
+) *vizserver.VizService {
+	service := vizserver.NewVizService(
+		"0.0.0.0:"+strconv.Itoa(*port+1),
+		webclientpath,
+		"viz-island",
+		func() ([]*types.VizGame, error) { return vizgames, nil },
+		recorder,
+		mappack,
+	)
+
+	service.Start()
+
+	// consume server events
+	go func() {
+		events := service.Events()
+
+		for {
+			msg := <-events
+
+			switch t := msg.(type) {
+			case vizserver.EventLog:
+				fmt.Println("viz", t.Value)
+
+			default:
+				msg := fmt.Sprintf("Unsupported message of type %s", reflect.TypeOf(msg))
+				panic(msg)
+			}
+		}
+	}()
+
+	return service
 }
