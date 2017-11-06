@@ -31,9 +31,15 @@ func (s *Server) listen() chan interface{} {
 		for {
 			msg := <-s.commserver.Events()
 
+			if s.gameIsRunning == false {
+				return // ignore message
+			}
+
 			switch t := msg.(type) {
 			case comm.EventLog:
 				s.Log(EventLog{t.Value})
+			case comm.EventWarn:
+				s.Log(EventWarn{t.Err})
 			case comm.EventError:
 				s.Log(EventError{t.Err})
 			default:

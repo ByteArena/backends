@@ -22,12 +22,11 @@ import (
 	bettererrors "github.com/xtuc/better-errors"
 )
 
-const debug = false
-
 type EventStatusGameUpdate struct{ Status string }
 type EventClose struct{}
 type EventLog struct{ Value string }
 type EventError struct{ Err error }
+type EventWarn struct{ Err error }
 type EventAgentLog struct{ Value string }
 type EventOrchestratorLog struct{ Value string }
 
@@ -66,6 +65,8 @@ type Server struct {
 	game commongame.GameInterface
 
 	events chan interface{}
+
+	gameIsRunning bool
 }
 
 func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrator, gameDescription types.GameDescriptionInterface, game commongame.GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
@@ -114,7 +115,8 @@ func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrato
 		// Game logic
 		///////////////////////////////////////////////////////////////////////
 
-		game: game,
+		game:          game,
+		gameIsRunning: false,
 
 		events: make(chan interface{}),
 	}
@@ -142,6 +144,8 @@ func (server *Server) Start() (chan interface{}, error) {
 		return nil, bettererrors.NewFromString("Failed to start agent containers").With(err)
 	}
 
+	server.gameIsRunning = true
+
 	server.AddTearDownCall(func() error {
 		server.Log(EventLog{"Publish game state (" + server.arenaServerUUID + "stopped)"})
 
@@ -162,6 +166,8 @@ func (server *Server) Start() (chan interface{}, error) {
 }
 
 func (server *Server) Stop() {
+	server.gameIsRunning = false
+
 	server.Log(EventLog{"TearDown from stop"})
 	server.TearDown()
 }

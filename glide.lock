@@ -1,5 +1,5 @@
-hash: 9ead2b2b48f45c4c6110c979b5d5a243627610689dad18b9c667a9bde9cf8c24
-updated: 2017-11-05T18:30:17.07638717+01:00
+hash: e79e04995e83564609fdfb5fbc2df29525fa6cefc94ebcf48da4c1c3554ed554
+updated: 2017-11-06T12:29:05.735429187+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -164,6 +164,8 @@ imports:
   - assert
 - name: github.com/ttacon/chalk
   version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
+- name: github.com/urfave/cli
+  version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 - name: github.com/xtuc/better-errors
   version: 4b0e7f49f3da3f85ccb93107a8a7454d2ad6f4b4
   subpackages:

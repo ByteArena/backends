@@ -61,3 +61,5 @@ import:
   version: v2.0.5
 - package: github.com/xtuc/better-errors
 - package: github.com/nsf/termbox-go
+- package: github.com/urfave/cli
+  version: v1.20.0

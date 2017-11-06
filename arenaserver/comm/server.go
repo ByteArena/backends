@@ -13,6 +13,7 @@ import (
 
 type EventLog struct{ Value string }
 type EventError struct{ Err error }
+type EventWarn struct{ Err error }
 
 type CommDispatcherInterface interface {
 	DispatchAgentMessage(msg types.AgentMessage) error
@@ -67,12 +68,15 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 			go func() {
 				defer conn.Close()
 				for {
-
 					reader := bufio.NewReader(conn)
 					buf, err := reader.ReadBytes('\n')
 					if err != nil {
+						berror := bettererrors.
+							NewFromString("Connexion closed unexpectedly").
+							With(bettererrors.NewFromErr(err))
+
 						// Avoid crashes when agent crashes Issue #108
-						s.Log(EventLog{"Connexion closed unexpectedly; " + err.Error()})
+						s.Log(EventWarn{berror})
 						return
 					}
 

@@ -109,8 +109,6 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 				/*
 					This is to remove Docker log header.
 					First 8 bytes are part of the header.
-
-					TODO(sven): disable it somehow in the deamon
 				*/
 				if len(buf) > 8 {
 					buf = buf[8:]

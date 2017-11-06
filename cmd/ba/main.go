@@ -68,6 +68,21 @@ func failWith(err error) {
 	}
 }
 
+func warnWith(err error) {
+	if bettererrors.IsBetterError(err) {
+		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
+
+		fmt.Println("")
+		fmt.Println("=== ❌ warning")
+		fmt.Println("")
+
+		fmt.Print(msg)
+
+	} else {
+		debug(err.Error())
+	}
+}
+
 func runPreflightChecks() {
 	ensureDockerIsAvailable()
 }
@@ -188,10 +203,15 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 			case arenaserver.EventAgentLog:
 				fmt.Println("agent", t.Value)
+
 			case arenaserver.EventLog:
 				fmt.Println("log", t.Value)
+
 			case arenaserver.EventError:
 				failWith(t.Err)
+
+			case arenaserver.EventWarn:
+				warnWith(t.Err)
 
 			case arenaserver.EventClose:
 				return
@@ -298,12 +318,11 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 func mapUpdateAction() {
 	mapChecksum, err := getLocalMapChecksum()
 	if err != nil {
-		// failWith(err)
 		// Local map has never been downloaded
-		fmt.Println("Map does not exist locally; will have to be fetched.")
+		debug("Map does not exist locally; will have to be fetched.")
 	}
 
-	fmt.Println("Downloading map manifest from " + MANIFEST_URL)
+	debug("Downloading map manifest from " + MANIFEST_URL)
 
 	mapManifest, errManifest := downloadAndGetManifest()
 	if errManifest != nil {
