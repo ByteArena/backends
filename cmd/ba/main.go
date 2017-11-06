@@ -85,7 +85,7 @@ func makeapp() *cli.App {
 
 	app.Commands = []cli.Command{
 		{
-			Name:    "trainer",
+			Name:    "train",
 			Aliases: []string{"t"},
 			Usage:   "Train your agent",
 			Flags: []cli.Flag{
