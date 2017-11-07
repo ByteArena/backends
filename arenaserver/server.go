@@ -329,19 +329,22 @@ func (server *Server) closeAllAgentConnections() {
 
 	for _, agentproxy := range server.agentproxies {
 		if netAgent, ok := agentproxy.(agent.AgentProxyNetworkInterface); ok {
-			wg.Add(1)
 
-			err := netAgent.GetConn().Close()
+			if conn := netAgent.GetConn(); conn != nil {
+				wg.Add(1)
 
-			<-time.After(CLOSE_CONNECTION_BEFORE_KILL)
-			wg.Done()
+				err := conn.Close()
+				<-time.After(CLOSE_CONNECTION_BEFORE_KILL)
 
-			if err != nil {
-				berror := bettererrors.
-					NewFromString("Could not close agent connection").
-					With(bettererrors.NewFromErr(err))
+				wg.Done()
 
-				server.Log(EventWarn{berror})
+				if err != nil {
+					berror := bettererrors.
+						NewFromString("Could not close agent connection").
+						With(bettererrors.NewFromErr(err))
+
+					server.Log(EventWarn{berror})
+				}
 			}
 		}
 	}
