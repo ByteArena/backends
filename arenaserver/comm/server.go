@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"time"
 
@@ -114,8 +113,6 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 
 					case buf := <-dataChan:
 						{
-							log.Println("got data")
-
 							// Cancel deadline
 							gotData = true
 
