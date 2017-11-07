@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	POURCENT_LEFT_BEFORE_QUIT = 50
+	POURCENT_LEFT_BEFORE_QUIT = 50 // %
 )
 
 type Server struct {
