@@ -23,7 +23,8 @@ import (
 )
 
 const (
-	POURCENT_LEFT_BEFORE_QUIT = 50 // %
+	POURCENT_LEFT_BEFORE_QUIT    = 50 // %
+	CLOSE_CONNECTION_BEFORE_KILL = 1 * time.Second
 )
 
 type Server struct {
@@ -321,8 +322,42 @@ func (s *Server) AddTearDownCall(fn types.TearDownCallback) {
 	s.tearDownCallbacks = append(s.tearDownCallbacks, fn)
 }
 
+func (server *Server) closeAllAgentConnections() {
+	server.agentproxiesmutex.Lock()
+
+	var wg sync.WaitGroup
+
+	for _, agentproxy := range server.agentproxies {
+		if netAgent, ok := agentproxy.(agent.AgentProxyNetworkInterface); ok {
+			wg.Add(1)
+
+			err := netAgent.GetConn().Close()
+
+			<-time.After(CLOSE_CONNECTION_BEFORE_KILL)
+			wg.Done()
+
+			if err != nil {
+				berror := bettererrors.
+					NewFromString("Could not close agent connection").
+					With(bettererrors.NewFromErr(err))
+
+				server.Log(EventWarn{berror})
+			}
+		}
+	}
+
+	wg.Wait()
+
+	server.agentproxiesmutex.Unlock()
+}
+
 func (server *Server) TearDown() {
 	server.events <- EventDebug{"teardown"}
+
+	// Properly terminate all agents
+	server.closeAllAgentConnections()
+
+	// Less properly terminate all agents
 	server.containerorchestrator.TearDownAll()
 
 	server.tearDownCallbacksMutex.Lock()
