@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"reflect"
 	"strconv"
@@ -48,7 +49,9 @@ func (s *Server) listen() chan interface{} {
 			// An agent has probaly been disconnected
 			// We need to remove it from our state
 			case comm.EventConnDisconnected:
+				s.clearAgentConn(t.Conn)
 				s.Log(EventWarn{t.Err})
+				s.ensureEnoughAgentsAreInGame()
 
 			default:
 				msg := fmt.Sprintf("Unsupported message of type %s", reflect.TypeOf(msg))
@@ -68,6 +71,41 @@ func (s *Server) listen() chan interface{} {
 	notify.Start("app:stopticking", block)
 
 	return block
+}
+
+func (server *Server) ensureEnoughAgentsAreInGame() {
+	left := server.nbhandshaked - len(server.agentproxies)
+	pourcentLeft := left * 100 / server.nbhandshaked
+
+	log.Println(pourcentLeft, "vs", POURCENT_LEFT_BEFORE_QUIT)
+
+	if pourcentLeft > POURCENT_LEFT_BEFORE_QUIT {
+		server.Log(EventDebug{"Stopping because not enough agents are left"})
+		server.Stop()
+	}
+}
+
+func (server *Server) clearAgentConn(conn net.Conn) {
+	server.agentproxiesmutex.Lock()
+
+	for k, agentproxy := range server.agentproxies {
+		netAgent, ok := agentproxy.(agent.AgentProxyNetworkInterface)
+
+		if ok && netAgent.GetConn() == conn {
+
+			// Remove agent from our state
+			delete(server.agentproxies, k)
+			delete(server.agentimages, k)
+			delete(server.agentproxieshandshakes, k)
+
+			server.Log(EventDebug{fmt.Sprintf("Removing %s from state", netAgent.String())})
+
+			break
+		}
+
+	}
+
+	server.agentproxiesmutex.Unlock()
 }
 
 /* <implementing types.AgentCommunicatorInterface> */

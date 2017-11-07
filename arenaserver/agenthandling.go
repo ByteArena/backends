@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/bytearena/bytearena/common/utils/vector"
 
@@ -23,7 +24,13 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 	agentSpawnPointIndex := len(s.agentproxies)
 
 	if agentSpawnPointIndex >= len(arenamap.Data.Starts) {
-		s.Log(EventLog{"Agent " + agentimage + " cannot spawn, no starting point left"})
+		berror := bettererrors.
+			NewFromString("Cannot spawn agent").
+			SetContext("image", agentimage).
+			SetContext("number of spawns", strconv.Itoa(len(arenamap.Data.Starts))).
+			With(bettererrors.NewFromString("No starting point left"))
+
+		s.Log(EventError{berror})
 		return
 	}
 

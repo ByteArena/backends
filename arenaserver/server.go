@@ -22,6 +22,10 @@ import (
 	bettererrors "github.com/xtuc/better-errors"
 )
 
+const (
+	POURCENT_LEFT_BEFORE_QUIT = 50
+)
+
 type Server struct {
 	host            string
 	port            int
