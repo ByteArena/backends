@@ -2,10 +2,12 @@ package deathmatch
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/types"
 	commontypes "github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/game/common"
 	"github.com/bytearena/ecs"
 )
@@ -148,8 +150,10 @@ func (deathmatch *DeathmatchGame) Unsubscribe(subscription common.GameEventSubsc
 
 func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []types.AgentMutationBatch) {
 
-	deathmatch.ticknum = ticknum
+	watch := utils.MakeStopwatch("deathmatch::Step()")
+	watch.Start("Step")
 
+	deathmatch.ticknum = ticknum
 	respawnersTag := ecs.BuildTag(deathmatch.respawnComponent)
 
 	///////////////////////////////////////////////////////////////////////////
@@ -159,64 +163,90 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 	// Pour une meilleur précision de la position de collision dans la visualisation
 	///////////////////////////////////////////////////////////////////////////
 
+	watch.Start("systemDeath")
 	systemDeath(deathmatch, respawnersTag.Inverse())
+	watch.Stop("systemDeath")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On traite les mutations
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemMutations")
 	systemMutations(deathmatch, mutations)
+	watch.Stop("systemMutations")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On traite les tirs
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemShooting")
 	systemShooting(deathmatch)
+	watch.Stop("systemShooting")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On traite les déplacements
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemSteering")
 	systemSteering(deathmatch)
+	watch.Stop("systemSteering")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On met l'état des objets physiques à jour
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemPhysics")
 	systemPhysics(deathmatch, dt)
+	watch.Stop("systemPhysics")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On identifie les collisions
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemCollisions")
 	collisions := systemCollisions(deathmatch)
+	watch.Stop("systemCollisions")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On réagit aux collisions
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemHealth")
 	systemHealth(deathmatch, collisions)
+	watch.Stop("systemHealth")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On fait vivre les entités
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemLifecycle")
 	systemLifecycle(deathmatch)
+	watch.Stop("systemLifecycle")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On fait mourir les respawners tués au cours du tour
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemDeath")
 	systemDeath(deathmatch, respawnersTag)
+	watch.Stop("systemDeath")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On ressuscite les entités qui peuvent l'être
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemRespawn")
 	systemRespawn(deathmatch)
+	watch.Stop("systemRespawn")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On construit les perceptions
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemPerception")
 	systemPerception(deathmatch)
+	watch.Stop("systemPerception")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On supprime les entités marquées comme à supprimer
 	// à la fin du tour pour éviter que box2D ne nile pas les références lors du disposeEntities
 	///////////////////////////////////////////////////////////////////////////
+	watch.Start("systemDeleteEntities")
 	systemDeleteEntities(deathmatch)
+	watch.Stop("systemDeleteEntities")
 
+	watch.Stop("Step")
+	fmt.Println(watch.String())
 }
 
 func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []byte {

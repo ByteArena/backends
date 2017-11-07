@@ -2,10 +2,14 @@ package deathmatch
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"sync"
 
+	"github.com/davecgh/go-spew/spew"
+
 	commontypes "github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 
@@ -39,6 +43,9 @@ func systemPerception(deathmatch *DeathmatchGame) {
 }
 
 func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) []byte {
+	watch := utils.MakeStopwatch("computeAgentPerception()")
+	watch.Start("global")
+
 	p := agentPerception{}
 
 	entityresult := game.getEntity(entityid,
@@ -71,9 +78,20 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	p.Specs.VisionRadius = perceptionAspect.GetVisionRadius()
 	p.Specs.VisionAngle = perceptionAspect.GetVisionAngle()
 
-	p.External.Vision = computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)
+	watch.Start("p.External.Vision =")
+	vision := computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)
+	spew.Dump(vision)
+	//p.External.Vision
+	watch.Stop("p.External.Vision =")
 
+	watch.Start("json.Marshal")
 	res, _ := json.Marshal(p)
+	//res := []byte("{\"Internal\":{\"Velocity\":[0,0]},\"Specs\":{\"VisionRadius\":1},\"External\":{\"Vision\":[]}}")
+	watch.Stop("json.Marshal")
+
+	watch.Stop("global")
+	fmt.Println(watch.String())
+
 	return res
 }
 
@@ -87,6 +105,10 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 }
 
 func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
+
+	watch := utils.MakeStopwatch("viewEntities()")
+	watch.Start("global")
+
 	vision := make([]agentPerceptionVisionItem, 0)
 
 	// for _, entityresult := range game.physicalView.Get() {
@@ -411,6 +433,9 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 			rightVisionRelvec.Add(agentPosition).ToFloatArray(),
 		)
 	}
+
+	watch.Stop("global")
+	fmt.Println(watch.String())
 
 	return vision
 }

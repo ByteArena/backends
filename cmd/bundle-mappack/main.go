@@ -36,6 +36,7 @@ func main() {
 
 	playcanvaszippath := flag.String("playcanvaszip", "", "Playcanvas zip file; required")
 	vizdirpath := flag.String("vizdir", "", "Viz checkout dir; required")
+	moveTo := flag.String("moveto", "", "If set, built zip will be moved to given file; ex: --moveto /path/to/map.zip")
 	flag.Parse()
 
 	paramError := false
@@ -46,7 +47,7 @@ func main() {
 	}
 
 	if *vizdirpath == "" {
-		fmt.Println("--vizdirpath is required")
+		fmt.Println("--vizdir is required")
 		paramError = true
 	}
 
@@ -167,7 +168,7 @@ func main() {
 
 	assetsRename := make(map[string]string)
 	assetsRename[modelURL] = "json/model.json"
-	assetsRename[modelFilename] = "model.json"
+	//assetsRename[modelFilename] = "model.json"
 	assetsRename["__game-scripts.js"] = "js/game-scripts.js"
 
 	for _, filepath := range unzippedfiles {
@@ -320,7 +321,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Bundle:", zipPath)
+	if *moveTo != "" {
+		utils.Check(utils.CopyFile(zipPath, *moveTo), "Could not move bundle to specified path")
+		fmt.Println("Bundle:", *moveTo)
+	} else {
+		fmt.Println("Bundle:", zipPath)
+	}
 }
 
 func unzip(src, dest string) ([]string, error) {
