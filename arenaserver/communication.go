@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"reflect"
 	"strconv"
@@ -76,8 +75,6 @@ func (s *Server) listen() chan interface{} {
 func (server *Server) ensureEnoughAgentsAreInGame() {
 	left := server.nbhandshaked - len(server.agentproxies)
 	pourcentLeft := left * 100 / server.nbhandshaked
-
-	log.Println(pourcentLeft, "vs", POURCENT_LEFT_BEFORE_QUIT)
 
 	if pourcentLeft > POURCENT_LEFT_BEFORE_QUIT {
 		server.Log(EventDebug{"Stopping because not enough agents are left"})
