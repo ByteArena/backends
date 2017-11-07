@@ -11,10 +11,6 @@ import (
 	bettererrors "github.com/xtuc/better-errors"
 )
 
-type EventLog struct{ Value string }
-type EventError struct{ Err error }
-type EventWarn struct{ Err error }
-
 type CommDispatcherInterface interface {
 	DispatchAgentMessage(msg types.AgentMessage) error
 	ImplementsCommDispatcherInterface()
@@ -66,7 +62,6 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 			}
 
 			go func() {
-				defer conn.Close()
 
 				for {
 					reader := bufio.NewReader(conn)
@@ -77,8 +72,12 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 							With(bettererrors.NewFromErr(err))
 
 						// Avoid crashes when agent crashes Issue #108
-						s.Log(EventWarn{berror})
+						s.Log(EventConnDisconnected{
+							Err:  berror,
+							Conn: conn,
+						})
 
+						conn.Close()
 						return
 					}
 
@@ -107,6 +106,8 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 						}()
 					}
 				}
+
+				conn.Close()
 			}()
 		}
 	}()

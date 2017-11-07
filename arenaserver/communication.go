@@ -38,10 +38,18 @@ func (s *Server) listen() chan interface{} {
 			switch t := msg.(type) {
 			case comm.EventLog:
 				s.Log(EventLog{t.Value})
+
 			case comm.EventWarn:
 				s.Log(EventWarn{t.Err})
+
 			case comm.EventError:
 				s.Log(EventError{t.Err})
+
+			// An agent has probaly been disconnected
+			// We need to remove it from our state
+			case comm.EventConnDisconnected:
+				s.Log(EventWarn{t.Err})
+
 			default:
 				msg := fmt.Sprintf("Unsupported message of type %s", reflect.TypeOf(msg))
 				panic(msg)
