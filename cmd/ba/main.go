@@ -154,6 +154,7 @@ func makeapp() *cli.App {
 }
 
 func trainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string, isDebug bool) {
+	shutdownChan := make(chan bool)
 	debug := func(str string) {}
 
 	if isDebug {
@@ -266,11 +267,7 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 	// handling signals
 	go func() {
 		<-common.SignalHandler()
-		debug("Shutdown...")
-		srv.Stop()
-
-		<-time.After(10 * time.Second)
-		os.Exit(1)
+		shutdownChan <- true
 	}()
 
 	go common.StreamState(srv, brokerclient, "trainer")
@@ -315,7 +312,7 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 	serverChan, startErr := srv.Start()
 
 	if startErr != nil {
-		srv.Stop()
+		shutdownChan <- true
 		failWith(startErr)
 	}
 
@@ -324,17 +321,23 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 	if !nobrowser {
 		open.Run(url)
 	}
+
 	fmt.Println("\033[0;34m\nGame running at " + url + "\033[0m\n")
 
-	<-serverChan
+	// Wait until somesay ask for shutdown
+	select {
+	case <-serverChan:
+	case <-shutdownChan:
+	}
 
-	srv.TearDown()
+	debug("Shutdown...")
+
+	srv.Stop()
 
 	recorder.Close(gamedescription.GetId())
 	recorder.Stop()
 
 	vizservice.Stop()
-
 }
 
 func mapUpdateAction(debug func(str string)) {
