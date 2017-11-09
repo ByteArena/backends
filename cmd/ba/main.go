@@ -28,6 +28,10 @@ import (
 	bettererrorstree "github.com/xtuc/better-errors/printer/tree"
 )
 
+const (
+	TIME_BEFORE_FORCE_QUIT = 10 * time.Second
+)
+
 type arrayFlags []string
 
 func (i *arrayFlags) String() string {
@@ -329,6 +333,15 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 	case <-serverChan:
 	case <-shutdownChan:
 	}
+
+	// Force quit if the programs didn't exit
+	go func() {
+		<-time.After(TIME_BEFORE_FORCE_QUIT)
+
+		berror := bettererrors.NewFromString("Forced shutdown")
+
+		failWith(berror)
+	}()
 
 	debug("Shutdown...")
 
