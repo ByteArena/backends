@@ -28,7 +28,7 @@ func (agent AgentProxyNetwork) String() string {
 }
 
 func (agent AgentProxyNetwork) SetPerception(perceptionjson []byte, comm types.AgentCommunicatorInterface) error {
-	message := []byte("{\"Method\": \"tick\", \"Arguments\": [0," + string(perceptionjson) + "]}\n") // TODO(jerome): remove 0 (ex turn)
+	message := []byte("{\"method\": \"tick\", \"arguments\": [0," + string(perceptionjson) + "]}\n") // TODO(jerome): remove 0 (ex turn)
 	return comm.NetSend(message, agent.GetConn())
 }
 

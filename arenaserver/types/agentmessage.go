@@ -26,9 +26,9 @@ var AgentMessageType = struct {
 // The message wrapper; holds a Payload
 ///////////////////////////////////////////////////////////////////////////////
 type AgentMessage struct {
-	AgentId     uuid.UUID
-	Type        _privateAgentMessageType
-	Payload     json.RawMessage
+	AgentId     uuid.UUID                `json:"agentid"`
+	Type        _privateAgentMessageType `json:"type"`
+	Payload     json.RawMessage          `json:"payload"`
 	EmitterConn net.Conn
 }
 
@@ -72,8 +72,8 @@ type AgentMessagePayloadHandshake struct {
 // Mutation payload
 ///////////////////////////////////////////////////////////////////////////////
 type AgentMessagePayloadMutation struct {
-	Method    string
-	Arguments json.RawMessage
+	Method    string          `json:"method"`
+	Arguments json.RawMessage `json:"arguments"`
 }
 
 func (m AgentMessagePayloadMutation) GetMethod() string {
@@ -87,7 +87,7 @@ func (m AgentMessagePayloadMutation) GetArguments() json.RawMessage {
 type AgentMutationBatch struct {
 	AgentProxyUUID uuid.UUID
 	AgentEntityId  ecs.EntityID
-	Mutations      []AgentMessagePayloadMutation
+	Mutations      []AgentMessagePayloadMutation `json:"mutations"`
 }
 
 type AgentMutationBatcherInterface interface {
