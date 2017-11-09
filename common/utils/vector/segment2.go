@@ -2,6 +2,7 @@ package vector
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -48,8 +49,8 @@ func (s Segment2) Equals(s2 Segment2) bool {
 
 func (s Segment2) MarshalJSON() ([]byte, error) {
 
-	aJson, _ := s.a.MarshalJSON()
-	bJson, _ := s.b.MarshalJSON()
+	aJson, _ := json.Marshal(s.a)
+	bJson, _ := json.Marshal(s.b)
 
 	buffer := bytes.NewBufferString("[")
 	buffer.Write(aJson)
@@ -272,7 +273,7 @@ func TestSegment2() {
 	test(sclone.Equals(s), "Equals")
 
 	// JSON
-	json, _ := s.MarshalJSON()
+	json, _ := json.Marshal(s)
 	test(string(json) == "[[-1.5000,3.5000],[-3.0000,2.5000]]", "JSON")
 
 	// Add

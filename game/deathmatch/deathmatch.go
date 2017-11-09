@@ -1,7 +1,7 @@
 package deathmatch
 
 import (
-	"encoding/json"
+	json "encoding/json"
 	"fmt"
 
 	"github.com/bytearena/box2d"

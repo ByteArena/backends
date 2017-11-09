@@ -1,12 +1,11 @@
 package deathmatch
 
 import (
-	"encoding/json"
+	json "encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"sync"
-
-	"github.com/davecgh/go-spew/spew"
 
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -79,13 +78,12 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	p.Specs.VisionAngle = perceptionAspect.GetVisionAngle()
 
 	watch.Start("p.External.Vision =")
-	vision := computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)
-	spew.Dump(vision)
-	//p.External.Vision
+	p.External.Vision = computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)
 	watch.Stop("p.External.Vision =")
 
 	watch.Start("json.Marshal")
 	res, _ := json.Marshal(p)
+	log.Println("JSON SIZE ", float64(len(res))/1024.0, "KB")
 	//res := []byte("{\"Internal\":{\"Velocity\":[0,0]},\"Specs\":{\"VisionRadius\":1},\"External\":{\"Vision\":[]}}")
 	watch.Stop("json.Marshal")
 

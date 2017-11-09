@@ -1,7 +1,7 @@
 package deathmatch
 
 import (
-	"encoding/json"
+	json "encoding/json"
 
 	"github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"

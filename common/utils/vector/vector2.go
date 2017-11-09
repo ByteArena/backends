@@ -1,10 +1,10 @@
 package vector
 
 import (
-	"bytes"
-	"fmt"
+	"encoding/json"
 	"math"
 	"math/rand"
+	"strconv"
 
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/common/utils/number"
@@ -49,18 +49,18 @@ func (v Vector2) GetY() float64 {
 	return v.y
 }
 
+var floatformat = byte('f')
+
 func (v Vector2) MarshalJSON() ([]byte, error) {
-	propfmt := "%.4f"
-	buffer := bytes.NewBufferString("[")
-	buffer.WriteString(fmt.Sprintf(propfmt, v.x))
-	buffer.WriteString(",")
-	buffer.WriteString(fmt.Sprintf(propfmt, v.y))
-	buffer.WriteString("]")
-	return buffer.Bytes(), nil
+	b := []byte{'['}
+	b = strconv.AppendFloat(b, v.x, floatformat, 4, 64)
+	b = append(b, byte(','))
+	b = strconv.AppendFloat(b, v.y, floatformat, 4, 64)
+	return append(b, byte(']')), nil
 }
 
 func (v Vector2) MarshalJSONString() string {
-	json, _ := v.MarshalJSON()
+	json, _ := json.Marshal(v)
 	return string(json)
 }
 

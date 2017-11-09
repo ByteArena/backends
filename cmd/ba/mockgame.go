@@ -24,7 +24,7 @@ type MockGame struct {
 func NewMockGame(tps int) (*MockGame, error) {
 
 	// TODO(jerome): parametrize this
-	filepath := "../../maps/training-dojo.json"
+	filepath := "../../maps/viz-island.json"
 	jsonsource, err := os.Open(filepath)
 
 	if err != nil {
