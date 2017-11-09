@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -139,16 +140,18 @@ func (orch *LocalContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, 
 }
 
 func (orch *LocalContainerOrchestrator) TearDown(container *arenaservertypes.AgentContainer) {
-	// timeout := time.Second * 5
-	// err := orch.cli.ContainerStop(
-	// 	orch.ctx,
-	// 	container.containerid.String(),
-	// 	&timeout,
-	// )
+	timeout := 5 * time.Second
 
-	// if err != nil {
-	orch.cli.ContainerKill(orch.ctx, container.Containerid, "KILL")
-	//}
+	err := orch.cli.ContainerStop(
+		orch.ctx,
+		container.Containerid,
+		&timeout,
+	)
+
+	if err != nil {
+		orch.events <- EventDebug{"Killing container " + container.Containerid}
+		orch.cli.ContainerKill(orch.ctx, container.Containerid, "KILL")
+	}
 }
 
 func (orch *LocalContainerOrchestrator) RemoveAgentContainer(ctner *arenaservertypes.AgentContainer) error {
@@ -157,7 +160,7 @@ func (orch *LocalContainerOrchestrator) RemoveAgentContainer(ctner *arenaservert
 	return nil
 }
 
-func (orch *LocalContainerOrchestrator) Wait(ctner arenaservertypes.AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
+func (orch *LocalContainerOrchestrator) Wait(ctner *arenaservertypes.AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
 	waitChan, errorChan := orch.cli.ContainerWait(
 		orch.ctx,
 		ctner.Containerid,
@@ -194,6 +197,18 @@ func (orch *LocalContainerOrchestrator) GetRegistryAuth() string {
 
 func (orch *LocalContainerOrchestrator) AddContainer(ctner *arenaservertypes.AgentContainer) {
 	orch.containers = append(orch.containers, ctner)
+}
+
+func (orch *LocalContainerOrchestrator) RemoveContainer(ctner *arenaservertypes.AgentContainer) {
+	containers := make([]*arenaservertypes.AgentContainer, 0)
+
+	for _, c := range orch.containers {
+		if c.AgentId != ctner.AgentId {
+			containers = append(containers, c)
+		}
+	}
+
+	orch.containers = containers
 }
 
 func (orch *LocalContainerOrchestrator) Events() chan interface{} {

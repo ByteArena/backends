@@ -14,6 +14,7 @@ import (
 	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"
 	pkgerrors "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 
 	bettererrors "github.com/xtuc/better-errors"
 )
@@ -96,17 +97,24 @@ func (server *Server) clearAgentConn(conn net.Conn) {
 
 		if ok && netAgent.GetConn() == conn {
 
-			// Remove agent from our state
-			delete(server.agentproxies, k)
-			delete(server.agentimages, k)
-			delete(server.agentproxieshandshakes, k)
-
-			server.Log(EventDebug{fmt.Sprintf("Removing %s from state", netAgent.String())})
-
+			server.clearAgentById(k)
 			break
 		}
 
 	}
+
+	server.agentproxiesmutex.Unlock()
+}
+
+func (server *Server) clearAgentById(k uuid.UUID) {
+	server.agentproxiesmutex.Lock()
+
+	// Remove agent from our state
+	delete(server.agentproxies, k)
+	delete(server.agentimages, k)
+	delete(server.agentproxieshandshakes, k)
+
+	server.Log(EventDebug{fmt.Sprintf("Removing %s from state", k.String())})
 
 	server.agentproxiesmutex.Unlock()
 }

@@ -154,7 +154,7 @@ func (orch *RemoteContainerOrchestrator) RemoveAgentContainer(ctner *arenaserver
 	return errImageRemove
 }
 
-func (orch *RemoteContainerOrchestrator) Wait(ctner arenaservertypes.AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
+func (orch *RemoteContainerOrchestrator) Wait(ctner *arenaservertypes.AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error) {
 	waitChan, errorChan := orch.cli.ContainerWait(
 		orch.ctx,
 		ctner.Containerid,
@@ -190,4 +190,16 @@ func (orch *RemoteContainerOrchestrator) AddContainer(ctner *arenaservertypes.Ag
 
 func (orch *RemoteContainerOrchestrator) Events() chan interface{} {
 	return orch.events
+}
+
+func (orch *RemoteContainerOrchestrator) RemoveContainer(ctner *arenaservertypes.AgentContainer) {
+	containers := make([]*arenaservertypes.AgentContainer, 0)
+
+	for _, c := range orch.containers {
+		if c.AgentId != ctner.AgentId {
+			containers = append(containers, c)
+		}
+	}
+
+	orch.containers = containers
 }
