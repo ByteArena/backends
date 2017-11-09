@@ -52,6 +52,7 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 			visionRadius: 10,
 		}).
 		AddComponent(deathmatch.healthComponent, NewHealth(100)).
+		AddComponent(deathmatch.eventComponent, MakeEmtpyEvents()).
 		AddComponent(deathmatch.playerComponent, &Player{}).
 		AddComponent(deathmatch.renderComponent, &Render{
 			type_:       "agent",
