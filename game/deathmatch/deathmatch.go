@@ -34,6 +34,7 @@ type DeathmatchGame struct {
 	collidableComponent   *ecs.Component
 	lifecycleComponent    *ecs.Component
 	respawnComponent      *ecs.Component
+	eventComponent        *ecs.Component
 
 	agentsView     *ecs.View
 	renderableView *ecs.View
@@ -77,6 +78,7 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		collidableComponent:   manager.NewComponent(),
 		lifecycleComponent:    manager.NewComponent(),
 		respawnComponent:      manager.NewComponent(),
+		eventComponent:        manager.NewComponent(),
 	}
 
 	gravity := box2d.MakeB2Vec2(0.0, 0.0) // gravity 0: the simulation is seen from the top
