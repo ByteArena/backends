@@ -112,7 +112,7 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 				lifecycleAspect := qr.Components[deathmatch.lifecycleComponent].(*Lifecycle)
 				healthAspect := qr.Components[deathmatch.healthComponent].(*Health)
 
-				physicalAspect.SetPosition(vector.MakeVector2(spawnPoint.X, spawnPoint.Y))
+				physicalAspect.SetPosition(vector.MakeVector2(spawnPoint.GetX(), spawnPoint.GetY()))
 				lifecycleAspect.locked = false
 				healthAspect.Restore()
 			},

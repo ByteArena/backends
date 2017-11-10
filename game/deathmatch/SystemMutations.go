@@ -40,7 +40,9 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 						continue
 					}
 
-					aiming := vector.MakeVector2(aimingFloats[0], aimingFloats[1])
+					aiming := vector.
+						MakeVector2(aimingFloats[0], aimingFloats[1]).
+						Transform(deathmatch.agentTransform.Inv())
 
 					entityresult := deathmatch.getEntity(batch.AgentEntityId, deathmatch.shootingComponent)
 					if entityresult == nil {
@@ -67,7 +69,9 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 						continue
 					}
 
-					steering := vector.MakeVector2(steeringFloats[0], steeringFloats[1])
+					steering := vector.
+						MakeVector2(steeringFloats[0], steeringFloats[1]).
+						Transform(deathmatch.agentTransform.Inv())
 
 					entityresult := deathmatch.getEntity(batch.AgentEntityId, deathmatch.steeringComponent)
 					if entityresult == nil {

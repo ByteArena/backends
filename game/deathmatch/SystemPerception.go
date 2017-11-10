@@ -1,14 +1,10 @@
 package deathmatch
 
 import (
-	json "encoding/json"
-	"fmt"
-	"log"
 	"math"
 	"sync"
 
 	commontypes "github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
 
@@ -42,8 +38,8 @@ func systemPerception(deathmatch *DeathmatchGame) {
 }
 
 func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) []byte {
-	watch := utils.MakeStopwatch("computeAgentPerception()")
-	watch.Start("global")
+	//watch := utils.MakeStopwatch("computeAgentPerception()")
+	//watch.Start("global")
 
 	p := agentPerception{}
 
@@ -77,18 +73,17 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	p.Specs.VisionRadius = perceptionAspect.GetVisionRadius()
 	p.Specs.VisionAngle = perceptionAspect.GetVisionAngle()
 
-	watch.Start("p.External.Vision =")
+	//watch.Start("p.External.Vision =")
 	p.External.Vision = computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)
-	watch.Stop("p.External.Vision =")
+	//watch.Stop("p.External.Vision =")
 
-	watch.Start("json.Marshal")
-	res, _ := json.Marshal(p)
-	log.Println("JSON SIZE ", float64(len(res))/1024.0, "KB")
+	//watch.Start("json.Marshal")
+	res, _ := p.MarshalJSON()
+	//log.Println("JSON SIZE ", float64(len(res))/1024.0, "KB")
 	//res := []byte("{\"Internal\":{\"Velocity\":[0,0]},\"Specs\":{\"VisionRadius\":1},\"External\":{\"Vision\":[]}}")
-	watch.Stop("json.Marshal")
-
-	watch.Stop("global")
-	fmt.Println(watch.String())
+	//watch.Stop("json.Marshal")
+	//watch.Stop("global")
+	//fmt.Println(watch.String())
 
 	return res
 }
@@ -99,13 +94,22 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 
 	vision = append(vision, viewEntities(game, entity, physicalAspect, perceptionAspect)...)
 
+	// on met la vision à l'échelle de l'agent
+	for i, visionItem := range vision {
+		visionItem.Center = visionItem.Center.Transform(game.agentTransform)
+		visionItem.FarEdge = visionItem.FarEdge.Transform(game.agentTransform)
+		visionItem.CloseEdge = visionItem.FarEdge.Transform(game.agentTransform)
+		visionItem.Velocity = visionItem.FarEdge.Transform(game.agentTransform)
+		vision[i] = visionItem
+	}
+
 	return vision
 }
 
 func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
 
-	watch := utils.MakeStopwatch("viewEntities()")
-	watch.Start("global")
+	//watch := utils.MakeStopwatch("viewEntities()")
+	//watch.Start("global")
 
 	vision := make([]agentPerceptionVisionItem, 0)
 
@@ -432,8 +436,8 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 		)
 	}
 
-	watch.Stop("global")
-	fmt.Println(watch.String())
+	//watch.Stop("global")
+	//fmt.Println(watch.String())
 
 	return vision
 }

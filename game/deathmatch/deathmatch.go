@@ -1,15 +1,12 @@
 package deathmatch
 
 import (
-	json "encoding/json"
-	"fmt"
-
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/types"
 	commontypes "github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/game/common"
 	"github.com/bytearena/ecs"
+	"github.com/go-gl/mathgl/mgl64"
 )
 
 type DeathmatchGame struct {
@@ -21,6 +18,8 @@ type DeathmatchGame struct {
 	// transformPhysics    mgl64.Mat4
 	// transformPerception mgl64.Mat4
 	// transformViz        mgl64.Mat4
+
+	agentTransform mgl64.Mat4
 
 	physicalBodyComponent *ecs.Component
 	healthComponent       *ecs.Component
@@ -62,6 +61,8 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		// transformPhysics:    mgl64.Ident4(),
 		// transformPerception: mgl64.Ident4(),
 		// transformViz:        mgl64.Ident4(),
+
+		agentTransform: mgl64.Scale3D(10, 10, 10),
 
 		physicalBodyComponent: manager.NewComponent(),
 		healthComponent:       manager.NewComponent(),
@@ -150,8 +151,8 @@ func (deathmatch *DeathmatchGame) Unsubscribe(subscription common.GameEventSubsc
 
 func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []types.AgentMutationBatch) {
 
-	watch := utils.MakeStopwatch("deathmatch::Step()")
-	watch.Start("Step")
+	//watch := utils.MakeStopwatch("deathmatch::Step()")
+	//watch.Start("Step")
 
 	deathmatch.ticknum = ticknum
 	respawnersTag := ecs.BuildTag(deathmatch.respawnComponent)
@@ -163,90 +164,90 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 	// Pour une meilleur précision de la position de collision dans la visualisation
 	///////////////////////////////////////////////////////////////////////////
 
-	watch.Start("systemDeath")
+	//watch.Start("systemDeath")
 	systemDeath(deathmatch, respawnersTag.Inverse())
-	watch.Stop("systemDeath")
+	//watch.Stop("systemDeath")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On traite les mutations
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemMutations")
+	//watch.Start("systemMutations")
 	systemMutations(deathmatch, mutations)
-	watch.Stop("systemMutations")
+	//watch.Stop("systemMutations")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On traite les tirs
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemShooting")
+	//watch.Start("systemShooting")
 	systemShooting(deathmatch)
-	watch.Stop("systemShooting")
+	//watch.Stop("systemShooting")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On traite les déplacements
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemSteering")
+	//watch.Start("systemSteering")
 	systemSteering(deathmatch)
-	watch.Stop("systemSteering")
+	//watch.Stop("systemSteering")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On met l'état des objets physiques à jour
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemPhysics")
+	//watch.Start("systemPhysics")
 	systemPhysics(deathmatch, dt)
-	watch.Stop("systemPhysics")
+	//watch.Stop("systemPhysics")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On identifie les collisions
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemCollisions")
+	//watch.Start("systemCollisions")
 	collisions := systemCollisions(deathmatch)
-	watch.Stop("systemCollisions")
+	//watch.Stop("systemCollisions")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On réagit aux collisions
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemHealth")
+	//watch.Start("systemHealth")
 	systemHealth(deathmatch, collisions)
-	watch.Stop("systemHealth")
+	//watch.Stop("systemHealth")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On fait vivre les entités
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemLifecycle")
+	//watch.Start("systemLifecycle")
 	systemLifecycle(deathmatch)
-	watch.Stop("systemLifecycle")
+	//watch.Stop("systemLifecycle")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On fait mourir les respawners tués au cours du tour
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemDeath")
+	//watch.Start("systemDeath")
 	systemDeath(deathmatch, respawnersTag)
-	watch.Stop("systemDeath")
+	//watch.Stop("systemDeath")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On ressuscite les entités qui peuvent l'être
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemRespawn")
+	//watch.Start("systemRespawn")
 	systemRespawn(deathmatch)
-	watch.Stop("systemRespawn")
+	//watch.Stop("systemRespawn")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On construit les perceptions
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemPerception")
+	//watch.Start("systemPerception")
 	systemPerception(deathmatch)
-	watch.Stop("systemPerception")
+	//watch.Stop("systemPerception")
 
 	///////////////////////////////////////////////////////////////////////////
 	// On supprime les entités marquées comme à supprimer
 	// à la fin du tour pour éviter que box2D ne nile pas les références lors du disposeEntities
 	///////////////////////////////////////////////////////////////////////////
-	watch.Start("systemDeleteEntities")
+	//watch.Start("systemDeleteEntities")
 	systemDeleteEntities(deathmatch)
-	watch.Stop("systemDeleteEntities")
+	//watch.Stop("systemDeleteEntities")
 
-	watch.Stop("Step")
-	fmt.Println(watch.String())
+	//watch.Stop("Step")
+	//fmt.Println(watch.String())
 }
 
 func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []byte {
@@ -276,10 +277,10 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 			Orientation: physicalBodyAspect.GetOrientation(),
 		})
 
-		msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
+		//msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
 	}
 
-	res, _ := json.Marshal(msg)
+	res, _ := msg.MarshalJSON()
 	return res
 }
 

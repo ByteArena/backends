@@ -252,16 +252,16 @@ func (server *Server) popMutationBatches() []arenaservertypes.AgentMutationBatch
 
 func (server *Server) doTick() {
 
-	watch := utils.MakeStopwatch("doTick")
-	watch.Start("global")
+	//watch := utils.MakeStopwatch("doTick")
+	//watch.Start("global")
 
 	begin := time.Now()
 
 	turn := int(server.currentturn) // starts at 0
 	atomic.AddUint32(&server.currentturn, 1)
 
-	//dolog := (turn % server.tickspersec) == 0
-	dolog := true
+	dolog := (turn % server.tickspersec) == 0
+	//dolog := true
 
 	///////////////////////////////////////////////////////////////////////////
 	// Updating Game
@@ -300,8 +300,8 @@ func (server *Server) doTick() {
 	// Pushing updated state to viz
 	///////////////////////////////////////////////////////////////////////////
 
-	watch.Stop("global")
-	fmt.Println(watch.String())
+	//watch.Stop("global")
+	//fmt.Println(watch.String())
 
 	notify.Post("app:stateupdated", nil)
 
