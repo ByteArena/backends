@@ -12,7 +12,7 @@ import (
 type ContainerOrchestrator interface {
 	StartAgentContainer(ctner *AgentContainer, addTearDownCall func(t.TearDownCallback)) error
 	RemoveAgentContainer(ctner *AgentContainer) error
-	Wait(ctner AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error)
+	Wait(ctner *AgentContainer) (<-chan container.ContainerWaitOKBody, <-chan error)
 	TearDown(container *AgentContainer)
 	CreateAgentContainer(agentid uuid.UUID, host string, port int, dockerimage string) (*AgentContainer, error)
 	GetHost() (string, error)
@@ -22,5 +22,6 @@ type ContainerOrchestrator interface {
 	GetContext() context.Context
 	GetRegistryAuth() string
 	AddContainer(*AgentContainer)
+	RemoveContainer(*AgentContainer)
 	Events() chan interface{}
 }

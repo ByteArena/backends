@@ -13,35 +13,35 @@ var agentPerceptionVisionItemTag = struct {
 }
 
 type agentPerceptionSpecs struct {
-	MaxSpeed           float64 // max distance covered per turn
-	MaxSteeringForce   float64 // max force applied when steering (ie, max magnitude of steering vector)
-	MaxAngularVelocity float64
-	VisionRadius       float64
-	VisionAngle        float64
-	DragForce          float64
+	MaxSpeed           float64 `json:"maxSpeed"`         // max distance covered per turn
+	MaxSteeringForce   float64 `json:"maxSteeringForce"` // max force applied when steering (ie, max magnitude of steering vector)
+	MaxAngularVelocity float64 `json:"maxAngularVelocity"`
+	VisionRadius       float64 `json:"visionRadius"`
+	VisionAngle        float64 `json:"visionangle"`
+	DragForce          float64 `json:"dragForce"`
 }
 
 type agentPerceptionVisionItem struct {
-	Tag       string
-	CloseEdge vector.Vector2
-	Center    vector.Vector2
-	FarEdge   vector.Vector2
-	Velocity  vector.Vector2
+	Tag       _privateAgentPerceptionVisionItemTag `json:"tag"`
+	CloseEdge vector.Vector2                       `json:"closeEdge"`
+	Center    vector.Vector2                       `json:"center"`
+	FarEdge   vector.Vector2                       `json:"farEdge"`
+	Velocity  vector.Vector2                       `json:"velocity"`
 }
 
 type agentPerceptionExternal struct {
-	Vision []agentPerceptionVisionItem
+	Vision []agentPerceptionVisionItem `json:"vision"`
 }
 
 type agentPerceptionInternal struct {
-	Energy           float64        // niveau en millièmes; reconstitution automatique ?
-	Proprioception   float64        // rayon de la surface occupée par le corps en rayon par rapport au centre géométrique
-	Velocity         vector.Vector2 // vecteur de force (direction, magnitude)
-	Magnetoreception float64        // azimuth en degrés par rapport au "Nord" de l'arène
+	Energy           float64        `json:"energy"`           // niveau en millièmes; reconstitution automatique ?
+	Proprioception   float64        `json:"proprioception"`   // rayon de la surface occupée par le corps en rayon par rapport au centre géométrique
+	Velocity         vector.Vector2 `json:"velocity"`         // vecteur de force (direction, magnitude)
+	Magnetoreception float64        `json:"magnetoreception"` // azimuth en degrés par rapport au "Nord" de l'arène
 }
 
 type agentPerception struct {
-	Specs    agentPerceptionSpecs
-	External agentPerceptionExternal
-	Internal agentPerceptionInternal
+	Specs    agentPerceptionSpecs    `json:"specs"`
+	External agentPerceptionExternal `json:"external"`
+	Internal agentPerceptionInternal `json:"internal"`
 }

@@ -53,7 +53,7 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 
 func (s *Server) startAgentContainers() error {
 
-	for _, agentproxy := range s.agentproxies {
+	for k, agentproxy := range s.agentproxies {
 		dockerimage := s.agentimages[agentproxy.GetProxyUUID()]
 
 		arenaHostnameForAgents, err := s.containerorchestrator.GetHost()
@@ -74,6 +74,31 @@ func (s *Server) startAgentContainers() error {
 		}
 
 		go func() {
+			wait, err := s.containerorchestrator.Wait(container)
+
+			select {
+			case msg := <-wait:
+				berror := bettererrors.
+					NewFromString("Agent terminated").
+					SetContext("code", strconv.FormatInt(msg.StatusCode, 10))
+
+				if msg.Error != nil {
+					berror.SetContext("error", msg.Error.Message)
+				}
+
+				s.Log(EventWarn{berror})
+
+				s.containerorchestrator.RemoveContainer(container)
+
+				s.clearAgentById(k)
+				s.ensureEnoughAgentsAreInGame()
+			case <-err:
+				panic(err)
+			}
+		}()
+
+		go func() {
+
 			for {
 				msg := <-s.containerorchestrator.Events()
 
