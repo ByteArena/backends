@@ -252,21 +252,16 @@ func (server *Server) popMutationBatches() []arenaservertypes.AgentMutationBatch
 
 func (server *Server) doTick() {
 
+	//watch := utils.MakeStopwatch("doTick")
+	//watch.Start("global")
+
 	begin := time.Now()
 
 	turn := int(server.currentturn) // starts at 0
 	atomic.AddUint32(&server.currentturn, 1)
 
 	dolog := (turn % server.tickspersec) == 0
-
-	if dolog {
-		var totalDuration int64 = 0
-		for _, duration := range server.tickdurations {
-			totalDuration += duration
-		}
-		meanTick := float64(totalDuration) / float64(len(server.tickdurations))
-		server.Log(EventStatusGameUpdate{fmt.Sprintf("Tick %d; %.3f ms mean; %d goroutines", turn, meanTick/1000000.0, runtime.NumGoroutine())})
-	}
+	//dolog := true
 
 	///////////////////////////////////////////////////////////////////////////
 	// Updating Game
@@ -305,14 +300,34 @@ func (server *Server) doTick() {
 	// Pushing updated state to viz
 	///////////////////////////////////////////////////////////////////////////
 
+	//watch.Stop("global")
+	//fmt.Println(watch.String())
+
 	notify.Post("app:stateupdated", nil)
 
-	nbsamplesToKeep := server.GetTicksPerSecond() * 5
+	var lastduration int64 = time.Now().UnixNano() - begin.UnixNano()
+	nbsamplesToKeep := server.GetTicksPerSecond() * 1
 	if len(server.tickdurations) < nbsamplesToKeep {
-		server.tickdurations = append(server.tickdurations, time.Now().UnixNano()-begin.UnixNano())
+		server.tickdurations = append(server.tickdurations, lastduration)
 	} else {
-		server.tickdurations[turn%nbsamplesToKeep] = time.Now().UnixNano() - begin.UnixNano()
+		server.tickdurations[turn%nbsamplesToKeep] = lastduration
 	}
+
+	if dolog {
+		var totalDuration int64 = 0
+		for _, duration := range server.tickdurations {
+			totalDuration += duration
+		}
+		meanTick := float64(totalDuration) / float64(len(server.tickdurations))
+		server.Log(EventStatusGameUpdate{fmt.Sprintf(
+			"Tick %d; %.3f ms mean; %.3f ms last; %d goroutines",
+			turn,
+			meanTick/1000000.0,
+			float64(lastduration)/1000000.0,
+			runtime.NumGoroutine(),
+		)})
+	}
+
 }
 
 func (s *Server) AddTearDownCall(fn types.TearDownCallback) {

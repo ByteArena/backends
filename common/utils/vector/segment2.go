@@ -1,17 +1,14 @@
 package vector
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 )
 
-type Segment2 struct {
-	a Vector2
-	b Vector2
-}
+type Segment2 [2]Vector2
 
 func MakeSegment2(a Vector2, b Vector2) Segment2 {
 	return Segment2{
@@ -21,107 +18,93 @@ func MakeSegment2(a Vector2, b Vector2) Segment2 {
 }
 
 func (s Segment2) Get() (Vector2, Vector2) {
-	return s.a, s.b
+	return s[0], s[1]
 }
 
 func (s Segment2) GetPointA() Vector2 {
-	return s.a
+	return s[0]
 }
 
 func (s Segment2) GetPointB() Vector2 {
-	return s.b
+	return s[1]
 }
 
 func (s Segment2) SetPointA(v Vector2) Segment2 {
-	s.a = v
+	s[0] = v
 	return s
 }
 
 func (s Segment2) SetPointB(v Vector2) Segment2 {
-	s.b = v
+	s[1] = v
 	return s
 }
 
 func (s Segment2) Equals(s2 Segment2) bool {
-	return s2.a.Equals(s.a) && s2.b.Equals(s.b)
-}
-
-func (s Segment2) MarshalJSON() ([]byte, error) {
-
-	aJson, _ := s.a.MarshalJSON()
-	bJson, _ := s.b.MarshalJSON()
-
-	buffer := bytes.NewBufferString("[")
-	buffer.Write(aJson)
-	buffer.WriteString(",")
-	buffer.Write(bJson)
-	buffer.WriteString("]")
-
-	return buffer.Bytes(), nil
+	return s2[0].Equals(s[0]) && s2[1].Equals(s[1])
 }
 
 func (s Segment2) String() string {
-	return "<Segment2(" + s.a.MarshalJSONString() + ", " + s.b.MarshalJSONString() + ")>"
+	return "<Segment2(" + s[0].MarshalJSONString() + ", " + s[1].MarshalJSONString() + ")>"
 }
 
 func (s Segment2) Clone() Segment2 {
-	return MakeSegment2(s.a.Clone(), s.b.Clone())
+	return MakeSegment2(s[0].Clone(), s[1].Clone())
 }
 
 func (s Segment2) Add(v Vector2) Segment2 {
-	s.a = s.a.Add(v)
-	s.b = s.b.Add(v)
+	s[0] = s[0].Add(v)
+	s[1] = s[1].Add(v)
 	return s
 }
 
 func (s Segment2) AddScalar(f float64) Segment2 {
-	s.a = s.a.AddScalar(f)
-	s.b = s.b.AddScalar(f)
+	s[0] = s[0].AddScalar(f)
+	s[1] = s[1].AddScalar(f)
 	return s
 }
 
 func (s Segment2) Sub(v Vector2) Segment2 {
-	s.a = s.a.Sub(v)
-	s.b = s.b.Sub(v)
+	s[0] = s[0].Sub(v)
+	s[1] = s[1].Sub(v)
 	return s
 }
 
 func (s Segment2) SubScalar(f float64) Segment2 {
-	s.a = s.a.SubScalar(f)
-	s.b = s.b.SubScalar(f)
+	s[0] = s[0].SubScalar(f)
+	s[1] = s[1].SubScalar(f)
 	return s
 }
 
 // Vector2 returns Vector2 from a to b relative to (0,0)
 func (s Segment2) Vector2() Vector2 {
-	return s.b.Sub(s.a)
+	return s[1].Sub(s[0])
 }
 
 func (s Segment2) Center() Vector2 {
 	relativeCenter := s.Vector2().MultScalar(0.5)
-	return s.a.Add(relativeCenter)
+	return s[0].Add(relativeCenter)
 }
 
 func (s Segment2) Translate(v Vector2) Segment2 {
-	s.a = s.a.Add(v)
-	s.b = s.b.Add(v)
+	s[0] = s[0].Add(v)
+	s[1] = s[1].Add(v)
 	return s
 }
 
 func (s Segment2) ScaleFromA(scale float64) Segment2 {
-	s.b = s.b.Sub(s.a).Scale(scale).Add(s.a)
+	s[1] = s[1].Sub(s[0]).Scale(scale).Add(s[0])
 	return s
 }
 
 func (s Segment2) ScaleFromB(scale float64) Segment2 {
-	s.a = s.a.Sub(s.b).Scale(scale).Add(s.b)
+	s[0] = s[0].Sub(s[1]).Scale(scale).Add(s[1])
 	return s
 }
 
 func (s Segment2) ScaleFromCenter(scale float64) Segment2 {
 	center := s.Center()
-	s.b = s.b.Sub(center).Scale(scale).Add(center)
-	s.a = s.a.Sub(center).Scale(scale).Add(center)
+	s[1] = s[1].Sub(center).Scale(scale).Add(center)
+	s[0] = s[0].Sub(center).Scale(scale).Add(center)
 	return s
 }
 
@@ -135,21 +118,21 @@ func (s Segment2) Length() float64 {
 
 func (s Segment2) NormalizeFromA() Segment2 {
 	normalized := s.Vector2().Normalize()
-	s.b = s.a.Add(normalized)
+	s[1] = s[0].Add(normalized)
 	return s
 }
 
 func (s Segment2) NormalizeFromB() Segment2 {
 	normalized := s.Vector2().Normalize()
-	s.a = s.b.Sub(normalized)
+	s[0] = s[1].Sub(normalized)
 	return s
 }
 
 func (s Segment2) NormalizeFromCenter() Segment2 {
 	halfnormalized := s.Vector2().Normalize().Scale(0.5)
 	center := s.Center()
-	s.a = center.Add(halfnormalized)
-	s.b = center.Sub(halfnormalized)
+	s[0] = center.Add(halfnormalized)
+	s[1] = center.Sub(halfnormalized)
 	return s
 }
 
@@ -167,13 +150,13 @@ func (s Segment2) SetLengthFromCenter(length float64) Segment2 {
 
 func (s Segment2) OrthogonalToAClockwise() Segment2 {
 	ortho := s.Vector2().OrthogonalClockwise()
-	s.b = s.a.Add(ortho)
+	s[1] = s[0].Add(ortho)
 	return s
 }
 
 func (s Segment2) OrthogonalToACounterClockwise() Segment2 {
 	ortho := s.Vector2().OrthogonalCounterClockwise()
-	s.b = s.a.Add(ortho)
+	s[1] = s[0].Add(ortho)
 	return s
 }
 
@@ -184,15 +167,15 @@ func (s Segment2) OrthogonalToACentered() Segment2 {
 
 func (s Segment2) OrthogonalToBClockwise() Segment2 {
 	ortho := s.Vector2().OrthogonalClockwise()
-	s.a = s.b
-	s.b = s.b.Add(ortho)
+	s[0] = s[1]
+	s[1] = s[1].Add(ortho)
 	return s
 }
 
 func (s Segment2) OrthogonalToBCounterClockwise() Segment2 {
 	ortho := s.Vector2().OrthogonalCounterClockwise()
-	s.a = s.b
-	s.b = s.b.Add(ortho)
+	s[0] = s[1]
+	s[1] = s[1].Add(ortho)
 	return s
 }
 
@@ -204,16 +187,16 @@ func (s Segment2) OrthogonalToBCentered() Segment2 {
 func (s Segment2) OrthogonalToCenterClockwise() Segment2 {
 	ortho := s.Vector2().OrthogonalClockwise()
 	center := s.Center()
-	s.a = center
-	s.b = s.a.Add(ortho)
+	s[0] = center
+	s[1] = s[0].Add(ortho)
 	return s
 }
 
 func (s Segment2) OrthogonalToCenterCounterClockwise() Segment2 {
 	ortho := s.Vector2().OrthogonalCounterClockwise()
 	center := s.Center()
-	s.a = center
-	s.b = s.a.Add(ortho)
+	s[0] = center
+	s[1] = s[0].Add(ortho)
 	return s
 }
 
@@ -265,14 +248,14 @@ func TestSegment2() {
 	// Clone
 	sclone := s.Clone()
 
-	test(s.a.Equals(sclone.a), "Cloned .a")
-	test(s.b.Equals(sclone.b), "Cloned .b")
+	test(s[0].Equals(sclone[0]), "Cloned [0]")
+	test(s[1].Equals(sclone[1]), "Cloned [1]")
 
 	// Equals
 	test(sclone.Equals(s), "Equals")
 
 	// JSON
-	json, _ := s.MarshalJSON()
+	json, _ := json.Marshal(s)
 	test(string(json) == "[[-1.5000,3.5000],[-3.0000,2.5000]]", "JSON")
 
 	// Add
@@ -352,13 +335,13 @@ func TestSegment2() {
 	// NormalizeFromA
 	normalized := s.Vector2().Normalize()
 	sExpected = s
-	sExpected.b = sExpected.a.Add(normalized)
+	sExpected[1] = sExpected[0].Add(normalized)
 	test(isZero(s.NormalizeFromA().Length()-1.0), "NormalizeFromA:Length")
 	test(s.NormalizeFromA().Equals(sExpected), "NormalizeFromA")
 
 	// NormalizeFromB
 	sExpected = s
-	sExpected.a = sExpected.b.Sub(normalized)
+	sExpected[0] = sExpected[1].Sub(normalized)
 	test(isZero(s.NormalizeFromB().Length()-1.0), "NormalizeFromB:Length")
 	test(s.NormalizeFromB().Equals(sExpected), "NormalizeFromB")
 

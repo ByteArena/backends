@@ -43,6 +43,21 @@ func (i *arrayFlags) Set(value string) error {
 	return nil
 }
 
+func warnWith(err error) {
+	if bettererrors.IsBetterError(err) {
+		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
+
+		fmt.Println("")
+		fmt.Println("=== ❌ warning")
+		fmt.Println("")
+
+		fmt.Print(msg)
+
+	} else {
+		fmt.Println(err.Error())
+	}
+}
+
 func failWith(err error) {
 	if bettererrors.IsBetterError(err) {
 
@@ -68,21 +83,6 @@ func failWith(err error) {
 	}
 }
 
-func warnWith(err error) {
-	if bettererrors.IsBetterError(err) {
-		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
-
-		fmt.Println("")
-		fmt.Println("=== ❌ warning")
-		fmt.Println("")
-
-		fmt.Print(msg)
-
-	} else {
-		fmt.Println(err.Error())
-	}
-}
-
 func runPreflightChecks() {
 	ensureDockerIsAvailable()
 }
@@ -97,6 +97,8 @@ func main() {
 
 func makeapp() *cli.App {
 	app := cli.NewApp()
+	app.Description = "Byte Arena cli tool"
+	app.Name = "Byte Arena cli tool"
 
 	app.Commands = []cli.Command{
 		{
@@ -357,10 +359,10 @@ func mapUpdateAction(debug func(str string)) {
 	mapChecksum, err := getLocalMapChecksum()
 	if err != nil {
 		// Local map has never been downloaded
-		debug("Map does not exist locally; will have to be fetched.")
+		fmt.Println("Map does not exist locally; will have to be fetched.")
 	}
 
-	debug("Downloading map manifest from " + MANIFEST_URL)
+	fmt.Println("Downloading map manifest from " + MANIFEST_URL)
 
 	mapManifest, errManifest := downloadAndGetManifest()
 	if errManifest != nil {

@@ -1,11 +1,7 @@
 package mapcontainer
 
 import (
-	"encoding/json"
-
 	"github.com/bytearena/bytearena/common/utils/vector"
-
-	"github.com/bytearena/bytearena/common/utils/number"
 )
 
 type MapContainer struct {
@@ -24,35 +20,21 @@ type MapContainer struct {
 	} `json:"data"`
 }
 
-type MapPoint struct {
-	X float64
-	Y float64
-}
+type MapPoint [2]float64
 
 func MakeMapPointFromVector2(vec vector.Vector2) MapPoint {
-	return MapPoint{
-		X: vec.GetX(),
-		Y: vec.GetY(),
+	return [2]float64{
+		vec.GetX(),
+		vec.GetY(),
 	}
 }
 
-func (p *MapPoint) MarshalJSON() ([]byte, error) {
-	return json.Marshal([]float64{
-		number.ToFixed(p.X, 5),
-		number.ToFixed(p.Y, 5),
-	})
+func (m MapPoint) GetX() float64 {
+	return m[0]
 }
 
-func (a *MapPoint) UnmarshalJSON(b []byte) error {
-	var floats []float64
-	if err := json.Unmarshal(b, &floats); err != nil {
-		return err
-	}
-
-	a.X = floats[0]
-	a.Y = floats[1]
-
-	return nil
+func (m MapPoint) GetY() float64 {
+	return m[1]
 }
 
 type MapGround struct {
@@ -80,7 +62,7 @@ type MapPolygon struct {
 func (a *MapPolygon) ToVector2Array() []vector.Vector2 {
 	res := make([]vector.Vector2, 0)
 	for _, point := range a.Points {
-		res = append(res, vector.MakeVector2(point.X, point.Y))
+		res = append(res, vector.MakeVector2(point[0], point[1]))
 	}
 
 	return res

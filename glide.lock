@@ -1,5 +1,5 @@
-hash: e79e04995e83564609fdfb5fbc2df29525fa6cefc94ebcf48da4c1c3554ed554
-updated: 2017-11-06T12:29:05.735429187+01:00
+hash: 4830c1c56ca8758301aa2827a7be7a9df8e0b67b1fca8310d101b5d9e786248f
+updated: 2017-11-07T22:23:37.541779983+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -123,6 +123,8 @@ imports:
   - client/v2
   - models
   - pkg/escape
+- name: github.com/json-iterator/go
+  version: 6240e1e7983a85228f7fd9c3e1b6932d46ec58e2
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/mattn/go-colorable

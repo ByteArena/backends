@@ -2,16 +2,14 @@ package deathmatch
 
 import "github.com/bytearena/bytearena/common/utils/vector"
 
-type _privateAgentPerceptionVisionItemTag string
-
 var agentPerceptionVisionItemTag = struct {
-	Agent      _privateAgentPerceptionVisionItemTag
-	Obstacle   _privateAgentPerceptionVisionItemTag
-	Projectile _privateAgentPerceptionVisionItemTag
+	Agent      string
+	Obstacle   string
+	Projectile string
 }{
-	Agent:      _privateAgentPerceptionVisionItemTag("agent"),
-	Obstacle:   _privateAgentPerceptionVisionItemTag("obstacle"),
-	Projectile: _privateAgentPerceptionVisionItemTag("projectile"),
+	Agent:      "agent",
+	Obstacle:   "obstacle",
+	Projectile: "projectile",
 }
 
 type agentPerceptionSpecs struct {
