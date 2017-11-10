@@ -1,6 +1,9 @@
 package deathmatch
 
-import "github.com/bytearena/bytearena/common/utils/vector"
+import (
+	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/ecs"
+)
 
 var agentPerceptionVisionItemTag = struct {
 	Agent      string
@@ -31,6 +34,7 @@ type agentPerceptionVisionItem struct {
 
 type agentPerceptionExternal struct {
 	Vision []agentPerceptionVisionItem `json:"vision"`
+	Events []Event                     `json:"events"`
 }
 
 type agentPerceptionInternal struct {
@@ -44,4 +48,13 @@ type agentPerception struct {
 	Specs    agentPerceptionSpecs    `json:"specs"`
 	External agentPerceptionExternal `json:"external"`
 	Internal agentPerceptionInternal `json:"internal"`
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Events
+///////////////////////////////////////////////////////////////////////////
+
+type Event struct {
+	EventType    eventType
+	TargetEntity *ecs.Entity
 }

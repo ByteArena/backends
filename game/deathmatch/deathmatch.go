@@ -4,7 +4,6 @@ import (
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/types"
 	commontypes "github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/game/common"
 	"github.com/bytearena/ecs"
 	"github.com/go-gl/mathgl/mgl64"
 )
@@ -47,6 +46,8 @@ type DeathmatchGame struct {
 
 	PhysicalWorld     *box2d.B2World
 	collisionListener *collisionListener
+
+	log *DeathmatchGameLog
 }
 
 func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *DeathmatchGame {
@@ -77,6 +78,8 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		collidableComponent:   manager.NewComponent(),
 		lifecycleComponent:    manager.NewComponent(),
 		respawnComponent:      manager.NewComponent(),
+
+		log: NewDeathmatchGameLog(),
 	}
 
 	gravity := box2d.MakeB2Vec2(0.0, 0.0) // gravity 0: the simulation is seen from the top

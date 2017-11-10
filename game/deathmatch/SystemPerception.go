@@ -18,6 +18,8 @@ import (
 // http://ncase.me/sight-and-light/
 
 func systemPerception(deathmatch *DeathmatchGame) {
+	// TODO(sven): process log events (deathmatch.log).
+	// Include it into the perceptorsView?
 	entitiesWithPerception := deathmatch.perceptorsView.Get()
 	wg := sync.WaitGroup{}
 	wg.Add(len(entitiesWithPerception))
