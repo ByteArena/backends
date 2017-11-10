@@ -13,19 +13,19 @@ var agentPerceptionVisionItemTag = struct {
 }
 
 type agentPerceptionSpecs struct {
-	MaxSpeed           float64 `json:"maxSpeed"`         // max distance covered per turn
-	MaxSteeringForce   float64 `json:"maxSteeringForce"` // max force applied when steering (ie, max magnitude of steering vector)
-	MaxAngularVelocity float64 `json:"maxAngularVelocity"`
-	VisionRadius       float64 `json:"visionRadius"`
+	MaxSpeed           float64 `json:"maxspeed"`         // max distance covered per turn
+	MaxSteeringForce   float64 `json:"maxsteeringforce"` // max force applied when steering (ie, max magnitude of steering vector)
+	MaxAngularVelocity float64 `json:"maxangularvelocity"`
+	VisionRadius       float64 `json:"visionradius"`
 	VisionAngle        float64 `json:"visionangle"`
-	DragForce          float64 `json:"dragForce"`
+	DragForce          float64 `json:"dragforce"`
 }
 
 type agentPerceptionVisionItem struct {
 	Tag       _privateAgentPerceptionVisionItemTag `json:"tag"`
-	CloseEdge vector.Vector2                       `json:"closeEdge"`
+	CloseEdge vector.Vector2                       `json:"closeedge"`
 	Center    vector.Vector2                       `json:"center"`
-	FarEdge   vector.Vector2                       `json:"farEdge"`
+	FarEdge   vector.Vector2                       `json:"faredge"`
 	Velocity  vector.Vector2                       `json:"velocity"`
 }
 
