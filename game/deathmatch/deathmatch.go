@@ -143,12 +143,6 @@ func (deathmatch DeathmatchGame) getEntity(id ecs.EntityID, tagelements ...inter
 
 func (deathmatch *DeathmatchGame) ImplementsGameInterface() {}
 
-func (deathmatch *DeathmatchGame) Subscribe(event string, cbk func(data interface{})) common.GameEventSubscription {
-	return common.GameEventSubscription(0)
-}
-
-func (deathmatch *DeathmatchGame) Unsubscribe(subscription common.GameEventSubscription) {}
-
 func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []types.AgentMutationBatch) {
 
 	//watch := utils.MakeStopwatch("deathmatch::Step()")
