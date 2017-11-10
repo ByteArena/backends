@@ -98,8 +98,8 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 	for i, visionItem := range vision {
 		visionItem.Center = visionItem.Center.Transform(game.agentTransform)
 		visionItem.FarEdge = visionItem.FarEdge.Transform(game.agentTransform)
-		visionItem.CloseEdge = visionItem.FarEdge.Transform(game.agentTransform)
-		visionItem.Velocity = visionItem.FarEdge.Transform(game.agentTransform)
+		visionItem.NearEdge = visionItem.NearEdge.Transform(game.agentTransform)
+		visionItem.Velocity = visionItem.Velocity.Transform(game.agentTransform)
 		vision[i] = visionItem
 	}
 
@@ -242,7 +242,7 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 			centersegment := vector.MakeSegment2(vector.MakeNullVector2(), centervec)
 			agentdiameter := centersegment.OrthogonalToBCentered().SetLengthFromCenter(otherRadius * 2)
 
-			closeEdge, farEdge := agentdiameter.Get()
+			nearEdge, farEdge := agentdiameter.Get()
 
 			distsq := centervec.MagSq()
 			if distsq <= visionRadiusSq {
@@ -251,9 +251,9 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 				centervec = centervec.SetAngle(centervec.Angle() - agentOrientation)
 
 				visionitem := agentPerceptionVisionItem{
-					CloseEdge: closeEdge.Clone().SetAngle(closeEdge.Angle() - agentOrientation), // perpendicular to relative position vector, left side
-					Center:    centervec,
-					FarEdge:   farEdge.Clone().SetAngle(farEdge.Angle() - agentOrientation), // perpendicular to relative position vector, right side
+					NearEdge: nearEdge.Clone().SetAngle(nearEdge.Angle() - agentOrientation), // perpendicular to relative position vector, left side
+					Center:   centervec,
+					FarEdge:  farEdge.Clone().SetAngle(farEdge.Angle() - agentOrientation), // perpendicular to relative position vector, right side
 					// FIXME(jerome): /20 here is to convert velocity per second in velocity per tick; should probably handle velocities in m/s everywhere ?
 					Velocity: otherVelocity.Clone().Scale(1.0 / 20.0).SetAngle(otherVelocity.Angle() - agentOrientation),
 					Tag:      visionType,
@@ -383,21 +383,21 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 					relEdgeOneAgentAligned := relEdgeOne.SetAngle(relEdgeOne.Angle() - agentOrientation)
 					relEdgeTwoAgentAligned := relEdgeTwo.SetAngle(relEdgeTwo.Angle() - agentOrientation)
 
-					var closeEdge, farEdge vector.Vector2
+					var nearEdge, farEdge vector.Vector2
 					if relEdgeTwoAgentAligned.MagSq() > relEdgeOneAgentAligned.MagSq() {
-						closeEdge = relEdgeOneAgentAligned
+						nearEdge = relEdgeOneAgentAligned
 						farEdge = relEdgeTwoAgentAligned
 					} else {
-						closeEdge = relEdgeTwoAgentAligned
+						nearEdge = relEdgeTwoAgentAligned
 						farEdge = relEdgeOneAgentAligned
 					}
 
 					obstacleperception := agentPerceptionVisionItem{
-						CloseEdge: closeEdge,
-						Center:    relCenterAgentAligned,
-						FarEdge:   farEdge,
-						Velocity:  vector.MakeNullVector2(),
-						Tag:       agentPerceptionVisionItemTag.Obstacle,
+						NearEdge: nearEdge,
+						Center:   relCenterAgentAligned,
+						FarEdge:  farEdge,
+						Velocity: vector.MakeNullVector2(),
+						Tag:      agentPerceptionVisionItemTag.Obstacle,
 					}
 
 					vision = append(vision, obstacleperception)
@@ -419,11 +419,11 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 		for _, v := range vision {
 
 			//absCenter := v.Center.SetAngle(v.Center.Angle() + agentOrientation).Add(agentPosition)
-			absCloseEdge := v.CloseEdge.SetAngle(v.CloseEdge.Angle() + agentOrientation).Add(agentPosition)
+			absNearEdge := v.NearEdge.SetAngle(v.NearEdge.Angle() + agentOrientation).Add(agentPosition)
 			absFarEdge := v.FarEdge.SetAngle(v.FarEdge.Angle() + agentOrientation).Add(agentPosition)
 
 			renderAspect.DebugPoints = append(renderAspect.DebugPoints,
-				absCloseEdge.ToFloatArray(),
+				absNearEdge.ToFloatArray(),
 				//absCenter.ToFloatArray(),
 				absFarEdge.ToFloatArray(),
 			)
@@ -464,8 +464,8 @@ func processOcclusions(vision []agentPerceptionVisionItem, agentPosition vector.
 
 	// for i, visionItem := range vision {
 	// 	segments[i] = visibility2d.NewSegment(
-	// 		visionItem.CloseEdge.GetX(),
-	// 		visionItem.CloseEdge.GetY(),
+	// 		visionItem.NearEdge.GetX(),
+	// 		visionItem.NearEdge.GetY(),
 	// 		visionItem.FarEdge.GetX(),
 	// 		visionItem.FarEdge.GetY(),
 	// 		visionItem,
@@ -482,7 +482,7 @@ func processOcclusions(vision []agentPerceptionVisionItem, agentPosition vector.
 
 	// for i, v := range visibility {
 	// 	agentVisionItem := v.Userdata.(agentPerceptionVisionItem)
-	// 	agentVisionItem.CloseEdge = v.Visible.GetPointA()
+	// 	agentVisionItem.NearEdge = v.Visible.GetPointA()
 	// 	agentVisionItem.FarEdge = v.Visible.GetPointB()
 	// 	agentVisionItem.Center = v.Visible.Center()
 	// 	realVision[i] = agentVisionItem

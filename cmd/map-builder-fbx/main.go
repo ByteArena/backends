@@ -392,8 +392,8 @@ func main() {
 			Id:   strconv.Itoa(int(start.id)),
 			Name: start.name,
 			Point: mapcontainer.MapPoint{
-				X: origin[0],
-				Y: origin[1],
+				origin[0],
+				origin[1],
 			},
 		})
 	}
@@ -742,7 +742,7 @@ func polygonFrom2DMesh(faces []faceType) mapcontainer.MapPolygon {
 
 	points := make([]mapcontainer.MapPoint, 0)
 	for _, vec2 := range polygon {
-		points = append(points, mapcontainer.MapPoint{X: vec2.GetX(), Y: vec2.GetY()})
+		points = append(points, mapcontainer.MapPoint{vec2.GetX(), vec2.GetY()})
 	}
 
 	return mapcontainer.MapPolygon{Points: points}

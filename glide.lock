@@ -1,5 +1,5 @@
-hash: 4830c1c56ca8758301aa2827a7be7a9df8e0b67b1fca8310d101b5d9e786248f
-updated: 2017-11-07T22:23:37.541779983+01:00
+hash: 3549bb3d60ddf161d4131ab2c7694572ccc4a5eb923fa1f6e84eeebbec947e6a
+updated: 2017-11-10T13:43:53.867701896+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -127,6 +127,12 @@ imports:
   version: 6240e1e7983a85228f7fd9c3e1b6932d46ec58e2
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
+- name: github.com/mailru/easyjson
+  version: 5f62e4f3afa2f576dc86531b7df4d966b19ef8f8
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
 - name: github.com/mattn/go-colorable
   version: 5411d3eea5978e6cdc258b30de592b60df6aba96
   repo: https://github.com/mattn/go-colorable

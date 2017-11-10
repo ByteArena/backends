@@ -22,11 +22,11 @@ type agentPerceptionSpecs struct {
 }
 
 type agentPerceptionVisionItem struct {
-	Tag       _privateAgentPerceptionVisionItemTag `json:"tag"`
-	CloseEdge vector.Vector2                       `json:"closeedge"`
-	Center    vector.Vector2                       `json:"center"`
-	FarEdge   vector.Vector2                       `json:"faredge"`
-	Velocity  vector.Vector2                       `json:"velocity"`
+	Tag      string         `json:"tag"`
+	NearEdge vector.Vector2 `json:"nearedge"`
+	Center   vector.Vector2 `json:"center"`
+	FarEdge  vector.Vector2 `json:"faredge"`
+	Velocity vector.Vector2 `json:"velocity"`
 }
 
 type agentPerceptionExternal struct {

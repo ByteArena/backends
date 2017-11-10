@@ -4,6 +4,7 @@ package deathmatch
 
 import (
 	json "encoding/json"
+
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
@@ -36,9 +37,9 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch(in *jlexer.L
 			continue
 		}
 		switch key {
-		case "Tag":
+		case "tag":
 			out.Tag = string(in.String())
-		case "CloseEdge":
+		case "nearedge":
 			if in.IsNull() {
 				in.Skip()
 			} else {
@@ -46,7 +47,7 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch(in *jlexer.L
 				v1 := 0
 				for !in.IsDelim(']') {
 					if v1 < 2 {
-						out.CloseEdge[v1] = float64(in.Float64())
+						out.NearEdge[v1] = float64(in.Float64())
 						v1++
 					} else {
 						in.SkipRecursive()
@@ -55,7 +56,7 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch(in *jlexer.L
 				}
 				in.Delim(']')
 			}
-		case "Center":
+		case "center":
 			if in.IsNull() {
 				in.Skip()
 			} else {
@@ -72,7 +73,7 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch(in *jlexer.L
 				}
 				in.Delim(']')
 			}
-		case "FarEdge":
+		case "faredge":
 			if in.IsNull() {
 				in.Skip()
 			} else {
@@ -89,7 +90,7 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch(in *jlexer.L
 				}
 				in.Delim(']')
 			}
-		case "Velocity":
+		case "velocity":
 			if in.IsNull() {
 				in.Skip()
 			} else {
@@ -124,26 +125,26 @@ func easyjsonA8da870EncodeGithubComBytearenaBytearenaGameDeathmatch(out *jwriter
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Tag\":")
+	out.RawString("\"tag\":")
 	out.String(string(in.Tag))
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"CloseEdge\":")
+	out.RawString("\"nearedge\":")
 	out.RawByte('[')
-	for v5 := range in.CloseEdge {
+	for v5 := range in.NearEdge {
 		if v5 > 0 {
 			out.RawByte(',')
 		}
-		out.Float64(float64(in.CloseEdge[v5]))
+		out.Float64(float64(in.NearEdge[v5]))
 	}
 	out.RawByte(']')
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Center\":")
+	out.RawString("\"center\":")
 	out.RawByte('[')
 	for v6 := range in.Center {
 		if v6 > 0 {
@@ -156,7 +157,7 @@ func easyjsonA8da870EncodeGithubComBytearenaBytearenaGameDeathmatch(out *jwriter
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"FarEdge\":")
+	out.RawString("\"faredge\":")
 	out.RawByte('[')
 	for v7 := range in.FarEdge {
 		if v7 > 0 {
@@ -169,7 +170,7 @@ func easyjsonA8da870EncodeGithubComBytearenaBytearenaGameDeathmatch(out *jwriter
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Velocity\":")
+	out.RawString("\"velocity\":")
 	out.RawByte('[')
 	for v8 := range in.Velocity {
 		if v8 > 0 {
@@ -223,17 +224,17 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch1(in *jlexer.
 			continue
 		}
 		switch key {
-		case "MaxSpeed":
+		case "maxspeed":
 			out.MaxSpeed = float64(in.Float64())
-		case "MaxSteeringForce":
+		case "maxsteeringforce":
 			out.MaxSteeringForce = float64(in.Float64())
-		case "MaxAngularVelocity":
+		case "maxangularvelocity":
 			out.MaxAngularVelocity = float64(in.Float64())
-		case "VisionRadius":
+		case "visionradius":
 			out.VisionRadius = float64(in.Float64())
-		case "VisionAngle":
+		case "visionangle":
 			out.VisionAngle = float64(in.Float64())
-		case "DragForce":
+		case "dragforce":
 			out.DragForce = float64(in.Float64())
 		default:
 			in.SkipRecursive()
@@ -253,37 +254,37 @@ func easyjsonA8da870EncodeGithubComBytearenaBytearenaGameDeathmatch1(out *jwrite
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"MaxSpeed\":")
+	out.RawString("\"maxspeed\":")
 	out.Float64(float64(in.MaxSpeed))
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"MaxSteeringForce\":")
+	out.RawString("\"maxsteeringforce\":")
 	out.Float64(float64(in.MaxSteeringForce))
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"MaxAngularVelocity\":")
+	out.RawString("\"maxangularvelocity\":")
 	out.Float64(float64(in.MaxAngularVelocity))
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"VisionRadius\":")
+	out.RawString("\"visionradius\":")
 	out.Float64(float64(in.VisionRadius))
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"VisionAngle\":")
+	out.RawString("\"visionangle\":")
 	out.Float64(float64(in.VisionAngle))
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"DragForce\":")
+	out.RawString("\"dragforce\":")
 	out.Float64(float64(in.DragForce))
 	out.RawByte('}')
 }
@@ -330,11 +331,11 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch2(in *jlexer.
 			continue
 		}
 		switch key {
-		case "Energy":
+		case "energy":
 			out.Energy = float64(in.Float64())
-		case "Proprioception":
+		case "proprioception":
 			out.Proprioception = float64(in.Float64())
-		case "Velocity":
+		case "velocity":
 			if in.IsNull() {
 				in.Skip()
 			} else {
@@ -351,7 +352,7 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch2(in *jlexer.
 				}
 				in.Delim(']')
 			}
-		case "Magnetoreception":
+		case "magnetoreception":
 			out.Magnetoreception = float64(in.Float64())
 		default:
 			in.SkipRecursive()
@@ -371,19 +372,19 @@ func easyjsonA8da870EncodeGithubComBytearenaBytearenaGameDeathmatch2(out *jwrite
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Energy\":")
+	out.RawString("\"energy\":")
 	out.Float64(float64(in.Energy))
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Proprioception\":")
+	out.RawString("\"proprioception\":")
 	out.Float64(float64(in.Proprioception))
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Velocity\":")
+	out.RawString("\"velocity\":")
 	out.RawByte('[')
 	for v10 := range in.Velocity {
 		if v10 > 0 {
@@ -396,7 +397,7 @@ func easyjsonA8da870EncodeGithubComBytearenaBytearenaGameDeathmatch2(out *jwrite
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Magnetoreception\":")
+	out.RawString("\"magnetoreception\":")
 	out.Float64(float64(in.Magnetoreception))
 	out.RawByte('}')
 }
@@ -443,7 +444,7 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch3(in *jlexer.
 			continue
 		}
 		switch key {
-		case "Vision":
+		case "vision":
 			if in.IsNull() {
 				in.Skip()
 				out.Vision = nil
@@ -484,7 +485,7 @@ func easyjsonA8da870EncodeGithubComBytearenaBytearenaGameDeathmatch3(out *jwrite
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Vision\":")
+	out.RawString("\"vision\":")
 	if in.Vision == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
 		out.RawString("null")
 	} else {
@@ -542,11 +543,11 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch4(in *jlexer.
 			continue
 		}
 		switch key {
-		case "Specs":
+		case "specs":
 			(out.Specs).UnmarshalEasyJSON(in)
-		case "External":
+		case "external":
 			(out.External).UnmarshalEasyJSON(in)
-		case "Internal":
+		case "internal":
 			(out.Internal).UnmarshalEasyJSON(in)
 		default:
 			in.SkipRecursive()
@@ -566,19 +567,19 @@ func easyjsonA8da870EncodeGithubComBytearenaBytearenaGameDeathmatch4(out *jwrite
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Specs\":")
+	out.RawString("\"specs\":")
 	(in.Specs).MarshalEasyJSON(out)
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"External\":")
+	out.RawString("\"external\":")
 	(in.External).MarshalEasyJSON(out)
 	if !first {
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"Internal\":")
+	out.RawString("\"internal\":")
 	(in.Internal).MarshalEasyJSON(out)
 	out.RawByte('}')
 }
