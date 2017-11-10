@@ -35,7 +35,10 @@ func systemHealth(deathmatch *DeathmatchGame, collisions []collision) {
 
 		// TODO: LOG EVENT HASFRAGGED on impactor
 		// TODO: LOG EVENT DEATH on impactee; OR MAYBE IN lifecycleAspect.SetDeath ?
-		deathmatch.log.AddEntry(MakeLogEntryOfType(EVENT_PROJECTILE_KILLED_ENTITY, qrKilled.Entity))
+		deathmatch.log.AddEntryForEntity(
+			qrKilled.Entity,
+			MakeLogEntryOfType(EVENT_PROJECTILE_KILLED_ENTITY, qrKilled.Entity),
+		)
 	}
 }
 

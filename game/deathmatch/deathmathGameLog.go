@@ -15,12 +15,12 @@ type LogEntry struct {
 }
 
 type DeathmatchGameLog struct {
-	entries []LogEntry
+	entries map[*ecs.Entity][]LogEntry
 }
 
 func NewDeathmatchGameLog() *DeathmatchGameLog {
 	return &DeathmatchGameLog{
-		entries: make([]LogEntry, 0),
+		entries: make(map[*ecs.Entity][]LogEntry, 0),
 	}
 }
 
@@ -31,6 +31,13 @@ func MakeLogEntryOfType(eventType eventType, targetEntity *ecs.Entity) LogEntry 
 	}
 }
 
-func (l *DeathmatchGameLog) AddEntry(entry LogEntry) {
-	l.entries = append(l.entries, entry)
+func (l *DeathmatchGameLog) AddEntryForEntity(key *ecs.Entity, entry LogEntry) {
+
+	// Create the entity's mailbox if needed
+	if _, hasMailbox := l.entries[key]; !hasMailbox {
+		l.entries[key] = make([]LogEntry, 0)
+	}
+
+	// Append to its mailbox this new event
+	l.entries[key] = append(l.entries[key], entry)
 }
