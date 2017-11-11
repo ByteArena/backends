@@ -16,6 +16,7 @@ import (
 
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
+	"github.com/bytearena/bytearena/cmd/ba/generate"
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/mappack"
 	"github.com/bytearena/bytearena/common/mq"
@@ -101,6 +102,25 @@ func makeapp() *cli.App {
 	app.Name = "Byte Arena cli tool"
 
 	app.Commands = []cli.Command{
+		{
+			Name:    "generate",
+			Aliases: []string{"gen"},
+			Usage:   "Generate a boilerplate agent",
+			Action: func(c *cli.Context) error {
+				err := generate.Main(c.Args().Get(0))
+
+				if err != nil {
+					berror := bettererrors.
+						NewFromString("Failed to execute command").
+						SetContext("command", "generate").
+						With(err)
+
+					failWith(berror)
+				}
+
+				return nil
+			},
+		},
 		{
 			Name:    "train",
 			Aliases: []string{"t"},
