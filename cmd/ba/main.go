@@ -111,18 +111,20 @@ func makeapp() *cli.App {
 				cli.StringSliceFlag{Name: "agent", Usage: "Agent images"},
 				cli.IntFlag{Name: "port", Value: 8080, Usage: "Port serving the trainer"},
 				cli.StringFlag{Name: "record-file", Value: "", Usage: "Destination file for recording the game"},
+				cli.StringFlag{Name: "map", Value: "viz-island", Usage: "Name of the map used by the trainer"},
 				cli.BoolFlag{Name: "no-browser", Usage: "Disable automatic browser opening at start"},
 				cli.BoolFlag{Name: "debug", Usage: "Enable debug logging"},
 			},
 			Action: func(c *cli.Context) error {
-				nobrowser := c.Bool("no-browser")
-				isDebug := c.Bool("debug")
 				tps := c.Int("tps")
 				host := c.String("host")
+				agents := c.StringSlice("agent")
 				port := c.Int("port")
 				recordFile := c.String("record-file")
-				agents := c.StringSlice("agent")
-				trainAction(tps, host, port, nobrowser, recordFile, agents, isDebug)
+				mapName := c.String("map")
+				nobrowser := c.Bool("no-browser")
+				isDebug := c.Bool("debug")
+				trainAction(tps, host, port, nobrowser, recordFile, agents, isDebug, mapName)
 				return nil
 			},
 		},
@@ -159,7 +161,7 @@ func makeapp() *cli.App {
 	return app
 }
 
-func trainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string, isDebug bool) {
+func trainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string) {
 	shutdownChan := make(chan bool)
 	debug := func(str string) {}
 
@@ -200,7 +202,7 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 		}
 	}
 
-	gamedescription, err := NewMockGame(tps)
+	gamedescription, err := NewMockGame(tps, mapName)
 	if err != nil {
 		failWith(err)
 	}
@@ -297,7 +299,7 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 	vizgames := make([]*types.VizGame, 1)
 	vizgames[0] = types.NewVizGame(gamedescription)
 
-	mappack, errMappack := mappack.UnzipAndGetHandles(getMapLocation())
+	mappack, errMappack := mappack.UnzipAndGetHandles(getMapLocation(mapName))
 
 	if errMappack != nil {
 		failWith(errMappack)
@@ -307,7 +309,7 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 	vizservice := vizserver.NewVizService(
 		"0.0.0.0:"+strconv.Itoa(port+1),
 		webclientpath,
-		"viz-island",
+		mapName,
 		func() ([]*types.VizGame, error) { return vizgames, nil },
 		recorder,
 		mappack,

@@ -27,7 +27,7 @@ type manifest struct {
 	Url string `json:"url"`
 }
 
-func getMapLocation() string {
+func getMapLocation(mapName string) string {
 	user, err := user.Current()
 
 	if err != nil {
@@ -42,7 +42,7 @@ func getMapLocation() string {
 		failWith(err)
 	}
 
-	return path.Join(baConfigDir, "map.zip")
+	return path.Join(baConfigDir, mapName+".zip")
 }
 
 func getLocalMapChecksum() (string, error) {
@@ -88,13 +88,13 @@ func downloadMap(manifest manifest) error {
 			SetContext("url", manifest.Url)
 	}
 
-	file, errOpen := os.OpenFile(getMapLocation(), os.O_WRONLY|os.O_CREATE, 0755)
+	file, errOpen := os.OpenFile(getMapLocation("map"), os.O_WRONLY|os.O_CREATE, 0755)
 
 	if errOpen != nil {
 		return bettererrors.
 			NewFromString("Could not open destination file").
 			With(errOpen).
-			SetContext("location", getMapLocation())
+			SetContext("location", getMapLocation("map"))
 	}
 
 	bar := pb.New(fileSize)
@@ -144,19 +144,19 @@ func downloadAndGetManifest() (manifest, error) {
 }
 
 func isMapLocally() bool {
-	_, err := os.Stat(getMapLocation())
+	_, err := os.Stat(getMapLocation("map"))
 
 	return !os.IsNotExist(err)
 }
 
 func getMapLocally() (*os.File, error) {
-	f, err := os.OpenFile(getMapLocation(), os.O_RDONLY, 0755)
+	f, err := os.OpenFile(getMapLocation("map"), os.O_RDONLY, 0755)
 
 	if err != nil {
 		return nil, bettererrors.
 			NewFromString("Could not open map file").
 			With(bettererrors.NewFromErr(err)).
-			SetContext("map file", getMapLocation())
+			SetContext("map file", getMapLocation("map"))
 	}
 
 	return f, nil
