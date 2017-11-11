@@ -71,7 +71,7 @@ func failWith(err error) {
 		fmt.Println("=== ")
 		fmt.Println("=== ❌ an error occurred.")
 		fmt.Println("===")
-		fmt.Println("=== Please report this error here: https://github.com/ByteArena/trainer/issues/new?" + urlOptions.Encode())
+		fmt.Println("=== Please report this error here: https://github.com/ByteArena/cli/issues/new?" + urlOptions.Encode())
 		fmt.Println("=== We will fix it as soon as possible.")
 		fmt.Println("===")
 		fmt.Println("")
