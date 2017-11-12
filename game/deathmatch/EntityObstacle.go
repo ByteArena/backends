@@ -1,6 +1,7 @@
 package deathmatch
 
 import (
+	"log"
 	"fmt"
 
 	"github.com/bytearena/box2d"
@@ -39,7 +40,7 @@ func newEntityGroundOrObstacle(deathmatch *DeathmatchGame, polygon mapcontainer.
 	bodydef.Type = box2d.B2BodyType.B2_staticBody
 
 	body := deathmatch.PhysicalWorld.CreateBody(&bodydef)
-	vertices := make([]box2d.B2Vec2, len(polygon.Points)) // -1: avoid last point because the last point of the loop should not be repeated
+	vertices := make([]box2d.B2Vec2, len(polygon.Points))
 
 	for i := 0; i < len(polygon.Points); i++ {
 		vertices[i].Set(polygon.Points[i].GetX(), polygon.Points[i].GetY()*-1) // TODO(jerome): invert axes in transform, not here
@@ -52,9 +53,17 @@ func newEntityGroundOrObstacle(deathmatch *DeathmatchGame, polygon mapcontainer.
 		}
 	}()
 
-	shape := box2d.MakeB2ChainShape()
-	shape.CreateLoop(vertices, len(vertices))
-	body.CreateFixture(&shape, 0.0)
+	prev := len(vertices)-1
+	for cur := 0; cur < len(vertices); cur++ {
+		shape := box2d.MakeB2EdgeShape()
+		shape.Set(vertices[prev], vertices[cur])
+		body.CreateFixture(&shape, 0.0)
+
+		log.Println("EDGE", vertices[prev], vertices[cur])
+
+		prev = cur
+	}
+
 	body.SetUserData(commontypes.MakePhysicalBodyDescriptor(
 		obstacletype,
 		obstacle.GetID(),

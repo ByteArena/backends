@@ -37,6 +37,7 @@ func main() {
 	playcanvaszippath := flag.String("playcanvaszip", "", "Playcanvas zip file; required")
 	vizdirpath := flag.String("vizdir", "", "Viz checkout dir; required")
 	moveTo := flag.String("moveto", "", "If set, built zip will be moved to given file; ex: --moveto /path/to/map.zip")
+	noNPMBuild := flag.Bool("no-npm-install", false, "If set, npm install won't be executed before bundling")
 	flag.Parse()
 
 	paramError := false
@@ -280,11 +281,17 @@ func main() {
 
 	os.MkdirAll(libDistDirPath, os.ModePerm)
 
+	npmRunCmd := "install-and-build"
+
+	if *noNPMBuild {
+		npmRunCmd = "build"
+	}
+
 	// Building viz lib
 	cmdBuild := exec.Command(
 		"npm",
 		"run",
-		"install-and-build",
+		npmRunCmd,
 	)
 	cmdBuild.Dir = *vizdirpath
 

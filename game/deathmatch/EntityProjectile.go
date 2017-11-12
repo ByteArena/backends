@@ -49,7 +49,7 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 		}).
 		AddComponent(deathmatch.lifecycleComponent, &Lifecycle{
 			tickBirth: deathmatch.ticknum,
-			maxAge:    60,
+			maxAge:    300,
 		}).
 		AddComponent(deathmatch.ownedComponent, &Owned{ownerid}).
 		AddComponent(deathmatch.impactorComponent, &Impactor{

@@ -308,13 +308,16 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 		msg.Objects = append(msg.Objects, commontypes.VizMessageObject{
 			Id:          entityresult.Entity.GetID().String(),
 			Type:        renderAspect.GetType(),
+
+			// Here, viz coord space and physical world coord space match
+			// No transform is therefore needed
 			Position:    physicalBodyAspect.GetPosition(),
 			Velocity:    physicalBodyAspect.GetVelocity(),
 			Radius:      physicalBodyAspect.GetRadius(),
 			Orientation: physicalBodyAspect.GetOrientation(),
 		})
 
-		//msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
+		msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
 	}
 
 	res, _ := msg.MarshalJSON()

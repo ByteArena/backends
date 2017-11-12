@@ -10,6 +10,9 @@ import (
 	"strconv"
 	"time"
 
+	"runtime/pprof"
+	"log"
+
 	notify "github.com/bitly/go-notify"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/urfave/cli"
@@ -114,6 +117,7 @@ func makeapp() *cli.App {
 				cli.StringFlag{Name: "map", Value: "viz-island", Usage: "Name of the map used by the trainer"},
 				cli.BoolFlag{Name: "no-browser", Usage: "Disable automatic browser opening at start"},
 				cli.BoolFlag{Name: "debug", Usage: "Enable debug logging"},
+				cli.BoolFlag{Name: "profile", Usage: "Enable execution profiling"},
 			},
 			Action: func(c *cli.Context) error {
 				tps := c.Int("tps")
@@ -124,7 +128,8 @@ func makeapp() *cli.App {
 				mapName := c.String("map")
 				nobrowser := c.Bool("no-browser")
 				isDebug := c.Bool("debug")
-				trainAction(tps, host, port, nobrowser, recordFile, agents, isDebug, mapName)
+				shouldProfile := c.Bool("profile")
+				trainAction(tps, host, port, nobrowser, recordFile, agents, isDebug, mapName, shouldProfile)
 				return nil
 			},
 		},
@@ -161,7 +166,19 @@ func makeapp() *cli.App {
 	return app
 }
 
-func trainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string) {
+func trainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string, shouldProfile bool) {
+	
+	if shouldProfile {
+		f, err := os.Create("./cpu.prof")
+        if err != nil {
+            log.Fatal("could not create CPU profile: ", err)
+        }
+        if err := pprof.StartCPUProfile(f); err != nil {
+            log.Fatal("could not start CPU profile: ", err)
+        }
+        defer pprof.StopCPUProfile()
+	}
+
 	shutdownChan := make(chan bool)
 	debug := func(str string) {}
 
@@ -332,7 +349,7 @@ func trainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 	fmt.Println("\033[0;34m\nGame running at " + url + "\033[0m\n")
 
-	// Wait until somesay ask for shutdown
+	// Wait until someone asks for shutdown
 	select {
 	case <-serverChan:
 	case <-shutdownChan:

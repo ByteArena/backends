@@ -269,8 +269,17 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 			otherQr := game.getEntity(bodyDescriptor.ID, game.physicalBodyComponent)
 			otherPhysicalAspect := otherQr.Components[game.physicalBodyComponent].(*PhysicalBody)
 
-			bodyPoly := otherPhysicalAspect.body.GetFixtureList().GetShape().(*box2d.B2ChainShape)
-			vertices := bodyPoly.M_vertices
+			//bodyPoly := otherPhysicalAspect.body.GetFixtureList().GetShape().(*box2d.B2ChainShape)
+			//vertices := bodyPoly.M_vertices
+
+			vertices := make([]box2d.B2Vec2, 0)
+			fixture := otherPhysicalAspect.body.GetFixtureList()
+			for fixture != nil {
+				edge := fixture.GetShape().(*box2d.B2EdgeShape)
+				vertices = append(vertices, edge.M_vertex1, edge.M_vertex2)
+				fixture = fixture.M_next
+			}
+
 			for i := 1; i < len(vertices); i++ {
 
 				edges := make([]vector.Vector2, 0)

@@ -25,12 +25,12 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *
 
 	bodyRadius := 0.5
 	maxSpeed := 0.75
-	maxSteering := 0.12
+	maxSteering := 10.0
 	dragForce := 0.015
 	maxAngularVelocity := number.DegreeToRadian(9.0)
 
 	visionRadius := 10.0
-	visionAngle := number.DegreeToRadian(60)
+	visionAngle := number.DegreeToRadian(120)
 
 	///////////////////////////////////////////////////////////////////////////
 	// Création du corps physique de l'agent (Box2D)
