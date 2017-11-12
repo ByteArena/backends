@@ -12,12 +12,32 @@ import (
 	"github.com/bytearena/ecs"
 )
 
-func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.Entity {
+func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *ecs.Entity {
 
 	agent := deathmatch.manager.NewEntity()
 
+	///////////////////////////////////////////////////////////////////////////
+	// Définition de ses caractéristiques physiques de l'agent (spécifications)
+	///////////////////////////////////////////////////////////////////////////
+
+	// Linear unit expressed in agent space units (meters) per tick
+	// Angular unit expressed in radians per tick
+
+	bodyRadius := 0.5
+	maxSpeed := 0.75
+	maxSteering := 0.12
+	dragForce := 0.015
+	maxAngularVelocity := number.DegreeToRadian(9.0)
+
+	visionRadius := 10.0
+	visionAngle := number.DegreeToRadian(60)
+
+	///////////////////////////////////////////////////////////////////////////
+	// Création du corps physique de l'agent (Box2D)
+	///////////////////////////////////////////////////////////////////////////
+
 	bodydef := box2d.MakeB2BodyDef()
-	bodydef.Position.Set(position.GetX(), position.GetY())
+	bodydef.Position.Set(spawnPosition.GetX(), spawnPosition.GetY())
 	bodydef.Type = box2d.B2BodyType.B2_dynamicBody
 	bodydef.AllowSleep = false
 	bodydef.FixedRotation = true
@@ -25,7 +45,7 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 	body := deathmatch.PhysicalWorld.CreateBody(&bodydef)
 
 	shape := box2d.MakeB2CircleShape()
-	shape.SetRadius(0.5)
+	shape.SetRadius(bodyRadius * deathmatch.physicalToAgentSpaceInverseScale)
 
 	fixturedef := box2d.MakeB2FixtureDef()
 	fixturedef.Shape = &shape
@@ -36,20 +56,21 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 		agent.GetID(),
 	))
 	body.SetBullet(false)
-	//body.SetLinearDamping(agentstate.DragForce * float64(s.tickspersec)) // aerodynamic drag
 
-	scale := 1.0 / 10.0
+	///////////////////////////////////////////////////////////////////////////
+	// Composition de l'agent dans l'ECS
+	///////////////////////////////////////////////////////////////////////////
 
 	return agent.
 		AddComponent(deathmatch.physicalBodyComponent, &PhysicalBody{
 			body:               body,
-			maxSpeed:           0.75 * scale,
-			maxAngularVelocity: number.DegreeToRadian(9.0),
-			dragForce:          0.015 * scale,
+			maxSpeed:           maxSpeed,
+			maxAngularVelocity: maxAngularVelocity,
+			dragForce:          dragForce,
 		}).
 		AddComponent(deathmatch.perceptionComponent, &Perception{
-			visionAngle:  number.DegreeToRadian(60),
-			visionRadius: 10,
+			visionAngle:  visionAngle,
+			visionRadius: visionRadius,
 		}).
 		AddComponent(deathmatch.healthComponent, NewHealth(100)).
 		AddComponent(deathmatch.playerComponent, &Player{}).
@@ -60,7 +81,7 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(position vector.Vector2) *ecs.E
 		}).
 		AddComponent(deathmatch.shootingComponent, NewShooting()).
 		AddComponent(deathmatch.steeringComponent, NewSteering(
-			0.12, // MaxSteering
+			maxSteering, // MaxSteering
 		)).
 		AddComponent(deathmatch.collidableComponent, NewCollidable(
 			CollisionGroup.Agent,

@@ -96,10 +96,10 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 
 	// on met la vision à l'échelle de l'agent
 	for i, visionItem := range vision {
-		visionItem.Center = visionItem.Center.Transform(game.agentTransform)
-		visionItem.FarEdge = visionItem.FarEdge.Transform(game.agentTransform)
-		visionItem.NearEdge = visionItem.NearEdge.Transform(game.agentTransform)
-		visionItem.Velocity = visionItem.Velocity.Transform(game.agentTransform)
+		visionItem.Center = visionItem.Center.Transform(game.physicalToAgentSpaceTransform)
+		visionItem.FarEdge = visionItem.FarEdge.Transform(game.physicalToAgentSpaceTransform)
+		visionItem.NearEdge = visionItem.NearEdge.Transform(game.physicalToAgentSpaceTransform)
+		visionItem.Velocity = visionItem.Velocity.Transform(game.physicalToAgentSpaceTransform)
 		vision[i] = visionItem
 	}
 
