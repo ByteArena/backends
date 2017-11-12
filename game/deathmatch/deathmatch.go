@@ -24,7 +24,7 @@ type DeathmatchGame struct {
 	physicalToAgentSpaceRotation    [3]float64
 	physicalToAgentSpaceScale       float64
 
-	physicalToAgentSpaceInverseTransform   mgl64.Mat4 
+	physicalToAgentSpaceInverseTransform   mgl64.Mat4
 	physicalToAgentSpaceInverseTranslation [3]float64
 	physicalToAgentSpaceInverseRotation    [3]float64
 	physicalToAgentSpaceInverseScale       float64
@@ -64,7 +64,7 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		gameDescription: gameDescription,
 		manager:         manager,
 
-		physicalToAgentSpaceTransform: mgl64.Ident4(),
+		physicalToAgentSpaceTransform:        mgl64.Ident4(),
 		physicalToAgentSpaceInverseTransform: mgl64.Ident4(),
 
 		physicalBodyComponent: manager.NewComponent(),
@@ -162,10 +162,10 @@ func (deathmatch *DeathmatchGame) setPhysicalToAgentSpaceTransform(scale float64
 		Mul4(rotyM).
 		Mul4(rotxM).
 		Mul4(scaleM)
-	
-	deathmatch.physicalToAgentSpaceInverseScale = 1/scale
-	deathmatch.physicalToAgentSpaceInverseTranslation = [3]float64{translation[0]*-1, translation[1]*-1, translation[2]*-1}
-	deathmatch.physicalToAgentSpaceInverseRotation = [3]float64{rotation[0]*-1, rotation[1]*-1, rotation[2]*-1}
+
+	deathmatch.physicalToAgentSpaceInverseScale = 1 / scale
+	deathmatch.physicalToAgentSpaceInverseTranslation = [3]float64{translation[0] * -1, translation[1] * -1, translation[2] * -1}
+	deathmatch.physicalToAgentSpaceInverseRotation = [3]float64{rotation[0] * -1, rotation[1] * -1, rotation[2] * -1}
 
 	deathmatch.physicalToAgentSpaceInverseTransform = deathmatch.physicalToAgentSpaceTransform.Inv()
 
