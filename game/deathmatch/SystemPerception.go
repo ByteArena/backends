@@ -106,6 +106,10 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 	return vision
 }
 
+var pi2 = math.Pi * 2
+var halfpi = math.Pi / 2
+var threepi2 = math.Pi + halfpi
+
 func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
 
 	//watch := utils.MakeStopwatch("viewEntities()")
@@ -119,10 +123,6 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 	// 		physicalAspect.SetOrientation(physicalAspect.GetVelocity().Angle())
 	// 	}
 	// }
-
-	pi2 := math.Pi * 2
-	halfpi := math.Pi / 2
-	threepi2 := math.Pi + halfpi
 
 	agentPosition := physicalAspect.GetPosition()
 	agentOrientation := physicalAspect.GetOrientation()
@@ -269,23 +269,16 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 			otherQr := game.getEntity(bodyDescriptor.ID, game.physicalBodyComponent)
 			otherPhysicalAspect := otherQr.Components[game.physicalBodyComponent].(*PhysicalBody)
 
-			//bodyPoly := otherPhysicalAspect.body.GetFixtureList().GetShape().(*box2d.B2ChainShape)
-			//vertices := bodyPoly.M_vertices
-
-			vertices := make([]box2d.B2Vec2, 0)
 			fixture := otherPhysicalAspect.body.GetFixtureList()
 			for fixture != nil {
-				edge := fixture.GetShape().(*box2d.B2EdgeShape)
-				vertices = append(vertices, edge.M_vertex1, edge.M_vertex2)
-				fixture = fixture.M_next
-			}
 
-			for i := 1; i < len(vertices); i++ {
+				b2edge := fixture.GetShape().(*box2d.B2EdgeShape)
+				fixture = fixture.M_next
 
 				edges := make([]vector.Vector2, 0)
 
-				pointA := vector.FromB2Vec2(vertices[i-1])
-				pointB := vector.FromB2Vec2(vertices[i])
+				pointA := vector.FromB2Vec2(b2edge.M_vertex1)
+				pointB := vector.FromB2Vec2(b2edge.M_vertex2)
 
 				segmentAABB := vector.GetAABBForPointList(pointA, pointB)
 				if !segmentAABB.Overlaps(entityAABB) {

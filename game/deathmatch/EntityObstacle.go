@@ -1,7 +1,6 @@
 package deathmatch
 
 import (
-	"log"
 	"fmt"
 
 	"github.com/bytearena/box2d"
@@ -53,13 +52,11 @@ func newEntityGroundOrObstacle(deathmatch *DeathmatchGame, polygon mapcontainer.
 		}
 	}()
 
-	prev := len(vertices)-1
+	prev := len(vertices) - 1
 	for cur := 0; cur < len(vertices); cur++ {
 		shape := box2d.MakeB2EdgeShape()
 		shape.Set(vertices[prev], vertices[cur])
 		body.CreateFixture(&shape, 0.0)
-
-		log.Println("EDGE", vertices[prev], vertices[cur])
 
 		prev = cur
 	}

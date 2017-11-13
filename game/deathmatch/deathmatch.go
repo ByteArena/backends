@@ -306,8 +306,8 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 		physicalBodyAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
 
 		msg.Objects = append(msg.Objects, commontypes.VizMessageObject{
-			Id:          entityresult.Entity.GetID().String(),
-			Type:        renderAspect.GetType(),
+			Id:   entityresult.Entity.GetID().String(),
+			Type: renderAspect.GetType(),
 
 			// Here, viz coord space and physical world coord space match
 			// No transform is therefore needed

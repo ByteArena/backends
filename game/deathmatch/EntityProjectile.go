@@ -10,6 +10,9 @@ import (
 
 func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.EntityID, position vector.Vector2, velocity vector.Vector2) *ecs.Entity {
 
+	bodyRadius := 0.3
+	speed := 200.0
+
 	projectile := deathmatch.manager.NewEntity()
 
 	bodydef := box2d.MakeB2BodyDef()
@@ -24,7 +27,7 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 	body.SetLinearDamping(0.0) // no aerodynamic drag
 
 	shape := box2d.MakeB2CircleShape()
-	shape.SetRadius(0.3)
+	shape.SetRadius(bodyRadius * deathmatch.physicalToAgentSpaceInverseScale)
 
 	fixturedef := box2d.MakeB2FixtureDef()
 	fixturedef.Shape = &shape
@@ -39,7 +42,7 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 	return projectile.
 		AddComponent(deathmatch.physicalBodyComponent, &PhysicalBody{
 			body:               body,
-			maxSpeed:           100,
+			maxSpeed:           speed,
 			maxAngularVelocity: 10,
 			dragForce:          0,
 		}).
