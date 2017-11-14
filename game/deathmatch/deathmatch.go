@@ -308,7 +308,8 @@ func (deathmatch *DeathmatchGame) GetAgentWelcome(entityid ecs.EntityID) []byte 
 	steeringAspect := entityresult.Components[deathmatch.steeringComponent].(*Steering)
 	perceptionAspect := entityresult.Components[deathmatch.perceptionComponent].(*Perception)
 
-	p.BodyRadius = physicalAspect.GetRadius()
+	// TODO: this radius value comes out of box2D, and thus has to be scaled up (unlike other props)
+	p.BodyRadius = physicalAspect.GetRadius() * deathmatch.physicalToAgentSpaceScale
 	p.MaxSpeed = physicalAspect.GetMaxSpeed()
 	p.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
 
