@@ -2,10 +2,12 @@ package deathmatch
 
 import (
 	json "encoding/json"
+	"errors"
 
 	"github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/ecs"
 )
 
 func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutationBatch) {
@@ -32,27 +34,9 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 			switch mutation.GetMethod() {
 			case "shoot":
 				{
-
-					var aimingFloats []float64
-					err := json.Unmarshal(mutation.GetArguments(), &aimingFloats)
-					if err != nil {
-						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for shoot mutation, coming from agent "+batch.AgentProxyUUID.String()+"; "+err.Error())
-						continue
+					if err := handleShootMutationMessage(deathmatch, batch.AgentEntityId, mutation); err != nil {
+						utils.Debug("arenaserver-mutation", err.Error()+"; coming from agent "+batch.AgentProxyUUID.String())
 					}
-
-					aiming := vector.
-						MakeVector2(aimingFloats[0], aimingFloats[1]).
-						Transform(deathmatch.agentTransform.Inv())
-
-					entityresult := deathmatch.getEntity(batch.AgentEntityId, deathmatch.shootingComponent)
-					if entityresult == nil {
-						continue
-					}
-
-					shootingAspect := entityresult.Components[deathmatch.shootingComponent].(*Shooting)
-					shootingAspect.PushShot(aiming)
-
-					break
 				}
 			}
 		}
@@ -62,29 +46,54 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 			switch mutation.GetMethod() {
 			case "steer":
 				{
-					var steeringFloats []float64
-					err := json.Unmarshal(mutation.GetArguments(), &steeringFloats)
-					if err != nil {
-						utils.Debug("arenaserver-mutation", "Failed to unmarshal JSON arguments for steer mutation, coming from agent "+batch.AgentProxyUUID.String()+"; "+err.Error())
-						continue
+					if err := handleSteerMutationMessage(deathmatch, batch.AgentEntityId, mutation); err != nil {
+						utils.Debug("arenaserver-mutation", err.Error()+"; coming from agent "+batch.AgentProxyUUID.String())
 					}
-
-					steering := vector.
-						MakeVector2(steeringFloats[0], steeringFloats[1]).
-						Transform(deathmatch.agentTransform.Inv())
-
-					entityresult := deathmatch.getEntity(batch.AgentEntityId, deathmatch.steeringComponent)
-					if entityresult == nil {
-						continue
-					}
-
-					steeringAspect := entityresult.Components[deathmatch.steeringComponent].(*Steering)
-					steeringAspect.PushSteer(steering)
-
-					break
 				}
 			}
 		}
 
 	}
+}
+
+func handleShootMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityID, mutation types.AgentMessagePayloadMutation) error {
+
+	var aimingFloats []float64
+	err := json.Unmarshal(mutation.GetArguments(), &aimingFloats)
+	if err != nil {
+		return errors.New("Failed to unmarshal JSON arguments for shoot mutation")
+	}
+
+	entityresult := deathmatch.getEntity(entityID, deathmatch.shootingComponent)
+	if entityresult == nil {
+		return errors.New("Failed to find entity associated to shoot mutation")
+	}
+
+	aiming := vector.MakeVector2(aimingFloats[0], aimingFloats[1]) //.
+	//Transform(deathmatch.physicalToAgentSpaceInverseTransform)
+
+	shootingAspect := entityresult.Components[deathmatch.shootingComponent].(*Shooting)
+	shootingAspect.PushShot(aiming)
+
+	return nil
+}
+
+func handleSteerMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityID, mutation types.AgentMessagePayloadMutation) error {
+	var steeringFloats []float64
+	err := json.Unmarshal(mutation.GetArguments(), &steeringFloats)
+	if err != nil {
+		return errors.New("Failed to unmarshal JSON arguments for steer mutation")
+	}
+
+	entityresult := deathmatch.getEntity(entityID, deathmatch.steeringComponent)
+	if entityresult == nil {
+		return errors.New("Failed to find entity associated to steer mutation")
+	}
+
+	steering := vector.MakeVector2(steeringFloats[0], steeringFloats[1])
+
+	steeringAspect := entityresult.Components[deathmatch.steeringComponent].(*Steering)
+	steeringAspect.PushSteer(steering)
+
+	return nil
 }

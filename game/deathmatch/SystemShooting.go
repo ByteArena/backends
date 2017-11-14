@@ -7,6 +7,7 @@ import (
 func systemShooting(deathmatch *DeathmatchGame) {
 
 	for _, entityresult := range deathmatch.shootingView.Get() {
+
 		shootingAspect := entityresult.Components[deathmatch.shootingComponent].(*Shooting)
 		physicalAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
 
@@ -41,18 +42,24 @@ func systemShooting(deathmatch *DeathmatchGame) {
 		// ///////////////////////////////////////////////////////////////////////////
 		// ///////////////////////////////////////////////////////////////////////////
 
-		position := physicalAspect.GetPosition()
 		orientation := physicalAspect.GetOrientation()
 
 		// // // on passe le vecteur de visée d'un angle relatif à un angle absolu
-		absaiming := trigo.LocalAngleToAbsoluteAngleVec(orientation, aiming, nil) // TODO: replace nil here by an actual angle constraint
+		velocity := trigo.
+			LocalAngleToAbsoluteAngleVec(orientation, aiming, nil). // TODO: replace nil here by an actual angle constraint
+			SetMag(200)
 
-		// FIXME(jerome): handle proper Box2D <=> BA velocity conversion
-		pvel := absaiming.SetMag(100) // projectile speed; 60 is 3u/tick
+		physicalSpaceVelocity := velocity.Transform(deathmatch.physicalToAgentSpaceInverseTransform)
+
+		// position := physicalAspect.GetPosition().Transform(deathmatch.physicalToAgentSpaceTransform)
+		// physicalSpacePosition := position.Transform(deathmatch.physicalToAgentSpaceInverseTransform)
+		physicalSpacePosition := physicalAspect.GetPosition()
 
 		///////////////////////////////////////////////////////////////////////////
 		///////////////////////////////////////////////////////////////////////////
 
-		deathmatch.NewEntityBallisticProjectile(entity.GetID(), position, pvel)
+		//physicalSpacePosition = vector.MakeVector2(-1.5, 0)
+
+		deathmatch.NewEntityBallisticProjectile(entity.GetID(), physicalSpacePosition, physicalSpaceVelocity)
 	}
 }

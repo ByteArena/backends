@@ -21,10 +21,9 @@ type MockGame struct {
 	mapContainer *mapcontainer.MapContainer
 }
 
-func NewMockGame(tps int) (*MockGame, error) {
+func NewMockGame(tps int, mapName string) (*MockGame, error) {
 
-	// TODO(jerome): parametrize this
-	filepath := "../../maps/viz-island.json"
+	filepath := "../../maps/" + mapName + ".json"
 	jsonsource, err := os.Open(filepath)
 
 	if err != nil {

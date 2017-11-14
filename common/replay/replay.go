@@ -66,23 +66,26 @@ func (r *Replayer) Read() chan *ReplayMessage {
 	reader := bufio.NewReader(r.rawRecordHandles.record)
 
 	go func() {
-		for {
-			line, readErr := utils.ReadFullLine(reader)
+		scanner := bufio.NewScanner(reader)
+
+		for scanner.Scan() {
+
+			line := scanner.Text()
 
 			if len(line) == 0 {
 				continue
-			}
-
-			if readErr == io.EOF {
-				r.rawRecordHandles.zip.Close()
-				r.rawRecordHandles.record.Close()
-				r.streamingChannel <- nil
 			}
 
 			r.streamingChannel <- &ReplayMessage{
 				Line: line,
 				UUID: r.UUID,
 			}
+		}
+
+		if err := scanner.Err(); err == io.EOF {
+			r.rawRecordHandles.zip.Close()
+			r.rawRecordHandles.record.Close()
+			r.streamingChannel <- nil
 		}
 	}()
 
