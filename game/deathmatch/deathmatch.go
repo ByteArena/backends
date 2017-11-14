@@ -290,7 +290,8 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []byte {
 	entityResult := deathmatch.getEntity(entityid, deathmatch.perceptionComponent)
 	perceptionAspect := entityResult.Components[deathmatch.perceptionComponent].(*Perception)
-	return perceptionAspect.GetPerception()
+	bytes, _ := perceptionAspect.GetPerception().MarshalJSON()
+	return bytes
 }
 
 func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
@@ -317,7 +318,7 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 			Orientation: physicalBodyAspect.GetOrientation(),
 		})
 
-		msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
+		//msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
 	}
 
 	res, _ := msg.MarshalJSON()

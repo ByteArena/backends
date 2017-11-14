@@ -14,6 +14,10 @@ import (
 	"github.com/bytearena/ecs"
 )
 
+var pi2 = math.Pi * 2
+var halfpi = math.Pi / 2
+var threepi2 = math.Pi + halfpi
+
 // https://legends2k.github.io/2d-fov/design.html
 // http://ncase.me/sight-and-light/
 
@@ -37,11 +41,11 @@ func systemPerception(deathmatch *DeathmatchGame) {
 	wg.Wait()
 }
 
-func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) []byte {
+func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) *agentPerception {
 	//watch := utils.MakeStopwatch("computeAgentPerception()")
 	//watch.Start("global")
 
-	p := agentPerception{}
+	p := &agentPerception{}
 
 	entityresult := game.getEntity(entityid,
 		game.physicalBodyComponent,
@@ -50,7 +54,7 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	)
 
 	if entityresult == nil {
-		return []byte{}
+		return p
 	}
 
 	physicalAspect := entityresult.Components[game.physicalBodyComponent].(*PhysicalBody)
@@ -77,15 +81,10 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	p.External.Vision = computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)
 	//watch.Stop("p.External.Vision =")
 
-	//watch.Start("json.Marshal")
-	res, _ := p.MarshalJSON()
-	//log.Println("JSON SIZE ", float64(len(res))/1024.0, "KB")
-	//res := []byte("{\"Internal\":{\"Velocity\":[0,0]},\"Specs\":{\"VisionRadius\":1},\"External\":{\"Vision\":[]}}")
-	//watch.Stop("json.Marshal")
-	//watch.Stop("global")
-	//fmt.Println(watch.String())
+	// watch.Stop("global")
+	// fmt.Println(watch.String())
 
-	return res
+	return p
 }
 
 func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
@@ -105,10 +104,6 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 
 	return vision
 }
-
-var pi2 = math.Pi * 2
-var halfpi = math.Pi / 2
-var threepi2 = math.Pi + halfpi
 
 func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
 

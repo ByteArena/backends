@@ -1,10 +1,5 @@
 package deathmatch
 
-import (
-	"time"
-	"log"
-)
-
 func systemPhysics(deathmatch *DeathmatchGame, dt float64) {
 	for _, entityresult := range deathmatch.physicalView.Get() {
 		physicalAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
@@ -17,7 +12,7 @@ func systemPhysics(deathmatch *DeathmatchGame, dt float64) {
 	// On simule le monde physique
 	///////////////////////////////////////////////////////////////////////////
 
-	before := time.Now()
+	//before := time.Now()
 
 	deathmatch.PhysicalWorld.Step(
 		dt,
@@ -25,5 +20,5 @@ func systemPhysics(deathmatch *DeathmatchGame, dt float64) {
 		2, // positionIterations; higher improve overlap resolution; default 3 in testbed
 	)
 
-	log.Println("Physical world step took ", float64(time.Now().UnixNano()-before.UnixNano())/1000000.0, "ms")
+	//log.Println("Physical world step took ", float64(time.Now().UnixNano()-before.UnixNano())/1000000.0, "ms")
 }

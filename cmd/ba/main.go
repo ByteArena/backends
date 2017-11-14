@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"runtime/pprof"
 	"log"
+	"runtime/pprof"
 
 	notify "github.com/bitly/go-notify"
 	"github.com/skratchdot/open-golang/open"
@@ -167,16 +167,16 @@ func makeapp() *cli.App {
 }
 
 func trainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string, shouldProfile bool) {
-	
+
 	if shouldProfile {
 		f, err := os.Create("./cpu.prof")
-        if err != nil {
-            log.Fatal("could not create CPU profile: ", err)
-        }
-        if err := pprof.StartCPUProfile(f); err != nil {
-            log.Fatal("could not start CPU profile: ", err)
-        }
-        defer pprof.StopCPUProfile()
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		defer pprof.StopCPUProfile()
 	}
 
 	shutdownChan := make(chan bool)

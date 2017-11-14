@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -101,25 +103,26 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 		utils.Check(err, "Could not read container logs for "+container.AgentId.String()+"; container="+container.Containerid)
 
 		defer reader.Close()
-		r := bufio.NewReader(reader)
 
-		for {
-			buf, _ := utils.ReadFullLine(r)
-			if buf != "" {
-
-				/*
-					This is to remove Docker log header.
-					First 8 bytes are part of the header.
-				*/
-				if len(buf) > 8 {
-					buf = buf[8:]
-				}
-
-				orch.events <- EventAgentLog{
-					Value:     buf,
-					AgentName: container.ImageName,
-				}
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			buf := scanner.Bytes()
+			/*
+				This is to remove Docker log header.
+				First 8 bytes are part of the header.
+			*/
+			if len(buf) > 8 {
+				buf = buf[8:]
 			}
+
+			orch.events <- EventAgentLog{
+				Value:     string(buf),
+				AgentName: container.ImageName,
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			fmt.Fprintln(os.Stderr, "reading standard input:", err)
 		}
 
 	}(orch, container)
