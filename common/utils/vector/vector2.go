@@ -13,7 +13,7 @@ import (
 type Vector2 [2]float64
 
 func MakeVector2(x float64, y float64) Vector2 {
-	return [2]float64{x, y}
+	return Vector2{x, y}
 }
 
 // Returns a random unit vector
@@ -27,12 +27,7 @@ func MakeRandomVector2() Vector2 {
 
 // Returns a null vector2
 func MakeNullVector2() Vector2 {
-	return MakeVector2(0, 0)
-}
-
-func NewVector2(x float64, y float64) *Vector2 {
-	res := MakeVector2(x, y)
-	return &res
+	return Vector2{0.0, 0.0}
 }
 
 func (v Vector2) Get() (float64, float64) {
@@ -53,10 +48,7 @@ func (v Vector2) MarshalJSONString() string {
 }
 
 func (a Vector2) Clone() Vector2 {
-	return MakeVector2(
-		a.GetX(),
-		a.GetY(),
-	)
+	return Vector2{a[0], a[1]}
 }
 
 func (a Vector2) Add(b Vector2) Vector2 {

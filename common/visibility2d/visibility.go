@@ -9,8 +9,14 @@ import (
 
 func getTrianglePoints(origin Point, angle1, angle2 float64, segment *Segment) [2]Point {
 
+	cosAngle1 := math.Cos(angle1)
+	sinAngle1 := math.Sin(angle1)
+
+	cosAngle2 := math.Cos(angle2)
+	sinAngle2 := math.Sin(angle2)
+
 	p1 := origin
-	p2 := MakePoint(origin.X+math.Cos(angle1), origin.Y+math.Sin(angle1))
+	p2 := MakePoint(origin.X+cosAngle1, origin.Y+sinAngle1)
 	p3 := MakePoint(0, 0)
 	p4 := MakePoint(0, 0)
 
@@ -20,16 +26,16 @@ func getTrianglePoints(origin Point, angle1, angle2 float64, segment *Segment) [
 		p4.X = segment.p2.X
 		p4.Y = segment.p2.Y
 	} else {
-		p3.X = origin.X + math.Cos(angle1)*200
-		p3.Y = origin.Y + math.Sin(angle1)*200
-		p4.X = origin.X + math.Cos(angle2)*200
-		p4.Y = origin.Y + math.Sin(angle2)*200
+		p3.X = origin.X + cosAngle1*200
+		p3.Y = origin.Y + sinAngle1*200
+		p4.X = origin.X + cosAngle2*200
+		p4.Y = origin.Y + sinAngle2*200
 	}
 
 	pBegin := lineIntersection(p3, p4, p1, p2)
 
-	p2.X = origin.X + math.Cos(angle2)
-	p2.Y = origin.Y + math.Sin(angle2)
+	p2.X = origin.X + cosAngle2
+	p2.Y = origin.Y + sinAngle2
 
 	pEnd := lineIntersection(p3, p4, p1, p2)
 
