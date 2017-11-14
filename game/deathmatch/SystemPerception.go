@@ -75,7 +75,7 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	p.Specs.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
 	p.Specs.DragForce = physicalAspect.GetDragForce()
 	p.Specs.VisionRadius = perceptionAspect.GetVisionRadius()
-	p.Specs.VisionAngle = perceptionAspect.GetVisionAngle()
+	p.Specs.VisionAngle = Angle(perceptionAspect.GetVisionAngle())
 
 	//watch.Start("p.External.Vision =")
 	p.External.Vision = computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)

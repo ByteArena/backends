@@ -4,7 +4,6 @@ package deathmatch
 
 import (
 	json "encoding/json"
-
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
@@ -233,7 +232,7 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch1(in *jlexer.
 		case "visionradius":
 			out.VisionRadius = float64(in.Float64())
 		case "visionangle":
-			out.VisionAngle = float64(in.Float64())
+			out.VisionAngle = Angle(in.Float64())
 		case "dragforce":
 			out.DragForce = float64(in.Float64())
 		default:

@@ -2,6 +2,8 @@ package deathmatch
 
 import "github.com/bytearena/bytearena/common/utils/vector"
 
+type Angle float64
+
 var agentPerceptionVisionItemTag = struct {
 	Agent      string
 	Obstacle   string
@@ -17,7 +19,7 @@ type agentPerceptionSpecs struct {
 	MaxSteeringForce   float64 `json:"maxsteeringforce"` // max force applied when steering (ie, max magnitude of steering vector)
 	MaxAngularVelocity float64 `json:"maxangularvelocity"`
 	VisionRadius       float64 `json:"visionradius"`
-	VisionAngle        float64 `json:"visionangle"`
+	VisionAngle        Angle   `json:"visionangle"`
 	DragForce          float64 `json:"dragforce"`
 }
 
