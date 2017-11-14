@@ -28,7 +28,12 @@ func (agent AgentProxyNetwork) String() string {
 }
 
 func (agent AgentProxyNetwork) SetPerception(perceptionjson []byte, comm types.AgentCommunicatorInterface) error {
-	message := []byte("{\"method\": \"tick\", \"arguments\": [0," + string(perceptionjson) + "]}\n") // TODO(jerome): remove 0 (ex turn)
+	message := []byte("{\"method\":\"perception\",\"payload\":" + string(perceptionjson) + "}\n")
+	return comm.NetSend(message, agent.GetConn())
+}
+
+func (agent AgentProxyNetwork) SendAgentWelcome(bytes []byte, comm types.AgentCommunicatorInterface) error {
+	message := []byte("{\"method\":\"welcome\",\"payload\":" + string(bytes) + "}\n")
 	return comm.NetSend(message, agent.GetConn())
 }
 

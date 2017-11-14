@@ -58,24 +58,23 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	}
 
 	physicalAspect := entityresult.Components[game.physicalBodyComponent].(*PhysicalBody)
-	steeringAspect := entityresult.Components[game.steeringComponent].(*Steering)
+	//steeringAspect := entityresult.Components[game.steeringComponent].(*Steering)
 	perceptionAspect := entityresult.Components[game.perceptionComponent].(*Perception)
 
 	orientation := physicalAspect.GetOrientation()
 	velocity := physicalAspect.GetVelocity()
-	radius := physicalAspect.GetRadius()
+	//radius := physicalAspect.GetRadius()
 
-	// FIXME(jerome): 1/20
-	p.Internal.Velocity = velocity.Clone().SetAngle(velocity.Angle() - orientation).Scale(1.0 / 20.0)
-	p.Internal.Proprioception = radius
+	p.Internal.Velocity = velocity.Clone().SetAngle(velocity.Angle() - orientation)
+	//p.Internal.Proprioception = radius
 	p.Internal.Magnetoreception = orientation // l'angle d'orientation de l'agent par rapport au "Nord" de l'arène
 
-	p.Specs.MaxSpeed = physicalAspect.GetMaxSpeed()
-	p.Specs.MaxSteeringForce = steeringAspect.GetMaxSteeringForce()
-	p.Specs.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
-	p.Specs.DragForce = physicalAspect.GetDragForce()
-	p.Specs.VisionRadius = perceptionAspect.GetVisionRadius()
-	p.Specs.VisionAngle = Angle(perceptionAspect.GetVisionAngle())
+	// p.Specs.MaxSpeed = physicalAspect.GetMaxSpeed()
+	// p.Specs.MaxSteeringForce = steeringAspect.GetMaxSteeringForce()
+	// p.Specs.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
+	// p.Specs.DragForce = physicalAspect.GetDragForce()
+	// p.Specs.VisionRadius = perceptionAspect.GetVisionRadius()
+	// p.Specs.VisionAngle = Angle(perceptionAspect.GetVisionAngle())
 
 	//watch.Start("p.External.Vision =")
 	p.External.Vision = computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)

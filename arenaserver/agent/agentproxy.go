@@ -10,6 +10,7 @@ type AgentProxyInterface interface {
 	GetProxyUUID() uuid.UUID
 	GetEntityId() ecs.EntityID
 	SetPerception(perceptionjson []byte, comm types.AgentCommunicatorInterface) error // abstract method
+	SendAgentWelcome(message []byte, comm types.AgentCommunicatorInterface) error     // abstract method
 	String() string
 }
 
@@ -42,5 +43,9 @@ func (agent AgentProxyGeneric) String() string {
 
 func (agent AgentProxyGeneric) SetPerception(perceptionjson []byte, comm types.AgentCommunicatorInterface) error {
 	// I'm abstract, override me !
+	return nil
+}
+
+func (agent AgentProxyGeneric) SendAgentWelcome(bytes []byte, comm types.AgentCommunicatorInterface) error {
 	return nil
 }

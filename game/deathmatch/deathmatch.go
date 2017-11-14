@@ -15,10 +15,6 @@ type DeathmatchGame struct {
 	gameDescription commontypes.GameDescriptionInterface
 	manager         *ecs.Manager
 
-	// transformPhysics    mgl64.Mat4
-	// transformPerception mgl64.Mat4
-	// transformViz        mgl64.Mat4
-
 	physicalToAgentSpaceTransform   mgl64.Mat4
 	physicalToAgentSpaceTranslation [3]float64
 	physicalToAgentSpaceRotation    [3]float64
@@ -292,6 +288,37 @@ func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []by
 	perceptionAspect := entityResult.Components[deathmatch.perceptionComponent].(*Perception)
 	bytes, _ := perceptionAspect.GetPerception().MarshalJSON()
 	return bytes
+}
+
+func (deathmatch *DeathmatchGame) GetAgentWelcome(entityid ecs.EntityID) []byte {
+
+	entityresult := deathmatch.getEntity(entityid,
+		deathmatch.physicalBodyComponent,
+		deathmatch.steeringComponent,
+		deathmatch.perceptionComponent,
+	)
+
+	if entityresult == nil {
+		return []byte{}
+	}
+
+	p := agentSpecs{}
+
+	physicalAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
+	steeringAspect := entityresult.Components[deathmatch.steeringComponent].(*Steering)
+	perceptionAspect := entityresult.Components[deathmatch.perceptionComponent].(*Perception)
+
+	p.BodyRadius = physicalAspect.GetRadius()
+	p.MaxSpeed = physicalAspect.GetMaxSpeed()
+	p.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
+
+	p.MaxSteeringForce = steeringAspect.GetMaxSteeringForce()
+
+	p.VisionRadius = perceptionAspect.GetVisionRadius()
+	p.VisionAngle = commontypes.Angle(perceptionAspect.GetVisionAngle())
+
+	res, _ := p.MarshalJSON()
+	return res
 }
 
 func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
