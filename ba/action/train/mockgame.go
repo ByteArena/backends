@@ -2,13 +2,12 @@ package train
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
+	"github.com/bytearena/bytearena/common/mappack"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/types/mapcontainer"
 
@@ -21,27 +20,20 @@ type MockGame struct {
 	mapContainer *mapcontainer.MapContainer
 }
 
-func NewMockGame(tps int, mapName string) (*MockGame, error) {
+func NewMockGame(tps int, mapbundle *mappack.MappackInMemoryArchive) (*MockGame, error) {
 
-	filepath := "../../maps/" + mapName + ".json"
-	jsonsource, err := os.Open(filepath)
-
+	jsonsource, err := mapbundle.Open("map.json")
 	if err != nil {
 		return nil, bettererrors.
-			NewFromString("Error opening file").
-			With(bettererrors.NewFromErr(err)).
-			SetContext("file path", filepath)
+			NewFromString("Could not find map.json inside the map bundle").
+			With(bettererrors.NewFromErr(err))
 	}
 
-	defer jsonsource.Close()
-
-	bjsonmap, _ := ioutil.ReadAll(jsonsource)
-
 	var mapContainer mapcontainer.MapContainer
-	if err := json.Unmarshal(bjsonmap, &mapContainer); err != nil {
+	if err := json.Unmarshal(jsonsource, &mapContainer); err != nil {
 
 		return nil, bettererrors.
-			NewFromString("Could not load map JSON; ").
+			NewFromString("map.json exists inside the map bundle, but is not valid.").
 			With(bettererrors.NewFromErr(err))
 	}
 

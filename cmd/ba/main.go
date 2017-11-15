@@ -88,7 +88,7 @@ func makeapp() *cli.App {
 			Subcommands: []cli.Command{
 				{
 					Name:  "update",
-					Usage: "Update or fetch the trainer map",
+					Usage: "Fetch the trainer maps if needed",
 					Action: func(c *cli.Context) error {
 						isDebug := c.Bool("debug")
 
@@ -101,6 +101,14 @@ func makeapp() *cli.App {
 						}
 
 						mapcmd.MapUpdateAction(debug)
+						return nil
+					},
+				},
+				{
+					Name:  "list",
+					Usage: "List the trainer maps locally available",
+					Action: func(c *cli.Context) error {
+						mapcmd.MapListAction()
 						return nil
 					},
 				},

@@ -36,6 +36,7 @@ func main() {
 
 	playcanvaszippath := flag.String("playcanvaszip", "", "Playcanvas zip file; required")
 	vizdirpath := flag.String("vizdir", "", "Viz checkout dir; required")
+	mapjsonpath := flag.String("mapjson", "", "Map json file path (map metadata); required")
 	moveTo := flag.String("moveto", "", "If set, built zip will be moved to given file; ex: --moveto /path/to/map.zip")
 	noNPMBuild := flag.Bool("no-npm-install", false, "If set, npm install won't be executed before bundling")
 	flag.Parse()
@@ -52,7 +53,28 @@ func main() {
 		paramError = true
 	}
 
+	if *mapjsonpath == "" {
+		fmt.Println("--mapjson is required")
+		paramError = true
+	}
+
 	if paramError {
+		os.Exit(1)
+	}
+
+	// On vérifie les paramètres avant de procéder au bundling
+	if _, err := os.Stat(*playcanvaszippath); os.IsNotExist(err) {
+		fmt.Println("playcanvaszip file does not exist.")
+		os.Exit(1)
+	}
+
+	if _, err := os.Stat(*vizdirpath); os.IsNotExist(err) {
+		fmt.Println("vizdir does not exist.")
+		os.Exit(1)
+	}
+
+	if _, err := os.Stat(*mapjsonpath); os.IsNotExist(err) {
+		fmt.Println("mapjson file does not exist.")
 		os.Exit(1)
 	}
 
@@ -163,7 +185,7 @@ func main() {
 	filecopy["styles.css"] = "css/styles.css"
 	filecopy["__loading__.js"] = "js/loading.js"
 	filecopy["__start__.js"] = "js/start.js"
-	filecopy["__game-scripts.js"] = "js/game-scripts.js"
+	//filecopy["__game-scripts.js"] = "js/game-scripts.js"
 	filecopy[zipid+".json"] = "json/scene.json"
 	filecopy[modelURL] = "json/model.json"
 
@@ -203,11 +225,10 @@ func main() {
 	}
 
 	for from, to := range filecopy {
-		utils.CopyFile(zipOutPath+"/"+from, newOutPath+"/"+to)
+		utils.Check(utils.CopyFile(zipOutPath+"/"+from, newOutPath+"/"+to), "Could not copy "+from)
 	}
 
 	// On remplace les chemins dans index.html
-
 	indexReplacements := make(map[string]string)
 	indexReplacements["styles.css"] = "css/styles.css"
 	indexReplacements["manifest.json"] = "json/manifest.json"
@@ -223,10 +244,7 @@ func main() {
 		indexContentsStr = strings.Replace(indexContentsStr, from, to, -1)
 	}
 
-	err = ioutil.WriteFile(newOutPath+"/index.html", []byte(indexContentsStr), 0700)
-	if err != nil {
-		panic(err)
-	}
+	utils.Check(ioutil.WriteFile(newOutPath+"/index.html", []byte(indexContentsStr), 0700), "Could not write index.html")
 
 	// On remplace les chemins dans config.json
 
@@ -260,8 +278,6 @@ func main() {
 		fmt.Println("Error while gzipping model file.")
 		os.Exit(1)
 	}
-
-	fmt.Println("Output: " + newOutPath)
 
 	///////////////////////////////////////////////////////////////////////////
 	// Bundling mappack (map assets + viz lib)
@@ -307,7 +323,10 @@ func main() {
 	// Bundling assets and js
 	utils.Check(utils.CopyDir(newOutPath, mapDistDirPath), "Could not copy map dir")
 	utils.Check(utils.CopyFile(*vizdirpath+"/lib/bytearenaviz.min.js", libDistDirPath+"/bytearenaviz.min.js"), "Could not copy lib js")
-	utils.Check(utils.CopyFile(*vizdirpath+"/index.html", bundleOutPath+"/index.html"), "Could not index.html")
+	utils.Check(utils.CopyFile(*vizdirpath+"/index.html", bundleOutPath+"/index.html"), "Could not copy index.html")
+
+	// On place map.json à la racine du bundle
+	utils.Check(utils.CopyFile(*mapjsonpath, bundleOutPath+"/map.json"), "Could not copy map.json")
 
 	// Zipping payload
 	zipPath := bundleOutPath + ".zip"

@@ -68,24 +68,12 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 	runPreflightChecks()
 
-	if mapcmd.IsMapLocally() {
-		// nothing to do
-	} else {
-		debug("Map doesn't exists locally, downloading...")
-
-		// Make sure map exists locally and is update to date.
-		mapManifest, errManifest := mapcmd.DownloadAndGetManifest()
-		if errManifest != nil {
-			trainutils.FailWith(errManifest)
-		}
-		err := mapcmd.DownloadMap(mapManifest)
-
-		if err != nil {
-			trainutils.FailWith(err)
-		}
+	mappack, errMappack := mappack.UnzipAndGetHandles(mapcmd.GetMapLocation(mapName))
+	if errMappack != nil {
+		trainutils.FailWith(errMappack)
 	}
 
-	gamedescription, err := NewMockGame(tps, mapName)
+	gamedescription, err := NewMockGame(tps, mappack)
 	if err != nil {
 		trainutils.FailWith(err)
 	}
@@ -181,12 +169,6 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 	vizgames := make([]*types.VizGame, 1)
 	vizgames[0] = types.NewVizGame(gamedescription)
-
-	mappack, errMappack := mappack.UnzipAndGetHandles(mapcmd.GetMapLocation(mapName))
-
-	if errMappack != nil {
-		trainutils.FailWith(errMappack)
-	}
 
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
 	vizservice := vizserver.NewVizService(
