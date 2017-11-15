@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/bytearena/bytearena/arenaserver/types"
+	"github.com/bytearena/bytearena/common/assert"
+	uuid "github.com/satori/go.uuid"
 
 	bettererrors "github.com/xtuc/better-errors"
 )
@@ -116,9 +118,15 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 							// Cancel deadline
 							gotData = true
 
+							// Dump traffic
+							s.Log(EventRawComm{buf})
+
 							// Unmarshal message (unwrapping in an AgentMessage structure)
 							var msg types.AgentMessage
 							err = json.Unmarshal(buf, &msg)
+
+							assert.Assert(msg.AgentId != uuid.Nil, "agent is null")
+
 							if err != nil {
 								berror := bettererrors.
 									NewFromString("Failed to unmarshal incoming JSON in CommServer::Listen()").
@@ -134,7 +142,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 									if err != nil {
 										berror := bettererrors.
 											NewFromString("Failed to dispatch agent message").
-											With(err)
+											With(bettererrors.NewFromErr(err))
 
 										s.Log(EventError{berror})
 									}

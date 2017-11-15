@@ -10,7 +10,7 @@ import (
 
 	"github.com/bytearena/bytearena/ba/action/generate"
 	"github.com/bytearena/bytearena/ba/action/train"
-	trainutils "github.com/bytearena/bytearena/ba/utils"
+	"github.com/bytearena/bytearena/common/utils"
 	bettererrors "github.com/xtuc/better-errors"
 
 	mapcmd "github.com/bytearena/bytearena/ba/action/map"
@@ -43,7 +43,7 @@ func makeapp() *cli.App {
 						SetContext("command", "generate").
 						With(err)
 
-					trainutils.FailWith(berror)
+					utils.FailWith(berror)
 				}
 
 				return nil
@@ -63,6 +63,7 @@ func makeapp() *cli.App {
 				cli.BoolFlag{Name: "no-browser", Usage: "Disable automatic browser opening at start"},
 				cli.BoolFlag{Name: "debug", Usage: "Enable debug logging"},
 				cli.BoolFlag{Name: "profile", Usage: "Enable execution profiling"},
+				cli.BoolFlag{Name: "dump-raw-comm", Usage: "Dump all the communication between the agent and the server"},
 			},
 			Action: func(c *cli.Context) error {
 				tps := c.Int("tps")
@@ -74,7 +75,21 @@ func makeapp() *cli.App {
 				nobrowser := c.Bool("no-browser")
 				isDebug := c.Bool("debug")
 				shouldProfile := c.Bool("profile")
-				train.TrainAction(tps, host, port, nobrowser, recordFile, agents, isDebug, mapName, shouldProfile)
+				dumpRaw := c.Bool("dump-raw-comm")
+
+				train.TrainAction(
+					tps,
+					host,
+					port,
+					nobrowser,
+					recordFile,
+					agents,
+					isDebug,
+					mapName,
+					shouldProfile,
+					dumpRaw,
+				)
+
 				return nil
 			},
 		},

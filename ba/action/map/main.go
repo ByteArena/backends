@@ -12,9 +12,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/cheggaaa/pb"
-
 	trainutils "github.com/bytearena/bytearena/ba/utils"
+	"github.com/bytearena/bytearena/common/utils"
+	"github.com/cheggaaa/pb"
 
 	bettererrors "github.com/xtuc/better-errors"
 )
@@ -39,7 +39,7 @@ func MapListAction() {
 
 	err := ensureMapDir()
 	if err != nil {
-		trainutils.FailWith(err)
+		utils.FailWith(err)
 	}
 
 	manifest, err := getLocalMapManifest()
@@ -99,7 +99,7 @@ func MapUpdateAction(debug func(str string)) {
 
 	err := ensureMapDir()
 	if err != nil {
-		trainutils.FailWith(err)
+		utils.FailWith(err)
 	}
 
 	fmt.Println("Downloading map manifest from " + MANIFEST_URL)
@@ -107,7 +107,7 @@ func MapUpdateAction(debug func(str string)) {
 
 	mapManifest, errManifest := FetchManifest(MANIFEST_URL)
 	if errManifest != nil {
-		trainutils.FailWith(errManifest)
+		utils.FailWith(errManifest)
 	}
 
 	for _, mapbundle := range mapManifest.Maps {
@@ -129,7 +129,7 @@ func MapUpdateAction(debug func(str string)) {
 			fmt.Println("")
 
 			if err != nil {
-				trainutils.FailWith(err)
+				utils.FailWith(err)
 			}
 
 			fmt.Println("[OK] Map downloaded!")
@@ -145,7 +145,7 @@ func GetMapLocation(mapname string) string {
 	mapsDir, err := trainutils.GetTrainerMapsDir()
 
 	if err != nil {
-		trainutils.FailWith(err)
+		utils.FailWith(err)
 	}
 
 	return path.Join(mapsDir, mapname+".zip")
@@ -222,39 +222,24 @@ func FetchManifest(manifesturl string) (manifestType, error) {
 
 	var manifest manifestType
 
-	// res, err := http.Get(manifesturl)
+	res, err := http.Get(manifesturl)
 
-	// if err != nil {
-	// 	return manifest, bettererrors.
-	// 		NewFromString("Could not download manifest").
-	// 		With(bettererrors.NewFromErr(err)).
-	// 		SetContext("manifest url", MANIFEST_URL)
-	// }
+	if err != nil {
+		return manifest, bettererrors.
+			NewFromString("Could not download manifest").
+			With(bettererrors.NewFromErr(err)).
+			SetContext("manifest url", MANIFEST_URL)
+	}
 
-	// defer res.Body.Close()
+	defer res.Body.Close()
 
-	// if res.StatusCode != 200 {
-	// 	msg := fmt.Sprintf("Could not download manifest (%s): server returned code %s", MANIFEST_URL, res.Status)
-	// 	return manifest, bettererrors.NewFromString(msg)
-	// }
+	if res.StatusCode != 200 {
+		msg := fmt.Sprintf("Could not download manifest (%s): server returned code %s", MANIFEST_URL, res.Status)
+		return manifest, bettererrors.NewFromString(msg)
+	}
 
-	// data, _ := ioutil.ReadAll(res.Body)
-
-	data := []byte(`
-{
-	"maps": [
-		{
-			"name": "map1",
-			"title": "title",
-			"comment": "comment",
-			"md5": "abc",
-			"url": "https://google.com"
-		}
-	]
-}
-`)
-
-	err := json.Unmarshal(data, &manifest)
+	data, _ := ioutil.ReadAll(res.Body)
+	err = json.Unmarshal(data, &manifest)
 
 	if err != nil {
 		return manifest, bettererrors.

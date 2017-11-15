@@ -3,7 +3,7 @@ package train
 import (
 	"os/exec"
 
-	"github.com/bytearena/bytearena/ba/utils"
+	"github.com/bytearena/bytearena/common/utils"
 	bettererrors "github.com/xtuc/better-errors"
 )
 
