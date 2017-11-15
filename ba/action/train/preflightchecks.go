@@ -1,16 +1,21 @@
-package main
+package train
 
 import (
 	"os/exec"
 
+	"github.com/bytearena/bytearena/ba/utils"
 	bettererrors "github.com/xtuc/better-errors"
 )
+
+func runPreflightChecks() {
+	ensureDockerIsAvailable()
+}
 
 func ensureDockerIsAvailable() {
 	_, err := exec.LookPath("docker")
 
 	if err != nil {
-		failWith(
+		utils.FailWith(
 			bettererrors.NewFromString("Docker was not found in $PATH. Please install it."),
 		)
 	}

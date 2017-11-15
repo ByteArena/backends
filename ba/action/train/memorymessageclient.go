@@ -1,4 +1,4 @@
-package main
+package train
 
 import (
 	"encoding/json"

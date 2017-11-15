@@ -1,4 +1,4 @@
-package main
+package mapcmd
 
 import (
 	"crypto/md5"
@@ -15,6 +15,8 @@ import (
 
 	"github.com/cheggaaa/pb"
 
+	trainutils "github.com/bytearena/bytearena/ba/utils"
+
 	bettererrors "github.com/xtuc/better-errors"
 )
 
@@ -27,11 +29,38 @@ type manifest struct {
 	Url string `json:"url"`
 }
 
-func getMapLocation(mapName string) string {
+func MapUpdateAction(debug func(str string)) {
+	mapChecksum, err := GetLocalMapChecksum()
+	if err != nil {
+		// Local map has never been downloaded
+		fmt.Println("Map does not exist locally; will have to be fetched.")
+	}
+
+	fmt.Println("Downloading map manifest from " + MANIFEST_URL)
+
+	mapManifest, errManifest := DownloadAndGetManifest()
+	if errManifest != nil {
+		trainutils.FailWith(errManifest)
+	}
+
+	if mapChecksum != mapManifest.Md5 {
+		debug("The map is outdated, downloading the new version...")
+
+		err := DownloadMap(mapManifest)
+
+		if err != nil {
+			trainutils.FailWith(err)
+		}
+	} else {
+		debug("The map is already up to date!")
+	}
+}
+
+func GetMapLocation(mapName string) string {
 	user, err := user.Current()
 
 	if err != nil {
-		failWith(err)
+		trainutils.FailWith(err)
 	}
 
 	baConfigDir := path.Join(user.HomeDir, ".bytearena")
@@ -39,13 +68,13 @@ func getMapLocation(mapName string) string {
 	err = os.MkdirAll(baConfigDir, os.ModePerm)
 
 	if err != nil {
-		failWith(err)
+		trainutils.FailWith(err)
 	}
 
 	return path.Join(baConfigDir, mapName+".zip")
 }
 
-func getLocalMapChecksum() (string, error) {
+func GetLocalMapChecksum() (string, error) {
 	file, err := getMapLocally()
 	defer file.Close()
 
@@ -61,7 +90,7 @@ func getLocalMapChecksum() (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-func downloadMap(manifest manifest) error {
+func DownloadMap(manifest manifest) error {
 	head, errHead := http.Head(manifest.Url)
 	head.Body.Close()
 
@@ -88,13 +117,13 @@ func downloadMap(manifest manifest) error {
 			SetContext("url", manifest.Url)
 	}
 
-	file, errOpen := os.OpenFile(getMapLocation("map"), os.O_WRONLY|os.O_CREATE, 0755)
+	file, errOpen := os.OpenFile(GetMapLocation("map"), os.O_WRONLY|os.O_CREATE, 0755)
 
 	if errOpen != nil {
 		return bettererrors.
 			NewFromString("Could not open destination file").
 			With(errOpen).
-			SetContext("location", getMapLocation("map"))
+			SetContext("location", GetMapLocation("map"))
 	}
 
 	bar := pb.New(fileSize)
@@ -110,7 +139,7 @@ func downloadMap(manifest manifest) error {
 	return nil
 }
 
-func downloadAndGetManifest() (manifest, error) {
+func DownloadAndGetManifest() (manifest, error) {
 	var manifest manifest
 
 	res, err := http.Get(MANIFEST_URL)
@@ -143,28 +172,28 @@ func downloadAndGetManifest() (manifest, error) {
 	return manifest, nil
 }
 
-func isMapLocally() bool {
-	_, err := os.Stat(getMapLocation("map"))
+func IsMapLocally() bool {
+	_, err := os.Stat(GetMapLocation("map"))
 
 	return !os.IsNotExist(err)
 }
 
 func getMapLocally() (*os.File, error) {
-	f, err := os.OpenFile(getMapLocation("map"), os.O_RDONLY, 0755)
+	f, err := os.OpenFile(GetMapLocation("map"), os.O_RDONLY, 0755)
 
 	if err != nil {
 		return nil, bettererrors.
 			NewFromString("Could not open map file").
 			With(bettererrors.NewFromErr(err)).
-			SetContext("map file", getMapLocation("map"))
+			SetContext("map file", GetMapLocation("map"))
 	}
 
 	return f, nil
 }
 
 func updateMap(mapManifest manifest, debug func(str string)) error {
-	if isMapLocally() {
-		mapChecksum, err := getLocalMapChecksum()
+	if IsMapLocally() {
+		mapChecksum, err := GetLocalMapChecksum()
 		if err != nil {
 			return err
 		}
@@ -172,7 +201,7 @@ func updateMap(mapManifest manifest, debug func(str string)) error {
 		if mapChecksum != mapManifest.Md5 {
 			debug("The map is outdated, downloading the new version...")
 
-			err := downloadMap(mapManifest)
+			err := DownloadMap(mapManifest)
 
 			if err != nil {
 				return err
@@ -181,7 +210,7 @@ func updateMap(mapManifest manifest, debug func(str string)) error {
 	} else {
 		debug("Map doesn't exists locally, downloading...")
 
-		err := downloadMap(mapManifest)
+		err := DownloadMap(mapManifest)
 
 		if err != nil {
 			return err
