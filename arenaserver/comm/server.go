@@ -118,6 +118,9 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 							// Cancel deadline
 							gotData = true
 
+							// Dump traffic
+							s.Log(EventRawComm{buf})
+
 							// Unmarshal message (unwrapping in an AgentMessage structure)
 							var msg types.AgentMessage
 							err = json.Unmarshal(buf, &msg)

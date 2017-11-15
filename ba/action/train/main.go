@@ -32,7 +32,7 @@ const (
 	TIME_BEFORE_FORCE_QUIT = 10 * time.Second
 )
 
-func TrainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string, shouldProfile bool) {
+func TrainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string, shouldProfile, dumpRaw bool) {
 
 	if shouldProfile {
 		f, err := os.Create("./cpu.prof")
@@ -126,6 +126,11 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 			case arenaserver.EventWarn:
 				trainutils.WarnWith(t.Err)
+
+			case arenaserver.EventRawComm:
+				if dumpRaw {
+					fmt.Printf("agent %s", t.Value)
+				}
 
 			case arenaserver.EventClose:
 				return
