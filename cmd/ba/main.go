@@ -10,7 +10,7 @@ import (
 
 	"github.com/bytearena/bytearena/ba/action/generate"
 	"github.com/bytearena/bytearena/ba/action/train"
-	trainutils "github.com/bytearena/bytearena/ba/utils"
+	"github.com/bytearena/bytearena/common/utils"
 	bettererrors "github.com/xtuc/better-errors"
 
 	mapcmd "github.com/bytearena/bytearena/ba/action/map"
@@ -43,7 +43,7 @@ func makeapp() *cli.App {
 						SetContext("command", "generate").
 						With(err)
 
-					trainutils.FailWith(berror)
+					utils.FailWith(berror)
 				}
 
 				return nil

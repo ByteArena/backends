@@ -13,9 +13,8 @@ import (
 	"os/user"
 	"path"
 
+	"github.com/bytearena/bytearena/common/utils"
 	"github.com/cheggaaa/pb"
-
-	trainutils "github.com/bytearena/bytearena/ba/utils"
 
 	bettererrors "github.com/xtuc/better-errors"
 )
@@ -40,7 +39,7 @@ func MapUpdateAction(debug func(str string)) {
 
 	mapManifest, errManifest := DownloadAndGetManifest()
 	if errManifest != nil {
-		trainutils.FailWith(errManifest)
+		utils.FailWith(errManifest)
 	}
 
 	if mapChecksum != mapManifest.Md5 {
@@ -49,7 +48,7 @@ func MapUpdateAction(debug func(str string)) {
 		err := DownloadMap(mapManifest)
 
 		if err != nil {
-			trainutils.FailWith(err)
+			utils.FailWith(err)
 		}
 	} else {
 		debug("The map is already up to date!")
@@ -60,7 +59,7 @@ func GetMapLocation(mapName string) string {
 	user, err := user.Current()
 
 	if err != nil {
-		trainutils.FailWith(err)
+		utils.FailWith(err)
 	}
 
 	baConfigDir := path.Join(user.HomeDir, ".bytearena")
@@ -68,7 +67,7 @@ func GetMapLocation(mapName string) string {
 	err = os.MkdirAll(baConfigDir, os.ModePerm)
 
 	if err != nil {
-		trainutils.FailWith(err)
+		utils.FailWith(err)
 	}
 
 	return path.Join(baConfigDir, mapName+".zip")
