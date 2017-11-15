@@ -115,15 +115,21 @@ func MapUpdateAction(debug func(str string)) {
 		fmt.Println(fmt.Sprintf("# Map \"%s\" (%s)", mapbundle.Name, mapbundle.Url))
 		fmt.Println("")
 
+		mapExistsLocally := true
+
 		mapChecksum, err := GetLocalMapChecksum(mapbundle)
 		if err != nil {
 			// Local map has never been downloaded
 			fmt.Println("Map does not exist locally; will have to be fetched.")
+			mapExistsLocally = false
 		}
 
-		if mapChecksum != mapbundle.Md5 {
+		if !mapExistsLocally || mapChecksum != mapbundle.Md5 {
 
-			fmt.Println("Local version exists, but is outdated; downloading the new version.")
+			if mapExistsLocally {
+				fmt.Println("Local version exists, but is outdated; downloading the new version.")
+			}
+
 			fmt.Println("")
 			err := DownloadMap(mapbundle)
 			fmt.Println("")
