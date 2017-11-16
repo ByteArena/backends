@@ -175,7 +175,7 @@ imports:
 - name: github.com/urfave/cli
   version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 - name: github.com/xtuc/better-errors
-  version: 4b0e7f49f3da3f85ccb93107a8a7454d2ad6f4b4
+  version: 5af9d4833ce699608449ee5d7694414fbfcaf318
   subpackages:
   - printer/tree
 - name: github.com/xtuc/schaloop
