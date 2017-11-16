@@ -13,7 +13,6 @@ import (
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
-	trainutils "github.com/bytearena/bytearena/ba/utils"
 	"github.com/bytearena/bytearena/common"
 	"github.com/bytearena/bytearena/common/mappack"
 	"github.com/bytearena/bytearena/common/mq"
@@ -70,12 +69,12 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 	mappack, errMappack := mappack.UnzipAndGetHandles(mapcmd.GetMapLocation(mapName))
 	if errMappack != nil {
-		trainutils.FailWith(errMappack)
+		utils.FailWith(errMappack)
 	}
 
 	gamedescription, err := NewMockGame(tps, mappack)
 	if err != nil {
-		trainutils.FailWith(err)
+		utils.FailWith(err)
 	}
 	for _, contestant := range agentimages {
 		gamedescription.AddContestant(contestant)
@@ -110,10 +109,10 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 				debug(t.Value)
 
 			case arenaserver.EventError:
-				trainutils.FailWith(t.Err)
+				utils.FailWith(t.Err)
 
 			case arenaserver.EventWarn:
-				trainutils.WarnWith(t.Err)
+				utils.WarnWith(t.Err)
 
 			case arenaserver.EventRawComm:
 				if dumpRaw {
@@ -191,7 +190,7 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 	if startErr != nil {
 		shutdownChan <- true
-		trainutils.FailWith(startErr)
+		utils.FailWith(startErr)
 	}
 
 	url := "http://localhost:" + strconv.Itoa(port+1) + "/arena/1"
@@ -214,7 +213,7 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 		berror := bettererrors.New("Forced shutdown")
 
-		trainutils.FailWith(berror)
+		utils.FailWith(berror)
 	}()
 
 	debug("Shutdown...")

@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+
+	bettererrors "github.com/xtuc/better-errors"
 )
 
 type MappackInMemoryArchive struct {
@@ -26,7 +28,12 @@ func UnzipAndGetHandles(filename string) (*MappackInMemoryArchive, error) {
 	reader, err := zip.OpenReader(filename)
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not open archive (%s)", filename)
+		better := bettererrors.
+			New("Could not open archive").
+			With(err).
+			SetContext("filename", filename)
+
+		return nil, better
 	}
 
 	for _, file := range reader.File {

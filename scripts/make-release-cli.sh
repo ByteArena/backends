@@ -11,7 +11,7 @@ BUILDS=(
 )
 
 REPO_OWNER=bytearena
-REPO=cli-test
+REPO=cli
 TAG=v$1
 
 GH_API="https://api.github.com"
@@ -55,7 +55,7 @@ do
 
     echo "Building $FILE release..."
 
-    env $i go build -o "$FILE" -ldflags="-s -w -X main.version=$TAG"
+    env $i go build -o "$FILE" -ldflags="-s -w -X github.com/bytearena/bytearena/common/utils.version=$TAG"
     upx -9 $FILE
     du -sh $FILE
 

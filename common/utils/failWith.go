@@ -17,6 +17,7 @@ func FailWith(err error) {
 
 		berror := bettererrors.
 			New(command).
+			SetContext("version", GetVersion()).
 			With(err)
 
 		msg := bettererrorstree.PrintChain(berror)
@@ -43,4 +44,19 @@ func FailWith(err error) {
 
 func wrapInMarkdownCode(str string) string {
 	return fmt.Sprintf("```sh\n%s\n```", str)
+}
+
+func WarnWith(err error) {
+	if bettererrors.IsBetterError(err) {
+		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
+
+		fmt.Println("")
+		fmt.Println("=== ❌ warning")
+		fmt.Println("")
+
+		fmt.Print(msg)
+
+	} else {
+		fmt.Println(err.Error())
+	}
 }

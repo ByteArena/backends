@@ -16,18 +16,11 @@ import (
 	mapcmd "github.com/bytearena/bytearena/ba/action/map"
 )
 
-var version string
-
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	if version == "" {
-		version = "dev (unspecified)"
-	}
-
-	fmt.Printf("version: %s\n", version)
-
 	app := makeapp()
+	app.Version = utils.GetVersion()
 	app.Run(os.Args)
 }
 
