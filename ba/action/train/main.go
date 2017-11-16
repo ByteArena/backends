@@ -97,7 +97,7 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 			switch t := msg.(type) {
 			case arenaserver.EventStatusGameUpdate:
-				fmt.Println(t.Status)
+				fmt.Println("[game]", t.Status)
 
 			case arenaserver.EventAgentLog:
 				fmt.Println("[agent]", t.Value)
