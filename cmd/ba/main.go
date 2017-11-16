@@ -17,6 +17,24 @@ import (
 )
 
 func main() {
+	defer func() {
+		if data := recover(); data != nil {
+
+			if err, ok := data.(error); ok {
+
+				berror := bettererrors.NewFromErr(err)
+				utils.FailWith(berror)
+			} else if str, ok := data.(string); ok {
+
+				berror := bettererrors.New(str)
+				utils.FailWith(berror)
+			} else {
+
+				panic(data)
+			}
+		}
+	}()
+
 	rand.Seed(time.Now().UnixNano())
 
 	app := makeapp()
