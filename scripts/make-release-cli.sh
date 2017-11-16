@@ -55,7 +55,7 @@ do
 
     echo "Building $FILE release..."
 
-    env $i go build -o "$FILE" -ldflags="-s -w"
+    env $i go build -o "$FILE" -ldflags="-s -w -X main.version=$TAG"
     upx -9 $FILE
     du -sh $FILE
 
