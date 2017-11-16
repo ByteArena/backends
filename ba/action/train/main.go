@@ -189,7 +189,6 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 	serverChan, startErr := srv.Start()
 
 	if startErr != nil {
-		shutdownChan <- true
 		utils.FailWith(startErr)
 	}
 
