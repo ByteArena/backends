@@ -49,7 +49,7 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 	if isDebug {
 		debug = func(str string) {
-			fmt.Printf("debug %s\n", str)
+			fmt.Printf("[debug] %s\n", str)
 		}
 	}
 
@@ -100,10 +100,10 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 				fmt.Println(t.Status)
 
 			case arenaserver.EventAgentLog:
-				fmt.Println("agent", t.Value)
+				fmt.Println("[agent]", t.Value)
 
 			case arenaserver.EventLog:
-				fmt.Println("log", t.Value)
+				fmt.Println("[log]", t.Value)
 
 			case arenaserver.EventDebug:
 				debug(t.Value)
@@ -116,7 +116,7 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 			case arenaserver.EventRawComm:
 				if dumpRaw {
-					fmt.Printf("agent %s", t.Value)
+					fmt.Printf("[agent] %s", t.Value)
 				}
 
 			case arenaserver.EventClose:

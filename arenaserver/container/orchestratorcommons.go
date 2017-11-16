@@ -2,13 +2,15 @@ package container
 
 import (
 	"errors"
-	"io"
 	"os"
 	"strconv"
 
 	"github.com/docker/distribution/reference"
+	"github.com/docker/docker/pkg/term"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/pkg/jsonmessage"
 	uuid "github.com/satori/go.uuid"
 	bettererrors "github.com/xtuc/better-errors"
 
@@ -64,12 +66,20 @@ func commonCreateAgentContainer(orch arenaservertypes.ContainerOrchestrator, age
 		)
 
 		if err != nil {
-			return nil, bettererrors.New("Failed to pull from registry").With(bettererrors.NewFromErr(err)).SetContext("image", dockerimage)
+			return nil, bettererrors.
+				New("Failed to pull from registry").
+				With(bettererrors.NewFromErr(err)).
+				SetContext("image", dockerimage)
 		}
 
-		defer reader.Close()
+		fd, isTerminal := term.GetFdInfo(os.Stdout)
 
-		io.Copy(os.Stdout, reader)
+		if err := jsonmessage.DisplayJSONMessagesStream(reader, os.Stdout, fd, isTerminal, nil); err != nil {
+			return nil, err
+		}
+
+		reader.Close()
+
 		orch.Events() <- EventDebug{"Pulled image successfully"}
 	}
 
