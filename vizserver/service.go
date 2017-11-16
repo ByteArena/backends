@@ -99,8 +99,8 @@ func (viz *VizService) Start() chan struct{} {
 	block := make(chan struct{})
 
 	go func(block chan struct{}) {
-		err := viz.listener.Serve(listener)
-		utils.Check(err, "Failed to listen on "+viz.addr)
+		_ = viz.listener.Serve(listener)
+		//utils.Check(err, "Failed to listen on "+viz.addr)
 		close(block)
 	}(block)
 

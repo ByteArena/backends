@@ -14,11 +14,15 @@ type DeathmatchGame struct {
 	gameDescription commontypes.GameDescriptionInterface
 	manager         *ecs.Manager
 
-	// transformPhysics    mgl64.Mat4
-	// transformPerception mgl64.Mat4
-	// transformViz        mgl64.Mat4
+	physicalToAgentSpaceTransform   mgl64.Mat4
+	physicalToAgentSpaceTranslation [3]float64
+	physicalToAgentSpaceRotation    [3]float64
+	physicalToAgentSpaceScale       float64
 
-	agentTransform mgl64.Mat4
+	physicalToAgentSpaceInverseTransform   mgl64.Mat4
+	physicalToAgentSpaceInverseTranslation [3]float64
+	physicalToAgentSpaceInverseRotation    [3]float64
+	physicalToAgentSpaceInverseScale       float64
 
 	physicalBodyComponent *ecs.Component
 	healthComponent       *ecs.Component
@@ -57,13 +61,8 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		gameDescription: gameDescription,
 		manager:         manager,
 
-		// all transforms are expressed relatively to map json coords
-
-		// transformPhysics:    mgl64.Ident4(),
-		// transformPerception: mgl64.Ident4(),
-		// transformViz:        mgl64.Ident4(),
-
-		agentTransform: mgl64.Scale3D(10, 10, 10),
+		physicalToAgentSpaceTransform:        mgl64.Ident4(),
+		physicalToAgentSpaceInverseTransform: mgl64.Ident4(),
 
 		physicalBodyComponent: manager.NewComponent(),
 		healthComponent:       manager.NewComponent(),
@@ -81,6 +80,12 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 
 		log: NewDeathmatchGameLog(),
 	}
+
+	game.setPhysicalToAgentSpaceTransform(
+		100.0,               // scale
+		[3]float64{0, 0, 0}, // translation
+		[3]float64{0, 0, 0}, // rotation
+	)
 
 	gravity := box2d.MakeB2Vec2(0.0, 0.0) // gravity 0: the simulation is seen from the top
 	world := box2d.MakeB2World(gravity)
@@ -136,6 +141,34 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 	game.PhysicalWorld.SetContactFilter(newCollisionFilter(game))
 
 	return game
+}
+
+func (deathmatch *DeathmatchGame) setPhysicalToAgentSpaceTransform(scale float64, translation, rotation [3]float64) *DeathmatchGame {
+
+	deathmatch.physicalToAgentSpaceScale = scale
+	deathmatch.physicalToAgentSpaceTranslation = translation
+	deathmatch.physicalToAgentSpaceRotation = rotation
+
+	rotxM := mgl64.HomogRotate3DX(mgl64.DegToRad(deathmatch.physicalToAgentSpaceRotation[0]))
+	rotyM := mgl64.HomogRotate3DY(mgl64.DegToRad(deathmatch.physicalToAgentSpaceRotation[1]))
+	rotzM := mgl64.HomogRotate3DZ(mgl64.DegToRad(deathmatch.physicalToAgentSpaceRotation[2]))
+	transM := mgl64.Translate3D(deathmatch.physicalToAgentSpaceTranslation[0], deathmatch.physicalToAgentSpaceTranslation[1], deathmatch.physicalToAgentSpaceTranslation[2])
+	scaleM := mgl64.Scale3D(deathmatch.physicalToAgentSpaceScale, deathmatch.physicalToAgentSpaceScale, deathmatch.physicalToAgentSpaceScale)
+
+	deathmatch.physicalToAgentSpaceTransform = mgl64.Ident4().
+		Mul4(transM).
+		Mul4(rotzM).
+		Mul4(rotyM).
+		Mul4(rotxM).
+		Mul4(scaleM)
+
+	deathmatch.physicalToAgentSpaceInverseScale = 1 / scale
+	deathmatch.physicalToAgentSpaceInverseTranslation = [3]float64{translation[0] * -1, translation[1] * -1, translation[2] * -1}
+	deathmatch.physicalToAgentSpaceInverseRotation = [3]float64{rotation[0] * -1, rotation[1] * -1, rotation[2] * -1}
+
+	deathmatch.physicalToAgentSpaceInverseTransform = deathmatch.physicalToAgentSpaceTransform.Inv()
+
+	return deathmatch
 }
 
 func (deathmatch DeathmatchGame) getEntity(id ecs.EntityID, tagelements ...interface{}) *ecs.QueryResult {
@@ -250,7 +283,40 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 func (deathmatch *DeathmatchGame) GetAgentPerception(entityid ecs.EntityID) []byte {
 	entityResult := deathmatch.getEntity(entityid, deathmatch.perceptionComponent)
 	perceptionAspect := entityResult.Components[deathmatch.perceptionComponent].(*Perception)
-	return perceptionAspect.GetPerception()
+	bytes, _ := perceptionAspect.GetPerception().MarshalJSON()
+	return bytes
+}
+
+func (deathmatch *DeathmatchGame) GetAgentWelcome(entityid ecs.EntityID) []byte {
+
+	entityresult := deathmatch.getEntity(entityid,
+		deathmatch.physicalBodyComponent,
+		deathmatch.steeringComponent,
+		deathmatch.perceptionComponent,
+	)
+
+	if entityresult == nil {
+		return []byte{}
+	}
+
+	p := agentSpecs{}
+
+	physicalAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
+	steeringAspect := entityresult.Components[deathmatch.steeringComponent].(*Steering)
+	perceptionAspect := entityresult.Components[deathmatch.perceptionComponent].(*Perception)
+
+	// TODO: this radius value comes out of box2D, and thus has to be scaled up (unlike other props)
+	p.BodyRadius = physicalAspect.GetRadius() * deathmatch.physicalToAgentSpaceScale
+	p.MaxSpeed = physicalAspect.GetMaxSpeed()
+	p.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
+
+	p.MaxSteeringForce = steeringAspect.GetMaxSteeringForce()
+
+	p.VisionRadius = perceptionAspect.GetVisionRadius()
+	p.VisionAngle = commontypes.Angle(perceptionAspect.GetVisionAngle())
+
+	res, _ := p.MarshalJSON()
+	return res
 }
 
 func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
@@ -266,8 +332,11 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 		physicalBodyAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
 
 		msg.Objects = append(msg.Objects, commontypes.VizMessageObject{
-			Id:          entityresult.Entity.GetID().String(),
-			Type:        renderAspect.GetType(),
+			Id:   entityresult.Entity.GetID().String(),
+			Type: renderAspect.GetType(),
+
+			// Here, viz coord space and physical world coord space match
+			// No transform is therefore needed
 			Position:    physicalBodyAspect.GetPosition(),
 			Velocity:    physicalBodyAspect.GetVelocity(),
 			Radius:      physicalBodyAspect.GetRadius(),

@@ -23,35 +23,38 @@ var (
 	LISTEN_ADDR = net.IP{0, 0, 0, 0}
 )
 
-func (s *Server) listen() chan interface{} {
-	serveraddress := LISTEN_ADDR.String() + ":" + strconv.Itoa(s.port)
-	s.commserver = comm.NewCommServer(serveraddress)
+func (server *Server) listen() chan interface{} {
+	serveraddress := LISTEN_ADDR.String() + ":" + strconv.Itoa(server.port)
+	server.commserver = comm.NewCommServer(serveraddress)
 
 	// Consum com server events
 	go func() {
 		for {
-			msg := <-s.commserver.Events()
+			msg := <-server.commserver.Events()
 
-			if s.gameIsRunning == false {
+			if server.gameIsRunning == false {
 				return // ignore message
 			}
 
 			switch t := msg.(type) {
 			case comm.EventLog:
-				s.Log(EventLog{t.Value})
+				server.Log(EventLog{t.Value})
 
 			case comm.EventWarn:
-				s.Log(EventWarn{t.Err})
+				server.Log(EventWarn{t.Err})
 
 			case comm.EventError:
-				s.Log(EventError{t.Err})
+				server.Log(EventError{t.Err})
+
+			case comm.EventRawComm:
+				server.Log(EventRawComm{t.Buffer})
 
 			// An agent has probaly been disconnected
 			// We need to remove it from our state
 			case comm.EventConnDisconnected:
-				s.clearAgentConn(t.Conn)
-				s.Log(EventWarn{t.Err})
-				s.ensureEnoughAgentsAreInGame()
+				server.clearAgentConn(t.Conn)
+				server.Log(EventWarn{t.Err})
+				server.ensureEnoughAgentsAreInGame()
 
 			default:
 				msg := fmt.Sprintf("Unsupported message of type %s", reflect.TypeOf(msg))
@@ -62,9 +65,9 @@ func (s *Server) listen() chan interface{} {
 
 	}()
 
-	s.events <- EventLog{"Server listening on port " + strconv.Itoa(s.port)}
+	server.events <- EventLog{"Server listening on port " + strconv.Itoa(server.port)}
 
-	err := s.commserver.Listen(s)
+	err := server.commserver.Listen(server)
 	utils.Check(err, "Failed to listen on "+serveraddress)
 
 	block := make(chan interface{})
@@ -124,19 +127,19 @@ func (s *Server) NetSend(message []byte, conn net.Conn) error {
 	return s.commserver.Send(message, conn)
 }
 
-func (s *Server) PushMutationBatch(batch arenaservertypes.AgentMutationBatch) {
-	s.mutationsmutex.Lock()
-	s.pendingmutations = append(s.pendingmutations, batch)
-	s.mutationsmutex.Unlock()
+func (server *Server) PushMutationBatch(batch arenaservertypes.AgentMutationBatch) {
+	server.mutationsmutex.Lock()
+	server.pendingmutations = append(server.pendingmutations, batch)
+	server.mutationsmutex.Unlock()
 }
 
 /* </implementing types.AgentCommunicatorInterface> */
 
 /* <implementing types.CommunicatorDispatcherInterface> */
-func (s *Server) ImplementsCommDispatcherInterface() {}
-func (s *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
+func (server *Server) ImplementsCommDispatcherInterface() {}
+func (server *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
 
-	agentproxy, err := s.getAgentProxy(msg.GetAgentId().String())
+	agentproxy, err := server.getAgentProxy(msg.GetAgentId().String())
 	if err != nil {
 		return errors.New("DispatchAgentMessage: agentid does not match any known agent in received agent message !;" + msg.GetAgentId().String())
 	}
@@ -150,11 +153,11 @@ func (s *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
 	switch msg.GetType() {
 	case arenaservertypes.AgentMessageType.Handshake:
 		{
-			if _, found := s.agentproxieshandshakes[msg.GetAgentId()]; found {
+			if _, found := server.agentproxieshandshakes[msg.GetAgentId()]; found {
 				return errors.New("ERROR: Received duplicate handshake from agent " + agentproxy.String())
 			}
 
-			s.agentproxieshandshakes[msg.GetAgentId()] = struct{}{}
+			server.agentproxieshandshakes[msg.GetAgentId()] = struct{}{}
 
 			var handshake arenaservertypes.AgentMessagePayloadHandshake
 			err = json.Unmarshal(msg.GetPayload(), &handshake)
@@ -174,20 +177,25 @@ func (s *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
 
 			if !utils.IsStringInArray(arenaservertypes.PROTOCOL_VERSIONS, handshake.Version) {
 				return bettererrors.
-					NewFromString("Unsupported agent protocol").
+					New("Unsupported agent protocol").
 					SetContext("agent", ag.String()).
 					SetContext("protocol version", handshake.Version)
 			}
 
 			ag = ag.SetConn(msg.GetEmitterConn())
-			s.setAgentProxy(ag)
+			server.setAgentProxy(ag)
 
-			s.events <- EventDebug{"Received handshake from agent " + ag.String() + ""}
+			server.events <- EventDebug{"Received handshake from agent " + ag.String() + ""}
 
-			s.nbhandshaked++
+			server.nbhandshaked++
 
-			if s.nbhandshaked == s.getNbExpectedagents() {
-				s.onAgentsReady()
+			ag.SendAgentWelcome(
+				server.GetGame().GetAgentWelcome(ag.GetEntityId()),
+				server,
+			)
+
+			if server.nbhandshaked == server.getNbExpectedagents() {
+				server.onAgentsReady()
 			}
 
 			// TODO(sven|jerome): handle some timeout here if all agents fail to handshake
@@ -211,7 +219,7 @@ func (s *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) error {
 				Mutations:      mutations.Mutations,
 			}
 
-			s.PushMutationBatch(mutationbatch)
+			server.PushMutationBatch(mutationbatch)
 
 			break
 		}

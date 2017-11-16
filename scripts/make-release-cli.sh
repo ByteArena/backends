@@ -11,14 +11,14 @@ BUILDS=(
 )
 
 REPO_OWNER=bytearena
-REPO=trainer-test
+REPO=cli
 TAG=v$1
 
 GH_API="https://api.github.com"
 GH_REPO="$GH_API/repos/$REPO_OWNER/$REPO"
 GH_TAGS="$GH_REPO/releases/tags/$TAG"
 AUTH="Authorization: token $GITHUB_API_TOKEN"
-FILENAME=arena-trainer-$TAG
+FILENAME=ba-$TAG
 DIRECTORY=../../build/releases
 
 mkdir -p $DIRECTORY
@@ -43,7 +43,7 @@ response=$(curl -sH "$AUTH" $GH_TAGS)
 eval $(echo "$response" | grep -m 1 "id.:" | grep -w id | tr : = | tr -cd '[[:alnum:]]=')
 [ "$id" ] || { echo "Error: Failed to get release id for tag: $tag"; echo "$response" | awk 'length($0)<100' >&2; exit 1; }
 
-cd cmd/arena-trainer
+cd cmd/ba
 
 for i in "${BUILDS[@]}"
 do
@@ -55,7 +55,7 @@ do
 
     echo "Building $FILE release..."
 
-    env $i go build -o "$FILE" -ldflags="-s -w"
+    env $i go build -o "$FILE" -ldflags="-s -w -X github.com/bytearena/bytearena/common/utils.version=$TAG"
     upx -9 $FILE
     du -sh $FILE
 

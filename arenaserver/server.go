@@ -138,7 +138,7 @@ func (server *Server) Start() (chan interface{}, error) {
 	err := server.startAgentContainers()
 
 	if err != nil {
-		return nil, bettererrors.NewFromString("Failed to start agent containers").With(err)
+		return nil, bettererrors.New("Failed to start agent containers").With(err)
 	}
 
 	server.gameIsRunning = true
@@ -286,7 +286,7 @@ func (server *Server) doTick() {
 
 			if err != nil && server.gameIsRunning {
 				berror := bettererrors.
-					NewFromString("Failed to send perception").
+					New("Failed to send perception").
 					SetContext("agent", agentproxy.GetProxyUUID().String()).
 					With(bettererrors.NewFromErr(err))
 
@@ -355,7 +355,7 @@ func (server *Server) closeAllAgentConnections() {
 
 				if err != nil {
 					berror := bettererrors.
-						NewFromString("Could not close agent connection").
+						New("Could not close agent connection").
 						With(bettererrors.NewFromErr(err))
 
 					server.Log(EventWarn{berror})

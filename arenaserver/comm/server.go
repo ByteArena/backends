@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/bytearena/bytearena/arenaserver/types"
+	"github.com/bytearena/bytearena/common/assert"
+	uuid "github.com/satori/go.uuid"
 
 	bettererrors "github.com/xtuc/better-errors"
 )
@@ -98,9 +100,9 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 					case <-time.After(CONNECTION_TO_MESSAGE_DEADLINE):
 						if !gotData {
 							berror := bettererrors.
-								NewFromString("Agent connection has been aborted").
+								New("Agent connection has been aborted").
 								SetContext("timeout", CONNECTION_TO_MESSAGE_DEADLINE.String()).
-								With(bettererrors.NewFromString("Handshake timeout"))
+								With(bettererrors.New("Handshake timeout"))
 
 							// Avoid crashes when agent crashes Issue #108
 							s.Log(EventConnDisconnected{
@@ -116,25 +118,32 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 							// Cancel deadline
 							gotData = true
 
+							// Dump traffic
+							s.Log(EventRawComm{buf})
+
 							// Unmarshal message (unwrapping in an AgentMessage structure)
 							var msg types.AgentMessage
 							err = json.Unmarshal(buf, &msg)
+
 							if err != nil {
 								berror := bettererrors.
-									NewFromString("Failed to unmarshal incoming JSON in CommServer::Listen()").
+									New("Failed to unmarshal incoming JSON in CommServer::Listen()").
 									With(bettererrors.NewFromErr(err)).
-									SetContext("buff", string(buf))
+									SetContext("string", fmt.Sprintf("\"%s\"", buf)).
+									SetContext("raw", fmt.Sprintf("%v", buf))
 
-								s.Log(EventWarn{berror})
+								assert.AssertBE(false, berror)
 							} else {
 								msg.EmitterConn = conn
+
+								assert.Assert(msg.AgentId != uuid.Nil, "agentid is null")
 
 								go func() {
 									err := dispatcher.DispatchAgentMessage(msg)
 									if err != nil {
 										berror := bettererrors.
-											NewFromString("Failed to dispatch agent message").
-											With(err)
+											New("Failed to dispatch agent message").
+											With(bettererrors.NewFromErr(err))
 
 										s.Log(EventError{berror})
 									}
@@ -148,7 +157,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 							gotData = true
 
 							berror := bettererrors.
-								NewFromString("Connexion closed unexpectedly").
+								New("Connexion closed unexpectedly").
 								With(bettererrors.NewFromErr(err))
 
 							// Avoid crashes when agent crashes Issue #108

@@ -8,3 +8,4 @@ cmd/replay/replay
 cmd/test-vm/test-vm
 cmd/arena-master-cli/arena-master-cli
 build
+*.code-workspace

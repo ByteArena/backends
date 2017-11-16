@@ -14,6 +14,10 @@ import (
 	"github.com/bytearena/ecs"
 )
 
+var pi2 = math.Pi * 2
+var halfpi = math.Pi / 2
+var threepi2 = math.Pi + halfpi
+
 // https://legends2k.github.io/2d-fov/design.html
 // http://ncase.me/sight-and-light/
 
@@ -39,11 +43,11 @@ func systemPerception(deathmatch *DeathmatchGame) {
 	wg.Wait()
 }
 
-func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) []byte {
+func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) *agentPerception {
 	//watch := utils.MakeStopwatch("computeAgentPerception()")
 	//watch.Start("global")
 
-	p := agentPerception{}
+	p := &agentPerception{}
 
 	entityresult := game.getEntity(entityid,
 		game.physicalBodyComponent,
@@ -52,42 +56,26 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 	)
 
 	if entityresult == nil {
-		return []byte{}
+		return p
 	}
 
 	physicalAspect := entityresult.Components[game.physicalBodyComponent].(*PhysicalBody)
-	steeringAspect := entityresult.Components[game.steeringComponent].(*Steering)
 	perceptionAspect := entityresult.Components[game.perceptionComponent].(*Perception)
 
 	orientation := physicalAspect.GetOrientation()
 	velocity := physicalAspect.GetVelocity()
-	radius := physicalAspect.GetRadius()
 
-	// FIXME(jerome): 1/20
-	p.Internal.Velocity = velocity.Clone().SetAngle(velocity.Angle() - orientation).Scale(1.0 / 20.0)
-	p.Internal.Proprioception = radius
-	p.Internal.Magnetoreception = orientation // l'angle d'orientation de l'agent par rapport au "Nord" de l'arène
-
-	p.Specs.MaxSpeed = physicalAspect.GetMaxSpeed()
-	p.Specs.MaxSteeringForce = steeringAspect.GetMaxSteeringForce()
-	p.Specs.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
-	p.Specs.DragForce = physicalAspect.GetDragForce()
-	p.Specs.VisionRadius = perceptionAspect.GetVisionRadius()
-	p.Specs.VisionAngle = perceptionAspect.GetVisionAngle()
+	p.Velocity = velocity.Clone().SetAngle(velocity.Angle() - orientation)
+	p.Azimuth = orientation // l'angle d'orientation de l'agent par rapport au "Nord" de l'arène
 
 	//watch.Start("p.External.Vision =")
-	p.External.Vision = computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)
+	p.Vision = computeAgentVision(game, entityresult.Entity, physicalAspect, perceptionAspect)
 	//watch.Stop("p.External.Vision =")
 
-	//watch.Start("json.Marshal")
-	res, _ := p.MarshalJSON()
-	//log.Println("JSON SIZE ", float64(len(res))/1024.0, "KB")
-	//res := []byte("{\"Internal\":{\"Velocity\":[0,0]},\"Specs\":{\"VisionRadius\":1},\"External\":{\"Vision\":[]}}")
-	//watch.Stop("json.Marshal")
-	//watch.Stop("global")
-	//fmt.Println(watch.String())
+	// watch.Stop("global")
+	// fmt.Println(watch.String())
 
-	return res
+	return p
 }
 
 func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
@@ -98,10 +86,10 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 
 	// on met la vision à l'échelle de l'agent
 	for i, visionItem := range vision {
-		visionItem.Center = visionItem.Center.Transform(game.agentTransform)
-		visionItem.FarEdge = visionItem.FarEdge.Transform(game.agentTransform)
-		visionItem.NearEdge = visionItem.NearEdge.Transform(game.agentTransform)
-		visionItem.Velocity = visionItem.Velocity.Transform(game.agentTransform)
+		visionItem.Center = visionItem.Center.Transform(game.physicalToAgentSpaceTransform)
+		visionItem.FarEdge = visionItem.FarEdge.Transform(game.physicalToAgentSpaceTransform)
+		visionItem.NearEdge = visionItem.NearEdge.Transform(game.physicalToAgentSpaceTransform)
+		visionItem.Velocity = visionItem.Velocity.Transform(game.physicalToAgentSpaceTransform)
 		vision[i] = visionItem
 	}
 
@@ -121,10 +109,6 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 	// 		physicalAspect.SetOrientation(physicalAspect.GetVelocity().Angle())
 	// 	}
 	// }
-
-	pi2 := math.Pi * 2
-	halfpi := math.Pi / 2
-	threepi2 := math.Pi + halfpi
 
 	agentPosition := physicalAspect.GetPosition()
 	agentOrientation := physicalAspect.GetOrientation()
@@ -271,14 +255,16 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 			otherQr := game.getEntity(bodyDescriptor.ID, game.physicalBodyComponent)
 			otherPhysicalAspect := otherQr.Components[game.physicalBodyComponent].(*PhysicalBody)
 
-			bodyPoly := otherPhysicalAspect.body.GetFixtureList().GetShape().(*box2d.B2ChainShape)
-			vertices := bodyPoly.M_vertices
-			for i := 1; i < len(vertices); i++ {
+			fixture := otherPhysicalAspect.body.GetFixtureList()
+			for fixture != nil {
+
+				b2edge := fixture.GetShape().(*box2d.B2EdgeShape)
+				fixture = fixture.M_next
 
 				edges := make([]vector.Vector2, 0)
 
-				pointA := vector.FromB2Vec2(vertices[i-1])
-				pointB := vector.FromB2Vec2(vertices[i])
+				pointA := vector.FromB2Vec2(b2edge.M_vertex1)
+				pointB := vector.FromB2Vec2(b2edge.M_vertex2)
 
 				segmentAABB := vector.GetAABBForPointList(pointA, pointB)
 				if !segmentAABB.Overlaps(entityAABB) {
