@@ -2,15 +2,12 @@ package mappack
 
 import (
 	"archive/zip"
-	"fmt"
 	"io/ioutil"
 	"mime"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	bettererrors "github.com/xtuc/better-errors"
 )
@@ -40,13 +37,23 @@ func UnzipAndGetHandles(filename string) (*MappackInMemoryArchive, error) {
 		fd, err := file.Open()
 
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not open file in archive (%s)", file.Name)
+			better := bettererrors.
+				New("Could not open file in archive").
+				With(err).
+				SetContext("filename", file.Name)
+
+			return nil, better
 		}
 
 		content, readErr := ioutil.ReadAll(fd)
 
 		if readErr != nil {
-			return nil, errors.Wrapf(err, "Could not read file in archive (%s)", file.Name)
+			berror := bettererrors.
+				New("Could not read file in archive").
+				With(err).
+				SetContext("filename", file.Name)
+
+			return nil, berror
 		}
 
 		mappackInMemoryArchive.Files[file.Name] = content
@@ -61,7 +68,11 @@ func (m *MappackInMemoryArchive) Open(name string) ([]byte, error) {
 		return content, nil
 	}
 
-	return nil, errors.New(fmt.Sprintf("File %s not found", name))
+	berror := bettererrors.
+		New("File not found").
+		SetContext("filename", name)
+
+	return nil, berror
 }
 
 func (m *MappackInMemoryArchive) Close() {
