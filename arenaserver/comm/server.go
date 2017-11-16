@@ -129,9 +129,10 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 								berror := bettererrors.
 									New("Failed to unmarshal incoming JSON in CommServer::Listen()").
 									With(bettererrors.NewFromErr(err)).
-									SetContext("buff", string(buf))
+									SetContext("string", fmt.Sprintf("\"%s\"", buf)).
+									SetContext("raw", fmt.Sprintf("%v", buf))
 
-								assert.AssertBE(err != nil, berror)
+								assert.AssertBE(false, berror)
 							} else {
 								msg.EmitterConn = conn
 
