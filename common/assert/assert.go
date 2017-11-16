@@ -15,3 +15,13 @@ func Assert(cond bool, msg string) {
 		utils.FailWith(berror)
 	}
 }
+func AssertBE(cond bool, err *bettererrors.Chain) {
+
+	if !cond {
+		berror := bettererrors.
+			New("Assertion error").
+			With(err)
+
+		utils.FailWith(berror)
+	}
+}

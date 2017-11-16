@@ -125,17 +125,17 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 							var msg types.AgentMessage
 							err = json.Unmarshal(buf, &msg)
 
-							assert.Assert(msg.AgentId != uuid.Nil, "agent is null")
-
 							if err != nil {
 								berror := bettererrors.
 									New("Failed to unmarshal incoming JSON in CommServer::Listen()").
 									With(bettererrors.NewFromErr(err)).
 									SetContext("buff", string(buf))
 
-								s.Log(EventWarn{berror})
+								assert.AssertBE(err != nil, berror)
 							} else {
 								msg.EmitterConn = conn
+
+								assert.Assert(msg.AgentId != uuid.Nil, "agentid is null")
 
 								go func() {
 									err := dispatcher.DispatchAgentMessage(msg)
