@@ -177,7 +177,7 @@ func (server *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) er
 
 			if !utils.IsStringInArray(arenaservertypes.PROTOCOL_VERSIONS, handshake.Version) {
 				return bettererrors.
-					NewFromString("Unsupported agent protocol").
+					New("Unsupported agent protocol").
 					SetContext("agent", ag.String()).
 					SetContext("protocol version", handshake.Version)
 			}

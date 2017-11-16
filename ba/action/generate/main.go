@@ -50,7 +50,7 @@ func Main(name string) error {
 		}
 	} else {
 		berror := bettererrors.
-			NewFromString("Unknown sample").
+			New("Unknown sample").
 			SetContext("name", name)
 
 		return berror

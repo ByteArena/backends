@@ -25,10 +25,10 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 
 	if agentSpawnPointIndex >= len(arenamap.Data.Starts) {
 		berror := bettererrors.
-			NewFromString("Cannot spawn agent").
+			New("Cannot spawn agent").
 			SetContext("image", agentimage).
 			SetContext("number of spawns", strconv.Itoa(len(arenamap.Data.Starts))).
-			With(bettererrors.NewFromString("No starting point left"))
+			With(bettererrors.New("No starting point left"))
 
 		s.Log(EventError{berror})
 		return
@@ -58,19 +58,19 @@ func (s *Server) startAgentContainers() error {
 
 		arenaHostnameForAgents, err := s.containerorchestrator.GetHost()
 		if err != nil {
-			return bettererrors.NewFromString("Failed to fetch arena hostname for agents").With(bettererrors.NewFromErr(err))
+			return bettererrors.New("Failed to fetch arena hostname for agents").With(bettererrors.NewFromErr(err))
 		}
 
 		container, err1 := s.containerorchestrator.CreateAgentContainer(agentproxy.GetProxyUUID(), arenaHostnameForAgents, s.port, dockerimage)
 
 		if err1 != nil {
-			return bettererrors.NewFromString("Failed to create docker container").With(err1).SetContext("id", agentproxy.String())
+			return bettererrors.New("Failed to create docker container").With(err1).SetContext("id", agentproxy.String())
 		}
 
 		err = s.containerorchestrator.StartAgentContainer(container, s.AddTearDownCall)
 
 		if err != nil {
-			return bettererrors.NewFromString("Failed to start docker container").With(bettererrors.NewFromErr(err)).SetContext("id", agentproxy.String())
+			return bettererrors.New("Failed to start docker container").With(bettererrors.NewFromErr(err)).SetContext("id", agentproxy.String())
 		}
 
 		go func() {
@@ -79,7 +79,7 @@ func (s *Server) startAgentContainers() error {
 			select {
 			case msg := <-wait:
 				berror := bettererrors.
-					NewFromString("Agent terminated").
+					New("Agent terminated").
 					SetContext("code", strconv.FormatInt(msg.StatusCode, 10))
 
 				if msg.Error != nil {

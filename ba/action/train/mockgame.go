@@ -25,7 +25,7 @@ func NewMockGame(tps int, mapbundle *mappack.MappackInMemoryArchive) (*MockGame,
 	jsonsource, err := mapbundle.Open("map.json")
 	if err != nil {
 		return nil, bettererrors.
-			NewFromString("Could not find map.json inside the map bundle").
+			New("Could not find map.json inside the map bundle").
 			With(bettererrors.NewFromErr(err))
 	}
 
@@ -33,7 +33,7 @@ func NewMockGame(tps int, mapbundle *mappack.MappackInMemoryArchive) (*MockGame,
 	if err := json.Unmarshal(jsonsource, &mapContainer); err != nil {
 
 		return nil, bettererrors.
-			NewFromString("map.json exists inside the map bundle, but is not valid.").
+			New("map.json exists inside the map bundle, but is not valid.").
 			With(bettererrors.NewFromErr(err))
 	}
 

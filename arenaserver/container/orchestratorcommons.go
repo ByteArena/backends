@@ -64,7 +64,7 @@ func commonCreateAgentContainer(orch arenaservertypes.ContainerOrchestrator, age
 		)
 
 		if err != nil {
-			return nil, bettererrors.NewFromString("Failed to pull from registry").With(bettererrors.NewFromErr(err)).SetContext("image", dockerimage)
+			return nil, bettererrors.New("Failed to pull from registry").With(bettererrors.NewFromErr(err)).SetContext("image", dockerimage)
 		}
 
 		defer reader.Close()
@@ -107,7 +107,7 @@ func commonCreateAgentContainer(orch arenaservertypes.ContainerOrchestrator, age
 		"agent-"+agentid.String(), // container name
 	)
 	if err != nil {
-		return nil, bettererrors.NewFromString("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
+		return nil, bettererrors.New("Failed to create docker container for agent " + agentid.String() + "; " + err.Error())
 	}
 
 	agentcontainer := arenaservertypes.NewAgentContainer(agentid, resp.ID, normalizedDockerimage)

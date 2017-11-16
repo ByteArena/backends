@@ -16,7 +16,7 @@ func FailWith(err error) {
 		command := strings.Join(os.Args, " ")
 
 		berror := bettererrors.
-			NewFromString(command).
+			New(command).
 			With(err)
 
 		msg := bettererrorstree.PrintChain(berror)

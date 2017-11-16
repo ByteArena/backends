@@ -39,7 +39,7 @@ func makeapp() *cli.App {
 
 				if err != nil {
 					berror := bettererrors.
-						NewFromString("Failed to execute command").
+						New("Failed to execute command").
 						SetContext("command", "generate").
 						With(err)
 

@@ -16,7 +16,7 @@ func ensureDockerIsAvailable() {
 
 	if err != nil {
 		utils.FailWith(
-			bettererrors.NewFromString("Docker was not found in $PATH. Please install it."),
+			bettererrors.New("Docker was not found in $PATH. Please install it."),
 		)
 	}
 }

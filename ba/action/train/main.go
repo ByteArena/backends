@@ -212,7 +212,7 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 	go func() {
 		<-time.After(TIME_BEFORE_FORCE_QUIT)
 
-		berror := bettererrors.NewFromString("Forced shutdown")
+		berror := bettererrors.New("Forced shutdown")
 
 		trainutils.FailWith(berror)
 	}()

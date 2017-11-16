@@ -9,8 +9,8 @@ func Assert(cond bool, msg string) {
 
 	if !cond {
 		berror := bettererrors.
-			NewFromString("Assertion error").
-			With(bettererrors.NewFromString(msg))
+			New("Assertion error").
+			With(bettererrors.New(msg))
 
 		utils.FailWith(berror)
 	}

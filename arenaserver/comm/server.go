@@ -100,9 +100,9 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 					case <-time.After(CONNECTION_TO_MESSAGE_DEADLINE):
 						if !gotData {
 							berror := bettererrors.
-								NewFromString("Agent connection has been aborted").
+								New("Agent connection has been aborted").
 								SetContext("timeout", CONNECTION_TO_MESSAGE_DEADLINE.String()).
-								With(bettererrors.NewFromString("Handshake timeout"))
+								With(bettererrors.New("Handshake timeout"))
 
 							// Avoid crashes when agent crashes Issue #108
 							s.Log(EventConnDisconnected{
@@ -129,7 +129,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 
 							if err != nil {
 								berror := bettererrors.
-									NewFromString("Failed to unmarshal incoming JSON in CommServer::Listen()").
+									New("Failed to unmarshal incoming JSON in CommServer::Listen()").
 									With(bettererrors.NewFromErr(err)).
 									SetContext("buff", string(buf))
 
@@ -141,7 +141,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 									err := dispatcher.DispatchAgentMessage(msg)
 									if err != nil {
 										berror := bettererrors.
-											NewFromString("Failed to dispatch agent message").
+											New("Failed to dispatch agent message").
 											With(bettererrors.NewFromErr(err))
 
 										s.Log(EventError{berror})
@@ -156,7 +156,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 							gotData = true
 
 							berror := bettererrors.
-								NewFromString("Connexion closed unexpectedly").
+								New("Connexion closed unexpectedly").
 								With(bettererrors.NewFromErr(err))
 
 							// Avoid crashes when agent crashes Issue #108

@@ -180,14 +180,14 @@ func DownloadMap(mapbundle mapBundleType) error {
 
 	if errHead != nil {
 		return bettererrors.
-			NewFromString("Could not get map "+mapbundle.Name).
+			New("Could not get map "+mapbundle.Name).
 			With(bettererrors.NewFromErr(errHead)).
 			SetContext("url", mapbundle.Url)
 	}
 
 	if head.StatusCode != 200 {
 		msg := fmt.Sprintf("Could not get map %s from %s: server returned code %s", mapbundle.Name, mapbundle.Url, head.Status)
-		return bettererrors.NewFromString(msg)
+		return bettererrors.New(msg)
 	}
 
 	fileSize := int(head.ContentLength)
@@ -195,7 +195,7 @@ func DownloadMap(mapbundle mapBundleType) error {
 	res, errGet := http.Get(mapbundle.Url)
 	if errGet != nil {
 		return bettererrors.
-			NewFromString("Could not get map "+mapbundle.Name).
+			New("Could not get map "+mapbundle.Name).
 			With(errHead).
 			SetContext("url", mapbundle.Url)
 	}
@@ -206,7 +206,7 @@ func DownloadMap(mapbundle mapBundleType) error {
 
 	if errOpen != nil {
 		return bettererrors.
-			NewFromString("Could not open destination file for map "+mapbundle.Name).
+			New("Could not open destination file for map "+mapbundle.Name).
 			With(errOpen).
 			SetContext("location", mapBundleDestinationPath)
 	}
@@ -232,7 +232,7 @@ func FetchManifest(manifesturl string) (manifestType, error) {
 
 	if err != nil {
 		return manifest, bettererrors.
-			NewFromString("Could not download manifest").
+			New("Could not download manifest").
 			With(bettererrors.NewFromErr(err)).
 			SetContext("manifest url", MANIFEST_URL)
 	}
@@ -241,7 +241,7 @@ func FetchManifest(manifesturl string) (manifestType, error) {
 
 	if res.StatusCode != 200 {
 		msg := fmt.Sprintf("Could not download manifest (%s): server returned code %s", MANIFEST_URL, res.Status)
-		return manifest, bettererrors.NewFromString(msg)
+		return manifest, bettererrors.New(msg)
 	}
 
 	data, _ := ioutil.ReadAll(res.Body)
@@ -249,7 +249,7 @@ func FetchManifest(manifesturl string) (manifestType, error) {
 
 	if err != nil {
 		return manifest, bettererrors.
-			NewFromString("Could not parse manifest").
+			New("Could not parse manifest").
 			With(bettererrors.NewFromErr(err)).
 			SetContext("manifest url", manifesturl)
 	}
@@ -259,7 +259,7 @@ func FetchManifest(manifesturl string) (manifestType, error) {
 	err = ioutil.WriteFile(manifestPath, data, 0644)
 	if err != nil {
 		return manifest, bettererrors.
-			NewFromString("Could not persist the manifest locally").
+			New("Could not persist the manifest locally").
 			With(bettererrors.NewFromErr(err)).
 			SetContext("manifest path", manifestPath)
 	}
@@ -284,7 +284,7 @@ func getLocalMapManifest() (manifestType, error) {
 	err = json.Unmarshal(manifestJSON, &manifest)
 	if err != nil {
 		return manifest, bettererrors.
-			NewFromString("Could not parse manifest").
+			New("Could not parse manifest").
 			With(bettererrors.NewFromErr(err)).
 			SetContext("manifest path", manifestPath)
 	}
@@ -299,7 +299,7 @@ func getMapLocally(bundle mapBundleType) (*os.File, error) {
 
 	if err != nil {
 		return nil, bettererrors.
-			NewFromString("Could not open map file").
+			New("Could not open map file").
 			With(bettererrors.NewFromErr(err)).
 			SetContext("map file", bundleLocation)
 	}
