@@ -107,6 +107,7 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			buf := scanner.Bytes()
+
 			/*
 				This is to remove Docker log header.
 				First 8 bytes are part of the header.

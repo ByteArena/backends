@@ -12,8 +12,8 @@ import (
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/comm"
 	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
+	"github.com/bytearena/bytearena/common/assert"
 	"github.com/bytearena/bytearena/common/utils"
-	pkgerrors "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
 	bettererrors "github.com/xtuc/better-errors"
@@ -150,7 +150,9 @@ func (server *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) er
 	// Problem here: cannot check ip against the one we get from Docker by inspecting the container
 	// as the two addresses do not match
 
-	switch msg.GetType() {
+	assert.Assert(msg.GetMethod() != "", "Method is null")
+
+	switch msg.GetMethod() {
 	case arenaservertypes.AgentMessageType.Handshake:
 		{
 			if _, found := server.agentproxieshandshakes[msg.GetAgentId()]; found {
@@ -162,12 +164,16 @@ func (server *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) er
 			var handshake arenaservertypes.AgentMessagePayloadHandshake
 			err = json.Unmarshal(msg.GetPayload(), &handshake)
 			if err != nil {
-				return pkgerrors.Wrapf(err, "DispatchAgentMessage: Failed to unmarshal agent's (%s) handshake", msg.GetAgentId().String())
+				return bettererrors.
+					New("Failed to unmarshal agent's handshake").
+					SetContext("agent", msg.GetAgentId().String())
 			}
 
 			ag, ok := agentproxy.(agent.AgentProxyNetworkInterface)
 			if !ok {
-				return errors.New("DispatchAgentMessage: Failed to cast agent to NetAgent during handshake for " + ag.String())
+				return bettererrors.
+					New("Failed to cast agent to NetAgent during handshake").
+					SetContext("agent", ag.String())
 			}
 
 			// Check if the agent uses a protocol version we know
@@ -210,7 +216,11 @@ func (server *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) er
 
 			err = json.Unmarshal(msg.GetPayload(), &mutations)
 			if err != nil {
-				return errors.New("DispatchAgentMessage: Failed to unmarshal JSON agent mutation payload for agent " + agentproxy.String() + "; " + string(msg.GetPayload()))
+
+				return bettererrors.
+					New("Failed to unmarshal JSON agent mutation").
+					SetContext("agent", agentproxy.String()).
+					SetContext("payload", string(msg.GetPayload()))
 			}
 
 			mutationbatch := arenaservertypes.AgentMutationBatch{
@@ -225,7 +235,11 @@ func (server *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) er
 		}
 	default:
 		{
-			return errors.New("DispatchAgentMessage: Unknown message type" + msg.GetType().String())
+			berror := bettererrors.
+				New("Unknown message type").
+				SetContext("method", msg.GetMethod().String())
+
+			assert.AssertBE(false, berror)
 		}
 	}
 

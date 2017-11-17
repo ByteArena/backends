@@ -143,7 +143,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 									if err != nil {
 										berror := bettererrors.
 											New("Failed to dispatch agent message").
-											With(bettererrors.NewFromErr(err))
+											With(err)
 
 										s.Log(EventError{berror})
 									}
