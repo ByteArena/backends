@@ -99,8 +99,8 @@ func main() {
 	)
 
 	cmd.Env = nil
-	// cmd.Stderr = os.Stderr
-	// cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 	err = cmd.Run()
 	if err != nil {
 		fmt.Println("Error while patching source files.")

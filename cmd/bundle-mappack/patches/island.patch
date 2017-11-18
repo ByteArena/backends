@@ -17,30 +17,50 @@
          var container = document.createElement('div');
          container.id = 'progress-bar-container';
 
+diff --git a/__start__.js b/__start__.js
 --- a/__start__.js
 +++ b/__start__.js
-@@ -115,10 +115,14 @@
+@@ -1,4 +1,4 @@
+-(function () {
++window._startpc = function (target, onAppCreated, onAppConfigured, onSceneLoaded) {
+     var CANVAS_ID = 'application-canvas';
+ 
+     var canvas, devices, app;
+@@ -12,7 +12,7 @@
+         // Disable I-bar cursor on click+drag
+         canvas.onselectstart = function () { return false; };
+ 
+-        document.body.appendChild(canvas);
++        target.appendChild(canvas);
+ 
+         return canvas;
+     };
+@@ -115,11 +115,15 @@
          return;
      }
-
-+    if(window.BAHookAppCreated) window.BAHookAppCreated(app);
+ 
++    onAppCreated(app);
 +
      app.configure(CONFIG_FILENAME, function (err) {
          if (err) {
              console.error(err);
          }
+ 
++        onAppConfigured(app);
 +
-+        if(window.BAHookAppConfigured) window.BAHookAppConfigured(app);
-
          configureCss(app._fillMode, app._width, app._height);
          reflow();
-@@ -136,6 +140,8 @@
+ 
+@@ -136,8 +140,10 @@
                      console.error(err);
                  }
-
-+                if(window.BAHookSceneLoaded) window.BAHookSceneLoaded(scene);
+ 
++                onSceneLoaded(scene);
 +
                  app.start();
              });
          });
+     });
+-}());
++};
 
