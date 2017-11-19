@@ -29,7 +29,7 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *
 	dragForce := 0.015
 	maxAngularVelocity := number.DegreeToRadian(9.0)
 
-	visionRadius := 10.0
+	visionRadius := 3.0
 	visionAngle := number.DegreeToRadian(120)
 
 	///////////////////////////////////////////////////////////////////////////

@@ -15,23 +15,23 @@ func processSegments(lightSource Point, segments []*Segment) []*Segment {
 }
 
 func getSegmentEndPoints(segment *Segment) []*EndPoint {
-	return []*EndPoint{segment.p1, segment.p2}
+	return []*EndPoint{segment.PointA, segment.PointB}
 }
 
 func calculateEndPointAngles(lightSource Point, segment *Segment) {
 	x := lightSource.X
 	y := lightSource.Y
 
-	dx := 0.5*(segment.p1.X+segment.p2.X) - x
-	dy := 0.5*(segment.p1.Y+segment.p2.Y) - y
+	dx := 0.5*(segment.PointA.X+segment.PointB.X) - x
+	dy := 0.5*(segment.PointA.Y+segment.PointB.Y) - y
 
-	segment.d = (dx * dx) + (dy * dy)
-	segment.p1.angle = math.Atan2(segment.p1.Y-y, segment.p1.X-x)
-	segment.p2.angle = math.Atan2(segment.p2.Y-y, segment.p2.X-x)
+	segment.D = (dx * dx) + (dy * dy)
+	segment.PointA.angle = math.Atan2(segment.PointA.Y-y, segment.PointA.X-x)
+	segment.PointB.angle = math.Atan2(segment.PointB.Y-y, segment.PointB.X-x)
 }
 
 func setSegmentBeginning(segment *Segment) {
-	dAngle := segment.p2.angle - segment.p1.angle
+	dAngle := segment.PointB.angle - segment.PointA.angle
 
 	if dAngle <= -math.Pi {
 		dAngle += 2 * math.Pi
@@ -41,8 +41,8 @@ func setSegmentBeginning(segment *Segment) {
 		dAngle -= 2 * math.Pi
 	}
 
-	segment.p1.beginsSegment = dAngle > 0
-	segment.p2.beginsSegment = !segment.p1.beginsSegment
+	segment.PointA.beginsSegment = dAngle > 0
+	segment.PointB.beginsSegment = !segment.PointA.beginsSegment
 }
 
 func endpointsFromSegments(pov Point, walls []*Segment) []*EndPoint {

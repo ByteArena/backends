@@ -8,7 +8,7 @@ import (
 	"github.com/bytearena/bytearena/common/utils/vector"
 )
 
-func SegmentIntersectionWithLineSegment(p, q vector.Segment2) (intersection vector.Vector2, intersects bool, colinear bool, parallel bool) {
+func SegmentSegmentIntersection(p, q vector.Segment2) (intersection vector.Vector2, intersects bool, colinear bool, parallel bool) {
 	p1, p2 := p.Get()
 	q1, q2 := q.Get()
 	return IntersectionWithLineSegment(p1, p2, q1, q2)

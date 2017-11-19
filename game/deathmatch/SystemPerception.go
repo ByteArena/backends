@@ -7,6 +7,7 @@ import (
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/bytearena/common/visibility2d/breakintersections"
 
 	"github.com/bytearena/box2d"
 
@@ -401,7 +402,8 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 	renderQr := game.getEntity(entity.ID, game.renderComponent)
 	if renderQr != nil {
 		renderAspect := renderQr.Components[game.renderComponent].(*Render)
-		renderAspect.DebugPoints = make([][2]float64, len(vision))
+		renderAspect.DebugPoints = make([][2]float64, 0)
+		renderAspect.DebugSegments = make([][2][2]float64, 0)
 		for _, v := range vision {
 
 			//absCenter := v.Center.SetAngle(v.Center.Angle() + agentOrientation).Add(agentPosition)
@@ -412,6 +414,10 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 				absNearEdge.ToFloatArray(),
 				//absCenter.ToFloatArray(),
 				absFarEdge.ToFloatArray(),
+			)
+
+			renderAspect.DebugSegments = append(renderAspect.DebugSegments,
+				[2][2]float64{absNearEdge.ToFloatArray(), absFarEdge.ToFloatArray()},
 			)
 		}
 
@@ -444,37 +450,50 @@ func (a byAngleRatio) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a byAngleRatio) Less(i, j int) bool { return a[i].angleRatioFrom < a[j].angleRatioFrom }
 
 func processOcclusions(vision []agentPerceptionVisionItem, agentPosition vector.Vector2) []agentPerceptionVisionItem {
-	return vision
+	//return vision
 
-	// segments := make([]*visibility2d.Segment, len(vision))
+	// Breaking segments at intersections
 
-	// for i, visionItem := range vision {
-	// 	segments[i] = visibility2d.NewSegment(
-	// 		visionItem.NearEdge.GetX(),
-	// 		visionItem.NearEdge.GetY(),
-	// 		visionItem.FarEdge.GetX(),
-	// 		visionItem.FarEdge.GetY(),
-	// 		visionItem,
-	// 	)
-	// }
+	breakableSegments := make([]breakintersections.Segment, len(vision))
+	for i := 0; i < len(vision); i++ {
+		v := vision[i]
+		breakableSegments[i] = breakintersections.Segment{
+			Points: [2][2]float64{
+				v.NearEdge,
+				v.FarEdge,
+			},
+			UserData: v,
+		}
+	}
 
-	// pov := visibility2d.Point{agentPosition.GetX(), agentPosition.GetY()}
+	brokenSegments := breakintersections.OnlyVisible(
+		agentPosition,
+		breakableSegments,
+	)
 
-	// begin := time.Now()
-	// visibility := visibility2d.CalculateVisibility(pov, segments)
-	// fmt.Println("Took ", float64(time.Now().UnixNano()-begin.UnixNano())/1000000.0, "ms")
+	//brokenSegments := breakintersections.BreakIntersections(breakableSegments)
 
-	// realVision := make([]agentPerceptionVisionItem, len(visibility))
+	realVision := make([]agentPerceptionVisionItem, len(brokenSegments))
 
-	// for i, v := range visibility {
-	// 	agentVisionItem := v.Userdata.(agentPerceptionVisionItem)
-	// 	agentVisionItem.NearEdge = v.Visible.GetPointA()
-	// 	agentVisionItem.FarEdge = v.Visible.GetPointB()
-	// 	agentVisionItem.Center = v.Visible.Center()
-	// 	realVision[i] = agentVisionItem
-	// }
+	for i, brokenSegment := range brokenSegments {
 
-	// return realVision
+		obs := vector.MakeSegment2(brokenSegment.Points[0], brokenSegment.Points[1])
+		if obs.LengthSq() < 0.0001 {
+			continue
+		}
+
+		data := brokenSegment.UserData.(agentPerceptionVisionItem)
+		realVision[i] = agentPerceptionVisionItem{
+			Tag:      data.Tag,
+			NearEdge: brokenSegment.Points[0],
+			FarEdge:  brokenSegment.Points[1],
+			Center:   obs.Center(),
+			Velocity: data.Velocity,
+		}
+	}
+
+	return realVision
+
 }
 
 func getCircleSegmentAABB(center vector.Vector2, radius float64, angleARad float64, angleBRad float64) (lowerBound vector.Vector2, upperBound vector.Vector2) {

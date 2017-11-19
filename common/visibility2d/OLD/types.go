@@ -35,10 +35,10 @@ func (coll ByEndpoint) Less(i, j int) bool {
 }
 
 type Segment struct {
-	p1       *EndPoint
-	p2       *EndPoint
-	d        float64
-	userdata interface{}
+	PointA   *EndPoint
+	PointB   *EndPoint
+	D        float64
+	Userdata interface{}
 }
 
 func NewSegment(x1, y1, x2, y2 float64, userdata interface{}) *Segment {
@@ -46,10 +46,10 @@ func NewSegment(x1, y1, x2, y2 float64, userdata interface{}) *Segment {
 	p1 := NewEndPoint(x1, y1)
 	p2 := NewEndPoint(x2, y2)
 	segment := &Segment{
-		p1:       p1,
-		p2:       p2,
-		d:        0,
-		userdata: userdata,
+		PointA:   p1,
+		PointB:   p2,
+		D:        0,
+		Userdata: userdata,
 	}
 
 	p1.segment = segment
@@ -59,5 +59,5 @@ func NewSegment(x1, y1, x2, y2 float64, userdata interface{}) *Segment {
 }
 
 func (s Segment) GetEndPoints() []*EndPoint {
-	return []*EndPoint{s.p1, s.p2}
+	return []*EndPoint{s.PointA, s.PointB}
 }

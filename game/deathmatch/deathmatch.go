@@ -324,9 +324,10 @@ func (deathmatch *DeathmatchGame) GetAgentWelcome(entityid ecs.EntityID) []byte 
 
 func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 	msg := commontypes.VizMessage{
-		GameID:      deathmatch.gameDescription.GetId(),
-		Objects:     []commontypes.VizMessageObject{},
-		DebugPoints: make([][2]float64, 0),
+		GameID:        deathmatch.gameDescription.GetId(),
+		Objects:       []commontypes.VizMessageObject{},
+		DebugPoints:   make([][2]float64, 0),
+		DebugSegments: make([][2][2]float64, 0),
 	}
 
 	for _, entityresult := range deathmatch.renderableView.Get() {
@@ -346,7 +347,8 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 			Orientation: physicalBodyAspect.GetOrientation(),
 		})
 
-		//msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
+		msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
+		msg.DebugSegments = append(msg.DebugSegments, renderAspect.DebugSegments...)
 	}
 
 	res, _ := msg.MarshalJSON()
