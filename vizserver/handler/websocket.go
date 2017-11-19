@@ -18,7 +18,7 @@ type wsincomingmessage struct {
 	err         error
 }
 
-func Websocket(fetchVizGames func() ([]*types.VizGame, error), logChan chan string) func(w http.ResponseWriter, r *http.Request) {
+func Websocket(fetchVizGames func() ([]*types.VizGame, error)) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -94,10 +94,6 @@ func Websocket(fetchVizGames func() ([]*types.VizGame, error), logChan chan stri
 					utils.Debug("ws", "disconnected")
 					return
 				}
-			case log := <-logChan:
-				data := fmt.Sprintf("{\"type\":\"log\", \"data\": \"%s\"}", log)
-
-				c.WriteMessage(websocket.TextMessage, []byte(data))
 			case vizmsg := <-vizmsgchan:
 				{
 					vizmsgString, ok := vizmsg.(string)

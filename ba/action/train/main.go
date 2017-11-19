@@ -45,7 +45,6 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 	}
 
 	shutdownChan := make(chan bool)
-	logchan := make(chan string, 10)
 	debug := func(str string) {}
 
 	if isDebug {
@@ -102,8 +101,6 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 			case arenaserver.EventAgentLog:
 				fmt.Println("[agent]", t.Value)
-				// TODO(sven): use buffer
-				// logchan <- t.Value
 
 			case arenaserver.EventLog:
 				fmt.Println("[log]", t.Value)
@@ -185,7 +182,6 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 		func() ([]*types.VizGame, error) { return vizgames, nil },
 		recorder,
 		mappack,
-		logchan,
 	)
 
 	vizservice.Start()

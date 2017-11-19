@@ -24,12 +24,11 @@ type VizService struct {
 	listener      *http.Server
 	recordStore   recording.RecordStoreInterface
 	mappack       *mappack.MappackInMemoryArchive
-	logChan       chan string
 
 	events chan interface{}
 }
 
-func NewVizService(addr string, webclientpath string, mapkey string, fetchArenas FetchArenasCbk, recordStore recording.RecordStoreInterface, mappack *mappack.MappackInMemoryArchive, logChan chan string) *VizService {
+func NewVizService(addr string, webclientpath string, mapkey string, fetchArenas FetchArenasCbk, recordStore recording.RecordStoreInterface, mappack *mappack.MappackInMemoryArchive) *VizService {
 	return &VizService{
 		addr:          addr,
 		webclientpath: webclientpath,
@@ -37,7 +36,6 @@ func NewVizService(addr string, webclientpath string, mapkey string, fetchArenas
 		fetchGames:    fetchArenas,
 		recordStore:   recordStore,
 		mappack:       mappack,
-		logChan:       logChan,
 
 		events: make(chan interface{}),
 	}
@@ -84,7 +82,7 @@ func (viz *VizService) Start() chan struct{} {
 
 	router.Handle("/arena/{id:[a-zA-Z0-9\\-]+}/ws", handlers.CombinedLoggingHandler(
 		logger,
-		http.HandlerFunc(apphandler.Websocket(viz.fetchGames, viz.logChan)),
+		http.HandlerFunc(apphandler.Websocket(viz.fetchGames)),
 	)).Methods("GET")
 
 	viz.Log(EventLog{"VIZ Listening on " + viz.addr})
