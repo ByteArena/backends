@@ -1,10 +1,5 @@
 package main
 
-import (
-	"github.com/bytearena/bytearena/common/visibility2d/breakintersections"
-	"github.com/go-spew/spew"
-)
-
 type obstacle struct {
 	coords [4]float64
 	name   string
@@ -32,17 +27,19 @@ func main() {
 
 	// fmt.Println("Took ", float64(time.Now().UnixNano()-begin.UnixNano())/1000000.0, "ms")
 
-	breakableSegments := make([]breakintersections.Segment, len(obstacles))
-	for i := 0; i < len(breakableSegments); i++ {
-		v := obstacles[i]
-		breakableSegments[i] = breakintersections.Segment{
-			PointA:   [2]float64{v.coords[0], v.coords[1]},
-			PointB:   [2]float64{v.coords[2], v.coords[3]},
-			UserData: v.name,
-		}
-	}
+	// breakableSegments := make([]breakintersections.ObstacleSegment, len(obstacles))
+	// for i := 0; i < len(breakableSegments); i++ {
+	// 	v := obstacles[i]
+	// 	breakableSegments[i] = breakintersections.ObstacleSegment{
+	// 		Points: [2][2]float64{
+	// 			[2]float64{v.coords[0], v.coords[1]},
+	// 			[2]float64{v.coords[2], v.coords[3]},
+	// 		},
+	// 		UserData: v.name,
+	// 	}
+	// }
 
-	spew.Dump(breakableSegments, breakintersections.BreakIntersections(breakableSegments))
+	// spew.Dump(breakableSegments, breakintersections.BreakIntersections(breakableSegments))
 
 	//spew.Dump(visibility)
 }

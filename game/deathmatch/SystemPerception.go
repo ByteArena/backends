@@ -7,7 +7,7 @@ import (
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
-	"github.com/bytearena/bytearena/common/visibility2d/breakintersections"
+	"github.com/bytearena/bytearena/common/visibility2d"
 
 	"github.com/bytearena/box2d"
 
@@ -454,10 +454,10 @@ func processOcclusions(vision []agentPerceptionVisionItem, agentPosition vector.
 
 	// Breaking segments at intersections
 
-	breakableSegments := make([]breakintersections.Segment, len(vision))
+	breakableSegments := make([]visibility2d.ObstacleSegment, len(vision))
 	for i := 0; i < len(vision); i++ {
 		v := vision[i]
-		breakableSegments[i] = breakintersections.Segment{
+		breakableSegments[i] = visibility2d.ObstacleSegment{
 			Points: [2][2]float64{
 				v.NearEdge,
 				v.FarEdge,
@@ -466,7 +466,7 @@ func processOcclusions(vision []agentPerceptionVisionItem, agentPosition vector.
 		}
 	}
 
-	brokenSegments := breakintersections.OnlyVisible(
+	brokenSegments := visibility2d.OnlyVisible(
 		agentPosition,
 		breakableSegments,
 	)

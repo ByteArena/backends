@@ -7,109 +7,130 @@ import (
 	"github.com/bytearena/bytearena/common/types/datastructures"
 )
 
-type Point struct {
-	X, Y float64
+func OnlyVisible(position [2]float64, perceptionitems []ObstacleSegment) []ObstacleSegment {
+
+	scaledUpSegments := make([]ObstacleSegment, 0)
+	for _, item := range perceptionitems {
+		scaledUpSegments = append(scaledUpSegments, ObstacleSegment{
+			Points: [2][2]float64{
+				[2]float64{item.Points[0][0] * 1000.0, item.Points[0][1] * 1000.0},
+				[2]float64{item.Points[1][0] * 1000.0, item.Points[1][1] * 1000.0},
+			},
+			UserData: item.UserData,
+		})
+	}
+
+	scaledUpSegments = breakIntersections(scaledUpSegments)
+
+	//return perceptionitems
+
+	visibleSegments := make([]ObstacleSegment, 0)
+
+	visibility := makeVisibilityProcessor()
+
+	for _, item := range scaledUpSegments {
+		visibility.AddSegment(
+			item.Points[0][0], item.Points[0][1],
+			item.Points[1][0], item.Points[1][1],
+			item.UserData,
+		)
+	}
+
+	visibility.SetLightLocation(position[0], position[1])
+
+	visibility.Sweep()
+	for _, visibleSegment := range visibility.output {
+		visibleSegments = append(visibleSegments, ObstacleSegment{
+			Points: [2][2]float64{
+				[2]float64{visibleSegment.p1[0] / 1000.0, visibleSegment.p1[1] / 1000.0},
+				[2]float64{visibleSegment.p2[0] / 1000.0, visibleSegment.p2[1] / 1000.0},
+			},
+			UserData: visibleSegment.completeSegment.userData,
+		})
+	}
+
+	return visibleSegments
 }
 
-type EndPoint struct {
-	Point
-	Begin     bool
-	Segment   *Segment
-	Angle     float64
-	Visualize bool
+type point [2]float64
+
+type endPoint struct {
+	point
+	begin   bool
+	segment *visibilityComputationSegment
+	angle   float64
 }
 
-type Segment struct {
-	P1       *EndPoint
-	P2       *EndPoint
-	D        float64
-	UserData interface{}
+type visibilityComputationSegment struct {
+	p1       *endPoint
+	p2       *endPoint
+	d        float64
+	userData interface{}
 }
 
-type VisibleSegment struct {
-	P1              Point
-	P2              Point
-	CompleteSegment *Segment
+type visibleSegment struct {
+	p1              point
+	p2              point
+	completeSegment *visibilityComputationSegment
 }
 
-type Visibility struct {
-	Segments              []*Segment
-	EndPoints             []*EndPoint
-	Center                Point
-	Open                  datastructures.DLL
-	Output                []VisibleSegment
-	IntersectionsDetected [][]Point
+type visibilityProcessor struct {
+	segments  []*visibilityComputationSegment
+	endPoints []*endPoint
+	center    point
+	open      datastructures.DLL
+	output    []visibleSegment
+	//intersectionsDetected [][]point
 }
 
-func MakeVisibility() Visibility {
-	return Visibility{
-		Segments:              make([]*Segment, 0),
-		EndPoints:             make([]*EndPoint, 0),
-		Open:                  datastructures.DLL{},
-		Center:                Point{0, 0},
-		Output:                make([]VisibleSegment, 0),
-		IntersectionsDetected: make([][]Point, 0),
+func makeVisibilityProcessor() visibilityProcessor {
+	return visibilityProcessor{
+		segments:  make([]*visibilityComputationSegment, 0),
+		endPoints: make([]*endPoint, 0),
+		open:      datastructures.DLL{},
+		center:    point{0, 0},
+		output:    make([]visibleSegment, 0),
+		//intersectionsDetected: make([][]point, 0),
 	}
 }
 
-// func (visibility *Visibility) loadEdgeOfMap(size, margin float64) {
-// 	visibility.addSegment(margin, margin, margin, size-margin)
-// 	visibility.addSegment(margin, size-margin, size-margin, size-margin)
-// 	visibility.addSegment(size-margin, size-margin, size-margin, margin)
-// 	visibility.addSegment(size-margin, margin, margin, margin)
-// }
+func (visi *visibilityProcessor) AddSegment(x1, y1, x2, y2 float64, userdata interface{}) {
 
-// Load a set of square blocks, plus any other line segments
-// func (visibility *Visibility) loadMap(size, margin float64, walls []Segment) {
+	seg := &visibilityComputationSegment{}
 
-// 	visibility.Segments = make([]*Segment, 0)
-// 	visibility.EndPoints = make([]EndPoint, 0)
-// 	visibility.loadEdgeOfMap(size, margin)
-
-// 	for _, wall := range walls {
-// 		visibility.addSegment(wall.P1.X, wall.P1.Y, wall.P2.X, wall.P2.Y)
-// 	}
-// }
-
-func (visibility *Visibility) AddSegment(x1, y1, x2, y2 float64, userdata interface{}) {
-
-	segment := &Segment{}
-
-	p1 := &EndPoint{
-		Point:     Point{x1, y1},
-		Segment:   segment,
-		Visualize: true,
+	p1 := &endPoint{
+		point:   point{x1, y1},
+		segment: seg,
 	}
 
-	p2 := &EndPoint{
-		Point:     Point{x2, y2},
-		Segment:   segment,
-		Visualize: false,
+	p2 := &endPoint{
+		point:   point{x2, y2},
+		segment: seg,
 	}
 
-	segment.P1 = p1
-	segment.P2 = p2
-	segment.D = 0.0
-	segment.UserData = userdata
+	seg.p1 = p1
+	seg.p2 = p2
+	seg.d = 0.0
+	seg.userData = userdata
 
-	visibility.Segments = append(visibility.Segments, segment)
-	visibility.EndPoints = append(visibility.EndPoints, p1, p2)
+	visi.segments = append(visi.segments, seg)
+	visi.endPoints = append(visi.endPoints, p1, p2)
 
 }
 
-func (visibility *Visibility) SetLightLocation(x, y float64) {
-	visibility.Center.X = x
-	visibility.Center.Y = y
+func (visi *visibilityProcessor) SetLightLocation(x, y float64) {
+	visi.center[0] = x
+	visi.center[1] = y
 
-	for _, segment := range visibility.Segments {
+	for _, seg := range visi.segments {
 
-		dx := 0.5*(segment.P1.X+segment.P2.X) - x
-		dy := 0.5*(segment.P1.Y+segment.P2.Y) - y
+		dx := 0.5*(seg.p1.point[0]+seg.p2.point[0]) - x
+		dy := 0.5*(seg.p1.point[1]+seg.p2.point[1]) - y
 		// NOTE: we only use this for comparison so we can use
 		// distance squared instead of distance. However in
 		// practice the sqrt is plenty fast and this doesn't
 		// really help in this situation.
-		segment.D = dx*dx + dy*dy
+		seg.d = dx*dx + dy*dy
 
 		// NOTE: future optimization: we could record the quadrant
 		// and the y/x or x/y ratio, and sort by (quadrant,
@@ -117,22 +138,22 @@ func (visibility *Visibility) SetLightLocation(x, y float64) {
 		// <https://github.com/mikolalysenko/compare-slope> for a
 		// library that does this. Alternatively, calculate the
 		// angles and use bucket sort to get an O(N) sort.
-		segment.P1.Angle = math.Atan2(segment.P1.Y-y, segment.P1.X-x)
-		segment.P2.Angle = math.Atan2(segment.P2.Y-y, segment.P2.X-x)
+		seg.p1.angle = math.Atan2(seg.p1.point[1]-y, seg.p1.point[0]-x)
+		seg.p2.angle = math.Atan2(seg.p2.point[1]-y, seg.p2.point[0]-x)
 
-		dAngle := segment.P2.Angle - segment.P1.Angle
+		dAngle := seg.p2.angle - seg.p1.angle
 		if dAngle <= -math.Pi {
 			dAngle += 2 * math.Pi
 		}
 		if dAngle > math.Pi {
 			dAngle -= 2 * math.Pi
 		}
-		segment.P1.Begin = (dAngle > 0.0)
-		segment.P2.Begin = !segment.P1.Begin
+		seg.p1.begin = (dAngle > 0.0)
+		seg.p2.begin = !seg.p1.begin
 	}
 }
 
-type byAngle []*EndPoint
+type byAngle []*endPoint
 
 func (coll byAngle) Len() int      { return len(coll) }
 func (coll byAngle) Swap(i, j int) { coll[i], coll[j] = coll[j], coll[i] }
@@ -142,33 +163,33 @@ func (coll byAngle) Less(i, j int) bool {
 	b := coll[j]
 
 	// Traverse in angle order
-	if a.Angle > b.Angle {
+	if a.angle > b.angle {
 		return false
 	}
 
-	if a.Angle < b.Angle {
+	if a.angle < b.angle {
 		return true
 	}
 
 	// But for ties (common), we want Begin nodes before End nodes
-	if !a.Begin && b.Begin {
+	if !a.begin && b.begin {
 		return false
 	}
 
-	if a.Begin && !b.Begin {
+	if a.begin && !b.begin {
 		return true
 	}
 
 	return false
 }
 
-func leftOf(s *Segment, p Point) bool {
+func leftOf(s *visibilityComputationSegment, p point) bool {
 	// This is based on a 3d cross product, but we don't need to
 	// use z coordinate inputs (they're 0), and we only need the
 	// sign. If you're annoyed that cross product is only defined
 	// in 3d, see "outer product" in Geometric Algebra.
 	// <http://en.wikipedia.org/wiki/Geometric_algebra>
-	cross := (s.P2.X-s.P1.X)*(p.Y-s.P1.Y) - (s.P2.Y-s.P1.Y)*(p.X-s.P1.X)
+	cross := (s.p2.point[0]-s.p1.point[0])*(p[1]-s.p1.point[1]) - (s.p2.point[1]-s.p1.point[1])*(p[0]-s.p1.point[0])
 	return cross < 0
 	// Also note that this is the naive version of the test and
 	// isn't numerically robust. See
@@ -177,8 +198,8 @@ func leftOf(s *Segment, p Point) bool {
 	// line.
 }
 
-func interpolate(p, q Point, f float64) Point {
-	return Point{p.X*(1-f) + q.X*f, p.Y*(1-f) + q.Y*f}
+func interpolate(p, q point, f float64) point {
+	return point{p[0]*(1-f) + q[0]*f, p[1]*(1-f) + q[1]*f}
 }
 
 // Helper: do we know that segment a is in front of b?
@@ -187,15 +208,15 @@ func interpolate(p, q Point, f float64) Point {
 // Also note that it only has to work in a restricted set of cases
 // in the visibility algorithm; I don't think it handles all
 // cases. See http://www.redblobgames.com/articles/visibility/segment-sorting.html
-func (visibility *Visibility) _segment_in_front_of(a, b *Segment, relativeTo Point) bool {
+func (visi *visibilityProcessor) _segment_in_front_of(a, b *visibilityComputationSegment, relativeTo point) bool {
 	// NOTE: we slightly shorten the segments so that
 	// intersections of the endpoints (common) don't count as
 	// intersections in this algorithm
-	var A1 = leftOf(a, interpolate(b.P1.Point, b.P2.Point, 0.01))
-	var A2 = leftOf(a, interpolate(b.P2.Point, b.P1.Point, 0.01))
+	var A1 = leftOf(a, interpolate(b.p1.point, b.p2.point, 0.01))
+	var A2 = leftOf(a, interpolate(b.p2.point, b.p1.point, 0.01))
 	var A3 = leftOf(a, relativeTo)
-	var B1 = leftOf(b, interpolate(a.P1.Point, a.P2.Point, 0.01))
-	var B2 = leftOf(b, interpolate(a.P2.Point, a.P1.Point, 0.01))
+	var B1 = leftOf(b, interpolate(a.p1.point, a.p2.point, 0.01))
+	var B2 = leftOf(b, interpolate(a.p2.point, a.p1.point, 0.01))
 	var B3 = leftOf(b, relativeTo)
 
 	// NOTE: this algorithm is probably worthy of a short article
@@ -222,10 +243,10 @@ func (visibility *Visibility) _segment_in_front_of(a, b *Segment, relativeTo Poi
 	// Expose it for the GUI to show a message. A more robust
 	// implementation would split segments at intersections so
 	// that part of the segment is in front and part is behind.
-	visibility.IntersectionsDetected = append(
-		visibility.IntersectionsDetected,
-		[]Point{a.P1.Point, a.P2.Point, b.P1.Point, b.P2.Point},
-	)
+	// visi.intersectionsDetected = append(
+	// 	visi.intersectionsDetected,
+	// 	[]point{a.p1.point, a.p2.point, b.p1.point, b.p2.point},
+	// )
 
 	return false
 
@@ -237,15 +258,15 @@ func (visibility *Visibility) _segment_in_front_of(a, b *Segment, relativeTo Poi
 
 // Run the algorithm, sweeping over all or part of the circle to find
 // the visible area, represented as a set of triangles
-func (visibility *Visibility) Sweep() {
+func (visi *visibilityProcessor) Sweep() {
 	maxAngle := 999.0
 
-	visibility.Output = make([]VisibleSegment, 0) // output set of triangles
-	visibility.IntersectionsDetected = make([][]Point, 0)
+	visi.output = make([]visibleSegment, 0) // output set of triangles
+	//visi.intersectionsDetected = make([][]point, 0)
 
-	sort.Sort(byAngle(visibility.EndPoints))
+	sort.Sort(byAngle(visi.endPoints))
 
-	visibility.Open.Clear()
+	visi.open.Clear()
 	var beginAngle = 0.0
 
 	// At the beginning of the sweep we want to know which
@@ -255,26 +276,26 @@ func (visibility *Visibility) Sweep() {
 	// efficient to go through all the segments, figure out which
 	// ones intersect the initial sweep line, and then sort them.
 	for pass := 0; pass < 2; pass++ {
-		for _, p := range visibility.EndPoints {
-			if pass == 1 && p.Angle > maxAngle {
+		for _, p := range visi.endPoints {
+			if pass == 1 && p.angle > maxAngle {
 				// Early exit for the visualization to show the sweep process
 				break
 			}
 
-			var current_old *Segment = nil
-			if !visibility.Open.Empty() {
-				current_old = visibility.Open.Head.Val.(*Segment)
+			var current_old *visibilityComputationSegment = nil
+			if !visi.open.Empty() {
+				current_old = visi.open.Head.Val.(*visibilityComputationSegment)
 			}
 
-			if p.Begin {
+			if p.begin {
 
 				// Insert into the right place in the list
-				node := visibility.Open.Head
+				node := visi.open.Head
 
 				for node != nil {
-					valAsSegment := node.Val.(*Segment)
+					valAsSegment := node.Val.(*visibilityComputationSegment)
 
-					if !visibility._segment_in_front_of(p.Segment, valAsSegment, visibility.Center) {
+					if !visi._segment_in_front_of(p.segment, valAsSegment, visi.center) {
 						break
 					}
 
@@ -282,63 +303,193 @@ func (visibility *Visibility) Sweep() {
 				}
 
 				if node == nil {
-					visibility.Open.Append(p.Segment)
+					visi.open.Append(p.segment)
 				} else {
-					visibility.Open.InsertBefore(node, p.Segment)
+					visi.open.InsertBefore(node, p.segment)
 				}
 			} else {
-				visibility.Open.RemoveVal(p.Segment)
+				visi.open.RemoveVal(p.segment)
 			}
 
-			var current_new *Segment = nil
-			if !visibility.Open.Empty() {
-				current_new = visibility.Open.Head.Val.(*Segment)
+			var current_new *visibilityComputationSegment = nil
+			if !visi.open.Empty() {
+				current_new = visi.open.Head.Val.(*visibilityComputationSegment)
 			}
 
 			//log.Println(pass, current_old, current_new)
 
 			if current_old != current_new {
 				if pass == 1 {
-					visibility.addTriangle(beginAngle, p.Angle, current_old)
+					visi.addTriangle(beginAngle, p.angle, current_old)
 				}
-				beginAngle = p.Angle
+				beginAngle = p.angle
 			}
 		}
 	}
 }
 
-func lineIntersection(p1, p2, p3, p4 Point) Point {
+func lineIntersection(p1, p2, p3, p4 point) point {
 	// From http://paulbourke.net/geometry/lineline2d/
-	var s = ((p4.X-p3.X)*(p1.Y-p3.Y) - (p4.Y-p3.Y)*(p1.X-p3.X)) / ((p4.Y-p3.Y)*(p2.X-p1.X) - (p4.X-p3.X)*(p2.Y-p1.Y))
-	return Point{p1.X + s*(p2.X-p1.X), p1.Y + s*(p2.Y-p1.Y)}
+	var s = ((p4[0]-p3[0])*(p1[1]-p3[1]) - (p4[1]-p3[1])*(p1[0]-p3[0])) / ((p4[1]-p3[1])*(p2[0]-p1[0]) - (p4[0]-p3[0])*(p2[1]-p1[1]))
+	return point{p1[0] + s*(p2[0]-p1[0]), p1[1] + s*(p2[1]-p1[1])}
 }
 
-func (visibility *Visibility) addTriangle(angle1, angle2 float64, segment *Segment) {
+func (visi *visibilityProcessor) addTriangle(angle1, angle2 float64, segment *visibilityComputationSegment) {
 
 	if segment == nil {
 		return
 	}
 
-	var p1 Point = visibility.Center
-	var p2 Point = Point{visibility.Center.X + math.Cos(angle1), visibility.Center.Y + math.Sin(angle1)}
-	var p3 Point = Point{0.0, 0.0}
-	var p4 Point = Point{0.0, 0.0}
+	var p1 point = visi.center
+	var p2 point = point{visi.center[0] + math.Cos(angle1), visi.center[1] + math.Sin(angle1)}
+	var p3 point = point{0.0, 0.0}
+	var p4 point = point{0.0, 0.0}
 
 	// Stop the triangle at the intersecting segment
-	p3.X = segment.P1.X
-	p3.Y = segment.P1.Y
-	p4.X = segment.P2.X
-	p4.Y = segment.P2.Y
+	p3[0] = segment.p1.point[0]
+	p3[1] = segment.p1.point[1]
+	p4[0] = segment.p2.point[0]
+	p4[1] = segment.p2.point[1]
 
 	var pBegin = lineIntersection(p3, p4, p1, p2)
 
-	p2.X = visibility.Center.X + math.Cos(angle2)
-	p2.Y = visibility.Center.Y + math.Sin(angle2)
+	p2[0] = visi.center[0] + math.Cos(angle2)
+	p2[1] = visi.center[1] + math.Sin(angle2)
 	var pEnd = lineIntersection(p3, p4, p1, p2)
 
-	visibility.Output = append(visibility.Output, VisibleSegment{
-		P1:              pBegin,
-		P2:              pEnd,
-		CompleteSegment: segment,
+	visi.output = append(visi.output, visibleSegment{
+		p1:              pBegin,
+		p2:              pEnd,
+		completeSegment: segment,
 	})
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Break intersections /////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+
+const epsilon = 0.000001
+
+type ObstacleSegment struct {
+	Points   [2][2]float64
+	UserData interface{}
+}
+
+func distance(a, b [2]float64) float64 {
+	dx := a[0] - b[0]
+	dy := a[1] - b[1]
+	return dx*dx + dy*dy
+}
+
+func equal(a, b [2]float64) bool {
+	return math.Abs(a[0]-b[0]) < epsilon && math.Abs(a[1]-b[1]) < epsilon
+}
+
+func intersectLines(a1, a2, b1, b2 [2]float64) (p [2]float64, intersects bool) {
+	var dbx = b2[0] - b1[0]
+	var dby = b2[1] - b1[1]
+	var dax = a2[0] - a1[0]
+	var day = a2[1] - a1[1]
+
+	var uB = dby*dax - dbx*day
+	if uB != 0 {
+		var ua = (dbx*(a1[1]-b1[1]) - dby*(a1[0]-b1[0])) / uB
+		return [2]float64{a1[0] - ua*-dax, a1[1] - ua*-day}, true
+	}
+
+	return [2]float64{}, false
+}
+
+func isOnSegment(xi, yi, xj, yj, xk, yk float64) bool {
+	return (xi <= xk || xj <= xk) && (xk <= xi || xk <= xj) &&
+		(yi <= yk || yj <= yk) && (yk <= yi || yk <= yj)
+}
+
+func computeDirection(xi, yi, xj, yj, xk, yk float64) int {
+	var a = (xk - xi) * (yj - yi)
+	var b = (xj - xi) * (yk - yi)
+	if a < b {
+		return -1
+	}
+
+	if a > b {
+		return 1
+	}
+
+	return 0
+}
+
+func doLineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4 float64) bool {
+	var d1 = computeDirection(x3, y3, x4, y4, x1, y1)
+	var d2 = computeDirection(x3, y3, x4, y4, x2, y2)
+	var d3 = computeDirection(x1, y1, x2, y2, x3, y3)
+	var d4 = computeDirection(x1, y1, x2, y2, x4, y4)
+	return (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+		((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) ||
+		(d1 == 0 && isOnSegment(x3, y3, x4, y4, x1, y1)) ||
+		(d2 == 0 && isOnSegment(x3, y3, x4, y4, x2, y2)) ||
+		(d3 == 0 && isOnSegment(x1, y1, x2, y2, x3, y3)) ||
+		(d4 == 0 && isOnSegment(x1, y1, x2, y2, x4, y4))
+}
+
+func breakIntersections(segments []ObstacleSegment) []ObstacleSegment {
+	var output = make([]ObstacleSegment, 0)
+
+	for i := 0; i < len(segments); i++ {
+		intersections := make([][2]float64, 0)
+
+		for j := 0; j < len(segments); j++ {
+
+			if i == j {
+				continue
+			}
+
+			if doLineSegmentsIntersect(segments[i].Points[0][0], segments[i].Points[0][1], segments[i].Points[1][0], segments[i].Points[1][1], segments[j].Points[0][0], segments[j].Points[0][1], segments[j].Points[1][0], segments[j].Points[1][1]) {
+
+				if intersectPoint, intersects := intersectLines(segments[i].Points[0], segments[i].Points[1], segments[j].Points[0], segments[j].Points[1]); intersects {
+					if equal(intersectPoint, segments[i].Points[0]) || equal(intersectPoint, segments[i].Points[1]) {
+						continue
+					}
+
+					intersections = append(intersections, intersectPoint)
+				}
+			}
+		}
+
+		start := [2]float64{segments[i].Points[0][0], segments[i].Points[0][1]}
+
+		for len(intersections) > 0 {
+
+			var endIndex = 0
+			var endDis = distance(start, intersections[0])
+
+			for j := 1; j < len(intersections); j++ {
+				var dis = distance(start, intersections[j])
+				if dis < endDis {
+					endDis = dis
+					endIndex = j
+				}
+			}
+
+			output = append(output, ObstacleSegment{
+				Points: [2][2]float64{
+					[2]float64{start[0], start[1]},
+					[2]float64{intersections[endIndex][0], intersections[endIndex][1]},
+				},
+				UserData: segments[i].UserData,
+			})
+			start[0] = intersections[endIndex][0]
+			start[1] = intersections[endIndex][1]
+			intersections = append(intersections[:endIndex], intersections[endIndex+1:]...)
+		}
+
+		output = append(output, ObstacleSegment{
+			Points: [2][2]float64{
+				start,
+				[2]float64{segments[i].Points[1][0], segments[i].Points[1][1]},
+			},
+			UserData: segments[i].UserData,
+		})
+	}
+	return output
 }

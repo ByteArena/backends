@@ -347,7 +347,7 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 			Orientation: physicalBodyAspect.GetOrientation(),
 		})
 
-		msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
+		//msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
 		msg.DebugSegments = append(msg.DebugSegments, renderAspect.DebugSegments...)
 	}
 
