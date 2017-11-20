@@ -31,14 +31,9 @@ func (vizgame *VizGame) GetTps() int {
 
 type vizMsgInit struct {
 	//Map *mapcontainer.MapContainer `json:"map"`
-	MapName string `json:"mapname"`
-	Tps     int    `json:"tps"`
-	Agents  []agent
-}
-
-type agent struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
+	MapName string             `json:"mapname"`
+	Tps     int                `json:"tps"`
+	Agents  []types.Contestant `json:"agents"`
 }
 
 type VizMessage struct {
@@ -54,6 +49,7 @@ func (vizgame *VizGame) SetWatcher(watcher *Watcher) {
 		Data: vizMsgInit{
 			MapName: vizgame.gameDescription.GetName(),
 			Tps:     vizgame.gameDescription.GetTps(),
+			Agents:  vizgame.gameDescription.GetContestants(),
 		},
 	}
 
