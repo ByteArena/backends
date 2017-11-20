@@ -68,3 +68,5 @@ import:
 - package: github.com/mailru/easyjson
   subpackages:
   - jlexer
+- package: github.com/phayes/freeport
+  version: 1.0.2

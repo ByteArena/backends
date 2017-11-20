@@ -31,7 +31,7 @@ const (
 	TIME_BEFORE_FORCE_QUIT = 10 * time.Second
 )
 
-func TrainAction(tps int, host string, port int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string, shouldProfile, dumpRaw bool) {
+func TrainAction(tps int, host string, vizport int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string, shouldProfile, dumpRaw bool) {
 
 	if shouldProfile {
 		f, err := os.Create("./cpu.prof")
@@ -86,7 +86,7 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 	game := deathmatch.NewDeathmatchGame(gamedescription)
 
-	srv := arenaserver.NewServer(host, port, container.MakeLocalContainerOrchestrator(host), gamedescription, game, "", brokerclient)
+	srv := arenaserver.NewServer(host, container.MakeLocalContainerOrchestrator(host), gamedescription, game, "", brokerclient)
 
 	// consume server events
 	go func() {
@@ -176,7 +176,7 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 
 	webclientpath := utils.GetExecutableDir() + "/../viz-server/webclient/"
 	vizservice := vizserver.NewVizService(
-		"0.0.0.0:"+strconv.Itoa(port+1),
+		"0.0.0.0:"+strconv.Itoa(vizport),
 		webclientpath,
 		mapName,
 		func() ([]*types.VizGame, error) { return vizgames, nil },
@@ -192,7 +192,7 @@ func TrainAction(tps int, host string, port int, nobrowser bool, recordFile stri
 		utils.FailWith(startErr)
 	}
 
-	url := "http://localhost:" + strconv.Itoa(port+1) + "/arena/1"
+	url := "http://localhost:" + strconv.Itoa(vizport) + "/arena/1"
 
 	if !nobrowser {
 		open.Run(url)

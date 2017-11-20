@@ -11,6 +11,7 @@ import (
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/arenaserver/agent"
 	"github.com/bytearena/bytearena/arenaserver/comm"
+	"github.com/phayes/freeport"
 	uuid "github.com/satori/go.uuid"
 
 	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
@@ -66,7 +67,7 @@ type Server struct {
 	gameIsRunning bool
 }
 
-func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrator, gameDescription types.GameDescriptionInterface, game commongame.GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
+func NewServer(host string, orch arenaservertypes.ContainerOrchestrator, gameDescription types.GameDescriptionInterface, game commongame.GameInterface, arenaServerUUID string, mqClient mq.ClientInterface) *Server {
 
 	gamehost := host
 
@@ -76,6 +77,9 @@ func NewServer(host string, port int, orch arenaservertypes.ContainerOrchestrato
 
 		gamehost = host
 	}
+
+	port, err := freeport.GetFreePort()
+	utils.Check(err, "Unable to allocate a port") // Fatal
 
 	tickspersec := gameDescription.GetTps()
 
