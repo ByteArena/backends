@@ -79,24 +79,6 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 
 func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
 
-	vision := make([]agentPerceptionVisionItem, 0)
-
-	vision = append(vision, viewEntities(game, entity, physicalAspect, perceptionAspect)...)
-
-	// on met la vision à l'échelle de l'agent
-	for i, visionItem := range vision {
-		visionItem.Center = visionItem.Center.Transform(game.physicalToAgentSpaceTransform)
-		visionItem.FarEdge = visionItem.FarEdge.Transform(game.physicalToAgentSpaceTransform)
-		visionItem.NearEdge = visionItem.NearEdge.Transform(game.physicalToAgentSpaceTransform)
-		visionItem.Velocity = visionItem.Velocity.Transform(game.physicalToAgentSpaceTransform)
-		vision[i] = visionItem
-	}
-
-	return vision
-}
-
-func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *PhysicalBody, perceptionAspect *Perception) []agentPerceptionVisionItem {
-
 	//watch := utils.MakeStopwatch("viewEntities()")
 	//watch.Start("global")
 
@@ -170,7 +152,7 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 			}
 		}
 		return true // keep going to find all fixtures in the query area
-	}, entityAABB.ToB2AABB())
+	}, entityAABB.Transform(game.physicalToAgentSpaceInverseTransform).ToB2AABB())
 
 	//log.Println("AABB:", len(elementsInAABB))
 
@@ -239,14 +221,15 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 					NearEdge: nearEdge.Clone().SetAngle(nearEdge.Angle() - agentOrientation), // perpendicular to relative position vector, left side
 					Center:   centervec,
 					FarEdge:  farEdge.Clone().SetAngle(farEdge.Angle() - agentOrientation), // perpendicular to relative position vector, right side
-					// FIXME(jerome): /20 here is to convert velocity per second in velocity per tick; should probably handle velocities in m/s everywhere ?
-					Velocity: otherVelocity.Clone().Scale(1.0 / 20.0).SetAngle(otherVelocity.Angle() - agentOrientation),
+					Velocity: otherVelocity.Clone().SetAngle(otherVelocity.Angle() - agentOrientation),
 					Tag:      visionType,
 				}
 
 				vision = append(vision, visionitem)
 			}
 		} else {
+
+			// Obstacle
 
 			// view a polygon
 			//rejectededges := make([]vector.Vector2, 0)
@@ -262,8 +245,8 @@ func viewEntities(game *DeathmatchGame, entity *ecs.Entity, physicalAspect *Phys
 
 				edges := make([]vector.Vector2, 0)
 
-				pointA := vector.FromB2Vec2(b2edge.M_vertex1)
-				pointB := vector.FromB2Vec2(b2edge.M_vertex2)
+				pointA := vector.FromB2Vec2(b2edge.M_vertex1).Transform(game.physicalToAgentSpaceTransform)
+				pointB := vector.FromB2Vec2(b2edge.M_vertex2).Transform(game.physicalToAgentSpaceTransform)
 
 				segmentAABB := vector.GetAABBForPointList(pointA, pointB)
 				if !segmentAABB.Overlaps(entityAABB) {
@@ -478,9 +461,6 @@ func processOcclusions(vision []agentPerceptionVisionItem, agentPosition vector.
 	for i, brokenSegment := range brokenSegments {
 
 		obs := vector.MakeSegment2(brokenSegment.Points[0], brokenSegment.Points[1])
-		if obs.LengthSq() < 0.0001 {
-			continue
-		}
 
 		data := brokenSegment.UserData.(agentPerceptionVisionItem)
 		realVision[i] = agentPerceptionVisionItem{

@@ -2,6 +2,7 @@ package vector
 
 import (
 	"github.com/bytearena/box2d"
+	"github.com/go-gl/mathgl/mgl64"
 )
 
 type AABB struct {
@@ -51,6 +52,12 @@ func (aabb AABB) Overlaps(otheraabb AABB) bool {
 		ourMinY > otherMaxY ||
 		ourMaxX < otherMinX ||
 		ourMaxY < otherMinY)
+}
+
+func (aabb AABB) Transform(transform *mgl64.Mat4) AABB {
+	aabb.LowerBound = aabb.LowerBound.Transform(transform)
+	aabb.UpperBound = aabb.UpperBound.Transform(transform)
+	return aabb
 }
 
 func (aabb AABB) ToB2AABB() box2d.B2AABB {

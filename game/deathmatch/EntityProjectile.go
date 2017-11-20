@@ -11,7 +11,14 @@ import (
 func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.EntityID, position vector.Vector2, velocity vector.Vector2) *ecs.Entity {
 
 	bodyRadius := 0.3
-	speed := 200.0
+	speed := 20.0
+
+	///////////////////////////////////////////////////////////////////////////
+	tps := deathmatch.gameDescription.GetTps()
+
+	timeScaleIn := float64(tps)
+	timeScaleOut := 1 / timeScaleIn
+	///////////////////////////////////////////////////////////////////////////
 
 	projectile := deathmatch.manager.NewEntity()
 
@@ -20,11 +27,23 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 	bodydef.AllowSleep = true
 	bodydef.FixedRotation = true
 
-	bodydef.Position.Set(position.GetX(), position.GetY())
-	bodydef.LinearVelocity = box2d.MakeB2Vec2(velocity.GetX(), velocity.GetY())
+	physicalReferentialPosition := position.Transform(deathmatch.physicalToAgentSpaceInverseTransform)
+	bodydef.Position.Set(physicalReferentialPosition.GetX(), physicalReferentialPosition.GetY())
+
+	physicalReferentialVelocity := velocity.
+		SetMag(speed).
+		Scale(timeScaleIn).
+		Transform(deathmatch.physicalToAgentSpaceInverseTransform)
+
+	bodydef.LinearVelocity = box2d.MakeB2Vec2(physicalReferentialVelocity.GetX(), physicalReferentialVelocity.GetY())
 
 	body := deathmatch.PhysicalWorld.CreateBody(&bodydef)
+	body.SetBullet(true)
 	body.SetLinearDamping(0.0) // no aerodynamic drag
+	body.SetUserData(types.MakePhysicalBodyDescriptor(
+		types.PhysicalBodyDescriptorType.Projectile,
+		projectile.GetID(),
+	))
 
 	shape := box2d.MakeB2CircleShape()
 	shape.SetRadius(bodyRadius * deathmatch.physicalToAgentSpaceInverseScale)
@@ -32,12 +51,8 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 	fixturedef := box2d.MakeB2FixtureDef()
 	fixturedef.Shape = &shape
 	fixturedef.Density = 20.0
+
 	body.CreateFixtureFromDef(&fixturedef)
-	body.SetUserData(types.MakePhysicalBodyDescriptor(
-		types.PhysicalBodyDescriptorType.Projectile,
-		projectile.GetID(),
-	))
-	body.SetBullet(true)
 
 	return projectile.
 		AddComponent(deathmatch.physicalBodyComponent, &PhysicalBody{
@@ -45,6 +60,15 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 			maxSpeed:           speed,
 			maxAngularVelocity: 10,
 			dragForce:          0,
+
+			pointTransformIn:  deathmatch.physicalToAgentSpaceInverseTransform,
+			pointTransformOut: deathmatch.physicalToAgentSpaceTransform,
+
+			distanceScaleIn:  deathmatch.physicalToAgentSpaceInverseScale, // same as transform matrix, but scale only (for 1D transforms of length)
+			distanceScaleOut: deathmatch.physicalToAgentSpaceScale,        // same as transform matrix, but scale only (for 1D transforms of length)
+
+			timeScaleIn:  timeScaleIn,  // m/tick to m/s; => ticksPerSecond
+			timeScaleOut: timeScaleOut, // m/s to m/tick; => 1 / ticksPerSecond
 		}).
 		AddComponent(deathmatch.renderComponent, &Render{
 			type_:  "projectile",

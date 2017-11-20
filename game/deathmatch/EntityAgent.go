@@ -24,13 +24,13 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *
 	// Angular unit expressed in radians per tick
 
 	bodyRadius := 0.5
-	maxSpeed := 0.75
-	maxSteering := 10.0
+	maxSpeed := 1.25
+	maxSteering := 10000.0
 	dragForce := 0.015
-	maxAngularVelocity := number.DegreeToRadian(9.0)
+	maxAngularVelocity := number.DegreeToRadian(15.0)
 
-	visionRadius := 3.0
-	visionAngle := number.DegreeToRadian(120)
+	visionRadius := 150.0
+	visionAngle := number.DegreeToRadian(160)
 
 	///////////////////////////////////////////////////////////////////////////
 	// Création du corps physique de l'agent (Box2D)
@@ -61,12 +61,23 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *
 	// Composition de l'agent dans l'ECS
 	///////////////////////////////////////////////////////////////////////////
 
+	tps := deathmatch.gameDescription.GetTps()
+
 	return agent.
 		AddComponent(deathmatch.physicalBodyComponent, &PhysicalBody{
 			body:               body,
 			maxSpeed:           maxSpeed,
 			maxAngularVelocity: maxAngularVelocity,
 			dragForce:          dragForce,
+
+			pointTransformIn:  deathmatch.physicalToAgentSpaceInverseTransform,
+			pointTransformOut: deathmatch.physicalToAgentSpaceTransform,
+
+			distanceScaleIn:  deathmatch.physicalToAgentSpaceInverseScale, // same as transform matrix, but scale only (for 1D transforms of length)
+			distanceScaleOut: deathmatch.physicalToAgentSpaceScale,        // same as transform matrix, but scale only (for 1D transforms of length)
+
+			timeScaleIn:  float64(tps),       // m/tick to m/s; => ticksPerSecond
+			timeScaleOut: 1.0 / float64(tps), // m/s to m/tick; => 1 / ticksPerSecond
 		}).
 		AddComponent(deathmatch.perceptionComponent, &Perception{
 			visionAngle:  visionAngle,

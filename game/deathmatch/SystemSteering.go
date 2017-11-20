@@ -16,8 +16,6 @@ func systemSteering(deathmatch *DeathmatchGame) {
 			continue
 		}
 
-		// TODO: transform scale from agent space to physical space
-
 		steering := steers[0]
 
 		velocity := physicalAspect.GetVelocity()
@@ -37,10 +35,10 @@ func systemSteering(deathmatch *DeathmatchGame) {
 			}
 		}
 
-		abssteering := trigo.LocalAngleToAbsoluteAngleVec(orientation, steering, &maxAngularVelocity)
+		abssteering := trigo.
+			LocalAngleToAbsoluteAngleVec(orientation, steering, &maxAngularVelocity).
+			Limit(maxSpeed)
 
-		agentSpaceSteering := abssteering.Limit(maxSpeed)
-		physicalSpaceSteering := agentSpaceSteering.Transform(deathmatch.physicalToAgentSpaceInverseTransform)
-		physicalAspect.SetVelocity(physicalSpaceSteering)
+		physicalAspect.SetVelocity(abssteering)
 	}
 }

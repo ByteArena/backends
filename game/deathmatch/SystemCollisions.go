@@ -13,10 +13,10 @@ type collision struct {
 	collidableAspectA *Collidable
 	collidableAspectB *Collidable
 	point             vector.Vector2
-	normal            vector.Vector2
-	toi               float64
-	friction          float64
-	restitution       float64
+	// normal            vector.Vector2
+	// toi               float64
+	// friction          float64
+	// restitution       float64
 }
 
 func systemCollisions(deathmatch *DeathmatchGame) []collision {
@@ -54,11 +54,11 @@ func systemCollisions(deathmatch *DeathmatchGame) []collision {
 			entityIDB:         B.ID,
 			collidableAspectA: collidableAspectA,
 			collidableAspectB: collidableAspectB,
-			point:             vector.FromB2Vec2(worldManifold.Points[0]),
-			normal:            vector.FromB2Vec2(worldManifold.Normal),
-			toi:               coll.GetTOI(),
-			friction:          coll.GetFriction(),
-			restitution:       coll.GetRestitution(),
+			point:             vector.FromB2Vec2(worldManifold.Points[0]).Transform(deathmatch.physicalToAgentSpaceTransform),
+			//normal:            vector.FromB2Vec2(worldManifold.Normal).Transform(deathmatch.physicalToAgentSpaceTransform),
+			// toi:               coll.GetTOI(),
+			// friction:          coll.GetFriction(),
+			// restitution:       coll.GetRestitution(),
 		}
 
 		collisions = append(collisions, compiledCollision)

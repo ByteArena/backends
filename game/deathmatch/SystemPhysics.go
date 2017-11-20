@@ -3,6 +3,10 @@ package deathmatch
 func systemPhysics(deathmatch *DeathmatchGame, dt float64) {
 	for _, entityresult := range deathmatch.physicalView.Get() {
 		physicalAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
+		if physicalAspect.static {
+			continue
+		}
+
 		if physicalAspect.GetVelocity().Mag() > 0.01 {
 			physicalAspect.SetOrientation(physicalAspect.GetVelocity().Angle())
 		}

@@ -3,13 +3,27 @@ package deathmatch
 import (
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/go-gl/mathgl/mgl64"
 )
 
 type PhysicalBody struct {
-	body               *box2d.B2Body
-	maxSpeed           float64 // expressed in m/tick
-	maxAngularVelocity float64 // expressed in rad/tick
-	dragForce          float64 // expressed in m/tick
+	body *box2d.B2Body
+
+	// 2 dimensional transform for points in space
+	pointTransformIn  *mgl64.Mat4
+	pointTransformOut *mgl64.Mat4
+
+	// 1 dimensional transform for distance; could be infered from 2 dimensional transforms, but easier / faster that way
+	distanceScaleIn  float64
+	distanceScaleOut float64
+
+	// 1 dimensional transform for time
+	timeScaleIn  float64
+	timeScaleOut float64
+
+	maxSpeed           float64 // expressed in m/tick (agent referential)
+	maxAngularVelocity float64 // expressed in rad/tick (agent referential)
+	dragForce          float64 // expressed in m/tick (agent referential)
 	static             bool
 }
 
@@ -22,29 +36,64 @@ func (p *PhysicalBody) SetBody(body *box2d.B2Body) *PhysicalBody {
 	return p
 }
 
-func (p PhysicalBody) GetPosition() vector.Vector2 {
+func (p PhysicalBody) GetPhysicalReferentialPosition() vector.Vector2 {
 	v := p.body.GetPosition()
 	return vector.MakeVector2(v.X, v.Y)
 }
 
+func (p PhysicalBody) GetPosition() vector.Vector2 {
+	v := p.body.GetPosition()
+	return vector.MakeVector2(v.X, v.Y).Transform(p.pointTransformOut)
+}
+
 func (p *PhysicalBody) SetPosition(v vector.Vector2) *PhysicalBody {
-	p.body.SetTransform(v.ToB2Vec2(), p.GetOrientation())
+	p.body.SetTransform(v.Transform(p.pointTransformIn).ToB2Vec2(), p.GetOrientation())
 	return p
 }
 
-func (p PhysicalBody) GetVelocity() vector.Vector2 {
+func (p PhysicalBody) GetPhysicalReferentialVelocity() vector.Vector2 {
 	v := p.body.GetLinearVelocity()
 	return vector.MakeVector2(v.X, v.Y)
 }
 
+func (p PhysicalBody) GetVelocity() vector.Vector2 {
+
+	v := p.body.GetLinearVelocity()
+
+	// In Box2D, velocity is expressed in m/s in physics scale
+	// In Game, velocity is expressed in m/tick in agent scale
+
+	// Box2D => game : v * timescaleOut * transformOut
+
+	return vector.
+		MakeVector2(v.X, v.Y).
+		Scale(p.timeScaleOut).
+		Transform(p.pointTransformOut)
+}
+
 func (p *PhysicalBody) SetVelocity(v vector.Vector2) *PhysicalBody {
-	// FIXME(jerome): properly convert units from m/tick to m/s for Box2D
-	p.body.SetLinearVelocity(v.Scale(20).ToB2Vec2())
+
+	// In Box2D, velocity is expressed in m/s in physics scale
+	// In Game, velocity is expressed in m/tick in agent scale
+
+	// Game => Box2D : v * timeScaleIn * transformIn
+
+	box2dvelocity := v.
+		Scale(p.timeScaleIn).
+		Transform(p.pointTransformIn).
+		ToB2Vec2()
+
+	p.body.SetLinearVelocity(box2dvelocity)
+
 	return p
 }
 
-func (p PhysicalBody) GetOrientation() float64 {
+func (p PhysicalBody) GetPhysicalReferentialOrientation() float64 {
 	return p.body.GetAngle()
+}
+
+func (p PhysicalBody) GetOrientation() float64 {
+	return p.body.GetAngle() // no transform on angles
 }
 
 func (p *PhysicalBody) SetOrientation(angle float64) *PhysicalBody {
@@ -53,9 +102,13 @@ func (p *PhysicalBody) SetOrientation(angle float64) *PhysicalBody {
 	return p
 }
 
-func (p PhysicalBody) GetRadius() float64 {
-	// FIXME(jerome): here we suppose that the body is always a circle
+func (p PhysicalBody) GetPhysicalReferentialRadius() float64 {
 	return p.body.GetFixtureList().GetShape().GetRadius()
+}
+
+func (p PhysicalBody) GetRadius() float64 {
+	// here we suppose that the body is always a circle
+	return p.body.GetFixtureList().GetShape().GetRadius() * p.distanceScaleOut
 }
 
 func (p PhysicalBody) GetMaxSpeed() float64 {

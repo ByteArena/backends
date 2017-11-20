@@ -219,14 +219,14 @@ func isZero(f float64) bool {
 	return math.Abs(f) < epsilon
 }
 
-func (v Vector2) Transform(mat mgl64.Mat4) Vector2 {
+func (v Vector2) Transform(mat *mgl64.Mat4) Vector2 {
 	res := mgl64.TransformCoordinate(
 		mgl64.Vec3{
 			v[0],
 			0,
 			v[1],
 		},
-		mat,
+		*mat,
 	)
 	return MakeVector2(res[0], res[2])
 }

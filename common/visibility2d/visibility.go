@@ -9,12 +9,14 @@ import (
 
 func OnlyVisible(position [2]float64, perceptionitems []ObstacleSegment) []ObstacleSegment {
 
+	rescaleFactor := 10000.0
+
 	scaledUpSegments := make([]ObstacleSegment, 0)
 	for _, item := range perceptionitems {
 		scaledUpSegments = append(scaledUpSegments, ObstacleSegment{
 			Points: [2][2]float64{
-				[2]float64{item.Points[0][0] * 1000.0, item.Points[0][1] * 1000.0},
-				[2]float64{item.Points[1][0] * 1000.0, item.Points[1][1] * 1000.0},
+				[2]float64{item.Points[0][0] * rescaleFactor, item.Points[0][1] * rescaleFactor},
+				[2]float64{item.Points[1][0] * rescaleFactor, item.Points[1][1] * rescaleFactor},
 			},
 			UserData: item.UserData,
 		})
@@ -22,7 +24,7 @@ func OnlyVisible(position [2]float64, perceptionitems []ObstacleSegment) []Obsta
 
 	scaledUpSegments = breakIntersections(scaledUpSegments)
 
-	//return perceptionitems
+	//brokenSegments := breakIntersections(scaledUpSegments)
 
 	visibleSegments := make([]ObstacleSegment, 0)
 
@@ -42,8 +44,8 @@ func OnlyVisible(position [2]float64, perceptionitems []ObstacleSegment) []Obsta
 	for _, visibleSegment := range visibility.output {
 		visibleSegments = append(visibleSegments, ObstacleSegment{
 			Points: [2][2]float64{
-				[2]float64{visibleSegment.p1[0] / 1000.0, visibleSegment.p1[1] / 1000.0},
-				[2]float64{visibleSegment.p2[0] / 1000.0, visibleSegment.p2[1] / 1000.0},
+				[2]float64{visibleSegment.p1[0] / rescaleFactor, visibleSegment.p1[1] / rescaleFactor},
+				[2]float64{visibleSegment.p2[0] / rescaleFactor, visibleSegment.p2[1] / rescaleFactor},
 			},
 			UserData: visibleSegment.completeSegment.userData,
 		})

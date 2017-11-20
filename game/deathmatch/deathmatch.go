@@ -4,6 +4,7 @@ import (
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/types"
 	commontypes "github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/bytearena/game/common"
 	"github.com/bytearena/ecs"
 	"github.com/go-gl/mathgl/mgl64"
@@ -15,12 +16,12 @@ type DeathmatchGame struct {
 	gameDescription commontypes.GameDescriptionInterface
 	manager         *ecs.Manager
 
-	physicalToAgentSpaceTransform   mgl64.Mat4
+	physicalToAgentSpaceTransform   *mgl64.Mat4
 	physicalToAgentSpaceTranslation [3]float64
 	physicalToAgentSpaceRotation    [3]float64
 	physicalToAgentSpaceScale       float64
 
-	physicalToAgentSpaceInverseTransform   mgl64.Mat4
+	physicalToAgentSpaceInverseTransform   *mgl64.Mat4
 	physicalToAgentSpaceInverseTranslation [3]float64
 	physicalToAgentSpaceInverseRotation    [3]float64
 	physicalToAgentSpaceInverseScale       float64
@@ -56,12 +57,15 @@ type DeathmatchGame struct {
 func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *DeathmatchGame {
 	manager := ecs.NewManager()
 
+	transform := mgl64.Ident4()
+	inverseTransform := mgl64.Ident4()
+
 	game := &DeathmatchGame{
 		gameDescription: gameDescription,
 		manager:         manager,
 
-		physicalToAgentSpaceTransform:        mgl64.Ident4(),
-		physicalToAgentSpaceInverseTransform: mgl64.Ident4(),
+		physicalToAgentSpaceTransform:        &transform,
+		physicalToAgentSpaceInverseTransform: &inverseTransform,
 
 		physicalBodyComponent: manager.NewComponent(),
 		healthComponent:       manager.NewComponent(),
@@ -152,18 +156,21 @@ func (deathmatch *DeathmatchGame) setPhysicalToAgentSpaceTransform(scale float64
 	transM := mgl64.Translate3D(deathmatch.physicalToAgentSpaceTranslation[0], deathmatch.physicalToAgentSpaceTranslation[1], deathmatch.physicalToAgentSpaceTranslation[2])
 	scaleM := mgl64.Scale3D(deathmatch.physicalToAgentSpaceScale, deathmatch.physicalToAgentSpaceScale, deathmatch.physicalToAgentSpaceScale)
 
-	deathmatch.physicalToAgentSpaceTransform = mgl64.Ident4().
+	transform := mgl64.Ident4().
 		Mul4(transM).
 		Mul4(rotzM).
 		Mul4(rotyM).
 		Mul4(rotxM).
 		Mul4(scaleM)
 
-	deathmatch.physicalToAgentSpaceInverseScale = 1 / scale
+	deathmatch.physicalToAgentSpaceTransform = &transform
+
+	deathmatch.physicalToAgentSpaceInverseScale = 1.0 / scale
 	deathmatch.physicalToAgentSpaceInverseTranslation = [3]float64{translation[0] * -1, translation[1] * -1, translation[2] * -1}
 	deathmatch.physicalToAgentSpaceInverseRotation = [3]float64{rotation[0] * -1, rotation[1] * -1, rotation[2] * -1}
 
-	deathmatch.physicalToAgentSpaceInverseTransform = deathmatch.physicalToAgentSpaceTransform.Inv()
+	inv := deathmatch.physicalToAgentSpaceTransform.Inv()
+	deathmatch.physicalToAgentSpaceInverseTransform = &inv
 
 	return deathmatch
 }
@@ -308,8 +315,7 @@ func (deathmatch *DeathmatchGame) GetAgentWelcome(entityid ecs.EntityID) []byte 
 	steeringAspect := entityresult.Components[deathmatch.steeringComponent].(*Steering)
 	perceptionAspect := entityresult.Components[deathmatch.perceptionComponent].(*Perception)
 
-	// TODO: this radius value comes out of box2D, and thus has to be scaled up (unlike other props)
-	p.BodyRadius = physicalAspect.GetRadius() * deathmatch.physicalToAgentSpaceScale
+	p.BodyRadius = physicalAspect.GetRadius()
 	p.MaxSpeed = physicalAspect.GetMaxSpeed()
 	p.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
 
@@ -341,14 +347,29 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 
 			// Here, viz coord space and physical world coord space match
 			// No transform is therefore needed
-			Position:    physicalBodyAspect.GetPosition(),
-			Velocity:    physicalBodyAspect.GetVelocity(),
-			Radius:      physicalBodyAspect.GetRadius(),
-			Orientation: physicalBodyAspect.GetOrientation(),
+			Position:    physicalBodyAspect.GetPhysicalReferentialPosition(),
+			Velocity:    physicalBodyAspect.GetPhysicalReferentialVelocity(),
+			Radius:      physicalBodyAspect.GetPhysicalReferentialRadius(),
+			Orientation: physicalBodyAspect.GetPhysicalReferentialOrientation(),
 		})
 
-		//msg.DebugPoints = append(msg.DebugPoints, renderAspect.DebugPoints...)
-		msg.DebugSegments = append(msg.DebugSegments, renderAspect.DebugSegments...)
+		// scaledDebugPoints := make([][2]float64, len(renderAspect.DebugPoints))
+		// for i := 0; i < len(renderAspect.DebugPoints); i++ {
+		// 	scaledDebugPoints[i] = vector.Vector2(renderAspect.DebugPoints[i]).
+		// 		Transform(deathmatch.physicalToAgentSpaceInverseTransform).
+		// 		ToFloatArray()
+		// }
+
+		// msg.DebugPoints = append(msg.DebugPoints, scaledDebugPoints...)
+
+		scaledDebugSegments := make([][2][2]float64, len(renderAspect.DebugSegments))
+		for i := 0; i < len(renderAspect.DebugSegments); i++ {
+			scaledDebugSegments[i] = [2][2]float64{
+				vector.Vector2(renderAspect.DebugSegments[i][0]).Transform(deathmatch.physicalToAgentSpaceInverseTransform).ToFloatArray(),
+				vector.Vector2(renderAspect.DebugSegments[i][1]).Transform(deathmatch.physicalToAgentSpaceInverseTransform).ToFloatArray(),
+			}
+		}
+		msg.DebugSegments = append(msg.DebugSegments, scaledDebugSegments...)
 	}
 
 	res, _ := msg.MarshalJSON()
