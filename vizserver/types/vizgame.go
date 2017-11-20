@@ -2,7 +2,6 @@ package types
 
 import (
 	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/types/mapcontainer"
 	"github.com/bytearena/bytearena/common/utils"
 )
 
@@ -30,22 +29,31 @@ func (vizgame *VizGame) GetTps() int {
 	return vizgame.gameDescription.GetTps()
 }
 
-type VizInitMessageData struct {
-	Map *mapcontainer.MapContainer `json:"map"`
+type vizMsgInit struct {
+	//Map *mapcontainer.MapContainer `json:"map"`
+	MapName string `json:"mapname"`
+	Tps     int    `json:"tps"`
+	Agents  []agent
 }
 
-type VizInitMessage struct {
-	Type string             `json:"type"`
-	Data VizInitMessageData `json:"data"`
+type agent struct {
+	Name string `json:"name"`
+	ID   string `json:"id"`
+}
+
+type VizMessage struct {
+	Type string      `json:"type"`
+	Data interface{} `json:"data"`
 }
 
 func (vizgame *VizGame) SetWatcher(watcher *Watcher) {
 	vizgame.pool.Set(watcher.GetId(), watcher)
 
-	initMsg := VizInitMessage{
+	initMsg := VizMessage{
 		Type: "init",
-		Data: VizInitMessageData{
-			Map: vizgame.gameDescription.GetMapContainer(),
+		Data: vizMsgInit{
+			MapName: vizgame.gameDescription.GetName(),
+			Tps:     vizgame.gameDescription.GetTps(),
 		},
 	}
 

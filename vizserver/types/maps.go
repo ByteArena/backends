@@ -21,21 +21,3 @@ func (wmap *WatcherMap) Get(id string) *Watcher {
 
 	return nil
 }
-
-type VizGameMap struct {
-	*commontypes.SyncMap
-}
-
-func NewVizGameMap() *VizGameMap {
-	return &VizGameMap{
-		commontypes.NewSyncMap(),
-	}
-}
-
-func (amap *VizGameMap) Get(id string) *VizGame {
-	if res, ok := (amap.GetGeneric(id)).(*VizGame); ok {
-		return res
-	}
-
-	return nil
-}
