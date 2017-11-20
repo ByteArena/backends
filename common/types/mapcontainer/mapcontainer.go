@@ -10,13 +10,11 @@ type MapContainer struct {
 		Kind           string `json:"kind"`
 		MaxContestants int    `json:"maxcontestants"`
 		Date           string `json:"date"`
-		Repository     string `json:"repository"`
 	} `json:"meta"`
 	Data struct {
-		Grounds         []MapGround         `json:"grounds"`
-		Starts          []MapStart          `json:"starts"`
-		Obstacles       []MapObstacleObject `json:"obstacles"`
-		CollisionMeshes []CollisionMesh     `json:"collisionmeshes"`
+		Grounds   []MapGround         `json:"grounds"`
+		Starts    []MapStart          `json:"starts"`
+		Obstacles []MapObstacleObject `json:"obstacles"`
 	} `json:"data"`
 }
 
@@ -41,18 +39,6 @@ type MapGround struct {
 	Id      string     `json:"id"`
 	Name    string     `json:"name"`
 	Polygon MapPolygon `json:"polygon"`
-	Mesh    Mesh       `json:"mesh"`
-}
-
-type Mesh struct {
-	Vertices []float64 `json:"vertices"`
-	Indices  []int     `json:"indices"`
-	Uvs      []float64 `json:"uvs"`
-}
-
-type CollisionMesh struct {
-	Id       string    `json:"id"`
-	Vertices []float64 `json:"vertices"`
 }
 
 type MapPolygon struct {

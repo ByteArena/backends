@@ -400,18 +400,14 @@ func main() {
 
 	builtmap := mapcontainer.MapContainer{}
 
-	builtmap.Meta.Readme = "Byte Arena Training Map"
+	builtmap.Meta.Readme = "Byte Arena Map"
 	builtmap.Meta.Kind = "deathmatch"
-	builtmap.Meta.MaxContestants = 2
+	builtmap.Meta.MaxContestants = len(starts)
 	builtmap.Meta.Date = time.Now().Format(time.RFC3339)
-	builtmap.Meta.Repository = "https://github.com/bytearena/maps"
 
 	builtmap.Data.Grounds = grounds
 	builtmap.Data.Starts = starts
 	builtmap.Data.Obstacles = obstacles
-	//builtmap.Data.CollisionMeshes = collisionMeshes
-
-	//return builtmap
 
 	bjsonmap, _ := json.MarshalIndent(builtmap, "", "    ")
 	fmt.Println(string(bjsonmap))
@@ -455,9 +451,6 @@ func (p vertexType) applyTransform(transform mgl64.Mat4) vertexType {
 		},
 		transform,
 	)
-	// res := transform.Mul4x1(mgl64.Vec4{
-	// 	p[0], p[1], p[2], 1,
-	// })
 
 	return vertexType{
 		res.X(),

@@ -17,186 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer(in *jlexer.Lexer, out *Mesh) {
-	isTopLevel := in.IsStart()
-	if in.IsNull() {
-		if isTopLevel {
-			in.Consumed()
-		}
-		in.Skip()
-		return
-	}
-	in.Delim('{')
-	for !in.IsDelim('}') {
-		key := in.UnsafeString()
-		in.WantColon()
-		if in.IsNull() {
-			in.Skip()
-			in.WantComma()
-			continue
-		}
-		switch key {
-		case "vertices":
-			if in.IsNull() {
-				in.Skip()
-				out.Vertices = nil
-			} else {
-				in.Delim('[')
-				if out.Vertices == nil {
-					if !in.IsDelim(']') {
-						out.Vertices = make([]float64, 0, 8)
-					} else {
-						out.Vertices = []float64{}
-					}
-				} else {
-					out.Vertices = (out.Vertices)[:0]
-				}
-				for !in.IsDelim(']') {
-					var v1 float64
-					v1 = float64(in.Float64())
-					out.Vertices = append(out.Vertices, v1)
-					in.WantComma()
-				}
-				in.Delim(']')
-			}
-		case "indices":
-			if in.IsNull() {
-				in.Skip()
-				out.Indices = nil
-			} else {
-				in.Delim('[')
-				if out.Indices == nil {
-					if !in.IsDelim(']') {
-						out.Indices = make([]int, 0, 8)
-					} else {
-						out.Indices = []int{}
-					}
-				} else {
-					out.Indices = (out.Indices)[:0]
-				}
-				for !in.IsDelim(']') {
-					var v2 int
-					v2 = int(in.Int())
-					out.Indices = append(out.Indices, v2)
-					in.WantComma()
-				}
-				in.Delim(']')
-			}
-		case "uvs":
-			if in.IsNull() {
-				in.Skip()
-				out.Uvs = nil
-			} else {
-				in.Delim('[')
-				if out.Uvs == nil {
-					if !in.IsDelim(']') {
-						out.Uvs = make([]float64, 0, 8)
-					} else {
-						out.Uvs = []float64{}
-					}
-				} else {
-					out.Uvs = (out.Uvs)[:0]
-				}
-				for !in.IsDelim(']') {
-					var v3 float64
-					v3 = float64(in.Float64())
-					out.Uvs = append(out.Uvs, v3)
-					in.WantComma()
-				}
-				in.Delim(']')
-			}
-		default:
-			in.SkipRecursive()
-		}
-		in.WantComma()
-	}
-	in.Delim('}')
-	if isTopLevel {
-		in.Consumed()
-	}
-}
-func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer(out *jwriter.Writer, in Mesh) {
-	out.RawByte('{')
-	first := true
-	_ = first
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"vertices\":")
-	if in.Vertices == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-		out.RawString("null")
-	} else {
-		out.RawByte('[')
-		for v4, v5 := range in.Vertices {
-			if v4 > 0 {
-				out.RawByte(',')
-			}
-			out.Float64(float64(v5))
-		}
-		out.RawByte(']')
-	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"indices\":")
-	if in.Indices == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-		out.RawString("null")
-	} else {
-		out.RawByte('[')
-		for v6, v7 := range in.Indices {
-			if v6 > 0 {
-				out.RawByte(',')
-			}
-			out.Int(int(v7))
-		}
-		out.RawByte(']')
-	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"uvs\":")
-	if in.Uvs == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-		out.RawString("null")
-	} else {
-		out.RawByte('[')
-		for v8, v9 := range in.Uvs {
-			if v8 > 0 {
-				out.RawByte(',')
-			}
-			out.Float64(float64(v9))
-		}
-		out.RawByte(']')
-	}
-	out.RawByte('}')
-}
-
-// MarshalJSON supports json.Marshaler interface
-func (v Mesh) MarshalJSON() ([]byte, error) {
-	w := jwriter.Writer{}
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer(&w, v)
-	return w.Buffer.BuildBytes(), w.Error
-}
-
-// MarshalEasyJSON supports easyjson.Marshaler interface
-func (v Mesh) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer(w, v)
-}
-
-// UnmarshalJSON supports json.Unmarshaler interface
-func (v *Mesh) UnmarshalJSON(data []byte) error {
-	r := jlexer.Lexer{Data: data}
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer(&r, v)
-	return r.Error()
-}
-
-// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *Mesh) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer(l, v)
-}
-func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(in *jlexer.Lexer, out *MapStart) {
+func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer(in *jlexer.Lexer, out *MapStart) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -224,11 +45,11 @@ func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(i
 				in.Skip()
 			} else {
 				in.Delim('[')
-				v10 := 0
+				v1 := 0
 				for !in.IsDelim(']') {
-					if v10 < 2 {
-						out.Point[v10] = float64(in.Float64())
-						v10++
+					if v1 < 2 {
+						out.Point[v1] = float64(in.Float64())
+						v1++
 					} else {
 						in.SkipRecursive()
 					}
@@ -246,7 +67,7 @@ func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(i
 		in.Consumed()
 	}
 }
-func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(out *jwriter.Writer, in MapStart) {
+func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer(out *jwriter.Writer, in MapStart) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -268,11 +89,11 @@ func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(o
 	first = false
 	out.RawString("\"point\":")
 	out.RawByte('[')
-	for v11 := range in.Point {
-		if v11 > 0 {
+	for v2 := range in.Point {
+		if v2 > 0 {
 			out.RawByte(',')
 		}
-		out.Float64(float64(in.Point[v11]))
+		out.Float64(float64(in.Point[v2]))
 	}
 	out.RawByte(']')
 	out.RawByte('}')
@@ -281,27 +102,27 @@ func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(o
 // MarshalJSON supports json.Marshaler interface
 func (v MapStart) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(&w, v)
+	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v MapStart) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(w, v)
+	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *MapStart) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(&r, v)
+	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *MapStart) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(l, v)
+	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer(l, v)
 }
-func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(in *jlexer.Lexer, out *MapPolygon) {
+func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(in *jlexer.Lexer, out *MapPolygon) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -336,16 +157,16 @@ func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(i
 					out.Points = (out.Points)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v12 MapPoint
+					var v3 MapPoint
 					if in.IsNull() {
 						in.Skip()
 					} else {
 						in.Delim('[')
-						v13 := 0
+						v4 := 0
 						for !in.IsDelim(']') {
-							if v13 < 2 {
-								v12[v13] = float64(in.Float64())
-								v13++
+							if v4 < 2 {
+								v3[v4] = float64(in.Float64())
+								v4++
 							} else {
 								in.SkipRecursive()
 							}
@@ -353,7 +174,7 @@ func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(i
 						}
 						in.Delim(']')
 					}
-					out.Points = append(out.Points, v12)
+					out.Points = append(out.Points, v3)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -368,7 +189,7 @@ func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(i
 		in.Consumed()
 	}
 }
-func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(out *jwriter.Writer, in MapPolygon) {
+func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(out *jwriter.Writer, in MapPolygon) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -381,16 +202,16 @@ func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(o
 		out.RawString("null")
 	} else {
 		out.RawByte('[')
-		for v14, v15 := range in.Points {
-			if v14 > 0 {
+		for v5, v6 := range in.Points {
+			if v5 > 0 {
 				out.RawByte(',')
 			}
 			out.RawByte('[')
-			for v16 := range v15 {
-				if v16 > 0 {
+			for v7 := range v6 {
+				if v7 > 0 {
 					out.RawByte(',')
 				}
-				out.Float64(float64(v15[v16]))
+				out.Float64(float64(v6[v7]))
 			}
 			out.RawByte(']')
 		}
@@ -402,27 +223,27 @@ func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(o
 // MarshalJSON supports json.Marshaler interface
 func (v MapPolygon) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(&w, v)
+	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v MapPolygon) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(w, v)
+	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *MapPolygon) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(&r, v)
+	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *MapPolygon) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(l, v)
+	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer1(l, v)
 }
-func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(in *jlexer.Lexer, out *MapObstacleObject) {
+func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(in *jlexer.Lexer, out *MapObstacleObject) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -457,7 +278,7 @@ func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(i
 		in.Consumed()
 	}
 }
-func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(out *jwriter.Writer, in MapObstacleObject) {
+func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(out *jwriter.Writer, in MapObstacleObject) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -485,27 +306,27 @@ func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(o
 // MarshalJSON supports json.Marshaler interface
 func (v MapObstacleObject) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(&w, v)
+	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v MapObstacleObject) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(w, v)
+	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *MapObstacleObject) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(&r, v)
+	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *MapObstacleObject) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(l, v)
+	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer2(l, v)
 }
-func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(in *jlexer.Lexer, out *MapGround) {
+func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(in *jlexer.Lexer, out *MapGround) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -530,8 +351,6 @@ func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(i
 			out.Name = string(in.String())
 		case "polygon":
 			(out.Polygon).UnmarshalEasyJSON(in)
-		case "mesh":
-			(out.Mesh).UnmarshalEasyJSON(in)
 		default:
 			in.SkipRecursive()
 		}
@@ -542,7 +361,7 @@ func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(i
 		in.Consumed()
 	}
 }
-func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(out *jwriter.Writer, in MapGround) {
+func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(out *jwriter.Writer, in MapGround) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -564,39 +383,33 @@ func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(o
 	first = false
 	out.RawString("\"polygon\":")
 	(in.Polygon).MarshalEasyJSON(out)
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"mesh\":")
-	(in.Mesh).MarshalEasyJSON(out)
 	out.RawByte('}')
 }
 
 // MarshalJSON supports json.Marshaler interface
 func (v MapGround) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(&w, v)
+	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v MapGround) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(w, v)
+	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *MapGround) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(&r, v)
+	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *MapGround) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(l, v)
+	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer3(l, v)
 }
-func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer5(in *jlexer.Lexer, out *MapContainer) {
+func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(in *jlexer.Lexer, out *MapContainer) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -629,7 +442,7 @@ func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer5(i
 		in.Consumed()
 	}
 }
-func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer5(out *jwriter.Writer, in MapContainer) {
+func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(out *jwriter.Writer, in MapContainer) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -651,31 +464,30 @@ func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer5(o
 // MarshalJSON supports json.Marshaler interface
 func (v MapContainer) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer5(&w, v)
+	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v MapContainer) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer5(w, v)
+	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *MapContainer) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer5(&r, v)
+	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *MapContainer) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer5(l, v)
+	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer4(l, v)
 }
 func easyjsonFa548efbDecode1(in *jlexer.Lexer, out *struct {
-	Grounds         []MapGround         `json:"grounds"`
-	Starts          []MapStart          `json:"starts"`
-	Obstacles       []MapObstacleObject `json:"obstacles"`
-	CollisionMeshes []CollisionMesh     `json:"collisionmeshes"`
+	Grounds   []MapGround         `json:"grounds"`
+	Starts    []MapStart          `json:"starts"`
+	Obstacles []MapObstacleObject `json:"obstacles"`
 }) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
@@ -711,9 +523,9 @@ func easyjsonFa548efbDecode1(in *jlexer.Lexer, out *struct {
 					out.Grounds = (out.Grounds)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v17 MapGround
-					(v17).UnmarshalEasyJSON(in)
-					out.Grounds = append(out.Grounds, v17)
+					var v8 MapGround
+					(v8).UnmarshalEasyJSON(in)
+					out.Grounds = append(out.Grounds, v8)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -734,9 +546,9 @@ func easyjsonFa548efbDecode1(in *jlexer.Lexer, out *struct {
 					out.Starts = (out.Starts)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v18 MapStart
-					(v18).UnmarshalEasyJSON(in)
-					out.Starts = append(out.Starts, v18)
+					var v9 MapStart
+					(v9).UnmarshalEasyJSON(in)
+					out.Starts = append(out.Starts, v9)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -757,32 +569,9 @@ func easyjsonFa548efbDecode1(in *jlexer.Lexer, out *struct {
 					out.Obstacles = (out.Obstacles)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v19 MapObstacleObject
-					(v19).UnmarshalEasyJSON(in)
-					out.Obstacles = append(out.Obstacles, v19)
-					in.WantComma()
-				}
-				in.Delim(']')
-			}
-		case "collisionmeshes":
-			if in.IsNull() {
-				in.Skip()
-				out.CollisionMeshes = nil
-			} else {
-				in.Delim('[')
-				if out.CollisionMeshes == nil {
-					if !in.IsDelim(']') {
-						out.CollisionMeshes = make([]CollisionMesh, 0, 1)
-					} else {
-						out.CollisionMeshes = []CollisionMesh{}
-					}
-				} else {
-					out.CollisionMeshes = (out.CollisionMeshes)[:0]
-				}
-				for !in.IsDelim(']') {
-					var v20 CollisionMesh
-					(v20).UnmarshalEasyJSON(in)
-					out.CollisionMeshes = append(out.CollisionMeshes, v20)
+					var v10 MapObstacleObject
+					(v10).UnmarshalEasyJSON(in)
+					out.Obstacles = append(out.Obstacles, v10)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -798,10 +587,9 @@ func easyjsonFa548efbDecode1(in *jlexer.Lexer, out *struct {
 	}
 }
 func easyjsonFa548efbEncode1(out *jwriter.Writer, in struct {
-	Grounds         []MapGround         `json:"grounds"`
-	Starts          []MapStart          `json:"starts"`
-	Obstacles       []MapObstacleObject `json:"obstacles"`
-	CollisionMeshes []CollisionMesh     `json:"collisionmeshes"`
+	Grounds   []MapGround         `json:"grounds"`
+	Starts    []MapStart          `json:"starts"`
+	Obstacles []MapObstacleObject `json:"obstacles"`
 }) {
 	out.RawByte('{')
 	first := true
@@ -815,11 +603,11 @@ func easyjsonFa548efbEncode1(out *jwriter.Writer, in struct {
 		out.RawString("null")
 	} else {
 		out.RawByte('[')
-		for v21, v22 := range in.Grounds {
-			if v21 > 0 {
+		for v11, v12 := range in.Grounds {
+			if v11 > 0 {
 				out.RawByte(',')
 			}
-			(v22).MarshalEasyJSON(out)
+			(v12).MarshalEasyJSON(out)
 		}
 		out.RawByte(']')
 	}
@@ -832,11 +620,11 @@ func easyjsonFa548efbEncode1(out *jwriter.Writer, in struct {
 		out.RawString("null")
 	} else {
 		out.RawByte('[')
-		for v23, v24 := range in.Starts {
-			if v23 > 0 {
+		for v13, v14 := range in.Starts {
+			if v13 > 0 {
 				out.RawByte(',')
 			}
-			(v24).MarshalEasyJSON(out)
+			(v14).MarshalEasyJSON(out)
 		}
 		out.RawByte(']')
 	}
@@ -849,28 +637,11 @@ func easyjsonFa548efbEncode1(out *jwriter.Writer, in struct {
 		out.RawString("null")
 	} else {
 		out.RawByte('[')
-		for v25, v26 := range in.Obstacles {
-			if v25 > 0 {
+		for v15, v16 := range in.Obstacles {
+			if v15 > 0 {
 				out.RawByte(',')
 			}
-			(v26).MarshalEasyJSON(out)
-		}
-		out.RawByte(']')
-	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"collisionmeshes\":")
-	if in.CollisionMeshes == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-		out.RawString("null")
-	} else {
-		out.RawByte('[')
-		for v27, v28 := range in.CollisionMeshes {
-			if v27 > 0 {
-				out.RawByte(',')
-			}
-			(v28).MarshalEasyJSON(out)
+			(v16).MarshalEasyJSON(out)
 		}
 		out.RawByte(']')
 	}
@@ -881,7 +652,6 @@ func easyjsonFa548efbDecode(in *jlexer.Lexer, out *struct {
 	Kind           string `json:"kind"`
 	MaxContestants int    `json:"maxcontestants"`
 	Date           string `json:"date"`
-	Repository     string `json:"repository"`
 }) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
@@ -909,8 +679,6 @@ func easyjsonFa548efbDecode(in *jlexer.Lexer, out *struct {
 			out.MaxContestants = int(in.Int())
 		case "date":
 			out.Date = string(in.String())
-		case "repository":
-			out.Repository = string(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -926,7 +694,6 @@ func easyjsonFa548efbEncode(out *jwriter.Writer, in struct {
 	Kind           string `json:"kind"`
 	MaxContestants int    `json:"maxcontestants"`
 	Date           string `json:"date"`
-	Repository     string `json:"repository"`
 }) {
 	out.RawByte('{')
 	first := true
@@ -955,118 +722,5 @@ func easyjsonFa548efbEncode(out *jwriter.Writer, in struct {
 	first = false
 	out.RawString("\"date\":")
 	out.String(string(in.Date))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"repository\":")
-	out.String(string(in.Repository))
 	out.RawByte('}')
-}
-func easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer6(in *jlexer.Lexer, out *CollisionMesh) {
-	isTopLevel := in.IsStart()
-	if in.IsNull() {
-		if isTopLevel {
-			in.Consumed()
-		}
-		in.Skip()
-		return
-	}
-	in.Delim('{')
-	for !in.IsDelim('}') {
-		key := in.UnsafeString()
-		in.WantColon()
-		if in.IsNull() {
-			in.Skip()
-			in.WantComma()
-			continue
-		}
-		switch key {
-		case "id":
-			out.Id = string(in.String())
-		case "vertices":
-			if in.IsNull() {
-				in.Skip()
-				out.Vertices = nil
-			} else {
-				in.Delim('[')
-				if out.Vertices == nil {
-					if !in.IsDelim(']') {
-						out.Vertices = make([]float64, 0, 8)
-					} else {
-						out.Vertices = []float64{}
-					}
-				} else {
-					out.Vertices = (out.Vertices)[:0]
-				}
-				for !in.IsDelim(']') {
-					var v29 float64
-					v29 = float64(in.Float64())
-					out.Vertices = append(out.Vertices, v29)
-					in.WantComma()
-				}
-				in.Delim(']')
-			}
-		default:
-			in.SkipRecursive()
-		}
-		in.WantComma()
-	}
-	in.Delim('}')
-	if isTopLevel {
-		in.Consumed()
-	}
-}
-func easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer6(out *jwriter.Writer, in CollisionMesh) {
-	out.RawByte('{')
-	first := true
-	_ = first
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"id\":")
-	out.String(string(in.Id))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"vertices\":")
-	if in.Vertices == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-		out.RawString("null")
-	} else {
-		out.RawByte('[')
-		for v30, v31 := range in.Vertices {
-			if v30 > 0 {
-				out.RawByte(',')
-			}
-			out.Float64(float64(v31))
-		}
-		out.RawByte(']')
-	}
-	out.RawByte('}')
-}
-
-// MarshalJSON supports json.Marshaler interface
-func (v CollisionMesh) MarshalJSON() ([]byte, error) {
-	w := jwriter.Writer{}
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer6(&w, v)
-	return w.Buffer.BuildBytes(), w.Error
-}
-
-// MarshalEasyJSON supports easyjson.Marshaler interface
-func (v CollisionMesh) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonFa548efbEncodeGithubComBytearenaBytearenaCommonTypesMapcontainer6(w, v)
-}
-
-// UnmarshalJSON supports json.Unmarshaler interface
-func (v *CollisionMesh) UnmarshalJSON(data []byte) error {
-	r := jlexer.Lexer{Data: data}
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer6(&r, v)
-	return r.Error()
-}
-
-// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *CollisionMesh) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonFa548efbDecodeGithubComBytearenaBytearenaCommonTypesMapcontainer6(l, v)
 }

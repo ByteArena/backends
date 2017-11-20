@@ -167,14 +167,18 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 
 			visionType := agentPerceptionVisionItemTag.Obstacle
 			switch bodyDescriptor.Type {
+
 			case commontypes.PhysicalBodyDescriptorType.Agent:
 				visionType = agentPerceptionVisionItemTag.Agent
-			case commontypes.PhysicalBodyDescriptorType.Obstacle:
-				visionType = agentPerceptionVisionItemTag.Obstacle
+
 			case commontypes.PhysicalBodyDescriptorType.Projectile:
 				visionType = agentPerceptionVisionItemTag.Projectile
+
+			case commontypes.PhysicalBodyDescriptorType.Obstacle:
+				visionType = agentPerceptionVisionItemTag.Obstacle
 			case commontypes.PhysicalBodyDescriptorType.Ground:
 				visionType = agentPerceptionVisionItemTag.Obstacle
+
 			default:
 				continue
 			}
@@ -212,9 +216,15 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 			nearEdge, farEdge := agentdiameter.Get()
 
 			distsq := centervec.MagSq()
-			if distsq <= visionRadiusSq {
+			if distsq <= visionRadiusSq-0.5 { // -0.5: agent sight is sqrt(0.5)m shorter than obstacle sight, to avoid edge cases when agents and obstacles are really close and on the edge of the vision circle
 
-				// Il faut aligner l'angle du vecteur sur le heading courant de l'agent
+				// Check that the obstacle is in our field of view
+				centervecAngle := centervec.Angle()
+				if centervecAngle < leftVisionRelvec.Angle() || centervecAngle > rightVisionRelvec.Angle() {
+					continue
+				}
+
+				// On aligne l'angle du vecteur sur le heading courant de l'agent
 				centervec = centervec.SetAngle(centervec.Angle() - agentOrientation)
 
 				visionitem := agentPerceptionVisionItem{
@@ -230,9 +240,7 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 		} else {
 
 			// Obstacle
-
 			// view a polygon
-			//rejectededges := make([]vector.Vector2, 0)
 
 			otherQr := game.getEntity(bodyDescriptor.ID, game.physicalBodyComponent)
 			otherPhysicalAspect := otherQr.Components[game.physicalBodyComponent].(*PhysicalBody)

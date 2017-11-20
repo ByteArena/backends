@@ -25,6 +25,7 @@ type PhysicalBody struct {
 	maxAngularVelocity float64 // expressed in rad/tick (agent referential)
 	dragForce          float64 // expressed in m/tick (agent referential)
 	static             bool
+	skipThisTurn       bool
 }
 
 func (p *PhysicalBody) GetBody() *box2d.B2Body {

@@ -39,8 +39,8 @@ func OnlyVisible(position [2]float64, perceptionitems []ObstacleSegment) []Obsta
 	}
 
 	visibility.SetLightLocation(position[0], position[1])
-
 	visibility.Sweep()
+
 	for _, visibleSegment := range visibility.output {
 		visibleSegments = append(visibleSegments, ObstacleSegment{
 			Points: [2][2]float64{
@@ -214,11 +214,11 @@ func (visi *visibilityProcessor) _segment_in_front_of(a, b *visibilityComputatio
 	// NOTE: we slightly shorten the segments so that
 	// intersections of the endpoints (common) don't count as
 	// intersections in this algorithm
-	var A1 = leftOf(a, interpolate(b.p1.point, b.p2.point, 0.01))
-	var A2 = leftOf(a, interpolate(b.p2.point, b.p1.point, 0.01))
+	var A1 = leftOf(a, interpolate(b.p1.point, b.p2.point, 0.00001))
+	var A2 = leftOf(a, interpolate(b.p2.point, b.p1.point, 0.00001))
 	var A3 = leftOf(a, relativeTo)
-	var B1 = leftOf(b, interpolate(a.p1.point, a.p2.point, 0.01))
-	var B2 = leftOf(b, interpolate(a.p2.point, a.p1.point, 0.01))
+	var B1 = leftOf(b, interpolate(a.p1.point, a.p2.point, 0.00001))
+	var B2 = leftOf(b, interpolate(a.p2.point, a.p1.point, 0.00001))
 	var B3 = leftOf(b, relativeTo)
 
 	// NOTE: this algorithm is probably worthy of a short article

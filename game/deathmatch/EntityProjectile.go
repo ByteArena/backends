@@ -11,7 +11,7 @@ import (
 func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.EntityID, position vector.Vector2, velocity vector.Vector2) *ecs.Entity {
 
 	bodyRadius := 0.3
-	speed := 20.0
+	speed := 15.0
 
 	///////////////////////////////////////////////////////////////////////////
 	tps := deathmatch.gameDescription.GetTps()
@@ -69,6 +69,7 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 
 			timeScaleIn:  timeScaleIn,  // m/tick to m/s; => ticksPerSecond
 			timeScaleOut: timeScaleOut, // m/s to m/tick; => 1 / ticksPerSecond
+			skipThisTurn: true,
 		}).
 		AddComponent(deathmatch.renderComponent, &Render{
 			type_:  "projectile",
