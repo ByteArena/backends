@@ -1,6 +1,9 @@
 package deathmatch
 
-import "github.com/bytearena/bytearena/common/utils/vector"
+import (
+	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/ecs"
+)
 
 type agentPerception struct {
 	Energy   float64                     `json:"energy"`   // niveau en millièmes; reconstitution automatique ?
