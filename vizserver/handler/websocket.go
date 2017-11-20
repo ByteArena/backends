@@ -49,6 +49,7 @@ func Websocket(fetchVizGames func() ([]*types.VizGame, error)) func(w http.Respo
 			CheckOrigin: func(r *http.Request) bool {
 				return true
 			},
+			EnableCompression: true,
 		}
 
 		c, err := upgrader.Upgrade(w, r, nil)
@@ -56,6 +57,8 @@ func Websocket(fetchVizGames func() ([]*types.VizGame, error)) func(w http.Respo
 			log.Print("upgrade:", err)
 			return
 		}
+
+		c.EnableWriteCompression(true)
 
 		watcher := types.NewWatcher(c)
 		vizgame.SetWatcher(watcher)
