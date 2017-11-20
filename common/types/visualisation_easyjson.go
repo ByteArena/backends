@@ -250,6 +250,59 @@ func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes1(in *jlexer.Le
 				}
 				in.Delim(']')
 			}
+		case "DebugSegments":
+			if in.IsNull() {
+				in.Skip()
+				out.DebugSegments = nil
+			} else {
+				in.Delim('[')
+				if out.DebugSegments == nil {
+					if !in.IsDelim(']') {
+						out.DebugSegments = make([][2][2]float64, 0, 2)
+					} else {
+						out.DebugSegments = [][2][2]float64{}
+					}
+				} else {
+					out.DebugSegments = (out.DebugSegments)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v8 [2][2]float64
+					if in.IsNull() {
+						in.Skip()
+					} else {
+						in.Delim('[')
+						v9 := 0
+						for !in.IsDelim(']') {
+							if v9 < 2 {
+								if in.IsNull() {
+									in.Skip()
+								} else {
+									in.Delim('[')
+									v10 := 0
+									for !in.IsDelim(']') {
+										if v10 < 2 {
+											v8[v9][v10] = float64(in.Float64())
+											v10++
+										} else {
+											in.SkipRecursive()
+										}
+										in.WantComma()
+									}
+									in.Delim(']')
+								}
+								v9++
+							} else {
+								in.SkipRecursive()
+							}
+							in.WantComma()
+						}
+						in.Delim(']')
+					}
+					out.DebugSegments = append(out.DebugSegments, v8)
+					in.WantComma()
+				}
+				in.Delim(']')
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -279,11 +332,11 @@ func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(out *jwriter.
 		out.RawString("null")
 	} else {
 		out.RawByte('[')
-		for v8, v9 := range in.Objects {
-			if v8 > 0 {
+		for v11, v12 := range in.Objects {
+			if v11 > 0 {
 				out.RawByte(',')
 			}
-			(v9).MarshalEasyJSON(out)
+			(v12).MarshalEasyJSON(out)
 		}
 		out.RawByte(']')
 	}
@@ -296,16 +349,47 @@ func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(out *jwriter.
 		out.RawString("null")
 	} else {
 		out.RawByte('[')
-		for v10, v11 := range in.DebugPoints {
-			if v10 > 0 {
+		for v13, v14 := range in.DebugPoints {
+			if v13 > 0 {
 				out.RawByte(',')
 			}
 			out.RawByte('[')
-			for v12 := range v11 {
-				if v12 > 0 {
+			for v15 := range v14 {
+				if v15 > 0 {
 					out.RawByte(',')
 				}
-				out.Float64(float64(v11[v12]))
+				out.Float64(float64(v14[v15]))
+			}
+			out.RawByte(']')
+		}
+		out.RawByte(']')
+	}
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"DebugSegments\":")
+	if in.DebugSegments == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+		out.RawString("null")
+	} else {
+		out.RawByte('[')
+		for v16, v17 := range in.DebugSegments {
+			if v16 > 0 {
+				out.RawByte(',')
+			}
+			out.RawByte('[')
+			for v18 := range v17 {
+				if v18 > 0 {
+					out.RawByte(',')
+				}
+				out.RawByte('[')
+				for v19 := range v17[v18] {
+					if v19 > 0 {
+						out.RawByte(',')
+					}
+					out.Float64(float64(v17[v18][v19]))
+				}
+				out.RawByte(']')
 			}
 			out.RawByte(']')
 		}

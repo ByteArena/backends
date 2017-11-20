@@ -26,7 +26,7 @@ func collideOrientedRectangles(polyOne, polyTwo []vector.Vector2) []vector.Vecto
 		polyOneEdge := vector.MakeSegment2(polyOne[i], polyOne[(i+1)%4])
 		for j := 0; j < 4; j++ {
 			polyTwoEdge := vector.MakeSegment2(polyOne[j], polyOne[(j+1)%4])
-			if collisionPoint, intersects, colinear, _ := SegmentIntersectionWithLineSegment(
+			if collisionPoint, intersects, colinear, _ := SegmentSegmentIntersection(
 				polyOneEdge,
 				polyTwoEdge,
 			); intersects {
