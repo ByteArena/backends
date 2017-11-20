@@ -1,10 +1,14 @@
-hash: 3549bb3d60ddf161d4131ab2c7694572ccc4a5eb923fa1f6e84eeebbec947e6a
-updated: 2017-11-10T13:43:53.867701896+01:00
+hash: 715bf0d99fafb72dd45c3004d86cb33c7e41a2197c0c7774b4f28a3870717dc0
+updated: 2017-11-20T13:28:38.297940723+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
 - name: github.com/akavel/polyclip-go
   version: 2cfdb71461bde9115450eb65688337e3f8ee715e
+- name: github.com/Azure/go-ansiterm
+  version: d6e3b3328b783f23731bc4d058875b0371ff8109
+  subpackages:
+  - winterm
 - name: github.com/bitly/go-notify
   version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
 - name: github.com/bytearena/box2d
@@ -79,8 +83,11 @@ imports:
   - builder/dockerfile/command
   - builder/dockerfile/parser
   - client
+  - pkg/jsonmessage
   - pkg/mount
   - pkg/system
+  - pkg/term
+  - pkg/term/windows
 - name: github.com/docker/go-connections
   version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
   subpackages:
@@ -124,7 +131,7 @@ imports:
   - models
   - pkg/escape
 - name: github.com/json-iterator/go
-  version: 6240e1e7983a85228f7fd9c3e1b6932d46ec58e2
+  version: f7279a603edee96fe7764d3de9c6ff8cf9970994
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/mailru/easyjson
@@ -149,6 +156,8 @@ imports:
   version: d102ad91854fea433a859be7b7de879439911aeb
 - name: github.com/nsf/termbox-go
   version: aa4a75b1c20a2b03751b1a9f7e41d58bd6f71c43
+- name: github.com/Nvveen/Gotty
+  version: cd527374f1e5bff4938207604a14f2e38a9cf512
 - name: github.com/opencontainers/go-digest
   version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
 - name: github.com/opencontainers/image-spec
@@ -156,6 +165,8 @@ imports:
   subpackages:
   - specs-go
   - specs-go/v1
+- name: github.com/phayes/freeport
+  version: b8543db493a5ed890c5499e935e2cad7504f3a04
 - name: github.com/pkg/errors
   version: f15c970de5b76fac0b59abb32d62c17cc7bed265
 - name: github.com/satori/go.uuid
