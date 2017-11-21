@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path"
 
+	"github.com/bytearena/bytearena/ba/action/build"
 	bettererrors "github.com/xtuc/better-errors"
 )
 
@@ -18,18 +19,24 @@ func cloneRepo(dest, url string) (string, error) {
 	cmd := exec.Command("git", "clone", url, dest)
 
 	stdout, stderr := cmd.CombinedOutput()
+
 	err := cmd.Run()
 
-	if err != nil {
+	if err != nil && stderr != nil {
 		return string(stdout), stderr
 	}
 
 	cmd = exec.Command("rm", "-rf", path.Join(dest, "./.git"))
 
 	stdout, stderr = cmd.CombinedOutput()
-	cmd.Run()
 
-	return string(stdout), stderr
+	err = cmd.Run()
+
+	if err != nil && stderr != nil {
+		return string(stdout), stderr
+	}
+
+	return "", nil
 }
 
 func Main(name string) error {
@@ -57,6 +64,17 @@ func Main(name string) error {
 	}
 
 	fmt.Println(dest, "has been created")
+
+	// Build agent
+	err := build.Main(dest)
+
+	if err != nil {
+		berror := bettererrors.
+			New("ba build failed").
+			With(err)
+
+		return berror
+	}
 
 	return nil
 }

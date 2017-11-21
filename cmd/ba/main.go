@@ -8,6 +8,7 @@ import (
 
 	"github.com/urfave/cli"
 
+	"github.com/bytearena/bytearena/ba/action/build"
 	"github.com/bytearena/bytearena/ba/action/generate"
 	"github.com/bytearena/bytearena/ba/action/train"
 	"github.com/bytearena/bytearena/common/utils"
@@ -17,24 +18,6 @@ import (
 )
 
 func main() {
-	defer func() {
-		if data := recover(); data != nil {
-
-			if err, ok := data.(error); ok {
-
-				berror := bettererrors.NewFromErr(err)
-				utils.FailWith(berror)
-			} else if str, ok := data.(string); ok {
-
-				berror := bettererrors.New(str)
-				utils.FailWith(berror)
-			} else {
-
-				panic(data)
-			}
-		}
-	}()
-
 	rand.Seed(time.Now().UnixNano())
 
 	app := makeapp()
@@ -48,6 +31,24 @@ func makeapp() *cli.App {
 	app.Name = "Byte Arena cli tool"
 
 	app.Commands = []cli.Command{
+		{
+			Name:  "build",
+			Usage: "Build an agent",
+			Action: func(c *cli.Context) error {
+				err := build.Main(c.Args().Get(0))
+
+				if err != nil {
+					berror := bettererrors.
+						New("Failed to execute command").
+						SetContext("command", "build").
+						With(err)
+
+					utils.FailWith(berror)
+				}
+
+				return nil
+			},
+		},
 		{
 			Name:    "generate",
 			Aliases: []string{"gen"},

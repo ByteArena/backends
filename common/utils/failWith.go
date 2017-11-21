@@ -36,6 +36,8 @@ func FailWith(err error) {
 
 		fmt.Print(msg)
 
+		fmt.Println("")
+
 		os.Exit(1)
 	} else {
 		panic(err)
@@ -56,6 +58,7 @@ func WarnWith(err error) {
 
 		fmt.Print(msg)
 
+		fmt.Println("")
 	} else {
 		fmt.Println(err.Error())
 	}
