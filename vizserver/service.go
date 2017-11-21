@@ -28,6 +28,10 @@ type VizService struct {
 	events chan interface{}
 }
 
+const (
+	LOG_ENTRY_BUFFER = 100
+)
+
 func NewVizService(addr string, webclientpath string, mapkey string, fetchArenas FetchArenasCbk, recordStore recording.RecordStoreInterface, mappack *mappack.MappackInMemoryArchive) *VizService {
 	return &VizService{
 		addr:          addr,
@@ -37,7 +41,7 @@ func NewVizService(addr string, webclientpath string, mapkey string, fetchArenas
 		recordStore:   recordStore,
 		mappack:       mappack,
 
-		events: make(chan interface{}),
+		events: make(chan interface{}, LOG_ENTRY_BUFFER),
 	}
 }
 
@@ -117,7 +121,5 @@ func (viz *VizService) Events() chan interface{} {
 }
 
 func (viz *VizService) Log(x interface{}) {
-	go func() {
-		viz.events <- x
-	}()
+	viz.events <- x
 }

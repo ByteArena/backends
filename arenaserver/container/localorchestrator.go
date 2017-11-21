@@ -28,6 +28,10 @@ type LocalContainerOrchestrator struct {
 	events       chan interface{}
 }
 
+const (
+	LOG_ENTRY_BUFFER = 100
+)
+
 func (orch *LocalContainerOrchestrator) startContainerLocalOrch(ctner *arenaservertypes.AgentContainer, addTearDownCall func(commonTypes.TearDownCallback)) error {
 
 	err := orch.cli.ContainerStart(
@@ -71,7 +75,7 @@ func MakeLocalContainerOrchestrator(host string) arenaservertypes.ContainerOrche
 		cli:          cli,
 		host:         host,
 		registryAuth: registryAuth,
-		events:       make(chan interface{}),
+		events:       make(chan interface{}, LOG_ENTRY_BUFFER),
 	}
 }
 
@@ -132,9 +136,7 @@ func (orch *LocalContainerOrchestrator) localLogsToStdOut(container *arenaserver
 }
 
 func (orch *LocalContainerOrchestrator) StartAgentContainer(ctner *arenaservertypes.AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
-	go func() {
-		orch.events <- EventDebug{"Spawning agent " + ctner.AgentId.String()}
-	}()
+	orch.events <- EventDebug{"Spawning agent " + ctner.AgentId.String()}
 
 	return orch.startContainerLocalOrch(ctner, addTearDownCall)
 }

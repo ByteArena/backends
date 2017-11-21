@@ -16,6 +16,7 @@ import (
 
 const (
 	CONNECTION_TO_MESSAGE_DEADLINE = 3 * time.Second
+	LOG_ENTRY_BUFFER               = 100
 )
 
 type CommDispatcherInterface interface {
@@ -35,7 +36,7 @@ func NewCommServer(address string) *CommServer {
 	return &CommServer{
 		address: address,
 
-		events: make(chan interface{}),
+		events: make(chan interface{}, LOG_ENTRY_BUFFER),
 	}
 }
 
@@ -182,9 +183,7 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 }
 
 func (s *CommServer) Log(l interface{}) {
-	go func() {
-		s.events <- l
-	}()
+	s.events <- l
 }
 
 func (s *CommServer) Events() chan interface{} {
