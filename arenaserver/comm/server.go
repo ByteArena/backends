@@ -54,18 +54,16 @@ func readBytesChan(conn net.Conn) (chan []byte, chan error) {
 	dataChan := make(chan []byte)
 	errChan := make(chan error)
 
-	reader := bufio.NewReader(conn)
+	scanner := bufio.NewScanner(conn)
 
 	go func() {
 
-		for {
-			buf, err := reader.ReadBytes('\n')
+		for scanner.Scan() {
+			dataChan <- scanner.Bytes()
+		}
 
-			if err != nil {
-				errChan <- err
-			} else {
-				dataChan <- buf
-			}
+		if err := scanner.Err(); err != nil {
+			errChan <- err
 		}
 	}()
 
@@ -120,7 +118,8 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 							gotData = true
 
 							// Dump traffic
-							s.Log(EventRawComm{buf})
+							bufnl := append(buf, '\n')
+							s.Log(EventRawComm{bufnl})
 
 							// Unmarshal message (unwrapping in an AgentMessage structure)
 							var msg types.AgentMessage
@@ -183,7 +182,13 @@ func (s *CommServer) Listen(dispatcher CommDispatcherInterface) error {
 }
 
 func (s *CommServer) Log(l interface{}) {
-	s.events <- l
+	select {
+	case s.events <- l:
+		{
+		}
+	default:
+		fmt.Println("[commserver] Log dropped because buffer full")
+	}
 }
 
 func (s *CommServer) Events() chan interface{} {

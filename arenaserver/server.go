@@ -26,6 +26,7 @@ import (
 const (
 	POURCENT_LEFT_BEFORE_QUIT    = 50 // %
 	CLOSE_CONNECTION_BEFORE_KILL = 1 * time.Second
+	LOG_ENTRY_BUFFER             = 100
 )
 
 type Server struct {
@@ -119,7 +120,7 @@ func NewServer(host string, orch arenaservertypes.ContainerOrchestrator, gameDes
 		game:          game,
 		gameIsRunning: false,
 
-		events: make(chan interface{}),
+		events: make(chan interface{}, LOG_ENTRY_BUFFER),
 	}
 
 	return s
@@ -402,7 +403,11 @@ func (server *Server) Events() chan interface{} {
 }
 
 func (server *Server) Log(l interface{}) {
-	go func() {
-		server.events <- l
-	}()
+	select {
+	case server.events <- l:
+		{
+		}
+	default:
+		fmt.Println("[gameserver] Log dropped because buffer full")
+	}
 }

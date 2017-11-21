@@ -27,7 +27,7 @@ func (server *Server) listen() chan interface{} {
 	serveraddress := LISTEN_ADDR.String() + ":" + strconv.Itoa(server.port)
 	server.commserver = comm.NewCommServer(serveraddress)
 
-	// Consum com server events
+	// Consume comm server events
 	go func() {
 		for {
 			msg := <-server.commserver.Events()
@@ -59,9 +59,7 @@ func (server *Server) listen() chan interface{} {
 					panic(msg)
 				}
 			}()
-
 		}
-
 	}()
 
 	server.events <- EventLog{"Server listening on port " + strconv.Itoa(server.port)}
