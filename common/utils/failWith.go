@@ -25,18 +25,14 @@ func FailWith(err error) {
 		urlOptions := url.Values{}
 		urlOptions.Set("body", wrapInMarkdownCode(msg))
 
-		fmt.Println("")
-		fmt.Println("=== ")
-		fmt.Println("=== ❌ an error occurred.")
-		fmt.Println("===")
-		fmt.Println("=== Please report this error here: https://github.com/ByteArena/cli/issues/new?" + urlOptions.Encode())
-		fmt.Println("=== We will fix it as soon as possible.")
-		fmt.Println("===")
+		fmt.Println("❌  An error occurred.")
 		fmt.Println("")
 
 		fmt.Print(msg)
 
 		fmt.Println("")
+
+		fmt.Println("Please report this error here: https://github.com/ByteArena/cli/issues/new?" + urlOptions.Encode())
 
 		os.Exit(1)
 	} else {
@@ -53,7 +49,7 @@ func WarnWith(err error) {
 		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
 
 		fmt.Println("")
-		fmt.Println("=== ❌ warning")
+		fmt.Println("⚠️  Warning")
 		fmt.Println("")
 
 		fmt.Print(msg)

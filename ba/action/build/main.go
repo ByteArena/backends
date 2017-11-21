@@ -192,7 +192,7 @@ func warnForbiddenInstructions(content []byte) error {
 			New("Forbidden instruction. Remember to remove it when you will to deploy your agent.").
 			SetContext("name", name.String())
 
-		utils.WarnWith(berror)
+		utils.FailWith(berror)
 	}
 
 	return nil
