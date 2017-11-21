@@ -32,34 +32,33 @@ func (server *Server) listen() chan interface{} {
 		for {
 			msg := <-server.commserver.Events()
 
-			if server.gameIsRunning == false {
-				return // ignore message
-			}
+			go func() {
 
-			switch t := msg.(type) {
-			case comm.EventLog:
-				server.Log(EventLog{t.Value})
+				switch t := msg.(type) {
+				case comm.EventLog:
+					server.Log(EventLog{t.Value})
 
-			case comm.EventWarn:
-				server.Log(EventWarn{t.Err})
+				case comm.EventWarn:
+					server.Log(EventWarn{t.Err})
 
-			case comm.EventError:
-				server.Log(EventError{t.Err})
+				case comm.EventError:
+					server.Log(EventError{t.Err})
 
-			case comm.EventRawComm:
-				server.Log(EventRawComm{t.Buffer})
+				case comm.EventRawComm:
+					server.Log(EventRawComm{t.Buffer})
 
-			// An agent has probaly been disconnected
-			// We need to remove it from our state
-			case comm.EventConnDisconnected:
-				server.clearAgentConn(t.Conn)
-				server.Log(EventWarn{t.Err})
-				server.ensureEnoughAgentsAreInGame()
+				// An agent has probaly been disconnected
+				// We need to remove it from our state
+				case comm.EventConnDisconnected:
+					server.clearAgentConn(t.Conn)
+					server.Log(EventWarn{t.Err})
+					server.ensureEnoughAgentsAreInGame()
 
-			default:
-				msg := fmt.Sprintf("Unsupported message of type %s", reflect.TypeOf(msg))
-				panic(msg)
-			}
+				default:
+					msg := fmt.Sprintf("Unsupported message of type %s", reflect.TypeOf(msg))
+					panic(msg)
+				}
+			}()
 
 		}
 

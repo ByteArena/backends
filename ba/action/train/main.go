@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	TIME_BEFORE_FORCE_QUIT = 10 * time.Second
+	TIME_BEFORE_FORCE_QUIT = 5 * time.Second
 )
 
 func TrainAction(tps int, host string, vizport int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string, shouldProfile, dumpRaw bool) {

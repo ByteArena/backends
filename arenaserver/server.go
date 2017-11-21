@@ -138,14 +138,14 @@ func (server *Server) Start() (chan interface{}, error) {
 	server.Log(EventLog{"Listen"})
 	block := server.listen()
 
+	server.gameIsRunning = true
+
 	server.Log(EventLog{"Starting agent containers"})
 	err := server.startAgentContainers()
 
 	if err != nil {
 		return nil, bettererrors.New("Failed to start agent containers").With(err)
 	}
-
-	server.gameIsRunning = true
 
 	server.AddTearDownCall(func() error {
 		server.Log(EventLog{"Publish game state (" + server.arenaServerUUID + "stopped)"})
