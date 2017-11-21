@@ -1,5 +1,5 @@
-hash: 715bf0d99fafb72dd45c3004d86cb33c7e41a2197c0c7774b4f28a3870717dc0
-updated: 2017-11-20T13:28:38.297940723+01:00
+hash: c66ed18919f7029e0537f5bca902dfc22f5a997d1d2ef58d6f32dde2e6895050
+updated: 2017-11-21T13:33:11.641288629+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -96,6 +96,8 @@ imports:
   - tlsconfig
 - name: github.com/docker/go-units
   version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
+- name: github.com/dustinkirkland/golang-petname
+  version: d3c2ba80e75eeef10c5cf2fc76d2c809637376b3
 - name: github.com/fatih/color
   version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
 - name: github.com/flynn-archive/go-shlex

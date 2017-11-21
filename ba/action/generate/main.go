@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/bytearena/bytearena/ba/action/build"
+	petname "github.com/dustinkirkland/golang-petname"
 	bettererrors "github.com/xtuc/better-errors"
 )
 
@@ -45,7 +46,7 @@ func Main(name string) error {
 		name = "unknown"
 	}
 
-	dest := name + "-agent"
+	dest := petname.Generate(2, "-")
 
 	if url, hasSample := samples[name]; hasSample {
 		out, err := cloneRepo(dest, url)

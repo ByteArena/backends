@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/bytearena/bytearena/agentbuilder"
 	"github.com/bytearena/bytearena/common/utils"
@@ -111,42 +112,72 @@ func createTar(dir string) (io.Reader, error) {
 	buff := bytes.NewBuffer(nil)
 	tw := tar.NewWriter(buff)
 
-	files, err := ioutil.ReadDir(dir)
+	// Assert dockerfile
+	dockerfileContents, err := ioutil.ReadFile(path.Join(dir, DOCKER_BUILD_FILE))
 
 	if err != nil {
-		return nil, err
+		return buff, err
 	}
 
-	for _, f := range files {
+	err = failForbiddenInstructions(dockerfileContents)
 
-		// FIXME(sven): follow subdirs
-		if f.IsDir() {
-			continue
-		}
+	if err != nil {
+		return buff, err
+	}
 
-		tw.WriteHeader(&tar.Header{
-			Name: f.Name(),
-			Size: f.Size(),
-		})
+	err = doTar(tw, dir)
 
-		contents, err := ioutil.ReadFile(path.Join(dir, f.Name()))
-
-		if f.Name() == DOCKER_BUILD_FILE {
-			err = warnForbiddenInstructions(contents)
-
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		_, err = tw.Write(contents)
-
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return buff, err
 	}
 
 	return buff, nil
+}
+
+func removePrefix(str string) string {
+	if strings.Contains(str, "/") {
+
+		parts := strings.Split(str, "/")
+		return path.Join(parts[1:]...)
+	}
+
+	return str
+}
+
+func doTar(tw *tar.Writer, dir string) error {
+	files, err := ioutil.ReadDir(dir)
+
+	if err != nil {
+		return err
+	}
+
+	for _, f := range files {
+		fqn := path.Join(dir, f.Name())
+		relpath := removePrefix(fqn)
+
+		if f.IsDir() {
+			err := doTar(tw, fqn)
+
+			if err != nil {
+				return err
+			}
+		} else {
+			tw.WriteHeader(&tar.Header{
+				Name: relpath,
+				Size: f.Size(),
+				Mode: int64(f.Mode()),
+			})
+
+			contents, err := ioutil.ReadFile(fqn)
+			_, err = tw.Write(contents)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func runDockerBuild(cli *client.Client, name, dir string) error {
@@ -183,7 +214,7 @@ func runDockerBuild(cli *client.Client, name, dir string) error {
 	return nil
 }
 
-func warnForbiddenInstructions(content []byte) error {
+func failForbiddenInstructions(content []byte) error {
 	forbiddenInstructions, err := agentbuilder.DockerfileFindForbiddenInstructions(bytes.NewReader(content))
 
 	if err != nil {

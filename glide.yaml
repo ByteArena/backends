@@ -70,3 +70,4 @@ import:
   - jlexer
 - package: github.com/phayes/freeport
   version: 1.0.2
+- package: github.com/dustinkirkland/golang-petname
