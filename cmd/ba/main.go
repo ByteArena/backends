@@ -78,7 +78,7 @@ func makeapp() *cli.App {
 				cli.StringSliceFlag{Name: "agent", Usage: "Agent images"},
 				cli.IntFlag{Name: "port", Value: 8080, Usage: "Port serving the trainer"},
 				cli.StringFlag{Name: "record-file", Value: "", Usage: "Destination file for recording the game"},
-				cli.StringFlag{Name: "map", Value: "island", Usage: "Name of the map used by the trainer"},
+				cli.StringFlag{Name: "map", Value: "hexagon", Usage: "Name of the map used by the trainer"},
 				cli.BoolFlag{Name: "no-browser", Usage: "Disable automatic browser opening at start"},
 				cli.BoolFlag{Name: "debug", Usage: "Enable debug logging"},
 				cli.BoolFlag{Name: "profile", Usage: "Enable execution profiling"},
