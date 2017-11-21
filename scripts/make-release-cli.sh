@@ -6,7 +6,7 @@ upx -V > /dev/null
 
 BUILDS=(
     "GOARCH=amd64 GOOS=linux"
-    "GOARCH=amd64 GOOS=windows"
+    # "GOARCH=amd64 GOOS=windows"
     "GOARCH=amd64 GOOS=darwin"
 )
 
