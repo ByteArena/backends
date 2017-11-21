@@ -25,7 +25,7 @@ const (
 
 func welcomeBanner() {
 	fmt.Println("=== ")
-	fmt.Println("=== 🤖  Welcome on Byte Arena Builder Bot (the local one) !")
+	fmt.Println("=== 🤖  Welcome! I'm the Byte Arena Builder Bot (the local one)")
 	fmt.Println("=== ")
 	fmt.Println("")
 }
@@ -33,8 +33,8 @@ func welcomeBanner() {
 func successBanner(name string) {
 	fmt.Println("")
 	fmt.Println("=== ")
-	fmt.Println("=== ✅  Your agent has been builded. Let'em know who's the best !")
-	fmt.Println("===     Its name is: " + name)
+	fmt.Println("=== ✅  Your agent has been built. Let'em know who's the best!")
+	fmt.Println("===    Its name is: " + name)
 	fmt.Println("=== ")
 	fmt.Println("")
 }
@@ -62,6 +62,9 @@ func Main(dir string) error {
 	}
 
 	welcomeBanner()
+
+	fmt.Println("=== Building your agent now.")
+	fmt.Println("")
 
 	name := path.Base(dir)
 	err = runDockerBuild(cli, name, dir)

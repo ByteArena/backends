@@ -25,6 +25,7 @@ func FailWith(err error) {
 		urlOptions := url.Values{}
 		urlOptions.Set("body", wrapInMarkdownCode(msg))
 
+		fmt.Println("")
 		fmt.Println("❌  An error occurred.")
 		fmt.Println("")
 
