@@ -16,6 +16,10 @@ type Shooting struct {
 	ShootCost         float64 // Const; Energy consumed by a shot
 	ShootCooldown     int     // Const; number of ticks to wait between every shot
 	LastShot          int     // Number of ticks since last shot
+
+	ProjectileSpeed  float64 // Const; expressed in m/tick
+	ProjectileDamage float64 // Const; amount of life consumed on impact
+	ProjectileRange  float64 // Const, in meter
 }
 
 func BuildShooting(shooting *Shooting) *Shooting {

@@ -1,6 +1,8 @@
 package deathmatch
 
 import (
+	"math"
+
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -10,8 +12,14 @@ import (
 
 func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.EntityID, position vector.Vector2, velocity vector.Vector2) *ecs.Entity {
 
-	bodyRadius := 0.3
-	speed := 15.0
+	ownerAspects := deathmatch.getEntity(ownerid,
+		deathmatch.shootingComponent,
+	)
+
+	if ownerAspects == nil {
+		// Should never happen
+		return nil
+	}
 
 	///////////////////////////////////////////////////////////////////////////
 	tps := deathmatch.gameDescription.GetTps()
@@ -19,6 +27,19 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 	timeScaleIn := float64(tps)
 	timeScaleOut := 1 / timeScaleIn
 	///////////////////////////////////////////////////////////////////////////
+
+	shootingAspect := ownerAspects.Components[deathmatch.shootingComponent].(*Shooting)
+
+	bodyRadius := 0.3                                   // meters
+	projectilespeed := shootingAspect.ProjectileSpeed   // m/tick
+	projectiledamage := shootingAspect.ProjectileDamage // amount of life consumed on impact
+	projectilerange := shootingAspect.ProjectileRange   // in meter
+
+	projectilettl := 0
+
+	if projectilespeed > 0 {
+		projectilettl = int(math.Ceil(projectilerange / projectilespeed))
+	}
 
 	projectile := deathmatch.manager.NewEntity()
 
@@ -31,7 +52,7 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 	bodydef.Position.Set(physicalReferentialPosition.GetX(), physicalReferentialPosition.GetY())
 
 	physicalReferentialVelocity := velocity.
-		SetMag(speed).
+		SetMag(projectilespeed).
 		Scale(timeScaleIn).
 		Transform(deathmatch.physicalToAgentSpaceInverseTransform)
 
@@ -57,8 +78,8 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 	return projectile.
 		AddComponent(deathmatch.physicalBodyComponent, &PhysicalBody{
 			body:               body,
-			maxSpeed:           speed,
-			maxAngularVelocity: 10,
+			maxSpeed:           projectilespeed,
+			maxAngularVelocity: 0,
 			dragForce:          0,
 
 			pointTransformIn:  deathmatch.physicalToAgentSpaceInverseTransform,
@@ -77,11 +98,11 @@ func (deathmatch *DeathmatchGame) NewEntityBallisticProjectile(ownerid ecs.Entit
 		}).
 		AddComponent(deathmatch.lifecycleComponent, &Lifecycle{
 			tickBirth: deathmatch.ticknum,
-			maxAge:    300,
+			maxAge:    projectilettl,
 		}).
 		AddComponent(deathmatch.ownedComponent, &Owned{ownerid}).
 		AddComponent(deathmatch.impactorComponent, &Impactor{
-			damage: 30,
+			damage: projectiledamage,
 		}).
 		AddComponent(deathmatch.collidableComponent, NewCollidable(
 			CollisionGroup.Projectile,

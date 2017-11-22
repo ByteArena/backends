@@ -328,9 +328,23 @@ func (deathmatch *DeathmatchGame) GetAgentWelcome(entityid ecs.EntityID) []byte 
 
 		// Shoot
 		MaxShootEnergy:    shootingAspect.MaxShootEnergy,
-		ShootCost:         shootingAspect.ShootCost,
 		ShootRecoveryRate: shootingAspect.ShootRecoveryRate,
-		ShootCooldown:     shootingAspect.ShootCooldown,
+
+		// DefaultWeapon: "gun",
+
+		Gear: map[string]agentGearSpecs{
+			"gun": agentGearSpecs{
+				Genre: "weapon",
+				Kind:  "gun",
+				Specs: gunSpecs{
+					ShootCost:        shootingAspect.ShootCost,
+					ShootCooldown:    shootingAspect.ShootCooldown,
+					ProjectileSpeed:  shootingAspect.ProjectileSpeed,
+					ProjectileDamage: shootingAspect.ProjectileDamage,
+					ProjectileRange:  shootingAspect.ProjectileRange,
+				},
+			},
+		},
 	}
 
 	res, _ := p.MarshalJSON()

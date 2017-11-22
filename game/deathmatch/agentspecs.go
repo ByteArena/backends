@@ -15,7 +15,21 @@ type agentSpecs struct {
 
 	// Shoot
 	MaxShootEnergy    float64 `json:"maxshootenergy"`
-	ShootCost         float64 `json:"shootcost"`
 	ShootRecoveryRate float64 `json:"shootrecoveryrate"`
-	ShootCooldown     int     `json:"shootcooldown"`
+
+	Gear map[string]agentGearSpecs
+}
+
+type agentGearSpecs struct {
+	Genre string // Gun
+	Kind  string
+	Specs interface{}
+}
+
+type gunSpecs struct {
+	ShootCost        float64 `json:"shootcost"`        // energy cost of 1 projectile
+	ShootCooldown    int     `json:"shootcooldown"`    // time to wait between shots (in ticks)
+	ProjectileSpeed  float64 `json:"projectilespeed"`  // projectile speed (in m/tick)
+	ProjectileDamage float64 `json:"projectiledamage"` // damage inflicted when projectile hits
+	ProjectileRange  float64 `json:"projectilerange"`  // range of projectile, in m
 }

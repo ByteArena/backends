@@ -100,6 +100,10 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *
 			ShootCooldown:     3,    // Const; number of ticks to wait between every shot
 			ShootCost:         200,  // Const
 			LastShot:          0,    // Number of ticks since last shot; 0 => cannot shoot immediately, must wait for first cooldown
+
+			ProjectileSpeed:  15,   // Const; m/tick
+			ProjectileDamage: 400,  // Const; amount of life consumed on target when projectile hits
+			ProjectileRange:  1200, // in m
 		})).
 		AddComponent(deathmatch.steeringComponent, NewSteering(
 			maxSteering, // MaxSteering
