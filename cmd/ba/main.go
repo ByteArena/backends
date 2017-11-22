@@ -29,6 +29,7 @@ func makeapp() *cli.App {
 	app := cli.NewApp()
 	app.Description = "Byte Arena cli tool"
 	app.Name = "Byte Arena cli tool"
+	app.EnableBashCompletion = true
 
 	app.Commands = []cli.Command{
 		{
