@@ -16,6 +16,16 @@ var (
 	}
 )
 
+func BashComplete() (string, error) {
+	var out string
+
+	for k, _ := range samples {
+		out += fmt.Sprintf("%s\n", k)
+	}
+
+	return out, nil
+}
+
 func cloneRepo(dest, url string) (string, error) {
 	cmd := exec.Command("git", "clone", url, dest)
 
