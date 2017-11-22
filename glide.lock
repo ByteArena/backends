@@ -1,10 +1,12 @@
-hash: c66ed18919f7029e0537f5bca902dfc22f5a997d1d2ef58d6f32dde2e6895050
-updated: 2017-11-21T13:33:11.641288629+01:00
+hash: 0333194517d40401be5f366e229bb7e756f5792358c9968a3c956d10e14eb167
+updated: 2017-11-22T17:00:43.147417366+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
 - name: github.com/akavel/polyclip-go
   version: 2cfdb71461bde9115450eb65688337e3f8ee715e
+- name: github.com/asaskevich/EventBus
+  version: 9223ecd796146991d8ffc3b822d5aa02f15aee97
 - name: github.com/Azure/go-ansiterm
   version: d6e3b3328b783f23731bc4d058875b0371ff8109
   subpackages:

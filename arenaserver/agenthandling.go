@@ -36,7 +36,10 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 
 	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
 
-	agententity := s.game.NewEntityAgent(vector.MakeVector2(agentSpawningPos.Point.GetX(), agentSpawningPos.Point.GetY()))
+	agententity := s.game.NewEntityAgent(
+		agentname,
+		vector.MakeVector2(agentSpawningPos.Point.GetX(), agentSpawningPos.Point.GetY()),
+	)
 
 	///////////////////////////////////////////////////////////////////////////
 	// Building the agent proxy (concrete link with container and communication pipe)

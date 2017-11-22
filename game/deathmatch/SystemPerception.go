@@ -4,6 +4,8 @@ import (
 	"math"
 	"sync"
 
+	"github.com/bytearena/bytearena/game/deathmatch/mailboxmessages"
+
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils/trigo"
 	"github.com/bytearena/bytearena/common/utils/vector"
@@ -22,7 +24,7 @@ var threepi2 = math.Pi + halfpi
 // https://legends2k.github.io/2d-fov/design.html
 // http://ncase.me/sight-and-light/
 
-func systemPerception(deathmatch *DeathmatchGame) {
+func systemPerception(deathmatch *DeathmatchGame, mailboxes map[ecs.EntityID]([]mailboxmessages.MailboxMessageInterface)) {
 	entitiesWithPerception := deathmatch.perceptorsView.Get()
 	wg := sync.WaitGroup{}
 	wg.Add(len(entitiesWithPerception))
@@ -30,10 +32,19 @@ func systemPerception(deathmatch *DeathmatchGame) {
 	for _, entityResult := range entitiesWithPerception {
 		perceptionAspect := entityResult.Components[deathmatch.perceptionComponent].(*Perception)
 		go func(perceptionAspect *Perception, entity *ecs.Entity, wg *sync.WaitGroup) {
+
+			entityID := entity.GetID()
+
+			messages, ok := mailboxes[entityID]
+			if !ok {
+				messages = nil
+			}
+
 			perceptionAspect.SetPerception(computeAgentPerception(
 				deathmatch,
 				deathmatch.gameDescription.GetMapContainer(),
 				entity.GetID(),
+				messages,
 			))
 			wg.Done()
 		}(perceptionAspect, entityResult.Entity, &wg)
@@ -42,7 +53,7 @@ func systemPerception(deathmatch *DeathmatchGame) {
 	wg.Wait()
 }
 
-func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID) *agentPerception {
+func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapContainer, entityid ecs.EntityID, messages []mailboxmessages.MailboxMessageInterface) *agentPerception {
 	//watch := utils.MakeStopwatch("computeAgentPerception()")
 	//watch.Start("global")
 
@@ -73,6 +84,18 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 
 	// watch.Stop("global")
 	// fmt.Println(watch.String())
+
+	p.Messages = make([]mailboxMessagePerceptionWrapper, 0)
+
+	if messages != nil {
+		for i := 0; i < len(messages); i++ {
+			msg := messages[i]
+			p.Messages = append(p.Messages, mailboxMessagePerceptionWrapper{
+				Subject: msg.Subject(),
+				Body:    msg,
+			})
+		}
+	}
 
 	return p
 }

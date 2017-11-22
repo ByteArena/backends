@@ -1,13 +1,18 @@
 package deathmatch
 
 import (
+	"github.com/bytearena/bytearena/game/deathmatch/mailboxmessages"
+
 	"github.com/bytearena/box2d"
 	"github.com/bytearena/bytearena/arenaserver/types"
 	commontypes "github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils/vector"
 	"github.com/bytearena/bytearena/game/common"
+	"github.com/bytearena/bytearena/game/deathmatch/events"
 	"github.com/bytearena/ecs"
 	"github.com/go-gl/mathgl/mgl64"
+
+	ebus "github.com/asaskevich/EventBus"
 )
 
 type DeathmatchGame struct {
@@ -15,6 +20,8 @@ type DeathmatchGame struct {
 
 	gameDescription commontypes.GameDescriptionInterface
 	manager         *ecs.Manager
+
+	bus ebus.Bus
 
 	physicalToAgentSpaceTransform   *mgl64.Mat4
 	physicalToAgentSpaceTranslation [3]float64
@@ -39,6 +46,7 @@ type DeathmatchGame struct {
 	collidableComponent   *ecs.Component
 	lifecycleComponent    *ecs.Component
 	respawnComponent      *ecs.Component
+	mailboxComponent      *ecs.Component
 
 	agentsView     *ecs.View
 	renderableView *ecs.View
@@ -49,6 +57,7 @@ type DeathmatchGame struct {
 	impactorView   *ecs.View
 	lifecycleView  *ecs.View
 	respawnView    *ecs.View
+	mailboxView    *ecs.View
 
 	PhysicalWorld     *box2d.B2World
 	collisionListener *collisionListener
@@ -63,6 +72,8 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 	game := &DeathmatchGame{
 		gameDescription: gameDescription,
 		manager:         manager,
+
+		bus: ebus.New(),
 
 		physicalToAgentSpaceTransform:        &transform,
 		physicalToAgentSpaceInverseTransform: &inverseTransform,
@@ -80,6 +91,7 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		collidableComponent:   manager.NewComponent(),
 		lifecycleComponent:    manager.NewComponent(),
 		respawnComponent:      manager.NewComponent(),
+		mailboxComponent:      manager.NewComponent(),
 	}
 
 	game.setPhysicalToAgentSpaceTransform(
@@ -132,6 +144,10 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		game.respawnComponent,
 	)
 
+	game.mailboxView = manager.CreateView(
+		game.mailboxComponent,
+	)
+
 	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity, data interface{}) {
 		physicalAspect := data.(*PhysicalBody)
 		game.PhysicalWorld.DestroyBody(physicalAspect.GetBody())
@@ -140,6 +156,12 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 	game.collisionListener = newCollisionListener(game)
 	game.PhysicalWorld.SetContactListener(game.collisionListener)
 	game.PhysicalWorld.SetContactFilter(newCollisionFilter(game))
+
+	// Subscribing to gameplay events
+	game.BusSubscribe(events.EntityFragged{}, game.onEntityFragged)
+	game.BusSubscribe(events.EntityHit{}, game.onEntityHit)
+	game.BusSubscribe(events.EntityRespawning{}, game.onEntityRespawning)
+	game.BusSubscribe(events.EntityRespawned{}, game.onEntityRespawned)
 
 	return game
 }
@@ -272,10 +294,15 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 	//watch.Stop("systemRespawn")
 
 	///////////////////////////////////////////////////////////////////////////
+	// Fetching and emptying mailboxes for entities mailed in this tick
+	///////////////////////////////////////////////////////////////////////////
+	mailboxes := systemMailboxes(deathmatch)
+
+	///////////////////////////////////////////////////////////////////////////
 	// On construit les perceptions
 	///////////////////////////////////////////////////////////////////////////
 	//watch.Start("systemPerception")
-	systemPerception(deathmatch)
+	systemPerception(deathmatch, mailboxes)
 	//watch.Stop("systemPerception")
 
 	///////////////////////////////////////////////////////////////////////////
@@ -415,4 +442,122 @@ func initPhysicalWorld(deathmatch *DeathmatchGame) {
 		polygon := obstacle.Polygon
 		deathmatch.NewEntityObstacle(polygon, obstacle.Name)
 	}
+}
+
+func (deathmatch *DeathmatchGame) BusSubscribe(e events.EventInterface, cbk interface{}) {
+	deathmatch.bus.Subscribe(e.Topic(), cbk)
+}
+
+func (deathmatch *DeathmatchGame) BusPublish(e events.EventInterface) {
+	deathmatch.bus.Publish(e.Topic(), e)
+}
+
+func (game *DeathmatchGame) onEntityFragged(e events.EntityFragged) {
+	// We have to determine the identity of the fragger
+	// Since it's a projectile that actually made the frag, not an agent
+
+	fraggerEntityID := e.FraggedBy
+	ownedQuery := game.getEntity(e.FraggedBy, game.ownedComponent)
+	if ownedQuery != nil {
+		ownedAspect := ownedQuery.Components[game.ownedComponent].(*Owned)
+		fraggerEntityID = ownedAspect.GetOwner()
+	}
+
+	///////////////////////////////////////////////////////////////////////
+	// Notifying fraggee
+	///////////////////////////////////////////////////////////////////////
+	fraggeeMailboxQuery := game.getEntity(e.Entity, game.mailboxComponent)
+	if fraggeeMailboxQuery == nil {
+		// should never happen
+		return
+	}
+
+	mailboxAspect := fraggeeMailboxQuery.Components[game.mailboxComponent].(*Mailbox)
+	mailboxAspect.PushMessage(mailboxmessages.YouHaveBeenFragged{
+		By: fraggerEntityID.String(),
+	})
+
+	///////////////////////////////////////////////////////////////////////
+	// Notifying fragger
+	///////////////////////////////////////////////////////////////////////
+
+	fraggerMailboxQuery := game.getEntity(fraggerEntityID, game.mailboxComponent)
+	if fraggerMailboxQuery == nil {
+		// should never happen
+		return
+	}
+
+	mailboxAspect = fraggerMailboxQuery.Components[game.mailboxComponent].(*Mailbox)
+	mailboxAspect.PushMessage(mailboxmessages.YouHaveFragged{
+		Who: e.Entity.String(),
+	})
+}
+
+func (game *DeathmatchGame) onEntityHit(e events.EntityHit) {
+
+	// We have to determine the identity of the hitter
+	// Since it's a projectile that actually made the hit, not an agent
+
+	hitterEntityID := e.HitBy
+	ownedQuery := game.getEntity(e.HitBy, game.ownedComponent)
+	if ownedQuery != nil {
+		ownedAspect := ownedQuery.Components[game.ownedComponent].(*Owned)
+		hitterEntityID = ownedAspect.GetOwner()
+	}
+
+	///////////////////////////////////////////////////////////////////////
+	// Notifying hit entity
+	///////////////////////////////////////////////////////////////////////
+
+	query := game.getEntity(e.Entity, game.mailboxComponent)
+	if query == nil {
+		// should never happen
+		return
+	}
+
+	mailboxAspect := query.Components[game.mailboxComponent].(*Mailbox)
+	mailboxAspect.PushMessage(mailboxmessages.YouHaveBeenHit{
+		Kind:       "projectile",
+		ComingFrom: e.ComingFrom,
+		Damage:     e.Damage,
+	})
+
+	///////////////////////////////////////////////////////////////////////
+	// Notifying hitter entity
+	///////////////////////////////////////////////////////////////////////
+
+	query = game.getEntity(hitterEntityID, game.mailboxComponent)
+	if query == nil {
+		// should never happen
+		return
+	}
+
+	mailboxAspect = query.Components[game.mailboxComponent].(*Mailbox)
+	mailboxAspect.PushMessage(mailboxmessages.YouHaveHit{
+		Who: string(e.Entity),
+	})
+}
+
+func (game *DeathmatchGame) onEntityRespawning(e events.EntityRespawning) {
+	query := game.getEntity(e.Entity, game.mailboxComponent)
+	if query == nil {
+		// should never happen
+		return
+	}
+
+	mailboxAspect := query.Components[game.mailboxComponent].(*Mailbox)
+	mailboxAspect.PushMessage(mailboxmessages.YouAreRespawning{
+		RespawningIn: e.RespawnsIn,
+	})
+}
+
+func (game *DeathmatchGame) onEntityRespawned(e events.EntityRespawned) {
+	query := game.getEntity(e.Entity, game.mailboxComponent)
+	if query == nil {
+		// should never happen
+		return
+	}
+
+	mailboxAspect := query.Components[game.mailboxComponent].(*Mailbox)
+	mailboxAspect.PushMessage(mailboxmessages.YouHaveRespawned{})
 }

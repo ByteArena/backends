@@ -13,6 +13,8 @@ type collision struct {
 	collidableAspectA *Collidable
 	collidableAspectB *Collidable
 	point             vector.Vector2
+	collisionAngleA   float64
+	collisionAngleB   float64
 	// normal            vector.Vector2
 	// toi               float64
 	// friction          float64
@@ -35,8 +37,16 @@ func systemCollisions(deathmatch *DeathmatchGame) []collision {
 			continue
 		}
 
+		// linearVelocityA := contact.GetFixtureA().GetBody().GetLinearVelocity()
+		// linearVelocityB := contact.GetFixtureB().GetBody().GetLinearVelocity()
+
 		worldManifold := box2d.MakeB2WorldManifold()
 		coll.GetWorldManifold(&worldManifold)
+
+		velA := vector.FromB2Vec2(coll.GetFixtureA().GetBody().GetLinearVelocityFromWorldPoint(worldManifold.Points[0]))
+		velB := vector.FromB2Vec2(coll.GetFixtureB().GetBody().GetLinearVelocityFromWorldPoint(worldManifold.Points[0]))
+		collisionAngleA := velB.Sub(velA).Angle()
+		collisionAngleB := velA.Sub(velB).Angle()
 
 		entityResultA := deathmatch.getEntity(A.ID, deathmatch.collidableComponent)
 		entityResultB := deathmatch.getEntity(B.ID, deathmatch.collidableComponent)
@@ -55,6 +65,8 @@ func systemCollisions(deathmatch *DeathmatchGame) []collision {
 			collidableAspectA: collidableAspectA,
 			collidableAspectB: collidableAspectB,
 			point:             vector.FromB2Vec2(worldManifold.Points[0]).Transform(deathmatch.physicalToAgentSpaceTransform),
+			collisionAngleA:   collisionAngleA,
+			collisionAngleB:   collisionAngleB,
 			//normal:            vector.FromB2Vec2(worldManifold.Normal).Transform(deathmatch.physicalToAgentSpaceTransform),
 			// toi:               coll.GetTOI(),
 			// friction:          coll.GetFriction(),

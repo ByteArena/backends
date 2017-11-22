@@ -1,31 +1,38 @@
 package deathmatch
 
 import (
+	"github.com/bytearena/bytearena/game/deathmatch/events"
 	"github.com/bytearena/ecs"
 )
 
+type killedType struct {
+	Entity   ecs.EntityID
+	KilledBy ecs.EntityID
+}
+
 func systemHealth(deathmatch *DeathmatchGame, collisions []collision) {
 
-	killed := make([]*ecs.QueryResult, 0)
+	killed := make([]killedType, 0)
 
 	for _, coll := range collisions {
+
 		entityResultAImpactor := deathmatch.getEntity(coll.entityIDA, deathmatch.impactorComponent)
 		entityResultAHealth := deathmatch.getEntity(coll.entityIDA, deathmatch.healthComponent)
 
 		entityResultBImpactor := deathmatch.getEntity(coll.entityIDB, deathmatch.impactorComponent)
 		entityResultBHealth := deathmatch.getEntity(coll.entityIDB, deathmatch.healthComponent)
 
-		if entityResultAImpactor != nil && entityResultAHealth != nil && entityResultBImpactor != nil {
-			impactIfPossible(deathmatch, entityResultAImpactor, entityResultAHealth, entityResultBImpactor, &killed)
+		if entityResultAHealth != nil && entityResultBImpactor != nil {
+			impactIfPossible(deathmatch, coll.entityIDA, entityResultAHealth, entityResultBImpactor, coll.collisionAngleA, &killed)
 		}
 
-		if entityResultBImpactor != nil && entityResultBHealth != nil && entityResultAImpactor != nil {
-			impactIfPossible(deathmatch, entityResultBImpactor, entityResultBHealth, entityResultAImpactor, &killed)
+		if entityResultBHealth != nil && entityResultAImpactor != nil {
+			impactIfPossible(deathmatch, coll.entityIDB, entityResultBHealth, entityResultAImpactor, coll.collisionAngleB, &killed)
 		}
 	}
 
-	for _, qrKilled := range killed {
-		lifecycleQr := deathmatch.getEntity(qrKilled.Entity.GetID(), deathmatch.lifecycleComponent)
+	for _, kill := range killed {
+		lifecycleQr := deathmatch.getEntity(kill.Entity, deathmatch.lifecycleComponent)
 		if lifecycleQr == nil {
 			continue
 		}
@@ -33,18 +40,21 @@ func systemHealth(deathmatch *DeathmatchGame, collisions []collision) {
 		lifecycleAspect := lifecycleQr.Components[deathmatch.lifecycleComponent].(*Lifecycle)
 		lifecycleAspect.SetDeath(deathmatch.ticknum)
 
-		// TODO: LOG EVENT HASFRAGGED on impactor
-		// TODO: LOG EVENT DEATH on impactee; OR MAYBE IN lifecycleAspect.SetDeath ?
+		// Publish Frag event
+		deathmatch.BusPublish(events.EntityFragged{
+			Entity:    kill.Entity,
+			FraggedBy: kill.KilledBy,
+		})
 	}
 }
 
-func impactIfPossible(deathmatch *DeathmatchGame, impactee *ecs.QueryResult, impacteeHealth *ecs.QueryResult, impactor *ecs.QueryResult, killed *[]*ecs.QueryResult) {
+func impactIfPossible(deathmatch *DeathmatchGame, impacteeID ecs.EntityID, impacteeHealth *ecs.QueryResult, impactor *ecs.QueryResult, collisionAngle float64, killed *[]killedType) {
 
-	lifecycleQr := deathmatch.getEntity(impactee.Entity.ID, deathmatch.lifecycleComponent)
+	lifecycleQr := deathmatch.getEntity(impacteeID, deathmatch.lifecycleComponent)
 	if lifecycleQr == nil {
 
 		// no lifecycle on impactee; cannot be locked, impacting !
-		impactWithDamage(deathmatch, impacteeHealth, impactor, killed)
+		impactWithDamage(deathmatch, impacteeHealth, impactor, collisionAngle, killed)
 	} else {
 
 		// There's a lifecycle on impactee; check if entity is locked
@@ -52,21 +62,33 @@ func impactIfPossible(deathmatch *DeathmatchGame, impactee *ecs.QueryResult, imp
 
 		if !lifecycleAspect.locked {
 			// impactee not be locked, impacting !
-			impactWithDamage(deathmatch, impacteeHealth, impactor, killed)
+			impactWithDamage(deathmatch, impacteeHealth, impactor, collisionAngle, killed)
 		}
 	}
 }
 
-func impactWithDamage(deathmatch *DeathmatchGame, qrHealth *ecs.QueryResult, qrImpactor *ecs.QueryResult, killed *[]*ecs.QueryResult) {
+func impactWithDamage(deathmatch *DeathmatchGame, qrHealth *ecs.QueryResult, qrImpactor *ecs.QueryResult, collisionAngle float64, killed *[]killedType) {
+
+	impactedID := qrHealth.Entity.GetID()
+	impactorID := qrImpactor.Entity.GetID()
 
 	healthAspect := qrHealth.Components[deathmatch.healthComponent].(*Health)
 	impactorAspect := qrImpactor.Components[deathmatch.impactorComponent].(*Impactor)
 
-	// TODO: LOG EVENT TOOKHIT on impactee, and HASHIT on impactor
+	// Publish Hit event
+	deathmatch.BusPublish(events.EntityHit{
+		Entity:     impactedID,
+		HitBy:      impactorID,
+		ComingFrom: collisionAngle,
+		Damage:     impactorAspect.damage,
+	})
 
 	healthAspect.AddLife(-1 * impactorAspect.damage)
 	if healthAspect.GetLife() <= 0 {
 		healthAspect.SetLife(0)
-		*killed = append(*killed, qrHealth)
+		*killed = append(*killed, killedType{
+			Entity:   impactedID,
+			KilledBy: impactorID,
+		})
 	}
 }

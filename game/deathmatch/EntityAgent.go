@@ -1,7 +1,6 @@
 package deathmatch
 
 import (
-	"log"
 	"math/rand"
 
 	"github.com/bytearena/box2d"
@@ -9,10 +8,11 @@ import (
 	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/bytearena/common/utils/number"
 	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/bytearena/game/deathmatch/events"
 	"github.com/bytearena/ecs"
 )
 
-func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *ecs.Entity {
+func (deathmatch *DeathmatchGame) NewEntityAgent(agentname string, spawnPosition vector.Vector2) *ecs.Entity {
 
 	agent := deathmatch.manager.NewEntity()
 
@@ -87,7 +87,9 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *
 			maxLife: 1000, // Const
 			life:    1000, // Current life level
 		}).
-		AddComponent(deathmatch.playerComponent, &Player{}).
+		AddComponent(deathmatch.playerComponent, &Player{
+			Name: agentname,
+		}).
 		AddComponent(deathmatch.renderComponent, &Render{
 			type_:       "agent",
 			static:      false,
@@ -119,7 +121,7 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *
 		).SetCollisionScriptFunc(agentCollisionScript)).
 		AddComponent(deathmatch.lifecycleComponent, &Lifecycle{
 			onDeath: func() {
-				log.Println("AGENT DEATH !!!!!!!!!!!!!!!!!!!!!")
+
 				qr := deathmatch.getEntity(agent.GetID(), deathmatch.respawnComponent, deathmatch.lifecycleComponent)
 				if qr == nil {
 					// should never happen
@@ -128,12 +130,15 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *
 
 				respawnAspect := qr.Components[deathmatch.respawnComponent].(*Respawn)
 				lifecycleAspect := qr.Components[deathmatch.lifecycleComponent].(*Lifecycle)
-
 				lifecycleAspect.locked = true
 
 				respawnAspect.isRespawning = true
 				respawnAspect.respawningCountdown = deathmatch.gameDescription.GetTps() * 5 // 5 seconds
 
+				deathmatch.BusPublish(events.EntityRespawning{
+					Entity:     agent.GetID(),
+					RespawnsIn: respawnAspect.respawningCountdown,
+				})
 			},
 		}).
 		AddComponent(deathmatch.respawnComponent, &Respawn{
@@ -161,8 +166,14 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *
 				physicalAspect.SetPosition(vector.MakeVector2(spawnPoint.GetX(), spawnPoint.GetY()))
 				lifecycleAspect.locked = false
 				healthAspect.Restore()
+
+				deathmatch.BusPublish(events.EntityRespawned{
+					Entity:        agent.GetID(),
+					StartingPoint: [2]float64{spawnPoint.GetX(), spawnPoint.GetY()},
+				})
 			},
-		})
+		}).
+		AddComponent(deathmatch.mailboxComponent, &Mailbox{})
 }
 
 func agentCollisionScript(game *DeathmatchGame, entityID ecs.EntityID, otherEntityID ecs.EntityID, collidableAspect *Collidable, otherCollidableAspectB *Collidable, point vector.Vector2) {
