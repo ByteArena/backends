@@ -58,6 +58,10 @@ func (a Vector2) Add(b Vector2) Vector2 {
 }
 
 func (a Vector2) AddScalar(f float64) Vector2 {
+	if math.IsNaN(f) {
+		return a
+	}
+
 	a[0] += f
 	a[1] += f
 	return a
@@ -70,12 +74,20 @@ func (a Vector2) Sub(b Vector2) Vector2 {
 }
 
 func (a Vector2) SubScalar(f float64) Vector2 {
+	if math.IsNaN(f) {
+		return a
+	}
+
 	a[0] -= f
 	a[1] -= f
 	return a
 }
 
 func (a Vector2) Scale(scale float64) Vector2 {
+	if math.IsNaN(scale) {
+		return a
+	}
+
 	a[0] *= scale
 	a[1] *= scale
 	return a
@@ -88,6 +100,10 @@ func (a Vector2) Mult(b Vector2) Vector2 {
 }
 
 func (a Vector2) MultScalar(f float64) Vector2 {
+	if math.IsNaN(f) {
+		return a
+	}
+
 	a[0] *= f
 	a[1] *= f
 	return a
@@ -100,6 +116,10 @@ func (a Vector2) Div(b Vector2) Vector2 {
 }
 
 func (a Vector2) DivScalar(f float64) Vector2 {
+	if math.IsNaN(f) {
+		return a
+	}
+
 	a[0] /= f
 	a[1] /= f
 	return a
@@ -114,6 +134,10 @@ func (a Vector2) MagSq() float64 {
 }
 
 func (a Vector2) SetMag(mag float64) Vector2 {
+	if math.IsNaN(mag) {
+		return a
+	}
+
 	return a.Normalize().MultScalar(mag)
 }
 
@@ -146,14 +170,25 @@ func (a Vector2) MoveCenterTo(newcenterpos Vector2) Vector2 {
 }
 
 func (a Vector2) SetAngle(radians float64) Vector2 {
+	if math.IsNaN(radians) {
+		return a
+	}
+
 	mag := a.Mag()
 	a[0] = math.Sin(radians) * mag
 	a[1] = math.Cos(radians) * mag
+
+	if math.IsNaN(a[0]) || math.IsNaN(a[1]) {
+		a[0], a[1] = 0, 0
+	}
 
 	return a
 }
 
 func (a Vector2) Limit(max float64) Vector2 {
+	if math.IsNaN(max) {
+		return a
+	}
 
 	mSq := a.MagSq()
 
