@@ -40,7 +40,7 @@ func cloneRepo(dest, url string) (string, error) {
 	return "", nil
 }
 
-func Main(name string) error {
+func Main(name string) (bool, error) {
 
 	if name == "" {
 		name = "unknown"
@@ -52,7 +52,7 @@ func Main(name string) error {
 		out, err := cloneRepo(dest, url)
 
 		if err != nil {
-			return bettererrors.
+			return false, bettererrors.
 				NewFromErr(err).
 				SetContext("error", out)
 		}
@@ -61,21 +61,21 @@ func Main(name string) error {
 			New("Unknown sample").
 			SetContext("name", name)
 
-		return berror
+		return true, berror
 	}
 
 	fmt.Println(dest, "has been created")
 
 	// Build agent
-	err := build.Main(dest)
+	showUsage, err := build.Main(dest)
 
 	if err != nil {
 		berror := bettererrors.
 			New("ba build failed").
 			With(err)
 
-		return berror
+		return showUsage, berror
 	}
 
-	return nil
+	return false, nil
 }

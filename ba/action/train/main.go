@@ -1,7 +1,6 @@
 package train
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -31,7 +30,7 @@ const (
 	TIME_BEFORE_FORCE_QUIT = 5 * time.Second
 )
 
-func TrainAction(tps int, host string, vizport int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string, shouldProfile, dumpRaw bool) {
+func TrainAction(tps int, host string, vizport int, nobrowser bool, recordFile string, agentimages []string, isDebug bool, mapName string, shouldProfile, dumpRaw bool) (bool, error) {
 
 	if shouldProfile {
 		f, err := os.Create("./cpu.prof")
@@ -60,9 +59,7 @@ func TrainAction(tps int, host string, vizport int, nobrowser bool, recordFile s
 	}
 
 	if len(agentimages) == 0 {
-		fmt.Println("Please, specify at least one agent image using --agent")
-		flag.Usage()
-		os.Exit(1)
+		return true, bettererrors.New("No agents were specified")
 	}
 
 	runPreflightChecks()
@@ -223,4 +220,6 @@ func TrainAction(tps int, host string, vizport int, nobrowser bool, recordFile s
 	recorder.Stop()
 
 	vizservice.Stop()
+
+	return false, nil
 }

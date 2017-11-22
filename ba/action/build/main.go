@@ -40,24 +40,24 @@ func successBanner(name string) {
 	fmt.Println("")
 }
 
-func Main(dir string) error {
+func Main(dir string) (bool, error) {
 
 	if dir == "" {
-		return bettererrors.New("No target directory was specified")
+		return true, bettererrors.New("No target directory was specified")
 	}
 
 	if is, err := isDirectory(dir); !is {
-		return err
+		return true, err
 	}
 
 	if has, err := hasDockerBuildFile(dir); !has {
-		return err
+		return true, err
 	}
 
 	cli, err := client.NewEnvClient()
 
 	if err != nil {
-		return bettererrors.
+		return false, bettererrors.
 			New("Failed to initialize Docker").
 			With(err)
 	}
@@ -71,12 +71,12 @@ func Main(dir string) error {
 	err = runDockerBuild(cli, name, dir)
 
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	successBanner(name)
 
-	return nil
+	return false, nil
 }
 
 func isDirectory(directory string) (bool, error) {

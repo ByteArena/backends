@@ -35,15 +35,10 @@ func makeapp() *cli.App {
 			Name:  "build",
 			Usage: "Build an agent",
 			Action: func(c *cli.Context) error {
-				err := build.Main(c.Args().Get(0))
+				showUsage, err := build.Main(c.Args().Get(0))
 
 				if err != nil {
-					berror := bettererrors.
-						New("Failed to execute command").
-						SetContext("command", "build").
-						With(err)
-
-					utils.FailWith(berror)
+					commandFailWith("build", showUsage, c, err)
 				}
 
 				return nil
@@ -54,15 +49,10 @@ func makeapp() *cli.App {
 			Aliases: []string{"gen"},
 			Usage:   "Generate a boilerplate agent",
 			Action: func(c *cli.Context) error {
-				err := generate.Main(c.Args().Get(0))
+				showUsage, err := generate.Main(c.Args().Get(0))
 
 				if err != nil {
-					berror := bettererrors.
-						New("Failed to execute command").
-						SetContext("command", "generate").
-						With(err)
-
-					utils.FailWith(berror)
+					commandFailWith("generate", showUsage, c, err)
 				}
 
 				return nil
@@ -96,7 +86,7 @@ func makeapp() *cli.App {
 				shouldProfile := c.Bool("profile")
 				dumpRaw := c.Bool("dump-raw-comm")
 
-				train.TrainAction(
+				showUsage, err := train.TrainAction(
 					tps,
 					host,
 					port,
@@ -108,6 +98,10 @@ func makeapp() *cli.App {
 					shouldProfile,
 					dumpRaw,
 				)
+
+				if err != nil {
+					commandFailWith("train", showUsage, c, err)
+				}
 
 				return nil
 			},
@@ -151,4 +145,17 @@ func makeapp() *cli.App {
 	}
 
 	return app
+}
+
+func commandFailWith(name string, showUsage bool, c *cli.Context, err error) {
+	berror := bettererrors.
+		New("Failed to execute command").
+		SetContext("command", name).
+		With(err)
+
+	if showUsage {
+		cli.ShowCommandHelp(c, name)
+	}
+
+	utils.FailWith(berror)
 }
