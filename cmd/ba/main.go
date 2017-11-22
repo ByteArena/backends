@@ -35,6 +35,15 @@ func makeapp() *cli.App {
 		{
 			Name:  "build",
 			Usage: "Build an agent",
+			BashComplete: func(c *cli.Context) {
+				completion, err := build.BashComplete(c.Args().Get(0))
+
+				if err != nil {
+					commandFailWith("build", false, c, err)
+				}
+
+				fmt.Fprintln(c.App.Writer, completion)
+			},
 			Action: func(c *cli.Context) error {
 				showUsage, err := build.Main(c.Args().Get(0))
 
