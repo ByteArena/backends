@@ -302,6 +302,7 @@ func (deathmatch *DeathmatchGame) GetAgentWelcome(entityid ecs.EntityID) []byte 
 	entityresult := deathmatch.getEntity(entityid,
 		deathmatch.physicalBodyComponent,
 		deathmatch.steeringComponent,
+		deathmatch.shootingComponent,
 		deathmatch.perceptionComponent,
 	)
 
@@ -309,20 +310,28 @@ func (deathmatch *DeathmatchGame) GetAgentWelcome(entityid ecs.EntityID) []byte 
 		return []byte{}
 	}
 
-	p := agentSpecs{}
-
 	physicalAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
 	steeringAspect := entityresult.Components[deathmatch.steeringComponent].(*Steering)
+	shootingAspect := entityresult.Components[deathmatch.shootingComponent].(*Shooting)
 	perceptionAspect := entityresult.Components[deathmatch.perceptionComponent].(*Perception)
 
-	p.BodyRadius = physicalAspect.GetRadius()
-	p.MaxSpeed = physicalAspect.GetMaxSpeed()
-	p.MaxAngularVelocity = physicalAspect.GetMaxAngularVelocity()
+	p := agentSpecs{
+		// Movement
+		MaxSpeed:           physicalAspect.GetMaxSpeed(),
+		MaxAngularVelocity: physicalAspect.GetMaxAngularVelocity(),
+		MaxSteeringForce:   steeringAspect.GetMaxSteeringForce(),
+		VisionRadius:       perceptionAspect.GetVisionRadius(),
+		VisionAngle:        commontypes.Angle(perceptionAspect.GetVisionAngle()),
 
-	p.MaxSteeringForce = steeringAspect.GetMaxSteeringForce()
+		// Body
+		BodyRadius: physicalAspect.GetRadius(),
 
-	p.VisionRadius = perceptionAspect.GetVisionRadius()
-	p.VisionAngle = commontypes.Angle(perceptionAspect.GetVisionAngle())
+		// Shoot
+		MaxShootEnergy:    shootingAspect.MaxShootEnergy,
+		ShootCost:         shootingAspect.ShootCost,
+		ShootRecoveryRate: shootingAspect.ShootRecoveryRate,
+		ShootCooldown:     shootingAspect.ShootCooldown,
+	}
 
 	res, _ := p.MarshalJSON()
 	return res

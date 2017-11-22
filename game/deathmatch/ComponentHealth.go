@@ -3,21 +3,6 @@ package deathmatch
 type Health struct {
 	maxLife float64 // Const
 	life    float64 // Current life level
-
-	// maxShield           float64 // Const
-	// shield              float64 // Current shield level
-	// shieldReplenishRate float64 // Const; Shield regained every tick
-}
-
-func NewHealth(maxlife float64) *Health {
-	return &Health{
-		maxLife: maxlife, // Const
-		life:    maxlife, // Current life level
-
-		// MaxShield:           1000, // Const
-		// Shield:              1000, // Current shield level
-		// ShieldReplenishRate: 10,   // Const; Shield regained every tick
-	}
 }
 
 func (health *Health) Restore() *Health {

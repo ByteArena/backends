@@ -83,14 +83,24 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(spawnPosition vector.Vector2) *
 			visionAngle:  visionAngle,
 			visionRadius: visionRadius,
 		}).
-		AddComponent(deathmatch.healthComponent, NewHealth(100)).
+		AddComponent(deathmatch.healthComponent, &Health{
+			maxLife: 1000, // Const
+			life:    1000, // Current life level
+		}).
 		AddComponent(deathmatch.playerComponent, &Player{}).
 		AddComponent(deathmatch.renderComponent, &Render{
 			type_:       "agent",
 			static:      false,
 			DebugPoints: make([][2]float64, 0),
 		}).
-		AddComponent(deathmatch.shootingComponent, NewShooting()).
+		AddComponent(deathmatch.shootingComponent, BuildShooting(&Shooting{
+			MaxShootEnergy:    1000, // Const; When shooting, energy decreases
+			ShootEnergy:       1000, // Current energy level
+			ShootRecoveryRate: 10,   // Const; Energy regained every tick; 10 => reconstituted in 100 ticks
+			ShootCooldown:     3,    // Const; number of ticks to wait between every shot
+			ShootCost:         200,  // Const
+			LastShot:          0,    // Number of ticks since last shot; 0 => cannot shoot immediately, must wait for first cooldown
+		})).
 		AddComponent(deathmatch.steeringComponent, NewSteering(
 			maxSteering, // MaxSteering
 		)).

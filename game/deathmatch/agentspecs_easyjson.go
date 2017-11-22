@@ -4,7 +4,6 @@ package deathmatch
 
 import (
 	json "encoding/json"
-
 	types "github.com/bytearena/bytearena/common/types"
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
@@ -50,6 +49,14 @@ func easyjson69d6c65dDecodeGithubComBytearenaBytearenaGameDeathmatch(in *jlexer.
 			out.VisionAngle = types.Angle(in.Float64())
 		case "bodyradius":
 			out.BodyRadius = float64(in.Float64())
+		case "maxshootenergy":
+			out.MaxShootEnergy = float64(in.Float64())
+		case "shootcost":
+			out.ShootCost = float64(in.Float64())
+		case "shootrecoveryrate":
+			out.ShootRecoveryRate = float64(in.Float64())
+		case "shootcooldown":
+			out.ShootCooldown = int(in.Int())
 		default:
 			in.SkipRecursive()
 		}
@@ -100,6 +107,30 @@ func easyjson69d6c65dEncodeGithubComBytearenaBytearenaGameDeathmatch(out *jwrite
 	first = false
 	out.RawString("\"bodyradius\":")
 	out.Float64(float64(in.BodyRadius))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"maxshootenergy\":")
+	out.Float64(float64(in.MaxShootEnergy))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"shootcost\":")
+	out.Float64(float64(in.ShootCost))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"shootrecoveryrate\":")
+	out.Float64(float64(in.ShootRecoveryRate))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"shootcooldown\":")
+	out.Int(int(in.ShootCooldown))
 	out.RawByte('}')
 }
 

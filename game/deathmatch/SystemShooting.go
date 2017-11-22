@@ -11,6 +11,11 @@ func systemShooting(deathmatch *DeathmatchGame) {
 		shootingAspect := entityresult.Components[deathmatch.shootingComponent].(*Shooting)
 		physicalAspect := entityresult.Components[deathmatch.physicalBodyComponent].(*PhysicalBody)
 
+		shootingAspect.ShootEnergy += shootingAspect.ShootRecoveryRate
+		if shootingAspect.ShootEnergy > shootingAspect.MaxShootEnergy {
+			shootingAspect.ShootEnergy = 0
+		}
+
 		shots := shootingAspect.PopPendingShots()
 		if len(shots) == 0 {
 			continue
@@ -25,8 +30,8 @@ func systemShooting(deathmatch *DeathmatchGame) {
 			continue
 		}
 
-		if shootingAspect.ShootEnergy < shootingAspect.ShootEnergyCost {
-			// TODO(jerome): puiser dans le shield ?
+		if shootingAspect.ShootEnergy < shootingAspect.ShootCost {
+			// invalid shot, not enough energy
 			continue
 		}
 
@@ -38,7 +43,7 @@ func systemShooting(deathmatch *DeathmatchGame) {
 		}
 
 		shootingAspect.LastShot = deathmatch.ticknum
-		shootingAspect.ShootEnergy -= shootingAspect.ShootEnergyCost
+		shootingAspect.ShootEnergy -= shootingAspect.ShootCost
 
 		///////////////////////////////////////////////////////////////////////////
 		///////////////////////////////////////////////////////////////////////////
