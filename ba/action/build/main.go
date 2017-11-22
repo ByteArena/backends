@@ -40,6 +40,48 @@ func successBanner(name string) {
 	fmt.Println("")
 }
 
+func BashComplete(dir string) (string, error) {
+	var out string
+
+	// No dir specified, using cwd instead
+	if dir == "" {
+		dir = "."
+	}
+
+	cwd, cwderr := os.Getwd()
+
+	if cwderr != nil {
+		return out, cwderr
+	}
+
+	// Transform to absolute dir
+	dir = path.Join(cwd, dir)
+
+	files, direrr := ioutil.ReadDir(dir)
+
+	if direrr != nil {
+		return out, direrr
+	}
+
+	for _, f := range files {
+
+		if f.IsDir() {
+			fqn := path.Join(dir, f.Name())
+
+			if has, err := hasDockerBuildFile(fqn); has {
+				if err != nil {
+					return out, err
+				}
+
+				out += fmt.Sprintf("%s\n", f.Name())
+			}
+		}
+
+	}
+
+	return out, nil
+}
+
 func Main(dir string) (bool, error) {
 
 	if dir == "" {

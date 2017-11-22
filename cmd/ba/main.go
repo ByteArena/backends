@@ -35,6 +35,15 @@ func makeapp() *cli.App {
 		{
 			Name:  "build",
 			Usage: "Build an agent",
+			BashComplete: func(c *cli.Context) {
+				completion, err := build.BashComplete(c.Args().Get(0))
+
+				if err != nil {
+					commandFailWith("build", false, c, err)
+				}
+
+				fmt.Fprintln(c.App.Writer, completion)
+			},
 			Action: func(c *cli.Context) error {
 				showUsage, err := build.Main(c.Args().Get(0))
 
@@ -49,6 +58,15 @@ func makeapp() *cli.App {
 			Name:    "generate",
 			Aliases: []string{"gen"},
 			Usage:   "Generate a boilerplate agent",
+			BashComplete: func(c *cli.Context) {
+				completion, err := generate.BashComplete()
+
+				if err != nil {
+					commandFailWith("generate", false, c, err)
+				}
+
+				fmt.Fprintln(c.App.Writer, completion)
+			},
 			Action: func(c *cli.Context) error {
 				showUsage, err := generate.Main(c.Args().Get(0))
 
