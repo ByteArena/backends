@@ -22,6 +22,9 @@ import (
 
 const (
 	DOCKER_BUILD_FILE = "Dockerfile"
+
+	SHOW_USAGE      = true
+	DONT_SHOW_USAGE = false
 )
 
 func welcomeBanner() {
@@ -85,21 +88,21 @@ func BashComplete(dir string) (string, error) {
 func Main(dir string) (bool, error) {
 
 	if dir == "" {
-		return true, bettererrors.New("No target directory was specified")
+		return SHOW_USAGE, bettererrors.New("No target directory was specified")
 	}
 
 	if is, err := isDirectory(dir); !is {
-		return true, err
+		return SHOW_USAGE, err
 	}
 
 	if has, err := hasDockerBuildFile(dir); !has {
-		return true, err
+		return SHOW_USAGE, err
 	}
 
 	cli, err := client.NewEnvClient()
 
 	if err != nil {
-		return false, bettererrors.
+		return DONT_SHOW_USAGE, bettererrors.
 			New("Failed to initialize Docker").
 			With(err)
 	}
@@ -109,16 +112,30 @@ func Main(dir string) (bool, error) {
 	fmt.Println("=== Building your agent now.")
 	fmt.Println("")
 
-	name := path.Base(dir)
+	var name string
+
+	// handles duilding . - https://github.com/ByteArena/cli/issues/8
+	if dir == "." {
+		cw, cwerr := os.Getwd()
+
+		if cwerr != nil {
+			return DONT_SHOW_USAGE, cwerr
+		}
+
+		name = path.Base(cw)
+	} else {
+		name = path.Base(dir)
+	}
+
 	err = runDockerBuild(cli, name, dir)
 
 	if err != nil {
-		return false, err
+		return DONT_SHOW_USAGE, err
 	}
 
 	successBanner(name)
 
-	return false, nil
+	return DONT_SHOW_USAGE, nil
 }
 
 func isDirectory(directory string) (bool, error) {
@@ -225,6 +242,9 @@ func doTar(tw *tar.Writer, dir string) error {
 func runDockerBuild(cli *client.Client, name, dir string) error {
 	ctx := context.Background()
 
+	// TODO(sven): in addition of the name, we can add a tag to be able to list
+	// our images. Useful in the bash autocomplete instead of listing the entire
+	// local registry.
 	opts := dockertypes.ImageBuildOptions{
 		Tags: []string{name},
 	}
