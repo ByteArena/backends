@@ -48,16 +48,18 @@ type DeathmatchGame struct {
 	respawnComponent      *ecs.Component
 	mailboxComponent      *ecs.Component
 
-	agentsView     *ecs.View
-	renderableView *ecs.View
-	physicalView   *ecs.View
-	perceptorsView *ecs.View
-	shootingView   *ecs.View
-	steeringView   *ecs.View
-	impactorView   *ecs.View
-	lifecycleView  *ecs.View
-	respawnView    *ecs.View
-	mailboxView    *ecs.View
+	agentsView      *ecs.View
+	renderableView  *ecs.View
+	physicalView    *ecs.View
+	perceptorsView  *ecs.View
+	shootingView    *ecs.View
+	steeringView    *ecs.View
+	impactorView    *ecs.View
+	lifecycleView   *ecs.View
+	respawnView     *ecs.View
+	mailboxView     *ecs.View
+	playerView      *ecs.View
+	playerStatsView *ecs.View
 
 	PhysicalWorld     *box2d.B2World
 	collisionListener *collisionListener
@@ -148,6 +150,17 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 		game.mailboxComponent,
 	)
 
+	game.playerView = manager.CreateView(
+		game.mailboxComponent,
+		game.playerComponent,
+	)
+
+	game.playerStatsView = manager.CreateView(
+		game.mailboxComponent,
+		game.physicalBodyComponent,
+		game.playerComponent,
+	)
+
 	game.physicalBodyComponent.SetDestructor(func(entity *ecs.Entity, data interface{}) {
 		physicalAspect := data.(*PhysicalBody)
 		game.PhysicalWorld.DestroyBody(physicalAspect.GetBody())
@@ -158,7 +171,21 @@ func NewDeathmatchGame(gameDescription commontypes.GameDescriptionInterface) *De
 	game.PhysicalWorld.SetContactFilter(newCollisionFilter(game))
 
 	// Subscribing to gameplay events
-	game.BusSubscribe(events.EntityFragged{}, game.onEntityFragged)
+	game.BusSubscribe(events.EntityFragged{}, func(e events.EntityFragged) {
+		// We have to determine the identity of the fragger
+		// Since it's a projectile that actually made the frag, not an agent
+
+		fraggerEntityID := e.FraggedBy
+		ownedQuery := game.getEntity(e.FraggedBy, game.ownedComponent)
+		if ownedQuery != nil {
+			ownedAspect := ownedQuery.Components[game.ownedComponent].(*Owned)
+			fraggerEntityID = ownedAspect.GetOwner()
+		}
+
+		game.onEntityFraggedUpdateMailbox(e, fraggerEntityID)
+		game.onEntityFraggedUpdateScore(e, fraggerEntityID)
+	})
+
 	game.BusSubscribe(events.EntityHit{}, game.onEntityHit)
 	game.BusSubscribe(events.EntityRespawning{}, game.onEntityRespawning)
 	game.BusSubscribe(events.EntityRespawned{}, game.onEntityRespawned)
@@ -292,6 +319,16 @@ func (deathmatch *DeathmatchGame) Step(ticknum int, dt float64, mutations []type
 	//watch.Start("systemRespawn")
 	systemRespawn(deathmatch)
 	//watch.Stop("systemRespawn")
+
+	///////////////////////////////////////////////////////////////////////////
+	// On calcule les stats des agents
+	///////////////////////////////////////////////////////////////////////////
+	systemPlayerStats(deathmatch)
+
+	///////////////////////////////////////////////////////////////////////////
+	// On calcule le score des agents
+	///////////////////////////////////////////////////////////////////////////
+	systemScore(deathmatch)
 
 	///////////////////////////////////////////////////////////////////////////
 	// Fetching and emptying mailboxes for entities mailed in this tick
@@ -452,24 +489,14 @@ func (deathmatch *DeathmatchGame) BusPublish(e events.EventInterface) {
 	deathmatch.bus.Publish(e.Topic(), e)
 }
 
-func (game *DeathmatchGame) onEntityFragged(e events.EntityFragged) {
-	// We have to determine the identity of the fragger
-	// Since it's a projectile that actually made the frag, not an agent
-
-	fraggerEntityID := e.FraggedBy
-	ownedQuery := game.getEntity(e.FraggedBy, game.ownedComponent)
-	if ownedQuery != nil {
-		ownedAspect := ownedQuery.Components[game.ownedComponent].(*Owned)
-		fraggerEntityID = ownedAspect.GetOwner()
-	}
+func (game *DeathmatchGame) onEntityFraggedUpdateMailbox(e events.EntityFragged, fraggerEntityID ecs.EntityID) {
 
 	///////////////////////////////////////////////////////////////////////
 	// Notifying fraggee
 	///////////////////////////////////////////////////////////////////////
 	fraggeeMailboxQuery := game.getEntity(e.Entity, game.mailboxComponent)
 	if fraggeeMailboxQuery == nil {
-		// should never happen
-		return
+		return // should never happen
 	}
 
 	mailboxAspect := fraggeeMailboxQuery.Components[game.mailboxComponent].(*Mailbox)
@@ -491,6 +518,31 @@ func (game *DeathmatchGame) onEntityFragged(e events.EntityFragged) {
 	mailboxAspect.PushMessage(mailboxmessages.YouHaveFragged{
 		Who: e.Entity.String(),
 	})
+}
+
+func (game *DeathmatchGame) onEntityFraggedUpdateScore(e events.EntityFragged, fraggerEntityID ecs.EntityID) {
+
+	///////////////////////////////////////////////////////////////////////
+	// Update score of the fraggee
+	///////////////////////////////////////////////////////////////////////
+	fraggeePlayerQuery := game.getEntity(e.Entity, game.playerComponent)
+	if fraggeePlayerQuery == nil {
+		return // should never happen
+	}
+
+	fraggeePlayerAspect := fraggeePlayerQuery.Components[game.playerComponent].(*Player)
+	fraggeePlayerAspect.Stats.nbBeenFragged++
+
+	///////////////////////////////////////////////////////////////////////
+	// Update score of the fragger
+	///////////////////////////////////////////////////////////////////////
+	fraggerPlayerQuery := game.getEntity(fraggerEntityID, game.playerComponent)
+	if fraggerPlayerQuery == nil {
+		return // should never happen
+	}
+
+	fraggerPlayerAspect := fraggerPlayerQuery.Components[game.playerComponent].(*Player)
+	fraggerPlayerAspect.Stats.nbHasFragged++
 }
 
 func (game *DeathmatchGame) onEntityHit(e events.EntityHit) {

@@ -63,6 +63,7 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 		game.physicalBodyComponent,
 		game.steeringComponent,
 		game.perceptionComponent,
+		game.playerComponent,
 	)
 
 	if entityresult == nil {
@@ -71,6 +72,7 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 
 	physicalAspect := entityresult.Components[game.physicalBodyComponent].(*PhysicalBody)
 	perceptionAspect := entityresult.Components[game.perceptionComponent].(*Perception)
+	playerAspect := entityresult.Components[game.playerComponent].(*Player)
 
 	orientation := physicalAspect.GetOrientation()
 	velocity := physicalAspect.GetVelocity()
@@ -96,6 +98,8 @@ func computeAgentPerception(game *DeathmatchGame, arenaMap *mapcontainer.MapCont
 			})
 		}
 	}
+
+	p.Score = playerAspect.Score
 
 	return p
 }

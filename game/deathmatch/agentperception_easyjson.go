@@ -310,6 +310,8 @@ func easyjsonA8da870DecodeGithubComBytearenaBytearenaGameDeathmatch2(in *jlexer.
 			continue
 		}
 		switch key {
+		case "score":
+			out.Score = int(in.Int())
 		case "energy":
 			out.Energy = float64(in.Float64())
 		case "velocity":
@@ -395,6 +397,12 @@ func easyjsonA8da870EncodeGithubComBytearenaBytearenaGameDeathmatch2(out *jwrite
 	out.RawByte('{')
 	first := true
 	_ = first
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"score\":")
+	out.Int(int(in.Score))
 	if !first {
 		out.RawByte(',')
 	}

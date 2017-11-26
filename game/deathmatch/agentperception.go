@@ -3,6 +3,8 @@ package deathmatch
 import "github.com/bytearena/bytearena/common/utils/vector"
 
 type agentPerception struct {
+	Score int `json:"score"`
+
 	Energy        float64                           `json:"energy"`   // niveau en millièmes; reconstitution automatique ?
 	Velocity      vector.Vector2                    `json:"velocity"` // vecteur de force (direction, magnitude)
 	Azimuth       float64                           `json:"azimuth"`  // azimuth en degrés par rapport au "Nord" de l'arène
