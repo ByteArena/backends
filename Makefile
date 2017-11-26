@@ -73,3 +73,6 @@ sstrip:
 
 dump:
 	strings cmd/arena-trainer/arena-trainer > out
+
+install:
+	sudo mv -v cmd/ba/ba /usr/local/bin/ba
