@@ -200,15 +200,12 @@ func DownloadMap(mapbundle mapBundleType) error {
 			SetContext("url", mapbundle.Url)
 	}
 
-	mapBundleDestinationPath := GetMapLocation(mapbundle.Name)
+	tmpFile, tmpFileErr := ioutil.TempFile("", "bamap")
 
-	file, errOpen := os.OpenFile(mapBundleDestinationPath, os.O_WRONLY|os.O_CREATE, 0755)
-
-	if errOpen != nil {
+	if tmpFileErr != nil {
 		return bettererrors.
-			New("Could not open destination file for map "+mapbundle.Name).
-			With(errOpen).
-			SetContext("location", mapBundleDestinationPath)
+			New("Could not open tmpfile").
+			With(tmpFileErr)
 	}
 
 	bar := pb.New(fileSize)
@@ -216,10 +213,53 @@ func DownloadMap(mapbundle mapBundleType) error {
 	bar.Start()
 
 	rd := bar.NewProxyReader(res.Body)
-	io.Copy(file, rd)
+	_, tmpCopyErr := io.Copy(tmpFile, rd)
+
+	if tmpCopyErr != nil {
+		return bettererrors.
+			New("Error during copy to tmp").
+			With(tmpCopyErr).
+			SetContext("filename", tmpFile.Name())
+	}
+
+	bar.Finish()
+
+	// Actually writing on disk the buffer
+	mapBundleDestinationPath := GetMapLocation(mapbundle.Name)
+	removeErr := os.Remove(mapBundleDestinationPath)
+
+	if removeErr != nil {
+		return bettererrors.
+			New("Could not delete mapbundle").
+			With(removeErr).
+			SetContext("name", mapbundle.Name).
+			SetContext("location", mapBundleDestinationPath)
+	}
+
+	file, errOpen := os.OpenFile(mapBundleDestinationPath, os.O_WRONLY|os.O_CREATE, 0755)
+
+	if errOpen != nil {
+		return bettererrors.
+			New("Could not open destination file for map").
+			With(errOpen).
+			SetContext("name", mapbundle.Name).
+			SetContext("location", mapBundleDestinationPath)
+	}
+
+	tmpFile.Seek(0, 0)
+	_, copyErr := io.Copy(file, tmpFile)
+
+	if copyErr != nil {
+		return bettererrors.
+			New("Error during copy to tmp").
+			With(copyErr).
+			SetContext("filename", file.Name())
+	}
 
 	file.Close()
-	bar.Finish()
+
+	tmpFile.Close()
+	os.Remove(tmpFile.Name())
 
 	return nil
 }
