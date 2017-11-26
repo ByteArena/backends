@@ -17,7 +17,74 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes(in *jlexer.Lexer, out *VizMessageObject) {
+func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes(in *jlexer.Lexer, out *VizMessagePlayerScore) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeString()
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "Value":
+			out.Value = int(in.Int())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes(out *jwriter.Writer, in VizMessagePlayerScore) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"Value\":")
+	out.Int(int(in.Value))
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v VizMessagePlayerScore) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v VizMessagePlayerScore) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *VizMessagePlayerScore) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *VizMessagePlayerScore) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes(l, v)
+}
+func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes1(in *jlexer.Lexer, out *VizMessageObject) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -78,6 +145,16 @@ func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes(in *jlexer.Lex
 			out.Radius = float64(in.Float64())
 		case "Orientation":
 			out.Orientation = float64(in.Float64())
+		case "Score":
+			if in.IsNull() {
+				in.Skip()
+				out.Score = nil
+			} else {
+				if out.Score == nil {
+					out.Score = new(VizMessagePlayerScore)
+				}
+				(*out.Score).UnmarshalEasyJSON(in)
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -88,7 +165,7 @@ func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes(in *jlexer.Lex
 		in.Consumed()
 	}
 }
-func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes(out *jwriter.Writer, in VizMessageObject) {
+func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(out *jwriter.Writer, in VizMessageObject) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -142,33 +219,43 @@ func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes(out *jwriter.W
 	first = false
 	out.RawString("\"Orientation\":")
 	out.Float64(float64(in.Orientation))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"Score\":")
+	if in.Score == nil {
+		out.RawString("null")
+	} else {
+		(*in.Score).MarshalEasyJSON(out)
+	}
 	out.RawByte('}')
 }
 
 // MarshalJSON supports json.Marshaler interface
 func (v VizMessageObject) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes(&w, v)
+	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v VizMessageObject) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes(w, v)
+	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *VizMessageObject) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes(&r, v)
+	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *VizMessageObject) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes(l, v)
+	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes1(l, v)
 }
-func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes1(in *jlexer.Lexer, out *VizMessage) {
+func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes2(in *jlexer.Lexer, out *VizMessage) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -313,7 +400,7 @@ func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes1(in *jlexer.Le
 		in.Consumed()
 	}
 }
-func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(out *jwriter.Writer, in VizMessage) {
+func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes2(out *jwriter.Writer, in VizMessage) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -401,23 +488,23 @@ func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(out *jwriter.
 // MarshalJSON supports json.Marshaler interface
 func (v VizMessage) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(&w, v)
+	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v VizMessage) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(w, v)
+	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *VizMessage) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes1(&r, v)
+	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *VizMessage) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes1(l, v)
+	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes2(l, v)
 }

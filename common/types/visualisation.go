@@ -18,4 +18,10 @@ type VizMessageObject struct {
 	Velocity    vector.Vector2
 	Radius      float64
 	Orientation float64
+
+	Score *VizMessagePlayerScore
+}
+
+type VizMessagePlayerScore struct {
+	Value int
 }
