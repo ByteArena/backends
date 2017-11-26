@@ -1,6 +1,7 @@
 package vizserver
 
 import (
+	"context"
 	"net"
 	"net/http"
 
@@ -113,7 +114,7 @@ func (viz *VizService) Start() chan struct{} {
 
 func (viz *VizService) Stop() {
 	viz.mappack.Close()
-	viz.listener.Shutdown(nil)
+	viz.listener.Shutdown(context.TODO())
 }
 
 func (viz *VizService) Events() chan interface{} {
