@@ -8,25 +8,6 @@
 // https://playcanvas.com/editor/code/362231?tabs=7893846,7894087
 
 const textobj = pc.app.scene.root.children[3].children[0];
-textobj.element.text = "ddd";
-textobj.setLocalPosition(-20, 20, 0);
-
-const t2 = textobj.clone();
-t2.element.text = "noooooo";
-t2.setLocalPosition(-10, 0, 0);
-textobj.parent.addChild(t2);
-
-// https://developer.playcanvas.com/en/api/pc.CameraComponent.html#worldToScreen
-
-// var div = document.createElement("div");
-// div.innerHTML = "Capsule";
-// div.style.fontFamily = "Verdana, sans-serif";
-// div.style.color = "#fff";
-// div.style.position = "absolute";
-// document.body.appendChild(div);
-// let pos = camera.camera.worldToScreen(box.getPosition());
-// div.style.left = pos.x + "px";
-// div.style.top = pos.y + "px";
 
 const camera = pc.app.root.findByName("Camera");
 const box = pc.app.root.findByName("Box");
@@ -34,19 +15,43 @@ const screen2d = pc.app.root.findByName("2D Screen");
 
 screen2d.screen.scaleMode = pc.SCALEMODE_NONE;
 
-const mapPos = function(screenCoords) {
+const entity = new pc.Entity();
+entity.addComponent("element", { type: "text" });
+entity.setPosition(new pc.Vec3(0, 0, 0));
+entity.setLocalPosition(new pc.Vec3(0, 0, 0));
+entity.element.text = "Hello, World!";
+entity.element.font = textobj.element.font;
+entity.element.pivot = new pc.Vec2(0.5, 0.5);
+entity.element.anchor = new pc.Vec4(0.0, 0.0, 0.0, 0.0);
+screen2d.addChild(entity);
+
+const mapPos = function(worldCoords) {
     const res = screen2d.screen.referenceResolution;
+    const screenCoords = camera.camera.worldToScreen(worldCoords);
     return new pc.Vec3(
-        screenCoords.x - 0.5 * res.x,
-        screenCoords.y - 0.5 * res.y,
+        screenCoords.x,
+        res.y - screenCoords.y,
         0
     );
 };
 
-window.addEventListener("resize", function() {
-    window.requestAnimationFrame(function() {
-        t2.setLocalPosition(
-            mapPos(camera.camera.worldToScreen(box.getPosition()))
-        );
-    });
-});
+const reposition = function () {
+    entity.setLocalPosition(mapPos(box.getLocalPosition()));
+};
+
+window.addEventListener("resize", reposition);
+
+let i = 0;
+
+const raf = function() {
+    reposition();
+    const x = Math.cos(i/100);
+    const y = Math.sin(i/100);
+    //console.log(x, y);
+    box.setLocalPosition(x, y, 0);
+    window.requestAnimationFrame(raf);
+
+    i++;
+};
+
+raf();
