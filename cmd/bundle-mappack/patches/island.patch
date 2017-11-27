@@ -1,3 +1,5 @@
+diff --git a/__loading__.js b/__loading__.js
+index 610e064..fd1b171 100644
 --- a/__loading__.js
 +++ b/__loading__.js
 @@ -9,14 +9,7 @@ pc.script.createLoadingScreen(function (app) {
@@ -13,11 +15,11 @@
 -            splash.style.display = 'block';
 -        };
 +        splash.style.display = 'block';
-
+ 
          var container = document.createElement('div');
          container.id = 'progress-bar-container';
-
 diff --git a/__start__.js b/__start__.js
+index 70a4074..eec7a3f 100644
 --- a/__start__.js
 +++ b/__start__.js
 @@ -1,4 +1,4 @@
@@ -26,7 +28,12 @@ diff --git a/__start__.js b/__start__.js
      var CANVAS_ID = 'application-canvas';
  
      var canvas, devices, app;
-@@ -12,7 +12,7 @@
+@@ -7,12 +7,11 @@
+         canvas = document.createElement('canvas');
+         canvas.setAttribute('id', CANVAS_ID);
+         canvas.setAttribute('tabindex', 0);
+-        // canvas.style.visibility = 'hidden';
+ 
          // Disable I-bar cursor on click+drag
          canvas.onselectstart = function () { return false; };
  
@@ -35,7 +42,24 @@ diff --git a/__start__.js b/__start__.js
  
          return canvas;
      };
-@@ -115,11 +115,15 @@
+@@ -56,16 +55,6 @@
+         var size = app.resizeCanvas(canvas.width, canvas.height);
+         canvas.style.width = '';
+         canvas.style.height = '';
+-
+-        var fillMode = app._fillMode;
+-
+-        if (fillMode == pc.FILLMODE_NONE || fillMode == pc.FILLMODE_KEEP_ASPECT) {
+-            if ((fillMode == pc.FILLMODE_NONE && canvas.clientHeight < window.innerHeight) || (canvas.clientWidth / canvas.clientHeight >= window.innerWidth / window.innerHeight)) {
+-                canvas.style.marginTop = Math.floor((window.innerHeight - canvas.clientHeight) / 2) + 'px';
+-            } else {
+-                canvas.style.marginTop = '';
+-            }
+-        }
+     };
+ 
+     var displayError = function (html) {
+@@ -115,11 +104,15 @@
          return;
      }
  
@@ -51,7 +75,7 @@ diff --git a/__start__.js b/__start__.js
          configureCss(app._fillMode, app._width, app._height);
          reflow();
  
-@@ -136,8 +140,10 @@
+@@ -136,8 +129,10 @@
                      console.error(err);
                  }
  
@@ -63,4 +87,3 @@ diff --git a/__start__.js b/__start__.js
      });
 -}());
 +};
-
