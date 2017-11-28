@@ -19,17 +19,20 @@ index 610e064..fd1b171 100644
          var container = document.createElement('div');
          container.id = 'progress-bar-container';
 diff --git a/__start__.js b/__start__.js
-index 70a4074..eec7a3f 100644
+index 70a4074..93778a0 100644
 --- a/__start__.js
 +++ b/__start__.js
-@@ -1,4 +1,4 @@
+@@ -1,19 +1,15 @@
 -(function () {
-+window._startpc = function (target, onAppCreated, onAppConfigured, onSceneLoaded) {
++window._startpc = function (canvas, onAppCreated, onAppConfigured, onSceneLoaded) {
      var CANVAS_ID = 'application-canvas';
  
-     var canvas, devices, app;
-@@ -7,12 +7,11 @@
-         canvas = document.createElement('canvas');
+-    var canvas, devices, app;
++    var devices, app;
+ 
+-    var createCanvas = function () {
+-        canvas = document.createElement('canvas');
++    var prepareCanvas = function (canvas) {
          canvas.setAttribute('id', CANVAS_ID);
          canvas.setAttribute('tabindex', 0);
 -        // canvas.style.visibility = 'hidden';
@@ -38,11 +41,11 @@ index 70a4074..eec7a3f 100644
          canvas.onselectstart = function () { return false; };
  
 -        document.body.appendChild(canvas);
-+        target.appendChild(canvas);
- 
+-
          return canvas;
      };
-@@ -56,16 +55,6 @@
+ 
+@@ -56,16 +52,6 @@
          var size = app.resizeCanvas(canvas.width, canvas.height);
          canvas.style.width = '';
          canvas.style.height = '';
@@ -59,7 +62,16 @@ index 70a4074..eec7a3f 100644
      };
  
      var displayError = function (html) {
-@@ -115,11 +104,15 @@
+@@ -86,7 +72,7 @@
+         document.body.appendChild(div);
+     };
+ 
+-    canvas = createCanvas();
++    canvas = prepareCanvas(canvas);
+     devices = createInputDevices(canvas);
+ 
+     try {
+@@ -115,11 +101,15 @@
          return;
      }
  
@@ -75,7 +87,7 @@ index 70a4074..eec7a3f 100644
          configureCss(app._fillMode, app._width, app._height);
          reflow();
  
-@@ -136,8 +129,10 @@
+@@ -136,8 +126,10 @@
                      console.error(err);
                  }
  
