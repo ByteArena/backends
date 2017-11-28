@@ -82,7 +82,7 @@ func makeapp() *cli.App {
 			Aliases: []string{"t"},
 			Usage:   "Train your agent",
 			Flags: []cli.Flag{
-				cli.IntFlag{Name: "tps", Value: 10, Usage: "Number of ticks per second"},
+				cli.IntFlag{Name: "tps", Value: 20, Usage: "Number of ticks per second"},
 				cli.StringFlag{Name: "host", Value: "", Usage: "IP serving the trainer; required"},
 				cli.StringSliceFlag{Name: "agent", Usage: "Agent images"},
 				cli.IntFlag{Name: "port", Value: 8080, Usage: "Port serving the trainer"},
