@@ -145,25 +145,15 @@ func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes1(in *jlexer.Le
 			out.Radius = float64(in.Float64())
 		case "Orientation":
 			out.Orientation = float64(in.Float64())
-		case "PlayerId":
+		case "PlayerInfo":
 			if in.IsNull() {
 				in.Skip()
-				out.PlayerId = nil
+				out.PlayerInfo = nil
 			} else {
-				if out.PlayerId == nil {
-					out.PlayerId = new(string)
+				if out.PlayerInfo == nil {
+					out.PlayerInfo = new(PlayerInfo)
 				}
-				*out.PlayerId = string(in.String())
-			}
-		case "Score":
-			if in.IsNull() {
-				in.Skip()
-				out.Score = nil
-			} else {
-				if out.Score == nil {
-					out.Score = new(VizMessagePlayerScore)
-				}
-				(*out.Score).UnmarshalEasyJSON(in)
+				(*out.PlayerInfo).UnmarshalEasyJSON(in)
 			}
 		default:
 			in.SkipRecursive()
@@ -233,21 +223,11 @@ func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(out *jwriter.
 		out.RawByte(',')
 	}
 	first = false
-	out.RawString("\"PlayerId\":")
-	if in.PlayerId == nil {
+	out.RawString("\"PlayerInfo\":")
+	if in.PlayerInfo == nil {
 		out.RawString("null")
 	} else {
-		out.String(string(*in.PlayerId))
-	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"Score\":")
-	if in.Score == nil {
-		out.RawString("null")
-	} else {
-		(*in.Score).MarshalEasyJSON(out)
+		(*in.PlayerInfo).MarshalEasyJSON(out)
 	}
 	out.RawByte('}')
 }
@@ -527,4 +507,87 @@ func (v *VizMessage) UnmarshalJSON(data []byte) error {
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *VizMessage) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes2(l, v)
+}
+func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes3(in *jlexer.Lexer, out *PlayerInfo) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeString()
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "IsAlive":
+			out.IsAlive = bool(in.Bool())
+		case "PlayerId":
+			out.PlayerId = string(in.String())
+		case "Score":
+			(out.Score).UnmarshalEasyJSON(in)
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes3(out *jwriter.Writer, in PlayerInfo) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"IsAlive\":")
+	out.Bool(bool(in.IsAlive))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"PlayerId\":")
+	out.String(string(in.PlayerId))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"Score\":")
+	(in.Score).MarshalEasyJSON(out)
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v PlayerInfo) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes3(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v PlayerInfo) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes3(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *PlayerInfo) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes3(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *PlayerInfo) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes3(l, v)
 }

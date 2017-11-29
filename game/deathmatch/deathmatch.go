@@ -439,8 +439,7 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 			Radius:      physicalBodyAspect.GetPhysicalReferentialRadius(),
 			Orientation: physicalBodyAspect.GetPhysicalReferentialOrientation(),
 
-			Score:    nil,
-			PlayerId: nil,
+			PlayerInfo: nil,
 		}
 
 		entityResultPlayer := deathmatch.getEntity(entityresult.Entity.ID, deathmatch.playerComponent)
@@ -448,8 +447,10 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 		if entityResultPlayer != nil {
 			playerAspect := entityResultPlayer.Components[deathmatch.playerComponent].(*Player)
 
-			obj.PlayerId = &playerAspect.Contestant.Id
-			obj.Score = &commontypes.VizMessagePlayerScore{playerAspect.Score}
+			obj.PlayerInfo = &commontypes.PlayerInfo{
+				PlayerId: playerAspect.Contestant.Id,
+				Score:    commontypes.VizMessagePlayerScore{playerAspect.Score},
+			}
 		}
 
 		msg.Objects = append(msg.Objects, obj)

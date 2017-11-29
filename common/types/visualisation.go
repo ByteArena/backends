@@ -19,8 +19,13 @@ type VizMessageObject struct {
 	Radius      float64
 	Orientation float64
 
-	PlayerId *string
-	Score    *VizMessagePlayerScore
+	PlayerInfo *PlayerInfo
+}
+
+type PlayerInfo struct {
+	IsAlive  bool
+	PlayerId string
+	Score    VizMessagePlayerScore
 }
 
 type VizMessagePlayerScore struct {
