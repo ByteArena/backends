@@ -23,9 +23,10 @@ type VizMessageObject struct {
 }
 
 type PlayerInfo struct {
-	IsAlive  bool
-	PlayerId string
-	Score    VizMessagePlayerScore
+	IsAlive    bool
+	PlayerId   string
+	PlayerName string
+	Score      VizMessagePlayerScore
 }
 
 type VizMessagePlayerScore struct {

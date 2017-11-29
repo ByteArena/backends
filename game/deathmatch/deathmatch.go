@@ -448,8 +448,20 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 			playerAspect := entityResultPlayer.Components[deathmatch.playerComponent].(*Player)
 
 			obj.PlayerInfo = &commontypes.PlayerInfo{
-				PlayerId: playerAspect.Contestant.Id,
-				Score:    commontypes.VizMessagePlayerScore{playerAspect.Score},
+				PlayerName: playerAspect.Contestant.AgentName,
+				PlayerId:   playerAspect.Contestant.Id,
+				Score:      commontypes.VizMessagePlayerScore{playerAspect.Score},
+				IsAlive:    true,
+			}
+		}
+
+		entityResultRespawing := deathmatch.getEntity(entityresult.Entity.ID, deathmatch.respawnComponent)
+
+		if entityResultRespawing != nil && obj.PlayerInfo != nil {
+			respawnAspect := entityResultRespawing.Components[deathmatch.respawnComponent].(*Respawn)
+
+			if respawnAspect.isRespawning {
+				obj.PlayerInfo.IsAlive = false
 			}
 		}
 

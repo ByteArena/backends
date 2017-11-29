@@ -531,6 +531,8 @@ func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes3(in *jlexer.Le
 			out.IsAlive = bool(in.Bool())
 		case "PlayerId":
 			out.PlayerId = string(in.String())
+		case "PlayerName":
+			out.PlayerName = string(in.String())
 		case "Score":
 			(out.Score).UnmarshalEasyJSON(in)
 		default:
@@ -559,6 +561,12 @@ func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes3(out *jwriter.
 	first = false
 	out.RawString("\"PlayerId\":")
 	out.String(string(in.PlayerId))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"PlayerName\":")
+	out.String(string(in.PlayerName))
 	if !first {
 		out.RawByte(',')
 	}
