@@ -13,7 +13,8 @@ const (
 ### {{.Title}}
 | name | type |
 |---|---|
-{{ range $value := .Fields }}| {{ $value.Name }} | {{ $value.Type }} |{{ end }}
+{{ range $value := .Fields }}| {{ $value.Name }} | {{ $value.Type }} |
+{{ end }}
 `
 )
 
