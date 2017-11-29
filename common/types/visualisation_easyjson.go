@@ -145,6 +145,16 @@ func easyjson54cb076dDecodeGithubComBytearenaBytearenaCommonTypes1(in *jlexer.Le
 			out.Radius = float64(in.Float64())
 		case "Orientation":
 			out.Orientation = float64(in.Float64())
+		case "PlayerId":
+			if in.IsNull() {
+				in.Skip()
+				out.PlayerId = nil
+			} else {
+				if out.PlayerId == nil {
+					out.PlayerId = new(string)
+				}
+				*out.PlayerId = string(in.String())
+			}
 		case "Score":
 			if in.IsNull() {
 				in.Skip()
@@ -219,6 +229,16 @@ func easyjson54cb076dEncodeGithubComBytearenaBytearenaCommonTypes1(out *jwriter.
 	first = false
 	out.RawString("\"Orientation\":")
 	out.Float64(float64(in.Orientation))
+	if !first {
+		out.RawByte(',')
+	}
+	first = false
+	out.RawString("\"PlayerId\":")
+	if in.PlayerId == nil {
+		out.RawString("null")
+	} else {
+		out.String(string(*in.PlayerId))
+	}
 	if !first {
 		out.RawByte(',')
 	}

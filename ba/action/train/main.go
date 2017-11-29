@@ -141,7 +141,7 @@ func TrainAction(tps int, host string, vizport int, nobrowser bool, recordFile s
 			image = contestant.AgentRegistry + "/" + contestant.AgentImage
 		}
 
-		srv.RegisterAgent(image, image)
+		srv.RegisterAgent(image, contestant)
 	}
 
 	// handling signals

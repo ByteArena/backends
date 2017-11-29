@@ -12,7 +12,7 @@ import (
 	"github.com/bytearena/ecs"
 )
 
-func (deathmatch *DeathmatchGame) NewEntityAgent(agentname string, spawnPosition vector.Vector2) *ecs.Entity {
+func (deathmatch *DeathmatchGame) NewEntityAgent(contestant types.Contestant, spawnPosition vector.Vector2) *ecs.Entity {
 
 	agent := deathmatch.manager.NewEntity()
 
@@ -88,7 +88,7 @@ func (deathmatch *DeathmatchGame) NewEntityAgent(agentname string, spawnPosition
 			life:    1000, // Current life level
 		}).
 		AddComponent(deathmatch.playerComponent, &Player{
-			Name: agentname,
+			Contestant: contestant,
 		}).
 		AddComponent(deathmatch.renderComponent, &Render{
 			type_:       "agent",

@@ -1,5 +1,7 @@
 package deathmatch
 
+import "github.com/bytearena/bytearena/common/types"
+
 type stats struct {
 
 	// Distance travelled by the agent in meters since the beginning of the game
@@ -13,10 +15,10 @@ type stats struct {
 }
 
 type Player struct {
-	Name string
-
 	// Populated by systemScore
 	Score int
 
 	Stats stats
+
+	Contestant types.Contestant
 }

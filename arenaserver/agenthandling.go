@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/bytearena/common/utils/vector"
 
 	"github.com/bytearena/bytearena/arenaserver/agent"
@@ -14,7 +15,7 @@ import (
 	bettererrors "github.com/xtuc/better-errors"
 )
 
-func (s *Server) RegisterAgent(agentimage, agentname string) {
+func (s *Server) RegisterAgent(agentimage string, contestant types.Contestant) {
 
 	///////////////////////////////////////////////////////////////////////////
 	// Building the agent entity (gameplay related aspects of the agent)
@@ -37,7 +38,7 @@ func (s *Server) RegisterAgent(agentimage, agentname string) {
 	agentSpawningPos := arenamap.Data.Starts[agentSpawnPointIndex]
 
 	agententity := s.game.NewEntityAgent(
-		agentname,
+		contestant,
 		vector.MakeVector2(agentSpawningPos.Point.GetX(), agentSpawningPos.Point.GetY()),
 	)
 
