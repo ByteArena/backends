@@ -12,7 +12,7 @@ import (
 
 var (
 	samples = map[string]string{
-		"nodejs": "https://github.com/xtuc/sample-nodejs-agent.git",
+		"nodejs": "https://github.com/ByteArena/sample-nodejs-agent.git",
 	}
 )
 
