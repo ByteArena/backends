@@ -85,7 +85,7 @@ func (game *MockGame) AddContestant(agentimage string) {
 	game.contestants = append(game.contestants, types.Contestant{
 		Id:            strconv.Itoa(len(game.contestants) + 1),
 		Username:      "trainer-user",
-		AgentName:     "Trainee " + agentimage,
+		AgentName:     agentimage,
 		AgentRegistry: registry,
 		AgentImage:    imagename,
 	})
