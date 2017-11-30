@@ -204,16 +204,6 @@ func createTar(dir string) (io.Reader, error) {
 	return buff, nil
 }
 
-func removePrefix(str string) string {
-	if strings.Contains(str, "/") {
-
-		parts := strings.Split(str, "/")
-		return path.Join(parts[1:]...)
-	}
-
-	return str
-}
-
 func doTar(tw *tar.Writer, dir string, basedir string) error {
 	basedir = strings.TrimSuffix(basedir, "/") + "/"
 
