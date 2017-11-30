@@ -88,15 +88,26 @@ func BashComplete(dir string) (string, error) {
 func Main(dir string) (bool, error) {
 
 	if dir == "" {
-		return SHOW_USAGE, bettererrors.New("No target directory was specified")
+
+		// determine if current directory contains a Dockerfile
+		pwd, err := os.Getwd()
+		if err != nil {
+			return SHOW_USAGE, bettererrors.New("No target directory was specified and there was an error determining the current working directory")
+		}
+
+		dir = pwd
+
+		if has, err := hasDockerBuildFile(dir); !has || err != nil {
+			return SHOW_USAGE, bettererrors.New("No target directory was specified, and the current directory does not contain any Dockerfile; is it really the source code of an agent?")
+		}
 	}
 
 	if is, err := isDirectory(dir); !is {
 		return SHOW_USAGE, err
 	}
 
-	if has, err := hasDockerBuildFile(dir); !has {
-		return SHOW_USAGE, err
+	if has, err := hasDockerBuildFile(dir); !has || err != nil {
+		return SHOW_USAGE, bettererrors.New("The specified directory does not contain any Dockerfile; is it really the source code of an agent?")
 	}
 
 	cli, err := client.NewEnvClient()
@@ -184,7 +195,7 @@ func createTar(dir string) (io.Reader, error) {
 		return buff, err
 	}
 
-	err = doTar(tw, dir)
+	err = doTar(tw, dir, dir)
 
 	if err != nil {
 		return buff, err
@@ -203,7 +214,9 @@ func removePrefix(str string) string {
 	return str
 }
 
-func doTar(tw *tar.Writer, dir string) error {
+func doTar(tw *tar.Writer, dir string, basedir string) error {
+	basedir = strings.TrimSuffix(basedir, "/") + "/"
+
 	files, err := ioutil.ReadDir(dir)
 
 	if err != nil {
@@ -212,10 +225,10 @@ func doTar(tw *tar.Writer, dir string) error {
 
 	for _, f := range files {
 		fqn := path.Join(dir, f.Name())
-		relpath := removePrefix(fqn)
+		relpath := strings.TrimPrefix(fqn, basedir)
 
 		if f.IsDir() {
-			err := doTar(tw, fqn)
+			err := doTar(tw, fqn, basedir)
 
 			if err != nil {
 				return err
@@ -250,7 +263,6 @@ func runDockerBuild(cli *client.Client, name, dir string) error {
 	}
 
 	tar, tarErr := createTar(dir)
-
 	if tarErr != nil {
 		return tarErr
 	}
