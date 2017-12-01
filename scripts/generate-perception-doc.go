@@ -12,12 +12,12 @@ import (
 
 // COPIED
 
-type mailboxMessagePerceptionWrapper struct {
+type MessageWrapper struct {
 	Subject string      `json:"subject"`
 	Body    interface{} `json:"body"`
 }
 
-type agentPerceptionVisionItem struct {
+type VisionItem struct {
 	Tag      string         `json:"tag"`
 	NearEdge vector.Vector2 `json:"nearedge"`
 	Center   vector.Vector2 `json:"center"`
@@ -25,16 +25,16 @@ type agentPerceptionVisionItem struct {
 	Velocity vector.Vector2 `json:"velocity"`
 }
 
-type agentPerception struct {
+type Perception struct {
 	Score int `json:"score"`
 
-	Energy        float64                           `json:"energy"`   // niveau en millièmes; reconstitution automatique ?
-	Velocity      vector.Vector2                    `json:"velocity"` // vecteur de force (direction, magnitude)
-	Azimuth       float64                           `json:"azimuth"`  // azimuth en degrés par rapport au "Nord" de l'arène
-	Vision        []agentPerceptionVisionItem       `json:"vision"`
-	ShootEnergy   float64                           `json:"shootenergy"`
-	ShootCooldown int                               `json:"shootcooldown"`
-	Messages      []mailboxMessagePerceptionWrapper `json:"messages"`
+	Energy        float64          `json:"energy"`   // niveau en millièmes; reconstitution automatique ?
+	Velocity      vector.Vector2   `json:"velocity"` // vecteur de force (direction, magnitude)
+	Azimuth       float64          `json:"azimuth"`  // azimuth en degrés par rapport au "Nord" de l'arène
+	Vision        []VisionItem     `json:"vision"`
+	ShootEnergy   float64          `json:"shootenergy"`
+	ShootCooldown int              `json:"shootcooldown"`
+	Messages      []MessageWrapper `json:"messages"`
 }
 
 // COPIED
@@ -53,13 +53,13 @@ var (
 `
 
 	runtimeTypes = map[string]string{
-		"unknown":                               "Object",
-		"string":                                "String",
-		"float64":                               "Number",
-		"int":                                   "Number",
-		"vector.Vector2":                        "Array of x, y",
-		"array agentPerceptionVisionItem":       "Array of Object",
-		"array mailboxMessagePerceptionWrapper": "Array of Object",
+		"unknown":                 "Object",
+		"string":                  "String",
+		"float64":                 "Number",
+		"int":                     "Number",
+		"Vector2":                 "Array of float64 (x, y)",
+		"array of VisionItem":     "Array of Object",
+		"array of MessageWrapper": "Array of Object",
 	}
 )
 
@@ -76,12 +76,15 @@ type DocEntry struct {
 
 func normalizeTypeName(t string) string {
 
-	if t == "[]main.agentPerceptionVisionItem" {
+	if t == "[]main.VisionItem" {
 
-		return "array agentPerceptionVisionItem"
-	} else if t == "[]main.mailboxMessagePerceptionWrapper" {
+		return "array of VisionItem"
+	} else if t == "[]main.MessageWrapper" {
 
-		return "array mailboxMessagePerceptionWrapper"
+		return "array of MessageWrapper"
+	} else if t == "vector.Vector2" {
+
+		return "Vector2"
 	} else if t == "interface {}" {
 
 		return "unknown"
@@ -92,9 +95,9 @@ func normalizeTypeName(t string) string {
 }
 
 func main() {
-	generateDocumentationFor(agentPerception{})
-	generateDocumentationFor(agentPerceptionVisionItem{})
-	generateDocumentationFor(mailboxMessagePerceptionWrapper{})
+	generateDocumentationFor(Perception{})
+	generateDocumentationFor(VisionItem{})
+	generateDocumentationFor(MessageWrapper{})
 
 	generateDocumentationFor(mailboxmessages.Score{})
 	generateDocumentationFor(mailboxmessages.Stats{})
