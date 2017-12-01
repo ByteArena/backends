@@ -67,3 +67,6 @@ do
         -H "$AUTH" \
         -H "Content-Type: application/octet-stream"
 done
+
+git tag $TAG
+git push origin $TAG
