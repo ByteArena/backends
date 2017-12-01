@@ -1,5 +1,5 @@
-hash: 0333194517d40401be5f366e229bb7e756f5792358c9968a3c956d10e14eb167
-updated: 2017-11-22T17:00:43.147417366+01:00
+hash: 51bbd12a6b279186dc7305971147145c9923f383812b6ee89365187cd9a90ea4
+updated: 2017-12-01T15:30:48.510379493+01:00
 imports:
 - name: github.com/abiosoft/ishell
   version: 795ad792f757b4bbe1d9db72c389b0f8eb108896
@@ -193,6 +193,8 @@ imports:
   version: a4f3ac7b04d7dd153e4f382947a0821278c0f660
   subpackages:
   - printer/tree
+- name: github.com/xtuc/go-structdoc
+  version: 5e91565bfd63cee29f42acce6110d47086aaece8
 - name: github.com/xtuc/schaloop
   version: 9638fcdc196e786f64d8584d7008dbb7cc91c089
   subpackages:
