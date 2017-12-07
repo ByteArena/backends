@@ -10,6 +10,7 @@ import (
 
 	"github.com/bytearena/bytearena/ba/action/build"
 	"github.com/bytearena/bytearena/ba/action/generate"
+	"github.com/bytearena/bytearena/ba/action/replay"
 	"github.com/bytearena/bytearena/ba/action/train"
 	"github.com/bytearena/bytearena/common/utils"
 	bettererrors "github.com/xtuc/better-errors"
@@ -50,6 +51,19 @@ func makeapp() *cli.App {
 				if err != nil {
 					commandFailWith("build", showUsage, c, err)
 				}
+
+				return nil
+			},
+		},
+		{
+			Name:  "replay",
+			Usage: "Replay a recorded game",
+			Flags: []cli.Flag{
+				cli.StringFlag{Name: "file", Usage: "Record file location"},
+				cli.IntFlag{Name: "viz-port", Value: 8080, Usage: "Specifiy the port of the visualization server"},
+			},
+			Action: func(c *cli.Context) error {
+				replay.Main(c.String("file"), c.Int("viz-port"))
 
 				return nil
 			},
