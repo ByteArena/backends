@@ -417,35 +417,6 @@ func computeAgentVision(game *DeathmatchGame, entity *ecs.Entity, physicalAspect
 
 	vision = processOcclusions(vision, agentPosition)
 
-	renderQr := game.getEntity(entity.ID, game.renderComponent)
-	if renderQr != nil {
-		renderAspect := renderQr.Components[game.renderComponent].(*Render)
-		renderAspect.DebugPoints = make([][2]float64, 0)
-		renderAspect.DebugSegments = make([][2][2]float64, 0)
-		for _, v := range vision {
-
-			//absCenter := v.Center.SetAngle(v.Center.Angle() + agentOrientation).Add(agentPosition)
-			absNearEdge := v.NearEdge.SetAngle(v.NearEdge.Angle() + agentOrientation).Add(agentPosition)
-			absFarEdge := v.FarEdge.SetAngle(v.FarEdge.Angle() + agentOrientation).Add(agentPosition)
-
-			renderAspect.DebugPoints = append(renderAspect.DebugPoints,
-				absNearEdge.ToFloatArray(),
-				//absCenter.ToFloatArray(),
-				absFarEdge.ToFloatArray(),
-			)
-
-			renderAspect.DebugSegments = append(renderAspect.DebugSegments,
-				[2][2]float64{absNearEdge.ToFloatArray(), absFarEdge.ToFloatArray()},
-			)
-		}
-
-		renderAspect.DebugPoints = append(renderAspect.DebugPoints,
-			//agentPosition.ToFloatArray(),
-			leftVisionRelvec.Add(agentPosition).ToFloatArray(),
-			rightVisionRelvec.Add(agentPosition).ToFloatArray(),
-		)
-	}
-
 	//watch.Stop("global")
 	//fmt.Println(watch.String())
 

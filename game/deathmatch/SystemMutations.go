@@ -3,7 +3,6 @@ package deathmatch
 import (
 	json "encoding/json"
 	"errors"
-	"log"
 
 	"github.com/bytearena/bytearena/arenaserver/types"
 	"github.com/bytearena/bytearena/common/utils"
@@ -109,14 +108,24 @@ func handleSteerMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityI
 	return nil
 }
 
-func handleDebugPointMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityID, mutation types.AgentMessagePayloadMutation) error {
-	var debugPointFloats []float64
+func handleDebugPointMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityID, mutation types.AgentMessagePayloadActions) error {
+	var debugPointFloats [2]float64
+
 	err := json.Unmarshal(mutation.GetArguments(), &debugPointFloats)
 	if err != nil {
-		return errors.New("Failed to unmarshal JSON arguments for steer mutation")
+		return errors.New("Failed to unmarshal JSON arguments for debug action")
 	}
 
-	log.Println(debugPointFloats)
+	renderQueryResult := deathmatch.getEntity(entityID, deathmatch.renderComponent)
+	if renderQueryResult != nil {
+		renderAspect := renderQueryResult.Components[deathmatch.renderComponent].(*Render)
+
+		// TODO(sven): find a better place to initial that
+		renderAspect.DebugPoints = make([][2]float64, 0)
+		renderAspect.DebugSegments = make([][2][2]float64, 0)
+
+		renderAspect.DebugPoints = append(renderAspect.DebugPoints, debugPointFloats)
+	}
 
 	return nil
 }
