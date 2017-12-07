@@ -6,8 +6,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ttacon/chalk"
 	bettererrors "github.com/xtuc/better-errors"
 	bettererrorstree "github.com/xtuc/better-errors/printer/tree"
+)
+
+// TODO(sven): we should disable the colors when the terminal has no frontend
+// and/or expliclty pass an --no-colors argument.
+var (
+	WarnColor = chalk.Red.Color
 )
 
 func FailWith(err error) {
@@ -26,10 +33,10 @@ func FailWith(err error) {
 		urlOptions.Set("body", wrapInMarkdownCode(msg))
 
 		fmt.Println("")
-		fmt.Println("❌  An error occurred.")
+		fmt.Println(WarnColor("❌  An error occurred."))
 		fmt.Println("")
 
-		fmt.Print(msg)
+		fmt.Print(WarnColor(msg))
 
 		fmt.Println("")
 
@@ -50,10 +57,10 @@ func WarnWith(err error) {
 		msg := bettererrorstree.PrintChain(err.(*bettererrors.Chain))
 
 		fmt.Println("")
-		fmt.Println("⚠️  Warning")
+		fmt.Println(WarnColor("⚠️  Warning"))
 		fmt.Println("")
 
-		fmt.Print(msg)
+		fmt.Print(WarnColor(msg))
 
 		fmt.Println("")
 	} else {
