@@ -16,10 +16,10 @@ func (p _privateAgentMessageMethod) String() string {
 
 var AgentMessageType = struct {
 	Handshake _privateAgentMessageMethod
-	Mutation  _privateAgentMessageMethod
+	Actions   _privateAgentMessageMethod
 }{
 	Handshake: _privateAgentMessageMethod("Handshake"),
-	Mutation:  _privateAgentMessageMethod("Mutation"),
+	Actions:   _privateAgentMessageMethod("Actions"),
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -69,25 +69,25 @@ type AgentMessagePayloadHandshake struct {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Mutation payload
+// Actions payload
 ///////////////////////////////////////////////////////////////////////////////
-type AgentMessagePayloadMutation struct {
+type AgentMessagePayloadActions struct {
 	Method    string          `json:"method"`
 	Arguments json.RawMessage `json:"arguments"`
 }
 
-func (m AgentMessagePayloadMutation) GetMethod() string {
+func (m AgentMessagePayloadActions) GetMethod() string {
 	return m.Method
 }
 
-func (m AgentMessagePayloadMutation) GetArguments() json.RawMessage {
+func (m AgentMessagePayloadActions) GetArguments() json.RawMessage {
 	return m.Arguments
 }
 
 type AgentMutationBatch struct {
 	AgentProxyUUID uuid.UUID
 	AgentEntityId  ecs.EntityID
-	Mutations      []AgentMessagePayloadMutation `json:"mutations"`
+	Mutations      []AgentMessagePayloadActions
 }
 
 type AgentMutationBatcherInterface interface {

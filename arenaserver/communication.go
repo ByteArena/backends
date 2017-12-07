@@ -205,17 +205,17 @@ func (server *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) er
 
 			break
 		}
-	case arenaservertypes.AgentMessageType.Mutation:
+	case arenaservertypes.AgentMessageType.Actions:
 		{
-			var mutations struct {
-				Mutations []arenaservertypes.AgentMessagePayloadMutation
+			var actionsMessage struct {
+				Actions []arenaservertypes.AgentMessagePayloadActions
 			}
 
-			err = json.Unmarshal(msg.GetPayload(), &mutations)
+			err = json.Unmarshal(msg.GetPayload(), &actionsMessage)
 			if err != nil {
 
 				return bettererrors.
-					New("Failed to unmarshal JSON agent mutation").
+					New("Failed to unmarshal JSON agent actions").
 					SetContext("agent", agentproxy.String()).
 					SetContext("payload", string(msg.GetPayload()))
 			}
@@ -223,7 +223,7 @@ func (server *Server) DispatchAgentMessage(msg arenaservertypes.AgentMessage) er
 			mutationbatch := arenaservertypes.AgentMutationBatch{
 				AgentProxyUUID: agentproxy.GetProxyUUID(),
 				AgentEntityId:  agentproxy.GetEntityId(),
-				Mutations:      mutations.Mutations,
+				Mutations:      actionsMessage.Actions,
 			}
 
 			server.PushMutationBatch(mutationbatch)
