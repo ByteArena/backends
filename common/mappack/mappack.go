@@ -80,6 +80,8 @@ func (m *MappackInMemoryArchive) Close() {
 }
 
 func (m *MappackInMemoryArchive) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	initialExt := filepath.Ext(r.URL.Path)
+
 	if strings.HasSuffix(r.URL.Path, "model.json") {
 		r.URL.Path += ".gz"
 		w.Header().Set("Content-Encoding", "gzip")
@@ -90,7 +92,7 @@ func (m *MappackInMemoryArchive) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		http.NotFound(w, r)
 	} else {
-		ctype := mime.TypeByExtension(filepath.Ext(r.URL.Path))
+		ctype := mime.TypeByExtension(initialExt)
 
 		w.Header().Set("Content-Type", ctype)
 		w.Header().Set("Content-Size", strconv.Itoa(len(content)))

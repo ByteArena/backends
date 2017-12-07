@@ -67,7 +67,7 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 	}
 }
 
-func handleShootMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityID, mutation types.AgentMessagePayloadMutation) error {
+func handleShootMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityID, mutation types.AgentMessagePayloadActions) error {
 
 	var aimingFloats []float64
 	err := json.Unmarshal(mutation.GetArguments(), &aimingFloats)
@@ -89,7 +89,7 @@ func handleShootMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityI
 	return nil
 }
 
-func handleSteerMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityID, mutation types.AgentMessagePayloadMutation) error {
+func handleSteerMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityID, mutation types.AgentMessagePayloadActions) error {
 	var steeringFloats []float64
 	err := json.Unmarshal(mutation.GetArguments(), &steeringFloats)
 	if err != nil {

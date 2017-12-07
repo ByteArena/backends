@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ttacon/chalk"
+
 	notify "github.com/bitly/go-notify"
 	"github.com/bytearena/bytearena/arenaserver"
 	"github.com/bytearena/bytearena/arenaserver/container"
@@ -24,6 +26,15 @@ import (
 
 	mapcmd "github.com/bytearena/bytearena/ba/action/map"
 	bettererrors "github.com/xtuc/better-errors"
+)
+
+// TODO(sven): we should disable the colors when the terminal has no frontend
+// and/or expliclty pass an --no-colors argument.
+var (
+	DebugColor = chalk.Cyan.Color
+	GameColor  = chalk.Blue.Color
+	AgentColor = chalk.Green.Color
+	LogColor   = chalk.ResetColor.Color
 )
 
 const (
@@ -48,7 +59,7 @@ func TrainAction(tps int, host string, vizport int, nobrowser bool, recordFile s
 
 	if isDebug {
 		debug = func(str string) {
-			fmt.Printf("[debug] %s\n", str)
+			fmt.Printf(DebugColor("[debug] %s\n"), str)
 		}
 	}
 
@@ -94,13 +105,13 @@ func TrainAction(tps int, host string, vizport int, nobrowser bool, recordFile s
 
 			switch t := msg.(type) {
 			case arenaserver.EventStatusGameUpdate:
-				fmt.Println("[game]", t.Status)
+				fmt.Printf(GameColor("[game] %s\n"), t.Status)
 
 			case arenaserver.EventAgentLog:
-				fmt.Println("[agent]", t.Value)
+				fmt.Printf(AgentColor("[agent] %s\n"), t.Value)
 
 			case arenaserver.EventLog:
-				fmt.Println("[log]", t.Value)
+				fmt.Printf(LogColor("[log] %s\n"), t.Value)
 
 			case arenaserver.EventDebug:
 				debug(t.Value)
@@ -113,7 +124,7 @@ func TrainAction(tps int, host string, vizport int, nobrowser bool, recordFile s
 
 			case arenaserver.EventRawComm:
 				if dumpRaw {
-					fmt.Printf("[agent] %s", t.Value)
+					fmt.Printf(AgentColor("[agent] %s\n"), t.Value)
 				}
 
 			case arenaserver.EventClose:
