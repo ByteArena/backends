@@ -476,14 +476,14 @@ func (deathmatch *DeathmatchGame) GetVizFrameJson() []byte {
 
 		msg.DebugPoints = append(msg.DebugPoints, scaledDebugPoints...)
 
-		scaledDebugSegments := make([][2][2]float64, len(renderAspect.DebugSegments))
-		for i := 0; i < len(renderAspect.DebugSegments); i++ {
-			scaledDebugSegments[i] = [2][2]float64{
-				vector.Vector2(renderAspect.DebugSegments[i][0]).Transform(deathmatch.physicalToAgentSpaceInverseTransform).ToFloatArray(),
-				vector.Vector2(renderAspect.DebugSegments[i][1]).Transform(deathmatch.physicalToAgentSpaceInverseTransform).ToFloatArray(),
-			}
-		}
-		msg.DebugSegments = append(msg.DebugSegments, scaledDebugSegments...)
+		// scaledDebugSegments := make([][2][2]float64, len(renderAspect.DebugSegments))
+		// for i := 0; i < len(renderAspect.DebugSegments); i++ {
+		// 	scaledDebugSegments[i] = [2][2]float64{
+		// 		vector.Vector2(renderAspect.DebugSegments[i][0]).Transform(deathmatch.physicalToAgentSpaceInverseTransform).ToFloatArray(),
+		// 		vector.Vector2(renderAspect.DebugSegments[i][1]).Transform(deathmatch.physicalToAgentSpaceInverseTransform).ToFloatArray(),
+		// 	}
+		// }
+		// msg.DebugSegments = append(msg.DebugSegments, scaledDebugSegments...)
 	}
 
 	res, _ := msg.MarshalJSON()
