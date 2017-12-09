@@ -5,10 +5,12 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/bytearena/bytearena/common/graphql"
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/backends/common/graphql"
+	"github.com/bytearena/backends/common/mq"
+
+	coremq "github.com/bytearena/core/common/mq"
+	"github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
 )
 
 var (
@@ -65,7 +67,7 @@ func StartMQHealthCheckServer(brokerclient *mq.Client, graphqlclient graphql.Cli
 		}
 	}
 
-	brokerclient.Subscribe("game", "healthcheck", func(msg mq.BrokerMessage) {
+	brokerclient.Subscribe("game", "healthcheck", func(msg coremq.BrokerMessage) {
 		var status = "OK"
 
 		if err := testTimeElapsed(); err != nil {

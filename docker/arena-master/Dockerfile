@@ -2,7 +2,7 @@ FROM golang:1.8-stretch
 
 ARG BRIDGE
 
-ENV APP_HOME $GOPATH/src/github.com/bytearena/bytearena
+ENV APP_HOME $GOPATH/src/github.com/bytearena/backends
 
 RUN \
         apt-get update && \

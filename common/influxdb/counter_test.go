@@ -3,7 +3,7 @@ package influxdb_test
 import (
 	"testing"
 
-	"github.com/bytearena/bytearena/common/influxdb"
+	"github.com/bytearena/backends/common/influxdb"
 )
 
 func TestAdd(t *testing.T) {

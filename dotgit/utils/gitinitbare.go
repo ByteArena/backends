@@ -5,8 +5,8 @@ import (
 	"os/exec"
 	"path"
 
-	"github.com/bytearena/bytearena/dotgit/config"
-	"github.com/bytearena/bytearena/dotgit/protocol"
+	"github.com/bytearena/backends/dotgit/config"
+	"github.com/bytearena/backends/dotgit/protocol"
 )
 
 func InitBareGitRepository(repo protocol.GitRepository) error {

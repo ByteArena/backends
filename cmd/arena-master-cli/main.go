@@ -7,9 +7,11 @@ import (
 
 	"github.com/abiosoft/ishell"
 
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
+	bamq "github.com/bytearena/core/common/mq"
+	"github.com/bytearena/backends/common/mq"
+
+	"github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
 )
 
 type Session struct {
@@ -32,7 +34,7 @@ func main() {
 		mqClient: mqClient,
 	}
 
-	session.mqClient.Subscribe("debug", "getvmstatus-res", func(msg mq.BrokerMessage) {
+	session.mqClient.Subscribe("debug", "getvmstatus-res", func(msg bamq.BrokerMessage) {
 		var dat map[string]interface{}
 
 		if err := json.Unmarshal(msg.Data, &dat); err != nil {

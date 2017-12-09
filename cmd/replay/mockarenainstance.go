@@ -8,10 +8,11 @@ import (
 	"strings"
 	"time"
 
-	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/types/mapcontainer"
-	"github.com/bytearena/bytearena/common/utils"
+	gqltypes "github.com/bytearena/backends/common/graphql/types"
+
+	"github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/types/mapcontainer"
+	"github.com/bytearena/core/common/utils"
 )
 
 type MockGame struct {

@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bytearena/bytearena/dotgit/config"
-	"github.com/bytearena/bytearena/dotgit/database"
-	"github.com/bytearena/bytearena/dotgit/protocol"
+	"github.com/bytearena/backends/dotgit/config"
+	"github.com/bytearena/backends/dotgit/database"
+	"github.com/bytearena/backends/dotgit/protocol"
 )
 
 func main() {

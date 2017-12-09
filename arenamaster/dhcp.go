@@ -1,8 +1,9 @@
 package arenamaster
 
 import (
-	"github.com/bytearena/bytearena/common/utils"
 	vmdhcp "github.com/bytearena/schnapps/dhcp"
+
+	"github.com/bytearena/core/common/utils"
 )
 
 func (server *Server) createDHCPServer() {

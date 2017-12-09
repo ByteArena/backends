@@ -3,14 +3,13 @@ package main
 import (
 	"os"
 
-	"github.com/bytearena/bytearena/common/graphql"
-	"github.com/bytearena/bytearena/common/healthcheck"
+	"github.com/bytearena/backends/arenamaster"
+	"github.com/bytearena/backends/common/graphql"
+	"github.com/bytearena/backends/common/healthcheck"
+	"github.com/bytearena/backends/common/mq"
 
-	"github.com/bytearena/bytearena/common"
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/utils"
-
-	"github.com/bytearena/bytearena/arenamaster"
+	"github.com/bytearena/core/common"
+	"github.com/bytearena/core/common/utils"
 )
 
 var (

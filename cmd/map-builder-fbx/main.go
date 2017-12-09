@@ -16,10 +16,10 @@ import (
 
 	"github.com/go-gl/mathgl/mgl64"
 
-	"github.com/bytearena/bytearena/common/types/mapcontainer"
-	"github.com/bytearena/bytearena/common/utils/number"
-	polygonutils "github.com/bytearena/bytearena/common/utils/polygon"
-	"github.com/bytearena/bytearena/common/utils/vector"
+	"github.com/bytearena/core/common/types/mapcontainer"
+	"github.com/bytearena/core/common/utils/number"
+	polygonutils "github.com/bytearena/core/common/utils/polygon"
+	"github.com/bytearena/core/common/utils/vector"
 )
 
 const AxisX = 0

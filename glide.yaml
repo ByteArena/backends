@@ -1,6 +1,6 @@
-package: github.com/bytearena/bytearena
+package: github.com/bytearena/backends
 ignore:
-- github.com/bytearena/bytearena
+- github.com/bytearena/backends
 import:
 - package: github.com/bitly/go-notify
 - package: github.com/docker/distribution

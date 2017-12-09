@@ -8,14 +8,17 @@ import (
 
 	notify "github.com/bitly/go-notify"
 
-	"github.com/bytearena/bytearena/common"
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/dotgit/config"
-	"github.com/bytearena/bytearena/dotgit/database"
-	"github.com/bytearena/bytearena/dotgit/protocol"
-	dotgitutils "github.com/bytearena/bytearena/dotgit/utils"
+	"github.com/bytearena/backends/common/mq"
+
+	"github.com/bytearena/core/common"
+	coremq "github.com/bytearena/core/common/mq"
+	"github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
+
+	"github.com/bytearena/backends/dotgit/config"
+	"github.com/bytearena/backends/dotgit/database"
+	"github.com/bytearena/backends/dotgit/protocol"
+	dotgitutils "github.com/bytearena/backends/dotgit/utils"
 )
 
 type messageAgentSubmitted struct {
@@ -50,7 +53,7 @@ func main() {
 	streamAgentSubmitted := make(chan interface{})
 	notify.Start("agent:submitted", streamAgentSubmitted)
 
-	brokerclient.Subscribe("agent", "submitted", func(msg mq.BrokerMessage) {
+	brokerclient.Subscribe("agent", "submitted", func(msg coremq.BrokerMessage) {
 		log.Println("INFO:agent:submitted Received from MESSAGEBROKER")
 		var payload messageAgentSubmitted
 		err := json.Unmarshal(msg.Data, &payload)
@@ -83,7 +86,7 @@ func main() {
 	brokerclient.Stop()
 }
 
-func initRepo(db protocol.DatabaseInterface, mqclient mq.ClientInterface, agentid string) {
+func initRepo(db protocol.DatabaseInterface, mqclient coremq.ClientInterface, agentid string) {
 	// fetch de l'agent sur graphql
 	agent, err := db.FindRepositoryById(agentid)
 	if err != nil {

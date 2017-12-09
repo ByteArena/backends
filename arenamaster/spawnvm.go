@@ -1,10 +1,11 @@
 package arenamaster
 
 import (
-	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/schnapps"
 	vmid "github.com/bytearena/schnapps/id"
 	vmtypes "github.com/bytearena/schnapps/types"
+
+	"github.com/bytearena/core/common/utils"
 )
 
 var (

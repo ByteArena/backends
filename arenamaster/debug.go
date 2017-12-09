@@ -5,11 +5,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bytearena/bytearena/arenamaster/state"
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/types"
 	"github.com/bytearena/schnapps"
 	vmid "github.com/bytearena/schnapps/id"
+
+	"github.com/bytearena/backends/arenamaster/state"
+	"github.com/bytearena/backends/common/mq"
+
+	"github.com/bytearena/core/common/types"
 )
 
 func handleDebugGetVMStatus(mqClient *mq.Client, s *state.State, healthchecks *ArenaHealthCheck) {

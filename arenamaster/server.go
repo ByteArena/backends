@@ -5,19 +5,22 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/xtuc/schaloop"
-
-	arenamasterGraphql "github.com/bytearena/bytearena/arenamaster/graphql"
-	"github.com/bytearena/bytearena/arenamaster/state"
-	"github.com/bytearena/bytearena/common/graphql"
-	"github.com/bytearena/bytearena/common/influxdb"
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/schnapps"
 	vmdhcp "github.com/bytearena/schnapps/dhcp"
 	vmdns "github.com/bytearena/schnapps/dns"
 	vmmeta "github.com/bytearena/schnapps/metadata"
+
+	"github.com/xtuc/schaloop"
+
+	arenamasterGraphql "github.com/bytearena/backends/arenamaster/graphql"
+	"github.com/bytearena/backends/arenamaster/state"
+	"github.com/bytearena/backends/common/graphql"
+	"github.com/bytearena/backends/common/influxdb"
+	"github.com/bytearena/backends/common/mq"
+
+	bamq "github.com/bytearena/core/common/mq"
+	"github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
 )
 
 var (
@@ -87,7 +90,7 @@ func (server *Server) startStateReporting() error {
 	return nil
 }
 
-func unmarshalMQMessage(msg mq.BrokerMessage) (error, *types.MQMessage) {
+func unmarshalMQMessage(msg bamq.BrokerMessage) (error, *types.MQMessage) {
 	var message types.MQMessage
 	err := json.Unmarshal(msg.Data, &message)
 	if err != nil {

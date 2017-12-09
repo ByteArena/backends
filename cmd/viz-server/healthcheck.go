@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/bytearena/bytearena/common/graphql"
-	"github.com/bytearena/bytearena/common/healthcheck"
-	"github.com/bytearena/bytearena/common/mq"
-
 	"errors"
 	"net/http"
 	"strconv"
+
+	"github.com/bytearena/backends/common/graphql"
+	"github.com/bytearena/backends/common/healthcheck"
+	"github.com/bytearena/backends/common/mq"
 )
 
 func NewHealthCheck(brokerclient *mq.Client, graphqlclient graphql.Client, vizServerAddr string) *healthcheck.HealthCheckServer {

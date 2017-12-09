@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bytearena/bytearena/common/graphql"
-	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
+	"github.com/bytearena/backends/common/graphql"
+	gqltypes "github.com/bytearena/backends/common/graphql/types"
 )
 
 const createDeploymentMutation = `

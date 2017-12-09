@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/core/common/utils"
 )
 
 type vec struct {

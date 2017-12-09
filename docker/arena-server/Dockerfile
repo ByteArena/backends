@@ -1,6 +1,6 @@
 FROM golang:1.8-alpine3.5 as builder
 
-ENV APP_HOME $GOPATH/src/github.com/bytearena/bytearena
+ENV APP_HOME $GOPATH/src/github.com/bytearena/backends
 
 RUN apk update
 RUN apk add git curl sudo gnupg

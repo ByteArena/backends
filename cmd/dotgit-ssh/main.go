@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bytearena/bytearena/dotgit/config"
-	"github.com/bytearena/bytearena/dotgit/database"
-	"github.com/bytearena/bytearena/dotgit/protocol"
-	"github.com/bytearena/bytearena/dotgit/utils"
+	"github.com/bytearena/backends/dotgit/config"
+	"github.com/bytearena/backends/dotgit/database"
+	"github.com/bytearena/backends/dotgit/protocol"
+	"github.com/bytearena/backends/dotgit/utils"
 )
 
 func msgOut(msg string) {

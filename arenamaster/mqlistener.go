@@ -3,9 +3,11 @@ package arenamaster
 import (
 	"encoding/json"
 
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
+	bamq "github.com/bytearena/core/common/mq"
+	"github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
+
+	"github.com/bytearena/backends/common/mq"
 )
 
 type Res chan types.MQMessage
@@ -40,7 +42,7 @@ func MakeListener(mqClient *mq.Client) Listener {
 func subscribeToChannelAndGetChan(mqClient *mq.Client, channel, topic string) Res {
 	res := make(Res)
 
-	err := mqClient.Subscribe(channel, topic, func(msg mq.BrokerMessage) {
+	err := mqClient.Subscribe(channel, topic, func(msg bamq.BrokerMessage) {
 		var message types.MQMessage
 		err := json.Unmarshal(msg.Data, &message)
 

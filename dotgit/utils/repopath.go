@@ -4,7 +4,7 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/bytearena/bytearena/dotgit/protocol"
+	"github.com/bytearena/backends/dotgit/protocol"
 )
 
 func RepoRelPath(repo protocol.GitRepository) string {

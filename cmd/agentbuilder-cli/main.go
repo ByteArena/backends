@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bytearena/bytearena/agentbuilder"
-	"github.com/bytearena/bytearena/common"
-	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/core/common"
+	"github.com/bytearena/core/common/dockerfile"
+	"github.com/bytearena/core/common/utils"
 )
 
 func msgOut(msg string) {
@@ -152,7 +152,7 @@ func assertAgentCodeIsLegit(absBuildDir, registryHost string) {
 	dockerfileContent = dockerfileContent[:size]
 
 	// on vérifie que le Dockerfile ne contient que des FROM légitimes
-	froms, err := agentbuilder.DockerfileParserGetFroms(bytes.NewReader(dockerfileContent))
+	froms, err := dockerfile.DockerfileParserGetFroms(bytes.NewReader(dockerfileContent))
 	if err != nil {
 		msgOut("Error: Your agent's Dockerfile cannot be parsed.")
 	}
@@ -171,7 +171,7 @@ func assertAgentCodeIsLegit(absBuildDir, registryHost string) {
 		}
 	}
 
-	forbiddenInstructions, err := agentbuilder.DockerfileFindForbiddenInstructions(bytes.NewReader(dockerfileContent))
+	forbiddenInstructions, err := dockerfile.DockerfileFindForbiddenInstructions(bytes.NewReader(dockerfileContent))
 
 	if err != nil {
 		msgOut("Error: Your agent's Dockerfile cannot be parsed.")

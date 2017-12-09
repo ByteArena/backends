@@ -3,10 +3,12 @@ package graphql
 import (
 	"time"
 
-	"github.com/bytearena/bytearena/arenamaster/state"
-	"github.com/bytearena/bytearena/common/graphql"
-	gqltypes "github.com/bytearena/bytearena/common/graphql/types"
-	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/backends/arenamaster/state"
+
+	"github.com/bytearena/backends/common/graphql"
+	gqltypes "github.com/bytearena/backends/common/graphql/types"
+
+	"github.com/bytearena/core/common/utils"
 )
 
 const updateGameStateMutation = `

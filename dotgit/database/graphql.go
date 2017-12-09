@@ -6,10 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/bytearena/bytearena/common/graphql"
-	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
-	"github.com/bytearena/bytearena/dotgit/protocol"
-	"github.com/bytearena/bytearena/dotgit/utils"
+	"github.com/bytearena/backends/common/graphql"
+	graphqltype "github.com/bytearena/backends/common/graphql/types"
+
+	"github.com/bytearena/backends/dotgit/protocol"
+	"github.com/bytearena/backends/dotgit/utils"
 )
 
 const fragmentUser = `

@@ -5,7 +5,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/core/common/mq"
+	"github.com/bytearena/core/common/utils"
 
 	"github.com/go-redis/redis"
 )
@@ -15,13 +16,6 @@ type brokerAction struct {
 	Channel string      `json:"channel"`
 	Topic   string      `json:"topic"`
 	Data    interface{} `json:"data"`
-}
-
-type BrokerMessage struct {
-	Timestamp string          `json:"timestamp"`
-	Data      json.RawMessage `json:"data"`
-	Topic     string          `json:"topic"`
-	Channel   string          `json:"channel"`
 }
 
 type Client struct {
@@ -79,7 +73,7 @@ func (client *Client) Stop() {
 }
 
 /* <mq.MessageBrokerClientInterface> */
-func (client *Client) Subscribe(channel string, topic string, onmessage SubscriptionCallback) error {
+func (client *Client) Subscribe(channel string, topic string, onmessage mq.SubscriptionCallback) error {
 	client.mu.Lock()
 
 	channelName := channelAndTopicToString(channel, topic)
@@ -112,7 +106,7 @@ func (client *Client) Subscribe(channel string, topic string, onmessage Subscrip
 				continue
 			}
 
-			var mqMessage BrokerMessage
+			var mqMessage mq.BrokerMessage
 
 			err = json.Unmarshal([]byte(msg.Payload), &mqMessage)
 

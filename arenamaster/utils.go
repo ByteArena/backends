@@ -1,9 +1,10 @@
 package arenamaster
 
 import (
-	"github.com/bytearena/bytearena/arenamaster/state"
 	"github.com/bytearena/schnapps"
 	vmid "github.com/bytearena/schnapps/id"
+
+	"github.com/bytearena/backends/arenamaster/state"
 )
 
 func FindVMByMAC(s *state.State, searchMac string) *vm.VM {

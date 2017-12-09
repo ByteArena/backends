@@ -3,9 +3,10 @@ package arenamaster
 import (
 	"fmt"
 
-	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/schnapps"
 	vmmeta "github.com/bytearena/schnapps/metadata"
+
+	"github.com/bytearena/core/common/utils"
 )
 
 var (

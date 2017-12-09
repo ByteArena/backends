@@ -9,11 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bytearena/bytearena/arenaserver/container"
-	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
-	commontypes "github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
 	uuid "github.com/satori/go.uuid"
+
+	"github.com/bytearena/core/arenaserver/container"
+	arenaservertypes "github.com/bytearena/core/arenaserver/types"
+	commontypes "github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
 )
 
 func main() {

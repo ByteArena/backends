@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/core/common/utils"
 )
 
 type HealthCheckServer struct {

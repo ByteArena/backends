@@ -12,9 +12,11 @@ import (
 	"github.com/docker/docker/client"
 	uuid "github.com/satori/go.uuid"
 
-	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
-	t "github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
+	arenaservertypes "github.com/bytearena/core/arenaserver/types"
+	t "github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
+
+	corecontainer "github.com/bytearena/core/arenaserver/container"
 )
 
 var logDir = utils.GetenvOrDefault("AGENT_LOGS_PATH", "./data/agent-logs")
@@ -47,7 +49,7 @@ func (orch *RemoteContainerOrchestrator) startContainerRemoteOrch(ctner *arenase
 	}
 
 	addTearDownCall(func() error {
-		orch.events <- EventDebug{"Closed agent container logger"}
+		orch.events <- corecontainer.EventDebug{"Closed agent container logger"}
 
 		ctner.LogReader.Close()
 
@@ -92,7 +94,7 @@ func (orch *RemoteContainerOrchestrator) GetHost() (string, error) {
 }
 
 func (orch *RemoteContainerOrchestrator) StartAgentContainer(ctner *arenaservertypes.AgentContainer, addTearDownCall func(t.TearDownCallback)) error {
-	orch.events <- EventDebug{"Spawning agent " + ctner.AgentId.String()}
+	orch.events <- corecontainer.EventDebug{"Spawning agent " + ctner.AgentId.String()}
 
 	return orch.startContainerRemoteOrch(ctner, addTearDownCall)
 }
@@ -112,7 +114,7 @@ func (orch *RemoteContainerOrchestrator) SetAgentLogger(container *arenaserverty
 
 		// Create log file
 		filename := logDir + "/" + container.AgentId.String() + ".log"
-		orch.events <- EventDebug{"created file " + filename}
+		orch.events <- corecontainer.EventDebug{"created file " + filename}
 
 		handle, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0777)
 
@@ -125,7 +127,7 @@ func (orch *RemoteContainerOrchestrator) SetAgentLogger(container *arenaserverty
 }
 
 func (orch *RemoteContainerOrchestrator) CreateAgentContainer(agentid uuid.UUID, host string, port int, dockerimage string) (*arenaservertypes.AgentContainer, error) {
-	return commonCreateAgentContainer(orch, agentid, host, port, dockerimage)
+	return corecontainer.CommonCreateAgentContainer(orch, agentid, host, port, dockerimage)
 }
 
 func (orch *RemoteContainerOrchestrator) TearDown(container *arenaservertypes.AgentContainer) {
@@ -133,12 +135,12 @@ func (orch *RemoteContainerOrchestrator) TearDown(container *arenaservertypes.Ag
 
 	err := orch.RemoveAgentContainer(container)
 	if err != nil {
-		orch.events <- EventDebug{"Cannot remove agent container: " + err.Error()}
+		orch.events <- corecontainer.EventDebug{"Cannot remove agent container: " + err.Error()}
 	}
 }
 
 func (orch *RemoteContainerOrchestrator) RemoveAgentContainer(ctner *arenaservertypes.AgentContainer) error {
-	orch.events <- EventDebug{"Remove agent image " + ctner.ImageName}
+	orch.events <- corecontainer.EventDebug{"Remove agent image " + ctner.ImageName}
 
 	out, errImageRemove := orch.cli.ImageRemove(
 		orch.ctx,
@@ -149,7 +151,7 @@ func (orch *RemoteContainerOrchestrator) RemoveAgentContainer(ctner *arenaserver
 		},
 	)
 
-	orch.events <- EventDebug{"Removed " + strconv.Itoa(len(out)) + " layers"}
+	orch.events <- corecontainer.EventDebug{"Removed " + strconv.Itoa(len(out)) + " layers"}
 
 	return errImageRemove
 }
@@ -202,4 +204,21 @@ func (orch *RemoteContainerOrchestrator) RemoveContainer(ctner *arenaservertypes
 	}
 
 	orch.containers = containers
+}
+
+func (orch *RemoteContainerOrchestrator) publishInRegistry(image string) {
+	options := types.ImagePushOptions{
+		All:          true,
+		RegistryAuth: orch.GetRegistryAuth(),
+	}
+
+	_, err := orch.GetCli().ImagePush(
+		orch.GetContext(),
+		image,
+		options,
+	)
+	utils.Check(err, "Failed to push docker image to registry")
+
+	// TODO(sven): fix reader to avoid ressource leakage
+	// readCloser.Closer.Close()
 }

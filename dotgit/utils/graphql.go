@@ -3,8 +3,9 @@ package utils
 import (
 	"strconv"
 
-	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
-	"github.com/bytearena/bytearena/dotgit/protocol"
+	graphqltype "github.com/bytearena/backends/common/graphql/types"
+
+	"github.com/bytearena/backends/dotgit/protocol"
 )
 
 func GqlUserToUser(gqluser graphqltype.UserType) protocol.User {

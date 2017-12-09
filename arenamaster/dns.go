@@ -1,8 +1,9 @@
 package arenamaster
 
 import (
-	"github.com/bytearena/bytearena/common/utils"
 	vmdns "github.com/bytearena/schnapps/dns"
+
+	"github.com/bytearena/core/common/utils"
 )
 
 var (

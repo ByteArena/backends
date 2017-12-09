@@ -8,16 +8,19 @@ import (
 	"time"
 
 	notify "github.com/bitly/go-notify"
-	"github.com/bytearena/bytearena/arenaserver"
-	"github.com/bytearena/bytearena/arenaserver/container"
-	arenaservertypes "github.com/bytearena/bytearena/arenaserver/types"
-	"github.com/bytearena/bytearena/common"
-	"github.com/bytearena/bytearena/common/graphql"
-	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/game/deathmatch"
+
+	"github.com/bytearena/backends/common/container"
+	"github.com/bytearena/backends/common/graphql"
+	apiqueries "github.com/bytearena/backends/common/graphql/queries"
+	"github.com/bytearena/backends/common/mq"
+
+	"github.com/bytearena/core/arenaserver"
+	arenaservertypes "github.com/bytearena/core/arenaserver/types"
+	"github.com/bytearena/core/common"
+	coremq "github.com/bytearena/core/common/mq"
+	"github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
+	"github.com/bytearena/core/game/deathmatch"
 )
 
 type messageArenaLaunch struct {
@@ -29,7 +32,6 @@ func main() {
 
 	host := flag.String("host", "", "IP serving the arena (TCP listen); required")
 	arenaServerUUID := flag.String("id", "", "ID of the arena; required")
-	port := flag.Int("port", 7777, "Port serving the arena")
 	mqhost := flag.String("mqhost", "mq:5678", "Message queue host:port")
 	apiurl := flag.String("apiurl", "https://graphql.net.bytearena.com", "GQL API URL")
 	timeout := flag.Int("timeout", 60, "Limit the time of the game (in minutes)")
@@ -82,7 +84,7 @@ func main() {
 
 	StartMQHealthCheckServer(brokerclient, graphqlclient, *arenaServerUUID, time.Duration(*timeout*2)*time.Minute)
 
-	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg mq.BrokerMessage) {
+	brokerclient.Subscribe("game", (*arenaServerUUID)+".launch", func(msg coremq.BrokerMessage) {
 		utils.Debug("from-master", "Received launching order")
 
 		var payload messageArenaLaunch
@@ -97,7 +99,7 @@ func main() {
 		game := deathmatch.NewDeathmatchGame(gamedescription)
 
 		orch := container.MakeRemoteContainerOrchestrator(*arenaAddr, *registryAddr)
-		srv := arenaserver.NewServer(*host, *port, orch, gamedescription, game, *arenaServerUUID, brokerclient)
+		srv := arenaserver.NewServer(*host, orch, gamedescription, game, *arenaServerUUID, brokerclient)
 
 		srv.AddTearDownCall(func() error {
 			brokerclient.Stop()
@@ -117,7 +119,7 @@ func main() {
 
 func startGame(arenaSubmitted messageArenaLaunch, orch arenaservertypes.ContainerOrchestrator, gameDescription types.GameDescriptionInterface, srv *arenaserver.Server, timeout int) {
 	for _, contestant := range gameDescription.GetContestants() {
-		srv.RegisterAgent(contestant.AgentRegistry+"/"+contestant.AgentImage, contestant.Username)
+		srv.RegisterAgent(contestant.AgentRegistry+"/"+contestant.AgentImage, contestant)
 	}
 
 	// handling signals

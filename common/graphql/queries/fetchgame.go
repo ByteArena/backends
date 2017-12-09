@@ -5,9 +5,9 @@ import (
 
 	"errors"
 
-	"github.com/bytearena/bytearena/common/graphql"
-	graphqltype "github.com/bytearena/bytearena/common/graphql/types"
-	"github.com/bytearena/bytearena/common/types"
+	"github.com/bytearena/backends/common/graphql"
+	graphqltype "github.com/bytearena/backends/common/graphql/types"
+	"github.com/bytearena/core/common/types"
 )
 
 const gameQuery = `

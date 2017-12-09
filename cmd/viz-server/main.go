@@ -11,16 +11,19 @@ import (
 
 	notify "github.com/bitly/go-notify"
 
-	"github.com/bytearena/bytearena/common"
-	"github.com/bytearena/bytearena/common/graphql"
-	apiqueries "github.com/bytearena/bytearena/common/graphql/queries"
-	"github.com/bytearena/bytearena/common/healthcheck"
-	"github.com/bytearena/bytearena/common/influxdb"
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/recording"
-	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/vizserver"
-	"github.com/bytearena/bytearena/vizserver/types"
+	"github.com/bytearena/core/common"
+	coremq "github.com/bytearena/core/common/mq"
+	corerecording "github.com/bytearena/core/common/recording"
+	"github.com/bytearena/core/common/utils"
+	"github.com/bytearena/core/common/visualization"
+	"github.com/bytearena/core/common/visualization/types"
+
+	"github.com/bytearena/backends/common/graphql"
+	apiqueries "github.com/bytearena/backends/common/graphql/queries"
+	"github.com/bytearena/backends/common/healthcheck"
+	"github.com/bytearena/backends/common/influxdb"
+	"github.com/bytearena/backends/common/mq"
+	"github.com/bytearena/backends/common/recording"
 )
 
 var vizMessageReceived = influxdb.NewCounter()
@@ -152,7 +155,7 @@ func main() {
 	mqclient, err := mq.NewClient(*mqhost)
 	utils.Check(err, "ERROR: could not connect to messagebroker")
 
-	var recorder recording.RecorderInterface = recording.MakeEmptyRecorder()
+	var recorder corerecording.RecorderInterface = corerecording.MakeEmptyRecorder()
 	if *recordDirectory != "" {
 		recorder = recording.MakeMultiArenaRecorder(*recordDirectory)
 	}
@@ -182,11 +185,13 @@ func main() {
 	})
 
 	serverAddr := ":" + strconv.Itoa(*port)
-	vizservice := vizserver.NewVizService(serverAddr, webclientpath, func() ([]*types.VizGame, error) {
+
+	// TODO: fix this
+	vizservice := visualization.NewVizService(serverAddr, webclientpath, func() ([]*types.VizGame, error) {
 		return gamelist.GetGames(), nil
 	}, recorder)
 
-	mqclient.Subscribe("viz", "message", func(msg mq.BrokerMessage) {
+	mqclient.Subscribe("viz", "message", func(msg coremq.BrokerMessage) {
 		var vizMessage []GameIDVizMessage
 		err := json.Unmarshal([]byte(msg.Data), &vizMessage)
 
@@ -210,7 +215,7 @@ func main() {
 		vizMessageReceived.Add(len(vizMessage))
 	})
 
-	mqclient.Subscribe("game", "stopped", func(msg mq.BrokerMessage) {
+	mqclient.Subscribe("game", "stopped", func(msg coremq.BrokerMessage) {
 		var message GameStoppedMessage
 		err := json.Unmarshal(msg.Data, &message)
 		if err != nil {

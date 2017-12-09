@@ -1,19 +1,19 @@
 package main
 
-type obstacle struct {
-	coords [4]float64
-	name   string
-}
+// type obstacle struct {
+// 	coords [4]float64
+// 	name   string
+// }
 
 func main() {
 
-	obstacles := []obstacle{
-		obstacle{[4]float64{20, 20, 20, 120}, "a"},
-		obstacle{[4]float64{20, 20, 100, 20}, "b"},
-		obstacle{[4]float64{100, 20, 150, 100}, "c"},
-		obstacle{[4]float64{150, 100, 50, 100}, "d"},
-		obstacle{[4]float64{0, 50, 200, 50}, "cross"},
-	}
+	// obstacles := []obstacle{
+	// 	obstacle{[4]float64{20, 20, 20, 120}, "a"},
+	// 	obstacle{[4]float64{20, 20, 100, 20}, "b"},
+	// 	obstacle{[4]float64{100, 20, 150, 100}, "c"},
+	// 	obstacle{[4]float64{150, 100, 50, 100}, "d"},
+	// 	obstacle{[4]float64{0, 50, 200, 50}, "cross"},
+	// }
 
 	// begin := time.Now()
 	// fmt.Println("# 100, 80 ####################################################")

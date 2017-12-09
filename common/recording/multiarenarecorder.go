@@ -5,8 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/bytearena/bytearena/common/types/mapcontainer"
-	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/core/common/recording"
+	"github.com/bytearena/core/common/types/mapcontainer"
+	"github.com/bytearena/core/common/utils"
 )
 
 type MultiArenaRecorder struct {
@@ -60,7 +61,7 @@ func (r *MultiArenaRecorder) RecordMetadata(UUID string, mapcontainer *mapcontai
 		file, err := os.OpenFile(filename, os.O_RDWR, 0644)
 		utils.Check(err, "Could not open RecordMetadata file")
 
-		metadata := RecordMetadata{
+		metadata := recording.RecordMetadata{
 			MapContainer: mapcontainer,
 			Date:         time.Now().Format(time.RFC3339),
 		}
@@ -98,19 +99,19 @@ func (r *MultiArenaRecorder) Close(UUID string) {
 	metadataHandle, okRecordMetadata := r.recordMetadataFileHandles[UUID]
 
 	if okRecord && okRecordMetadata {
-		files := make([]ArchiveFile, 0)
+		files := make([]recording.ArchiveFile, 0)
 
-		files = append(files, ArchiveFile{
+		files = append(files, recording.ArchiveFile{
 			Name: "RecordMetadata",
 			Fd:   metadataHandle,
 		})
 
-		files = append(files, ArchiveFile{
+		files = append(files, recording.ArchiveFile{
 			Name: "Record",
 			Fd:   recordHandle,
 		})
 
-		err, _ := MakeArchive(r.directory+"/"+UUID, files)
+		err, _ := recording.MakeArchive(r.directory+"/"+UUID, files)
 		utils.CheckWithFunc(err, func() string {
 			return "could not create record archive: " + err.Error()
 		})
@@ -139,4 +140,19 @@ func (r *MultiArenaRecorder) Stop() {
 	for _, handle := range r.recordMetadataFileHandles {
 		handle.Close()
 	}
+}
+
+func createFileIfNotExists(path string) {
+	var _, err = os.Stat(path)
+
+	// create file if not exists
+	if os.IsNotExist(err) {
+		var file, err = os.Create(path)
+		utils.Check(err, "Could not create file")
+
+		utils.Debug("recorder", "created record file "+path)
+
+		defer file.Close()
+	}
+
 }

@@ -8,10 +8,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
 	"github.com/ttacon/chalk"
+
+	"github.com/bytearena/backends/common/mq"
+	"github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
 )
 
 func splitEventSlug(eventslug string) (channel string, topic string, err error) {

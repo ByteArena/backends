@@ -9,11 +9,11 @@ import (
 	notify "github.com/bitly/go-notify"
 	"github.com/skratchdot/open-golang/open"
 
-	"github.com/bytearena/bytearena/common"
-	"github.com/bytearena/bytearena/common/recording"
-	"github.com/bytearena/bytearena/common/utils"
-	"github.com/bytearena/bytearena/vizserver"
-	"github.com/bytearena/bytearena/vizserver/types"
+	"github.com/bytearena/core/common"
+	"github.com/bytearena/core/common/recording"
+	"github.com/bytearena/core/common/utils"
+	"github.com/bytearena/core/common/visualization"
+	"github.com/bytearena/core/common/visualization/types"
 )
 
 func main() {
@@ -28,8 +28,6 @@ func main() {
 
 	vizserver := NewVizService(*port, game, *filename)
 	// Below line is used to serve assets locally
-	// TODO(jerome): find a way to bundle the trainer with the assets
-	//vizserver.SetPathToAssets("/Users/jerome/Code/other/assets/")
 
 	vizserver.Start()
 
@@ -52,7 +50,7 @@ func sendMapToViz(msg string, debug bool, UUID string) {
 	notify.PostTimeout("viz:map:"+UUID, msg, time.Millisecond)
 }
 
-func NewVizService(port int, game *MockGame, recordFile string) *vizserver.VizService {
+func NewVizService(port int, game *MockGame, recordFile string) *visualization.VizService {
 
 	recordStore := recording.NewSingleFileRecordStore(recordFile)
 
@@ -62,7 +60,7 @@ func NewVizService(port int, game *MockGame, recordFile string) *vizserver.VizSe
 	vizgames := make([]*types.VizGame, 1)
 	vizgames[0] = types.NewVizGame(game)
 
-	vizservice := vizserver.NewVizService("0.0.0.0:"+strconv.Itoa(port), webclientpath, func() ([]*types.VizGame, error) {
+	vizservice := visualization.NewVizService("0.0.0.0:"+strconv.Itoa(port), webclientpath, func() ([]*types.VizGame, error) {
 		return vizgames, nil
 	}, recordStore)
 

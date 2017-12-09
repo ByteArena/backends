@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bytearena/bytearena/common/utils"
-
 	"github.com/influxdata/influxdb/client/v2"
+
+	"github.com/bytearena/core/common/utils"
 )
 
 type Client struct {

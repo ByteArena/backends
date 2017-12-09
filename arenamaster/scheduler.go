@@ -5,13 +5,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bytearena/bytearena/arenamaster/state"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
 	"github.com/bytearena/schnapps"
 	vmid "github.com/bytearena/schnapps/id"
 	vmscheduler "github.com/bytearena/schnapps/scheduler"
 	"github.com/xtuc/schaloop"
+
+	"github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
+
+	"github.com/bytearena/backends/arenamaster/state"
 )
 
 var (

@@ -7,9 +7,9 @@ import (
 
 	"github.com/xtuc/schaloop"
 
-	"github.com/bytearena/bytearena/common/mq"
-	"github.com/bytearena/bytearena/common/types"
-	"github.com/bytearena/bytearena/common/utils"
+	"github.com/bytearena/core/common/types"
+	"github.com/bytearena/core/common/utils"
+	"github.com/bytearena/backends/common/mq"
 )
 
 const (

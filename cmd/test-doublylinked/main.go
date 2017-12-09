@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/bytearena/bytearena/common/types/datastructures"
+	"github.com/bytearena/core/common/types/datastructures"
 )
 
 func dump(list datastructures.DLL, title string) {
