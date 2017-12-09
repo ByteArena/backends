@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/bytearena/backends/common/graphql"
-	graphqltype "github.com/bytearena/backends/common/graphql/types"
+	graphqltypes "github.com/bytearena/backends/common/graphql/types"
 	"github.com/bytearena/core/common/types"
 )
 
@@ -54,13 +54,13 @@ func FetchGames(graphqlclient graphql.Client) ([]types.GameDescriptionInterface,
 	}
 
 	var apiresponse struct {
-		Games []graphqltype.GameType `json:"games"`
+		Games []types.GameType `json:"games"`
 	}
 	json.Unmarshal(data, &apiresponse)
 
 	res := make([]types.GameDescriptionInterface, 0)
 	for _, game := range apiresponse.Games {
-		res = append(res, types.NewGameDescriptionGQL(game))
+		res = append(res, graphqltypes.NewGameDescriptionGQL(game))
 	}
 
 	return res, nil
@@ -79,10 +79,10 @@ func FetchGameById(graphqlclient graphql.Client, gameid string) (types.GameDescr
 	}
 
 	var apiresponse struct {
-		Games []graphqltype.GameType `json:"games"`
+		Games []types.GameType `json:"games"`
 	}
 	json.Unmarshal(data, &apiresponse)
-	game := types.NewGameDescriptionGQL(apiresponse.Games[0])
+	game := graphqltypes.NewGameDescriptionGQL(apiresponse.Games[0])
 
 	return game, nil
 }

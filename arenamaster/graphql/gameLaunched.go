@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/bytearena/backends/common/graphql"
-	gqltypes "github.com/bytearena/backends/common/graphql/types"
 
+	coretypes "github.com/bytearena/core/common/types"
 	"github.com/bytearena/core/common/utils"
 )
 
@@ -16,7 +16,7 @@ func ReportGameLaunched(gameid, mac string, gql *graphql.Client) {
 		graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{
 			"id": gameid,
 			"game": graphql.Variables{
-				"runStatus":       gqltypes.GameRunStatus.Running,
+				"runStatus":       coretypes.GameRunStatus.Running,
 				"launchedAt":      time.Now().Format(time.RFC822Z),
 				"arenaServerUUID": mac,
 			},

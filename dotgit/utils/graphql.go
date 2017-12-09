@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	graphqltype "github.com/bytearena/backends/common/graphql/types"
+	coretype "github.com/bytearena/core/common/types"
 
 	"github.com/bytearena/backends/dotgit/protocol"
 )
@@ -21,18 +22,18 @@ func GqlUserToUser(gqluser graphqltype.UserType) protocol.User {
 	}
 }
 
-func GqlAgentToRepo(gqlagent graphqltype.AgentType) protocol.GitRepository {
+func GqlAgentToRepo(gqlagent coretype.AgentType) protocol.GitRepository {
 
 	intid, _ := strconv.Atoi(gqlagent.Id)
-	owner := GqlUserToUser(*gqlagent.Owner)
+	//owner := GqlUserToUser(*gqlagent.Owner)
 
 	return protocol.GitRepository{
-		ID:       uint(intid),
-		Name:     gqlagent.GitRepository.Name,
-		CloneURL: gqlagent.GitRepository.CloneURL,
-		Ref:      gqlagent.GitRepository.Ref,
-		OwnerID:  int(owner.ID),
-		Owner:    owner,
+		ID: uint(intid),
+		// Name:     gqlagent.GitRepository.Name,
+		// CloneURL: gqlagent.GitRepository.CloneURL,
+		// Ref:      gqlagent.GitRepository.Ref,
+		// OwnerID: int(owner.ID),
+		// Owner:   owner,
 	}
 }
 

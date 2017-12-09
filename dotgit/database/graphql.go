@@ -8,6 +8,7 @@ import (
 
 	"github.com/bytearena/backends/common/graphql"
 	graphqltype "github.com/bytearena/backends/common/graphql/types"
+	coretype "github.com/bytearena/core/common/types"
 
 	"github.com/bytearena/backends/dotgit/protocol"
 	"github.com/bytearena/backends/dotgit/utils"
@@ -172,7 +173,7 @@ func (db *GraphqlDatabase) FindRepositoryById(id string) (protocol.GitRepository
 
 func processFoundRepository(data json.RawMessage) (protocol.GitRepository, error) {
 	var apiresponse struct {
-		Agents []graphqltype.AgentType `json:"agents"`
+		Agents []coretype.AgentType `json:"agents"`
 	}
 	err := json.Unmarshal(data, &apiresponse)
 	if err != nil || len(apiresponse.Agents) > 1 {

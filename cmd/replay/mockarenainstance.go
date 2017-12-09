@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	gqltypes "github.com/bytearena/backends/common/graphql/types"
-
 	"github.com/bytearena/core/common/types"
 	"github.com/bytearena/core/common/types/mapcontainer"
 	"github.com/bytearena/core/common/utils"
@@ -60,7 +58,7 @@ func (game *MockGame) GetTps() int {
 }
 
 func (game *MockGame) GetRunStatus() int {
-	return gqltypes.GameRunStatus.Running
+	return types.GameRunStatus.Running
 }
 
 func (game *MockGame) GetLaunchedAt() string {

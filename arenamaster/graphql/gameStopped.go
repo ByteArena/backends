@@ -6,8 +6,8 @@ import (
 	"github.com/bytearena/backends/arenamaster/state"
 
 	"github.com/bytearena/backends/common/graphql"
-	gqltypes "github.com/bytearena/backends/common/graphql/types"
 
+	coretypes "github.com/bytearena/core/common/types"
 	"github.com/bytearena/core/common/utils"
 )
 
@@ -26,7 +26,7 @@ func ReportGameStopped(state *state.State, arenaServerUUID, gameid string, gql *
 		graphql.NewQuery(updateGameStateMutation).SetVariables(graphql.Variables{
 			"id": gameid,
 			"game": graphql.Variables{
-				"runStatus":       gqltypes.GameRunStatus.Finished,
+				"runStatus":       coretypes.GameRunStatus.Finished,
 				"endedAt":         time.Now().Format(time.RFC822Z),
 				"arenaServerUUID": arenaServerUUID,
 			},
