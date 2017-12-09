@@ -53,6 +53,16 @@ func systemMutations(deathmatch *DeathmatchGame, mutations []types.AgentMutation
 			}
 		}
 
+		// 3. if any debug, communicate them
+		for _, mutation := range batch.Mutations {
+			switch mutation.GetMethod() {
+			case "debugpoint":
+				{
+					handleDebugPointMutationMessage(deathmatch, batch.AgentEntityId, mutation)
+				}
+			}
+		}
+
 	}
 }
 
@@ -94,6 +104,28 @@ func handleSteerMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityI
 
 	steeringAspect := entityresult.Components[deathmatch.steeringComponent].(*Steering)
 	steeringAspect.PushSteer(steering)
+
+	return nil
+}
+
+func handleDebugPointMutationMessage(deathmatch *DeathmatchGame, entityID ecs.EntityID, mutation types.AgentMessagePayloadActions) error {
+	var debugPointFloats [2]float64
+
+	err := json.Unmarshal(mutation.GetArguments(), &debugPointFloats)
+	if err != nil {
+		return errors.New("Failed to unmarshal JSON arguments for debug action")
+	}
+
+	renderQueryResult := deathmatch.getEntity(entityID, deathmatch.renderComponent)
+	if renderQueryResult != nil {
+		renderAspect := renderQueryResult.Components[deathmatch.renderComponent].(*Render)
+
+		// TODO(sven): find a better place to initial that
+		renderAspect.DebugPoints = make([][2]float64, 0)
+		renderAspect.DebugSegments = make([][2][2]float64, 0)
+
+		renderAspect.DebugPoints = append(renderAspect.DebugPoints, debugPointFloats)
+	}
 
 	return nil
 }
