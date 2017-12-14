@@ -1,8 +1,6 @@
 .DS_Store
 .vscode
 data
-.secrets
-!.secrets/.gitkeep
 vendor
 cmd/replay/replay
 cmd/test-vm/test-vm
