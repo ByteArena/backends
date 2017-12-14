@@ -11,7 +11,7 @@ BUILDS=(
 )
 
 REPO_OWNER=bytearena
-REPO=cli
+REPO=ba
 TAG=v$1
 
 GH_API="https://api.github.com"
@@ -67,6 +67,3 @@ do
         -H "$AUTH" \
         -H "Content-Type: application/octet-stream"
 done
-
-git tag $TAG
-git push origin $TAG
