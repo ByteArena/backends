@@ -1,0 +1,261 @@
+hash: c00f88022714ee9c9b7c8166e1db96b00df41f0e9d61e71c984eeb1c9ff019a8
+updated: 2018-01-03T17:40:00.635275+01:00
+imports:
+- name: github.com/abiosoft/ishell
+  version: 50251d04cb42673a9df901983eeaf9f369c82551
+- name: github.com/akavel/polyclip-go
+  version: 2cfdb71461bde9115450eb65688337e3f8ee715e
+- name: github.com/asaskevich/EventBus
+  version: 68a521d7cbbb7a859c2608b06342f384b3bd5f5a
+- name: github.com/Azure/go-ansiterm
+  version: d6e3b3328b783f23731bc4d058875b0371ff8109
+  subpackages:
+  - winterm
+- name: github.com/bitly/go-notify
+  version: 0a148b8111d688ba7550fc7119fe0d5d8e650838
+- name: github.com/bytearena/box2d
+  version: 58acea7fee08a5fbb5a3a4c8f867205dd9826ae1
+- name: github.com/bytearena/core
+  version: ad7648833bf4caeecf6698cd2a6e01d7910df70b
+  subpackages:
+  - arenaserver
+  - arenaserver/agent
+  - arenaserver/comm
+  - arenaserver/container
+  - common
+  - common/assert
+  - common/dockerfile
+  - common/leakybucket
+  - common/mappack
+  - common/mq
+  - common/recording
+  - common/replay
+  - common/types
+  - common/types/datastructures
+  - common/types/mapcontainer
+  - common/utils
+  - common/utils/number
+  - common/utils/polygon
+  - common/utils/trigo
+  - common/utils/vector
+  - common/visibility2d
+  - common/visualization
+  - common/visualization/handler
+  - common/visualization/types
+  - game/common
+  - game/deathmatch
+  - game/deathmatch/events
+  - game/deathmatch/mailboxmessages
+- name: github.com/bytearena/ecs
+  version: 9807b7a979332b86419262a53b2b7e2295f98a9a
+- name: github.com/bytearena/schnapps
+  version: fe4096fe91478ed00f1fbb532fe81cb9ca5911e3
+  subpackages:
+  - cli
+  - dhcp
+  - dns
+  - id
+  - libvirt
+  - metadata
+  - qmp
+  - scheduler
+  - types
+  - utils
+- name: github.com/cenkalti/backoff
+  version: 61153c768f31ee5f130071d08fc82b85208528de
+- name: github.com/cheggaaa/pb
+  version: fec330ed6ef74d0a026da2c639821ee0d9f97687
+- name: github.com/chzyer/readline
+  version: f6d7a1f6fbf35bbf9beb80dc63c56a29dcfb759f
+- name: github.com/containerd/continuity
+  version: b2b946a77f5973f420514090d6f6dd58b08303f0
+  subpackages:
+  - pathdriver
+- name: github.com/davecgh/go-spew
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
+  subpackages:
+  - spew
+- name: github.com/davecgh/go-xdr
+  version: e6a2ba005892b6a5b27cb5352f64c2e96942dd28
+  subpackages:
+  - xdr2
+- name: github.com/dhconnelly/rtreego
+  version: 1323b09fe8f32430ea7e16ea1df99e106e3e6250
+- name: github.com/digitalocean/go-libvirt
+  version: 1a220100bdf4087dde0d58b3183a8d9910d55e6b
+  subpackages:
+  - internal/constants
+- name: github.com/digitalocean/go-qemu
+  version: d5e8dbfd06fdb6f19c5149c74b79d5b4318dbfa7
+  subpackages:
+  - qmp
+- name: github.com/docker/distribution
+  version: f86db6b22663a27ba4d278220b7e34be528b1e79
+  subpackages:
+  - digestset
+  - reference
+- name: github.com/docker/docker
+  version: 147ec3be2e7fe5d35553401990317cf49088ec86
+  subpackages:
+  - api
+  - api/types
+  - api/types/blkiodev
+  - api/types/container
+  - api/types/events
+  - api/types/filters
+  - api/types/image
+  - api/types/mount
+  - api/types/network
+  - api/types/registry
+  - api/types/strslice
+  - api/types/swarm
+  - api/types/swarm/runtime
+  - api/types/time
+  - api/types/versions
+  - api/types/volume
+  - builder/dockerfile/command
+  - builder/dockerfile/parser
+  - client
+  - pkg/jsonmessage
+  - pkg/mount
+  - pkg/system
+  - pkg/term
+  - pkg/term/windows
+- name: github.com/docker/go-connections
+  version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
+  subpackages:
+  - nat
+  - sockets
+  - tlsconfig
+- name: github.com/docker/go-units
+  version: d59758554a3d3911fa25c0269de1ebe2f1912c39
+- name: github.com/dustinkirkland/golang-petname
+  version: d3c2ba80e75eeef10c5cf2fc76d2c809637376b3
+- name: github.com/fatih/color
+  version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
+- name: github.com/flynn-archive/go-shlex
+  version: 3f9db97f856818214da2e1057f8ad84803971cff
+- name: github.com/go-gl/mathgl
+  version: 4c3fc6b4bf30179013667e5d0b926e024d9a13c1
+  subpackages:
+  - mgl64
+- name: github.com/go-redis/redis
+  version: fdafb11e5fa5d52d965e12073c8a58468c98ebe2
+  subpackages:
+  - internal
+  - internal/consistenthash
+  - internal/hashtag
+  - internal/pool
+  - internal/proto
+- name: github.com/gogo/protobuf
+  version: 30433562cfbf487fe1df7cd26c7bab168d2f14d0
+  subpackages:
+  - proto
+- name: github.com/gorilla/context
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+- name: github.com/gorilla/handlers
+  version: a4043c62cc2329bacda331d33fc908ab11ef0ec3
+- name: github.com/gorilla/mux
+  version: bcd8bc72b08df0f70df986b97f95590779502d31
+- name: github.com/gorilla/websocket
+  version: ea4d1f681babbce9545c9c5f3d5194a789c89f5b
+- name: github.com/influxdata/influxdb
+  version: 009a7b203537e0fe34b8c14014523c7c0f1846c7
+  subpackages:
+  - client/v2
+  - models
+  - pkg/escape
+- name: github.com/json-iterator/go
+  version: f7279a603edee96fe7764d3de9c6ff8cf9970994
+- name: github.com/kardianos/osext
+  version: ae77be60afb1dcacde03767a8c37337fad28ac14
+- name: github.com/mailru/easyjson
+  version: 32fa128f234d041f196a9f3e0fea5ac9772c08e1
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
+- name: github.com/mattn/go-colorable
+  version: 5411d3eea5978e6cdc258b30de592b60df6aba96
+  repo: https://github.com/mattn/go-colorable
+- name: github.com/mattn/go-isatty
+  version: 57fdcb988a5c543893cc61bce354a6e24ab70022
+  repo: https://github.com/mattn/go-isatty
+- name: github.com/Microsoft/go-winio
+  version: 78439966b38d69bf38227fbf57ac8a6fee70f69a
+- name: github.com/miekg/dns
+  version: 90888765254c1fa54fa39e2eb383aa3436a2e8f8
+- name: github.com/netgusto/poly2tri-go
+  version: d102ad91854fea433a859be7b7de879439911aeb
+- name: github.com/nsf/termbox-go
+  version: aa4a75b1c20a2b03751b1a9f7e41d58bd6f71c43
+- name: github.com/Nvveen/Gotty
+  version: cd527374f1e5bff4938207604a14f2e38a9cf512
+- name: github.com/opencontainers/go-digest
+  version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
+- name: github.com/opencontainers/image-spec
+  version: 577479e4dc273d3779f00c223c7e0dba4cd6b8b0
+  subpackages:
+  - specs-go
+  - specs-go/v1
+- name: github.com/phayes/freeport
+  version: b8543db493a5ed890c5499e935e2cad7504f3a04
+- name: github.com/pkg/errors
+  version: e881fd58d78e04cf6d0de1217f8707c8cc2249bc
+- name: github.com/satori/go.uuid
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/sirupsen/logrus
+  version: d682213848ed68c0a260ca37d6dd5ace8423f5ba
+- name: github.com/skratchdot/open-golang
+  version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
+  subpackages:
+  - open
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  subpackages:
+  - assert
+- name: github.com/ttacon/chalk
+  version: 76b3c8b611dea8f83e49e9ce81fc2b189e0ef3d2
+- name: github.com/urfave/cli
+  version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
+- name: github.com/xtuc/better-errors
+  version: a4f3ac7b04d7dd153e4f382947a0821278c0f660
+  subpackages:
+  - printer/tree
+- name: github.com/xtuc/go-structdoc
+  version: 5e91565bfd63cee29f42acce6110d47086aaece8
+- name: github.com/xtuc/schaloop
+  version: 9638fcdc196e786f64d8584d7008dbb7cc91c089
+  subpackages:
+  - monitoring
+- name: golang.org/x/crypto
+  version: 9477e0b78b9ac3d0b03822fd95422e2fe07627cd
+  subpackages:
+  - ed25519
+  - ed25519/internal/edwards25519
+  - ssh/terminal
+- name: golang.org/x/image
+  version: 12117c17ca67ffa1ce22e9409f3b0b0a93ac08c7
+  subpackages:
+  - math/f64
+- name: golang.org/x/net
+  version: d866cfc389cec985d6fda2859936a575a55a3ab6
+  subpackages:
+  - bpf
+  - context
+  - context/ctxhttp
+  - internal/iana
+  - internal/socket
+  - ipv4
+  - ipv6
+  - proxy
+- name: golang.org/x/sys
+  version: e24f485414aeafb646f6fca458b0bf869c0880a1
+  subpackages:
+  - unix
+  - windows
+testImports:
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib

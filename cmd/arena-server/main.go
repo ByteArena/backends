@@ -15,10 +15,10 @@ import (
 	"github.com/bytearena/backends/common/mq"
 
 	"github.com/bytearena/core/arenaserver"
-	arenaservertypes "github.com/bytearena/core/arenaserver/types"
 	"github.com/bytearena/core/common"
 	coremq "github.com/bytearena/core/common/mq"
 	"github.com/bytearena/core/common/types"
+	arenaservertypes "github.com/bytearena/core/common/types"
 	"github.com/bytearena/core/common/utils"
 	"github.com/bytearena/core/game/deathmatch"
 )

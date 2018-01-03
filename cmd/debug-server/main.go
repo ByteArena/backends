@@ -12,7 +12,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/bytearena/core/arenaserver/container"
-	arenaservertypes "github.com/bytearena/core/arenaserver/types"
+	arenaservertypes "github.com/bytearena/core/common/types"
 	commontypes "github.com/bytearena/core/common/types"
 	"github.com/bytearena/core/common/utils"
 )

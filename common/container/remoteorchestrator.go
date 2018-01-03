@@ -12,7 +12,7 @@ import (
 	"github.com/docker/docker/client"
 	uuid "github.com/satori/go.uuid"
 
-	arenaservertypes "github.com/bytearena/core/arenaserver/types"
+	arenaservertypes "github.com/bytearena/core/common/types"
 	t "github.com/bytearena/core/common/types"
 	"github.com/bytearena/core/common/utils"
 
