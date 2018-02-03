@@ -413,6 +413,7 @@ func main() {
 	}
 
 	for _, start := range modelsStart {
+		modelnames := getNodeNames(start)
 		origin := vertexType{0, 0, 0}.applyTransform(start.getFullTransform())
 		starts = append(starts, mapcontainer.MapPointObject{
 			Id:   strconv.Itoa(int(start.id)),
@@ -421,6 +422,7 @@ func main() {
 				origin[0],
 				origin[1],
 			},
+			Tags: modelnames.OnlyPrefix("ba:").StripPrefix("ba:"),
 		})
 	}
 
