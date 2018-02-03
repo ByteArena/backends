@@ -12,7 +12,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/go-gl/mathgl/mgl64"
 
@@ -339,6 +338,10 @@ func main() {
 	modelsObstacle := make([]*fbxModel, 0)
 	modelsGround := make([]*fbxModel, 0)
 	modelsStart := make([]*fbxModel, 0)
+	modelsOther := make([]*fbxModel, 0)
+
+	gameKind := ""
+	gameVariant := ""
 
 	for _, model := range models {
 		if model.geometry == nil {
@@ -347,26 +350,49 @@ func main() {
 
 		modelnames := getNodeNames(model)
 
+		foundMatch := false
+
 		if modelnames.Contains("ba:obstacle") > -1 {
 			modelsObstacle = append(modelsObstacle, model)
+			foundMatch = true
 		}
 
 		if modelnames.Contains("ba:ground") > -1 {
 			modelsGround = append(modelsGround, model)
+			foundMatch = true
 		}
 
 		if modelnames.Contains("ba:start") > -1 {
 			modelsStart = append(modelsStart, model)
+			foundMatch = true
+		}
+
+		if index := modelnames.ContainsPrefix("ba:game:"); index > -1 {
+			gameType := strings.TrimPrefix(modelnames[index], "ba:game:")
+
+			parts := strings.SplitN(gameType, ":", 2)
+			gameKind = parts[0]
+
+			if len(parts) > 1 {
+				gameVariant = parts[1]
+			}
+		}
+
+		if !foundMatch && modelnames.ContainsPrefix("ba:as:") > -1 {
+			modelsOther = append(modelsOther, model)
 		}
 	}
 
-	grounds := make([]mapcontainer.MapGround, 0)
-	obstacles := make([]mapcontainer.MapObstacleObject, 0)
-	starts := make([]mapcontainer.MapStart, 0)
+	grounds := make([]mapcontainer.MapPolygonObject, 0)
+	obstacles := make([]mapcontainer.MapPolygonObject, 0)
+	starts := make([]mapcontainer.MapPointObject, 0)
+
+	otherPoints := make([]mapcontainer.MapPointObject, 0)
+	otherPolygons := make([]mapcontainer.MapPolygonObject, 0)
 
 	for _, model := range modelsObstacle {
 		//fmt.Println("# " + model.name)
-		obstacles = append(obstacles, mapcontainer.MapObstacleObject{
+		obstacles = append(obstacles, mapcontainer.MapPolygonObject{
 			Id:   strconv.Itoa(int(model.id)),
 			Name: model.name,
 			Polygon: polygonFrom2DMesh(
@@ -377,7 +403,7 @@ func main() {
 
 	for _, model := range modelsGround {
 		//fmt.Println("# " + model.name)
-		grounds = append(grounds, mapcontainer.MapGround{
+		grounds = append(grounds, mapcontainer.MapPolygonObject{
 			Id:   strconv.Itoa(int(model.id)),
 			Name: model.name,
 			Polygon: polygonFrom2DMesh(
@@ -388,7 +414,7 @@ func main() {
 
 	for _, start := range modelsStart {
 		origin := vertexType{0, 0, 0}.applyTransform(start.getFullTransform())
-		starts = append(starts, mapcontainer.MapStart{
+		starts = append(starts, mapcontainer.MapPointObject{
 			Id:   strconv.Itoa(int(start.id)),
 			Name: start.name,
 			Point: mapcontainer.MapPoint{
@@ -398,16 +424,45 @@ func main() {
 		})
 	}
 
+	for _, other := range modelsOther {
+		modelnames := getNodeNames(other)
+
+		if modelnames.Contains("ba:as:point") > -1 {
+			origin := vertexType{0, 0, 0}.applyTransform(other.getFullTransform())
+			otherPoints = append(otherPoints, mapcontainer.MapPointObject{
+				Id:   strconv.Itoa(int(other.id)),
+				Name: other.name,
+				Point: mapcontainer.MapPoint{
+					origin[0],
+					origin[1],
+				},
+				Tags: modelnames.OnlyPrefix("ba:").StripPrefix("ba:"),
+			})
+		} else if modelnames.Contains("ba:as:polygon") > -1 {
+			otherPolygons = append(otherPolygons, mapcontainer.MapPolygonObject{
+				Id:   strconv.Itoa(int(other.id)),
+				Name: other.name,
+				Polygon: polygonFrom2DMesh(
+					other.geometry.getTransformedFaces(other.getFullTransform()),
+				),
+				Tags: modelnames.OnlyPrefix("ba:").StripPrefix("ba:"),
+			})
+		}
+
+	}
+
 	builtmap := mapcontainer.MapContainer{}
 
 	builtmap.Meta.Readme = "Byte Arena Map"
-	builtmap.Meta.Kind = "deathmatch"
+	builtmap.Meta.Kind = gameKind
+	builtmap.Meta.Variant = gameVariant
 	builtmap.Meta.MaxContestants = len(starts)
-	builtmap.Meta.Date = time.Now().Format(time.RFC3339)
 
 	builtmap.Data.Grounds = grounds
 	builtmap.Data.Starts = starts
 	builtmap.Data.Obstacles = obstacles
+	builtmap.Data.OtherPointObjects = otherPoints
+	builtmap.Data.OtherPolygonObjects = otherPolygons
 
 	bjsonmap, _ := json.MarshalIndent(builtmap, "", "    ")
 	fmt.Println(string(bjsonmap))
@@ -761,6 +816,44 @@ func (c ModelNameCollection) Contains(search string) int {
 	return -1
 }
 
+func (c ModelNameCollection) ContainsPrefix(prefix string) int {
+
+	for i, group := range c {
+		if strings.HasPrefix(group, prefix) {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func (c ModelNameCollection) OnlyPrefix(prefix string) ModelNameCollection {
+
+	newColl := make([]string, 0)
+
+	for _, group := range c {
+		if strings.HasPrefix(group, prefix) {
+			newColl = append(newColl, strings.TrimPrefix(group, prefix))
+		}
+	}
+
+	return newColl
+}
+
+func (c ModelNameCollection) StripPrefix(prefix string) ModelNameCollection {
+
+	newColl := make([]string, 0)
+
+	for _, group := range c {
+		res := strings.TrimPrefix(group, prefix)
+		if strings.TrimSpace(res) != "" {
+			newColl = append(newColl, res)
+		}
+	}
+
+	return newColl
+}
+
 func getNodeNames(i *fbxModel) ModelNameCollection {
 
 	var model *fbxModel = i
@@ -768,7 +861,7 @@ func getNodeNames(i *fbxModel) ModelNameCollection {
 	res := make(ModelNameCollection, 0)
 	for model != nil {
 		if model.name != "" {
-			res = append(res, model.name)
+			res = append(res, strings.Split(model.name, " ")...)
 		}
 
 		model = model.parent
